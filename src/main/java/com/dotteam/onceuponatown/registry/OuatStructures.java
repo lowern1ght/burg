@@ -1,8 +1,10 @@
 package com.dotteam.onceuponatown.registry;
 
 import com.dotteam.onceuponatown.OuatConstants;
-import com.dotteam.onceuponatown.world.TownPieces;
-import com.dotteam.onceuponatown.world.TownStructure;
+import com.dotteam.onceuponatown.world.structure.TownStructure;
+import com.dotteam.onceuponatown.world.structure.pieces.BuildingPiece;
+import com.dotteam.onceuponatown.world.structure.pieces.PathPiece;
+import com.dotteam.onceuponatown.world.structure.pieces.TownDataBuildingPiece;
 import com.mojang.serialization.Codec;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.levelgen.structure.Structure;
@@ -17,7 +19,10 @@ public class OuatStructures {
     public static final DeferredRegister<StructurePieceType> STRUCTURE_PIECES = DeferredRegister.create(Registries.STRUCTURE_PIECE, OuatConstants.MOD_ID);
 
     public static final RegistryObject<StructureType<TownStructure>> TOWN_STRUCTURE = STRUCTURE_TYPES.register("town", () -> get(TownStructure.CODEC));
-    public static final RegistryObject<StructurePieceType> TOWN_PIECE = STRUCTURE_PIECES.register("town_piece", () -> (StructurePieceType.StructureTemplateType) TownPieces.TownPiece::new);
+    public static final RegistryObject<StructurePieceType> BUILDING_PIECE = STRUCTURE_PIECES.register("building_piece", () -> (StructurePieceType.StructureTemplateType) BuildingPiece::new);
+    public static final RegistryObject<StructurePieceType> TOWN_DATA_BUILDING_PIECE = STRUCTURE_PIECES.register("town_data_building_piece", () -> (StructurePieceType.StructureTemplateType) TownDataBuildingPiece::new);
+    public static final RegistryObject<StructurePieceType> PATH_PIECE = STRUCTURE_PIECES.register("path_piece", () -> (StructurePieceType.ContextlessType) PathPiece::new);
+
 
     private static <T extends Structure> StructureType<T> get(Codec<T> codec) {
         return () -> codec;

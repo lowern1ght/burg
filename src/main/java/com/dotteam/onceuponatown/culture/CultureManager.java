@@ -1,13 +1,15 @@
 package com.dotteam.onceuponatown.culture;
 
-import com.dotteam.onceuponatown.OuatConstants;
 import com.dotteam.onceuponatown.util.OuatLog;
+import com.google.gson.JsonObject;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.PreparableReloadListener;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.util.profiling.ProfilerFiller;
+import net.minecraft.world.item.Item;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -30,59 +32,104 @@ public class CultureManager implements PreparableReloadListener {
         return this.cultures.get(name);
     }
 
-    private static void loadCultures(List<ResourceLocation> cultureJsonList, ResourceManager resourceManager) {
-        for (ResourceLocation cultureJson : cultureJsonList) {
-            loadCulture(cultureJson, resourceManager);
-        }
+    public void loadCultures(ResourceManager manager) {
+        var detectedCultures = new HashMap<>(manager.listResources("cultures",
+                (rl) -> rl.getPath().endsWith("/ouat_culture.json")));
+        OuatLog.info(detectedCultures.size() + " detected cultures will be loaded");
+        detectedCultures.forEach((rl, res) -> loadCulture(rl, res, manager));
     }
 
-    private static void loadCulture(ResourceLocation cultureJson, ResourceManager resourceManager) {
-        OuatLog.info("Loading culture " + cultureJson.getPath());
-        var optional = resourceManager.getResource(cultureJson);
-        if (optional.isPresent()) {
-            OuatLog.info("optional present");
-            Resource cultureResource = optional.get();
-            try {
-                Reader reader = cultureResource.openAsReader();
-                var rootJsonObject = GsonHelper.parse(reader);
-                String cultureName = rootJsonObject.get("name").getAsString();
-                OuatLog.info("Detected culture name : " + cultureName);
-                if ((cultureName == null)) {
-                    throw new RuntimeException("Invalid culture : unnamed culture");
-                }
-                if (!cultureJson.getPath().equals("cultures/" + cultureName + "/culture.json")) {
-                    throw new RuntimeException("Invalid culture : wrong culture directory name");
-                }
-                Culture culture = new Culture(cultureName);
-                /// BUILDINGS ///
-                List<ResourceLocation> detectedJsons = new ArrayList<>(resourceManager.listResources("cultures/" + cultureName + "/buildings", (fileName) ->
-                        fileName.getNamespace().equals(OuatConstants.MOD_ID) && fileName.getPath().endsWith(".json")).keySet());
-                OuatLog.info("nb of buildings : " + detectedJsons.size());
-
-                for (ResourceLocation potentialBuildingJson : detectedJsons) {
-                    OuatLog.info("Detected building : " + potentialBuildingJson.getPath());
-                    List<ResourceLocation> buildingNbt = new ArrayList<>(resourceManager.listResources("cultures/" + cultureName + "/buildings", (fileName) ->
-                            fileName.getNamespace().equals(OuatConstants.MOD_ID) && fileName.getPath().endsWith(".nbt")).keySet());
-                }
-
-
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+    private void loadCulture(ResourceLocation mainJsonLocation, Resource mainJsonResource, ResourceManager manager) {
+        OuatLog.info("Loading culture \"" + mainJsonLocation.getPath() + "\"");
+        JsonObject cultureJsonObject;
+        try (Reader reader = mainJsonResource.openAsReader() ){
+            cultureJsonObject = GsonHelper.parse(reader);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
+        Culture culture = buildCulture(cultureJsonObject);
+        if (!mainJsonLocation.getPath().equals("cultures/" + culture.getId() + "/ouat_culture.json")) {
+            throw new RuntimeException("Once upon a town : corrupted culture " + culture.getId() + " : wrong json file location");
+        }
+        String cultureNamespace = mainJsonLocation.getNamespace();
+
+        var buildingJsons = manager.listResources("cultures/" + culture.getId() + "/buildings",
+                    (resourceLocation) -> resourceLocation.getNamespace().equals(cultureNamespace) && resourceLocation.getPath().endsWith(".json")).keySet();
+            buildingJsons.forEach((buildingJson) -> {
+                BuildingType buildingType = readBuildingJson(buildingJson, manager);
+                culture.addBuildingType(buildingType);
+            });
+
+    }
+
+    private Culture buildCulture(JsonObject cultureJson) {
+        String file = "ouat_culture.json";
+        String cultureId = cultureJson.get("id").getAsString();
+        // CULTURE ID
+        if ((cultureId == null)) {
+            //throw new CorruptedCultureException(cultureJson.getPath(), file, "id");
+        }
+        // MINIMUM AMOUNT OF SPAWNED BUILDINGS
+        int starterPackMinSize = cultureJson.get("starter_pack_min_size").getAsInt();
+        if (starterPackMinSize < 1) {
+            throw new CorruptedCultureException(cultureId, file, "starter_pack_min_size");
+        }
+        // MAXIMUM AMOUNT OF SPAWNED BUILDINGS
+        int starterPackMaxSize = cultureJson.get("starter_pack_max_size").getAsInt();
+        if (starterPackMaxSize < 1 || starterPackMaxSize < starterPackMinSize) {
+            throw new CorruptedCultureException(cultureId, file, "starter_pack_max_size");
+        }
+        // ALLOWED FOODS
+        List<Item> foodsList = new ArrayList<>();
+        var foods = cultureJson.getAsJsonArray("foods");
+        if (foods == null) {
+            throw new CorruptedCultureException(cultureId, file, "foods");
+        }
+        foods.forEach((jsonElement -> {
+            Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(jsonElement.getAsString()));
+            foodsList.add(item);
+        }));
+        Culture culture = new Culture(cultureId, starterPackMinSize, starterPackMaxSize, foodsList);
+        // ERAS
+        List<Culture.Era> erasList = new ArrayList<>();
+        var eras = cultureJson.getAsJsonArray("eras");
+        if (eras == null) {
+            throw new CorruptedCultureException(cultureId, file, "eras");
+        }
+        eras.forEach((jsonElement -> {
+            var jsonObject = jsonElement.getAsJsonObject();
+            int order = jsonObject.get("order").getAsInt();
+            int requiredXp = jsonObject.get("required_xp").getAsInt();
+            int buildingsWeight = jsonObject.get("buildings_weight").getAsInt();
+            erasList.add(new Culture.Era(order, requiredXp, buildingsWeight));
+        }));
+        // ORIENTATIONS (without building list)
+        List<Orientation> orientationsList = new ArrayList<>();
+        var orientations = cultureJson.getAsJsonArray("orientations");
+        if (orientations == null) {
+            throw new CorruptedCultureException(cultureId, file, "eras");
+        }
+        orientations.forEach((jsonElement -> {
+            var jsonObject = jsonElement.getAsJsonObject();
+            String id = jsonObject.get("id").getAsString();
+            orientationsList.add(new Orientation(id));
+        }));
+
+        erasList.forEach((culture::addEra));
+        orientationsList.forEach(culture::addOrientation);
+        return culture;
+    }
+
+    private BuildingType readBuildingJson(ResourceLocation buildingJson, ResourceManager manager) {
+        return null;
+    }
+
+    private CitizenJob readJobJson(ResourceLocation jobJson, ResourceManager manager) {
+        return null;
     }
 
     public CompletableFuture<Void> reload(PreparationBarrier stage, ResourceManager resourceManager, ProfilerFiller preparationsProfiler, ProfilerFiller reloadProfiler, Executor backgroundExecutor, Executor gameExecutor) {
         return CompletableFuture.allOf(CompletableFuture.runAsync(() -> {
-            List<ResourceLocation> detectedCultures = new ArrayList<>(resourceManager.listResources("cultures", (fileName) ->
-                    fileName.getNamespace().equals(OuatConstants.MOD_ID) && fileName.getPath().endsWith("/culture.json")).keySet());
-
-            OuatLog.info("Reloading cultures");
-            for (ResourceLocation cultureJson : detectedCultures) {
-                OuatLog.info("Culture detected : " + cultureJson.getPath());
-            }
-
-            loadCultures(detectedCultures, resourceManager);
 
         }, backgroundExecutor)).thenCompose(stage::wait);
     }

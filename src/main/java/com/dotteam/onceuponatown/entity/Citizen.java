@@ -1,10 +1,8 @@
 package com.dotteam.onceuponatown.entity;
 
-import com.dotteam.onceuponatown.building.Building;
 import com.dotteam.onceuponatown.menu.BuyMenu;
 import com.dotteam.onceuponatown.menu.InteractableCitizen;
 import com.dotteam.onceuponatown.registry.OuatEntities;
-import com.dotteam.onceuponatown.town.Town;
 import com.dotteam.onceuponatown.trade.BuyDeal;
 import com.dotteam.onceuponatown.trade.SellDeal;
 import com.dotteam.onceuponatown.trade.TradeUtils;

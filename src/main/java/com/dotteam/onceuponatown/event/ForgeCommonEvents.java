@@ -1,15 +1,16 @@
 package com.dotteam.onceuponatown.event;
 
 import com.dotteam.onceuponatown.OuatConstants;
+import com.dotteam.onceuponatown.culture.CultureManager;
 import com.dotteam.onceuponatown.entity.Citizen;
 import com.dotteam.onceuponatown.registry.OuatCommands;
 import com.dotteam.onceuponatown.town.TownManager;
-import com.dotteam.onceuponatown.util.OuatLog;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.MobSpawnEvent;
+import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -25,6 +26,11 @@ public class ForgeCommonEvents {
         if (event.level instanceof ServerLevel level && event.phase.equals(TickEvent.Phase.END)) {
             TownManager.tickTowns(level);
         }
+    }
+
+    @SubscribeEvent
+    public static void onServerStarting(ServerStartingEvent event) {
+        CultureManager.instance().loadCultures(event.getServer().getResourceManager());
     }
 
     @SubscribeEvent
