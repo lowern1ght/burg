@@ -362,7 +362,7 @@ public class TownMap {
      */
     public int getIDInMapPos(int xMap, int zMap){
         // Get the Map ID (0 if outside the map)
-        //TODO Need to check if this position is not underwater or lava. Here I use getSurfaceY which generate my fake landscape. If the Y of this fake landscape is lower than 55, I consider it's water.
+        //TODO Maybe add a -1 value to check for obstacle, like underwater or lava.
         return (xMap < 0 || zMap < 0 || zMap >= this.townMap.length || xMap >= this.townMap[0].length) ? 0 : this.townMap[zMap][xMap];
     }
 
@@ -485,7 +485,7 @@ public class TownMap {
             int prevY = -999;
             for(int x = 0; x < width; x++){
                 int id = displayMap[z][x];
-                int currY = this.getFloorHeight(x, z);
+                int currY = 60 //TODO must be replace with world high this.getFloorHeight(x, z);
                 if(prevY == -999){
                     prevY = currY;
                 }
@@ -510,14 +510,6 @@ public class TownMap {
             }
             System.out.println(row);
         }
-    }
-
-    /**
-     * Temporary function that is used to retrieve the Y level of the floor.
-     * TODO Need to be adapted to MC code.
-     */
-    public int getFloorHeight(int mapX, int mapZ){
-        return getSurfaceY(this, mapX, mapZ);
     }
 
     public enum ColorMap{
