@@ -485,7 +485,7 @@ public class TownMap {
             int prevY = -999;
             for(int x = 0; x < width; x++){
                 int id = displayMap[z][x];
-                int currY = 60 //TODO must be replace with world high this.getFloorHeight(x, z);
+                int currY = 60; //TODO must be replace with world high this.getFloorHeight(x, z);
                 if(prevY == -999){
                     prevY = currY;
                 }
