@@ -12,9 +12,9 @@ import net.minecraft.network.chat.HoverEvent;
 
 import java.util.List;
 
-public class TownListCommand {
+public class ListTownsCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> register() {
-        return Commands.literal("townlist").executes(context -> listTowns(context.getSource()));
+        return Commands.literal("listtowns").executes(context -> listTowns(context.getSource()));
     }
 
     private static int listTowns(CommandSourceStack source) {

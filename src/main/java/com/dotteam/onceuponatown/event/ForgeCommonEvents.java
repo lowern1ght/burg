@@ -21,7 +21,7 @@ public class ForgeCommonEvents {
         //event.addListener(CultureManager.instance());
     }
 
-    @SubscribeEvent
+    //@SubscribeEvent
     public static void onLevelTick(TickEvent.LevelTickEvent event) {
         if (event.level instanceof ServerLevel level && event.phase.equals(TickEvent.Phase.END)) {
             TownManager.tickTowns(level);
@@ -30,7 +30,7 @@ public class ForgeCommonEvents {
 
     @SubscribeEvent
     public static void onServerStarting(ServerStartingEvent event) {
-        CultureManager.instance().loadCultures(event.getServer().getResourceManager());
+        CultureManager.loadCultures(event.getServer().getResourceManager());
     }
 
     @SubscribeEvent

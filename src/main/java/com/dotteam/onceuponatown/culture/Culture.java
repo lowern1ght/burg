@@ -12,17 +12,21 @@ public class Culture {
     private int starterPackMinSize;
     private int starterPackMaxSize;
     private List<Item> foods;
-    private List<Era> eras;
+    private final List<Era> eras;
 
-    Culture(String id, int starterPackMinSize, int starterPackMaxSize, List<Item> foods) {
+    Culture(String id, int starterPackMinSize, int starterPackMaxSize, List<Era> eras) {
         this.id = id;
         this.starterPackMinSize = starterPackMinSize;
         this.starterPackMaxSize = starterPackMaxSize;
-        this.foods = foods;
+        this.eras = eras;
     }
 
     void addOrientation(Orientation orientation) {
         this.orientations.add(orientation);
+    }
+
+    public List<Era> getEras() {
+        return this.eras;
     }
 
     void addEra(Era era) {
@@ -37,5 +41,13 @@ public class Culture {
         return this.id;
     }
 
-    record Era(int order, int requiredXp, int buildingsWeight) {}
+    public int getStarterPackMinSize() {
+        return this.starterPackMinSize;
+    }
+
+    public int getStarterPackMaxSize() {
+        return this.starterPackMaxSize;
+    }
+
+    public record Era(int order, int requiredXp, int buildingsWeight) {}
 }
