@@ -4,6 +4,7 @@ import com.dotteam.onceuponatown.OuatConstants;
 import com.dotteam.onceuponatown.command.CultureInfoCommand;
 import com.dotteam.onceuponatown.command.ListCulturesCommand;
 import com.dotteam.onceuponatown.command.ListTownsCommand;
+import com.dotteam.onceuponatown.command.TownDebugCommand;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.tree.LiteralCommandNode;
@@ -15,7 +16,8 @@ public class OuatCommands {
         LiteralArgumentBuilder<CommandSourceStack> builder = Commands.literal(OuatConstants.MOD_ID)
                 .then(CultureInfoCommand.register())
                 .then(ListCulturesCommand.register())
-                .then(ListTownsCommand.register());
+                .then(ListTownsCommand.register())
+                .then(TownDebugCommand.register());
         LiteralCommandNode<CommandSourceStack> node = dispatcher.register(builder);
         dispatcher.register(Commands.literal("ouat").redirect(node));
     }
