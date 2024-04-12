@@ -8,6 +8,8 @@ import java.util.Comparator;
 import java.util.HashMap;
 import com.dotteam.onceuponatown.town.map.TownMapUtils.Corner;
 import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtUtils;
 import net.minecraft.util.RandomSource;
 
 import static com.dotteam.onceuponatown.town.map.TownMapUtils.*;
@@ -32,6 +34,20 @@ public class TownMap {
         this.townSECorner = townCenter.mutable();
         this.townMap = new int[1][1];
         this.init();
+    }
+
+    public TownMap(CompoundTag tag){
+        this.townCenter = NbtUtils.readBlockPos(tag.getCompound("TownCenter"));
+        this.townNWCorner = NbtUtils.readBlockPos(tag.getCompound("TownNWCorner")).mutable();
+        this.townSECorner = NbtUtils.readBlockPos(tag.getCompound("TownSECorner")).mutable();
+        //TODO: Read other data
+    }
+
+    public void saveToNBT(CompoundTag tag) {
+        tag.put("TownCenter", NbtUtils.writeBlockPos(this.townCenter));
+        tag.put("TownNWCorner", NbtUtils.writeBlockPos(this.townNWCorner.immutable()));
+        tag.put("TownSECorner", NbtUtils.writeBlockPos(this.townSECorner.immutable()));
+        //TODO: Save other data
     }
 
     /**
