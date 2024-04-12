@@ -8,6 +8,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import com.dotteam.onceuponatown.town.map.TownMapUtils.Corner;
 import net.minecraft.core.Direction;
+import net.minecraft.util.RandomSource;
 
 import static com.dotteam.onceuponatown.town.map.TownMapUtils.*;
 
@@ -19,6 +20,7 @@ public class TownMap {
     private int[][] townMap;
     private final HashMap<Integer, MapBuild> builds = new HashMap<>();
     private final ArrayList<Bud> buds = new ArrayList<>();
+    protected static final RandomSource randomSource = RandomSource.create();
 
     /**
      * Create the new instance of TownMap, object use to position the building in Minecraft.
@@ -242,12 +244,12 @@ public class TownMap {
         if(bud != null){
             // If this bud has only one adjacent Path, we try
             //TODO Replace with Vanilla random.
-            if(bud.getAdjacentPaths().length == 1 && TownMapDisplay.RAND.nextFloat() < PATH_SPAWN_RATE){
+            if(bud.getAdjacentPaths().length == 1 && randomSource.nextFloat() < PATH_SPAWN_RATE){
                 boolean big = false;
                 Direction pathDir = bud.getAdjacentPaths()[0];
                 if(this.getBuild(bud.getRealPos().relative(pathDir)) instanceof MapPath path){
                     if(path.isBig()){
-                        big = TownMapDisplay.RAND.nextFloat() < BIG_PATH_SPAWN_RATE;
+                        big = randomSource.nextFloat() < BIG_PATH_SPAWN_RATE;
                     }
                 }
                 // We check if there is already a path quite close to this one.
@@ -360,10 +362,8 @@ public class TownMap {
      */
     public int getIDInMapPos(int xMap, int zMap){
         // Get the Map ID (0 if outside the map)
-        int id = (xMap < 0 || zMap < 0 || zMap >= this.townMap.length || xMap >= this.townMap[0].length) ? 0 : this.townMap[zMap][xMap];
-        //TODO Should return "id" in real life, but we also need to check if this position is not underwater or lava. Here I use getSurfaceY which generate my fake landscape. If the Y of this fake landscape is lower than 55, I consider it's water.
-        //return id;
-        return id == 0 && getSurfaceY(this, xMap, zMap) <= 55 ? -1 : id;
+        //TODO Need to check if this position is not underwater or lava. Here I use getSurfaceY which generate my fake landscape. If the Y of this fake landscape is lower than 55, I consider it's water.
+        return (xMap < 0 || zMap < 0 || zMap >= this.townMap.length || xMap >= this.townMap[0].length) ? 0 : this.townMap[zMap][xMap];
     }
 
     /**

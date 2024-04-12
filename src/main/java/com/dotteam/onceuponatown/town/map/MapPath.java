@@ -36,9 +36,8 @@ public class MapPath extends MapBuild{
     private void tryGrowing(TownMap map) {
         if(this.canGrow && this.getDirection() != null){
             // We decide if this Path will stop growing definitively after this growth.
-            //TODO Replace with Vanilla random.
             if(!this.isBig){
-                if(TownMapDisplay.RAND.nextFloat() < PATH_STOP_RATE){
+                if(map.randomSource.nextFloat() < PATH_STOP_RATE){
                     this.canGrow = false;
                 }
             }
@@ -197,7 +196,7 @@ public class MapPath extends MapBuild{
         // We check all the position from the Bud to the width.
         for(int offset = 0; offset < getWidth(this.isBig()); offset++){
             //TODO Replace with the real Y Map query function.
-            if(!map.isEmpty(cursor) || (Math.abs(TownMapDisplay.getSurfaceY(cursor)) - this.getYOnPos(testedOriginPos, cursor)) > MAXI_Y_DIFFERENCE){
+            if(!map.isEmpty(cursor)){// || (Math.abs(TownMapDisplay.getSurfaceY(cursor)) - this.getYOnPos(testedOriginPos, cursor)) > MAXI_Y_DIFFERENCE){
                 return false;
             }
             cursor.relative(dir);

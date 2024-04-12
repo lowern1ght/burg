@@ -45,9 +45,8 @@ public class Bud {
                 return null;
             }
         }
-        //TODO Replace the method to get Y with a MC one !
-        //TODO Replace the Y with the Y value of the adjacent Path.
-        return new Bud(map, type, realPos.atY(TownMapDisplay.getSurfaceY(realPos)), corner, adjacentPaths);
+        //TODO Replace the Y with the Y value of the adjacent Path. Is it useful or do I just recalculate the correct Y when a build is set at the given position ?
+        return new Bud(map, type, realPos, corner, adjacentPaths);
     }
 
     /**
