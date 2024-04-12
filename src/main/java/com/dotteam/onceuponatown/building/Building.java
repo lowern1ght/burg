@@ -1,10 +1,10 @@
 package com.dotteam.onceuponatown.building;
 
 import com.dotteam.onceuponatown.construction.BuildingPlacementSettings;
+import com.dotteam.onceuponatown.culture.BuildingType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.Item;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,7 +42,7 @@ public class Building {
         return structurePath;
     }
 
-    public HashMap<Item, Integer> getProduction() {
+    public HashMap<ResourceLocation, Integer> getProduction() {
         return this.buildingType.getProduction();
     }
 }

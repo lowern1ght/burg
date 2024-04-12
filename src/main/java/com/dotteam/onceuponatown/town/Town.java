@@ -12,6 +12,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.bossevents.CustomBossEvent;
 import net.minecraft.server.bossevents.CustomBossEvents;
 import net.minecraft.server.level.ServerLevel;
@@ -21,10 +22,8 @@ import net.minecraft.world.BossEvent;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
-import net.minecraftforge.fml.loading.StringUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -64,8 +63,7 @@ public class Town {
         createOrLoadXpBar();
     }
 
-    static Town create(Level level, Culture culture, String biome, TownMap townMap) {
-        String name = biome + " hamlet";
+    static Town create(Level level, Culture culture, String name, TownMap townMap) {;
         TownInventory townInventory = new TownInventory();
         List<UUID> citizens = new ArrayList<>();
         List<Building> buildings = new ArrayList<>();
@@ -79,7 +77,7 @@ public class Town {
         List<UUID> citizens = new ArrayList<>();
 
         UUID uuid = tag.getUUID("UUID");
-        Culture culture = Culture.PLAINS;
+        //Culture culture = Cultures.PLAINS;
         String name = tag.getString("Name");
         BlockPos townCenter = NbtUtils.readBlockPos(tag.getCompound("Position"));
         TownInventory inventory = new TownInventory(tag.getCompound("TownInventory"));
@@ -95,7 +93,8 @@ public class Town {
                 }
             }*/
         }
-        return new Town(uuid, level, culture, name, townCenter, null, inventory, citizens, buildings, constructionProjects);
+        return null;
+        //return new Town(uuid, level, culture, name, townCenter, null, inventory, citizens, buildings, constructionProjects);
     }
 
     private void createOrLoadXpBar() {
@@ -151,8 +150,8 @@ public class Town {
 
     private void collectProduction() {
         for (Building building : this.buildings) {
-            HashMap<Item, Integer> production = building.getProduction();
-            production.forEach(this.inventory::add);
+            HashMap<ResourceLocation, Integer> production = building.getProduction();
+            //production.forEach(this.inventory::add);
         }
     }
 

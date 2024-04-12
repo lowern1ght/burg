@@ -1,12 +1,10 @@
 package com.dotteam.onceuponatown.entity.ai.vanillagoal;
 
 import com.dotteam.onceuponatown.construction.project.ConstructionProject;
-import com.dotteam.onceuponatown.construction.project.ConstructionProjectManager;
 import com.dotteam.onceuponatown.entity.Citizen;
 import com.dotteam.onceuponatown.entity.ai.systems.statemachine.State;
 import com.dotteam.onceuponatown.entity.ai.systems.statemachine.StateMachine;
 import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.ai.attributes.Attributes;

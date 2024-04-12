@@ -24,7 +24,7 @@ import static com.dotteam.onceuponatown.client.screen.BuyScreen.DealButton.DEAL_
 import static com.dotteam.onceuponatown.client.screen.BuyScreen.DealButton.DEAL_BUTTON_WIDTH;
 
 public class BuyScreen extends CitizenBaseScreen<BuyMenu> {
-    private static final ResourceLocation TEXTURE = OuatUtils.resource("textures/gui/buy_screen.png");
+    private static final ResourceLocation TEXTURE = OuatUtils.resource("textures/gui/buy_screen_v2.png");
     private static final int BUY_SCREEN_TEXTURE_WIDTH = 299;
     private static final int BUY_SCREEN_TEXTURE_HEIGHT = 174;
     // Texture size and offset in file
@@ -147,10 +147,10 @@ public class BuyScreen extends CitizenBaseScreen<BuyMenu> {
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 4210752, false);
         //graphics.drawString(this.font, title, titleLabelX, titleLabelY, 4210752, false);
-        graphics.drawString(this.font, title, 132, titleLabelY, 4210752, false);
-        graphics.drawString(this.font, "For sale", 34, 14, 4210752, false);
-        graphics.drawString(this.font, "Cost", 128, 32, 4210752, false);
-        graphics.drawString(this.font, "Get", 234, 30, 4210752, false);
+        //graphics.drawString(this.font, title, 132, titleLabelY, 4210752, false);
+        graphics.drawString(this.font, "Buy", 46, 14, 4210752, false);
+        //graphics.drawString(this.font, "Cost", 128, 32, 4210752, false);
+        //graphics.drawString(this.font, "Get", 234, 30, 4210752, false);
     }
 
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {

@@ -3,25 +3,27 @@ package com.dotteam.onceuponatown.town;
 import com.dotteam.onceuponatown.culture.Culture;
 import com.dotteam.onceuponatown.town.map.TownMap;
 import net.minecraft.SharedConstants;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 
 import java.util.List;
 
 public class TownManager {
     public static int TOWN_TICK_RATE = SharedConstants.TICKS_PER_SECOND * 5;
 
-    public static Town createTownWorldGen(ServerLevel level, Culture culture, String biome, TownMap townMap) {
+    public static void createTownFromWorldGen(ServerLevel level, Culture culture, TownMap townMap) {
         TownSavedData savedData = TownSavedData.get(level);
         if (savedData != null) {
-            Town town = Town.create(level, culture, biome, townMap);
+            String name = "plains" + Mth.nextInt(RandomSource.create(), 0, 100);
+            Town town = Town.create(level, culture, name, townMap);
+            level.getServer().getPlayerList().broadcastSystemMessage(Component.literal(town.getName() + " discovered at " + town.getCenterPosition().toShortString()), false);
             savedData.addtown(town);
-            return town;
-        } else {
-            return null;
         }
     }
 
-    public static Town createTownPlayerOrder(ServerLevel level, Culture culture, String biome, TownMap townMap) {
+    public static Town createTownFromCommand(ServerLevel level, Culture culture, String biome, TownMap townMap) {
         return null;
     }
 

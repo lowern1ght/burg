@@ -1,0 +1,47 @@
+{
+  "id": "plains",
+  "starter_pack_min_size": 3,
+  "starter_pack_max_size": 4,
+  "foods": ["minecraft:bread", "minecraft:potato", "minecraft:carrot", "minecraft:beetroot"],
+  "eras": [
+    {
+      "order": 1,
+      "required_xp": 0,
+      "buildings_weight": 80
+    },
+    {
+      "order": 2,
+      "required_xp": 150,
+      "buildings_weight": 160
+    },
+    {
+      "order": 3,
+      "required_xp": 300,
+      "buildings_weight": 210
+    }
+  ],
+  "orientations" : [
+    {
+      "id": "agriculture",
+      "logo": "agriculture.png",
+      "color": "yellow",
+      "town_halls": "church",
+      "steps": [
+        {
+          "order": 1,
+          "unlock_cost": 2,
+          "unlocked_buildings": ["rice_field"]
+        }
+      ]
+    },
+    {
+      "id": "crafting"
+    },
+    {
+      "id": "military"
+    },
+    {
+      "id": "religion"
+    }
+  ]
+}

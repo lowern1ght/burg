@@ -18,6 +18,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public abstract class CitizenBaseScreen<T extends AbstractContainerMenu> extends AbstractContainerScreen<T> {
     private static final ResourceLocation EMPTY_TABS_TEXTURE = OuatUtils.resource("textures/gui/tabs/empty_tabs.png");
@@ -69,7 +70,7 @@ public abstract class CitizenBaseScreen<T extends AbstractContainerMenu> extends
         //graphics.drawString(this.font, Component.literal("Simir Kurtmar").withStyle(ChatFormatting.GRAY), leftPos + 205, topPos - 12, 4210752, false);
         //graphics.drawString(this.font, Component.literal("Toolsmith").withStyle(ChatFormatting.GOLD), leftPos + 205, topPos - 1, 4210752, false);
 
-        addRenderableWidget(new CitizenChatWidget(leftPos+299, topPos+10, 128,163, Component.literal("test")));
+        //addRenderableWidget(new CitizenChatWidget(leftPos+299, topPos+10, 128,163, Component.literal("test")));
         /*
         addRenderableWidget(new AbstractScrollWidget(leftPos+299, topPos+10, 128,163, Component.literal("test")) {
             @Override
@@ -95,11 +96,22 @@ public abstract class CitizenBaseScreen<T extends AbstractContainerMenu> extends
         });
 
          */
-        //graphics.drawString(this.font, Component.literal("Simir Kurtmar, ").withStyle(ChatFormatting.GOLD).append(Component.literal("Inkeeper").withStyle(ChatFormatting.GRAY).withStyle(ChatFormatting.ITALIC)), leftPos + 300, topPos-3, 4210752, false);
+        graphics.drawString(this.font, Component.literal("Simir Kurtmar, ").withStyle(ChatFormatting.GOLD).append(Component.literal("Inkeeper").withStyle(ChatFormatting.GRAY).withStyle(ChatFormatting.ITALIC)), leftPos + 100, topPos-3, 4210752, false);
+
+        if (mouseX >= leftPos + 200 && mouseX <= leftPos + 400 && mouseY >= topPos + 20 && mouseY <= topPos + 50) {
+
+
+            List<Component> lines = new ArrayList<>();
+            lines.add(Component.literal("Unlock new trades by upgrading"));
+            lines.add(Component.literal("Forge to level 2"));
+            graphics.renderTooltip(this.font, lines, Optional.empty(), mouseX, mouseY);
+
+        }
+
         //graphics.drawString(this.font, Component.literal("                               ").withStyle(ChatFormatting.WHITE).withStyle(ChatFormatting.UNDERLINE),leftPos + 300, topPos +2, 4210752, false);
-        graphics.drawWordWrap(this.font, Component.translatable("sentence.onceuponatown.test").withStyle(ChatFormatting.GRAY),leftPos + 300, topPos +18, 130,4210752);
-        graphics.drawString(this.font, Component.literal(" > Sure").withStyle(ChatFormatting.WHITE).withStyle(ChatFormatting.ITALIC), leftPos + 298, topPos +150, 4210752, false);
-        graphics.drawString(this.font, Component.literal(" > No, thanks").withStyle(ChatFormatting.WHITE), leftPos +298, topPos +160, 4210752, false);
+        //graphics.drawWordWrap(this.font, Component.translatable("sentence.onceuponatown.test").withStyle(ChatFormatting.GRAY),leftPos + 300, topPos +18, 130,4210752);
+        //graphics.drawString(this.font, Component.literal(" > Sure").withStyle(ChatFormatting.WHITE).withStyle(ChatFormatting.ITALIC), leftPos + 298, topPos +150, 4210752, false);
+        //graphics.drawString(this.font, Component.literal(" > No, thanks").withStyle(ChatFormatting.WHITE), leftPos +298, topPos +160, 4210752, false);
 
     }
 
@@ -112,7 +124,7 @@ public abstract class CitizenBaseScreen<T extends AbstractContainerMenu> extends
             lookAtY = this.topPos - (int)(240 + -0.0035 * mouseY * mouseY) - mouseY;
         }
         lookAtY = this.topPos + 145 - mouseY;
-        lookAtY = Math.min(lookAtY, 40);
+        lookAtY = this.topPos + 0 - mouseY; // Math.min(lookAtY, 40);
         InventoryScreen.renderEntityInInventoryFollowsMouse(graphics,leftPos + 250 ,topPos + 40, 45, lookAtX, lookAtY, this.citizen);
     }
 
@@ -161,7 +173,7 @@ public abstract class CitizenBaseScreen<T extends AbstractContainerMenu> extends
     private record DrawnTab(int index, CitizenTab tab, int x, int y) {}
 
     public enum CitizenTab {
-        BUY(OuatUtils.resource("textures/gui/tabs/buy_icon.png"), 17, 20, 10, 3),
+        BUY(OuatUtils.resource("textures/gui/tabs/buy_icon.png"), 14, 21, 11, 3),
         SELL(OuatUtils.resource("textures/gui/tabs/sell_icon.png"), 14, 21, 11, 3),
         QUESTS(OuatUtils.resource("textures/gui/tabs/quests_icon.png"),15 ,12 ,10 ,7),
         INFO(new ResourceLocation("textures/item/chainmail_chestplate.png"), 16, 16, 10, 5);
