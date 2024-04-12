@@ -1,8 +1,8 @@
 package com.dotteam.onceuponatown.town.map;
 
-import com.dotteam.onceuponatown.town.map.TownMapUtils.Corner;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import com.dotteam.onceuponatown.town.map.TownMapUtils.Corner;
 
 import javax.annotation.Nullable;
 
@@ -20,7 +20,7 @@ public abstract class MapBuild {
     }
 
     /**
-     * @return The id of the Build. 0 if the Build is not yet on the townMap.
+     * @return The id of the Build. 0 if the Build is not yet on the TownMap.
      */
     public int getId(){
         return this.id;
@@ -41,7 +41,7 @@ public abstract class MapBuild {
     }
 
     /**
-     * @return The Direction of the MapBuild. Null if the MapBuild is not on the townMap yet.
+     * @return The Direction of the MapBuild. Null if the MapBuild is not on the TownMap yet.
      */
     @Nullable
     public Direction getDirection(){
@@ -53,8 +53,18 @@ public abstract class MapBuild {
      * @param dir Direction of this MapBuild we are testing.
      * @return The Y coordinate adapted to this build and the given BlockPos.
      */
-    public int findYForPos(BlockPos originPos, Direction dir){
+    public int findAdaptedY(BlockPos originPos, Direction dir){
         return originPos.getY();
+    }
+
+    /**
+     * @param originPos North-West corner of the MapBuild.
+     * @param testedPos BlockPos studied within this MapBuild.
+     * @return Function used to get the Y value of this MapBuild on a given position. By default, returns the Y value of
+     * the position being checked.
+     */
+    public int getYOnPos(@Nullable BlockPos originPos, BlockPos testedPos) {
+        return testedPos.getY();
     }
 
     /**
@@ -105,9 +115,9 @@ public abstract class MapBuild {
     }
 
     /**
-     * Function called to add this MapBuild to the given townMap, knowing that it can be added with the given parameters.
-     * @param map townMap in which this MapBuild will be added.
-     * @param bud Bud used to put set this Building on the townMap.
+     * Function called to add this MapBuild to the given TownMap, knowing that it can be added with the given parameters.
+     * @param map TownMap in which this MapBuild will be added.
+     * @param bud Bud used to put set this Building on the TownMap.
      * @param dir Direction corresponding to the orientation of this MapBuild.
      */
     public void addToMap(TownMap map, Bud bud, Direction dir){
@@ -135,16 +145,16 @@ public abstract class MapBuild {
     }
 
     /**
-     * Function called just after this MapBuild was added to the townMap.
+     * Function called just after this MapBuild was added to the TownMap.
      * Override it to add post placement steps, like Buds generation.
-     * @param map townMap in which we add the Build.
+     * @param map TownMap in which we add the Build.
      */
     protected abstract void onAddedToMap(TownMap map);
 
     /**
      * Check whenever the given MapBuild can be placed on the given Bud. I.e., we will test if the map is empty or if the
-     * terrain si flat enough.
-     * @param map townMap where we are trying to build the MapBuild.
+     * terrain is flat enough.
+     * @param map TownMap where we are trying to build the MapBuild.
      * @param bud Bud that we are testing with the given direction.
      * @param dir Direction of the MapPath to which the MapBuild will be connected. The Y position of the MapBuild will correspond
      *            to the Y value of this MapPath at this MapBuild's DoorPoint.
@@ -153,21 +163,10 @@ public abstract class MapBuild {
     public boolean canBeBuiltOnBud(TownMap map, Bud bud, Direction dir){
         BlockPos testedOriginPos = bud.findOriginPos(this, dir);
         for(BlockPos.MutableBlockPos testedPos : rectangularPosIterator(testedOriginPos, this.getSizeX(dir), this.getSizeZ(dir))) {
-            if(this.canNotBeBuiltOnPos(map, testedOriginPos, testedPos)){
+            if(!map.isEmpty(testedPos)){
                 return false;
             }
         }
         return true;
-    }
-
-    /**
-     * Function used to check complementary conditions to place a MapBuild at a given position.
-     * @param map townMap in which this MapBuild will be added.
-     * @param originPos BlockPos of the NW Corner currently used.
-     * @param testedPos BlockPos of the current BlockPos when want to check.
-     * @return True if the MapBuild can not be placed on this position, false otherwise.
-     */
-    public boolean canNotBeBuiltOnPos(TownMap map, BlockPos originPos, BlockPos testedPos) {
-        return !map.isEmpty(testedPos);
     }
 }

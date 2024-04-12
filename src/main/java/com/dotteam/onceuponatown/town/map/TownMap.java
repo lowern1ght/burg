@@ -1,15 +1,13 @@
 package com.dotteam.onceuponatown.town.map;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtUtils;
-import net.minecraft.util.RandomSource;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import com.dotteam.onceuponatown.town.map.TownMapUtils.Corner;
+import net.minecraft.core.Direction;
 
 import static com.dotteam.onceuponatown.town.map.TownMapUtils.*;
 
@@ -23,7 +21,7 @@ public class TownMap {
     private final ArrayList<Bud> buds = new ArrayList<>();
 
     /**
-     * Create the new instance of townMap, object use to position the building in Minecraft.
+     * Create the new instance of TownMap, object use to position the building in Minecraft.
      * @param townCenter The BlockPos of the center of the town, used to prioritize positions to put new buildings.
      */
     public TownMap(BlockPos townCenter){
@@ -32,20 +30,6 @@ public class TownMap {
         this.townSECorner = townCenter.mutable();
         this.townMap = new int[1][1];
         this.init();
-    }
-
-    public TownMap(CompoundTag tag){
-        this.townCenter = NbtUtils.readBlockPos(tag.getCompound("TownCenter"));
-        this.townNWCorner = NbtUtils.readBlockPos(tag.getCompound("TownNWCorner")).mutable();
-        this.townSECorner = NbtUtils.readBlockPos(tag.getCompound("TownSECorner")).mutable();
-        //TODO: Read other data
-    }
-
-    public void saveToNBT(CompoundTag tag) {
-        tag.put("TownCenter", NbtUtils.writeBlockPos(this.townCenter));
-        tag.put("TownNWCorner", NbtUtils.writeBlockPos(this.townNWCorner.immutable()));
-        tag.put("TownSECorner", NbtUtils.writeBlockPos(this.townSECorner.immutable()));
-        //TODO: Save other data
     }
 
     /**
@@ -64,7 +48,7 @@ public class TownMap {
 
     /**
      * Tries to place the given MapBuild on the Bud. For each adjacent MapPath to this bud, we try the corresponding rotation
-     * of the MapBuild. If the townMap is empty, and the MC Level allows the placement, the MapBuild is added to the map.
+     * of the MapBuild. If the TownMap is empty, and the MC Level allows the placement, the MapBuild is added to the map.
      * @param build MapBuild we want to try to build.
      * @param bud Bud on which we try to build.
      * @return True if the MapBuild was successfully built, false otherwise.
@@ -167,7 +151,7 @@ public class TownMap {
     }
 
     /**
-     * @return This townMap map of builds.
+     * @return This TownMap map of builds.
      */
     public HashMap<Integer, MapBuild> getBuilds() {
         return this.builds;
@@ -181,7 +165,7 @@ public class TownMap {
     }
 
     /**
-     * Put the given build in this townMap builds dictionary and update the townMap.
+     * Put the given build in this TownMap builds dictionary and update the TownMap.
      * Called directly when a new Build is created.
      * @param id ID of the build that we want to add.
      * @param build Build to be added.
@@ -192,8 +176,8 @@ public class TownMap {
     }
 
     /**
-     * Update the VilleMap by resizing it so that the new build fits, and add its ids in the townMap matrix.
-     * @param build MapBuild that must be added or updated on the townMap.
+     * Update the VilleMap by resizing it so that the new build fits, and add its ids in the TownMap matrix.
+     * @param build MapBuild that must be added or updated on the TownMap.
      */
     protected void updateTownMap(MapBuild build){
         this.resizeTownMap(build);
@@ -258,13 +242,12 @@ public class TownMap {
         if(bud != null){
             // If this bud has only one adjacent Path, we try
             //TODO Replace with Vanilla random.
-            //if(bud.getAdjacentPaths().length == 1 && TownMapDisplay.RAND.nextFloat() < PATH_SPAWN_RATE){
-            if(bud.getAdjacentPaths().length == 1 && RandomSource.create().nextFloat() < PATH_SPAWN_RATE){
+            if(bud.getAdjacentPaths().length == 1 && TownMapDisplay.RAND.nextFloat() < PATH_SPAWN_RATE){
                 boolean big = false;
                 Direction pathDir = bud.getAdjacentPaths()[0];
                 if(this.getBuild(bud.getRealPos().relative(pathDir)) instanceof MapPath path){
                     if(path.isBig()){
-                        big = RandomSource.create().nextFloat() < BIG_PATH_SPAWN_RATE;
+                        big = TownMapDisplay.RAND.nextFloat() < BIG_PATH_SPAWN_RATE;
                     }
                 }
                 // We check if there is already a path quite close to this one.
@@ -327,7 +310,8 @@ public class TownMap {
      * @param pos Real MC position we want to test.
      * @return True if the corresponding position in the TownMap is empty.
      */
-    public boolean isEmpty(BlockPos pos){return this.isEmpty(pos, 0);
+    public boolean isEmpty(BlockPos pos){
+        return this.isEmpty(pos, 0);
     }
 
     /**
@@ -375,9 +359,11 @@ public class TownMap {
      * @return The ID of the content or 0 if the block has no building or is out of the TownMap.
      */
     public int getIDInMapPos(int xMap, int zMap){
+        // Get the Map ID (0 if outside the map)
         int id = (xMap < 0 || zMap < 0 || zMap >= this.townMap.length || xMap >= this.townMap[0].length) ? 0 : this.townMap[zMap][xMap];
-        //TODO Improve the code below that was only useful to simulate Water
-        return id;// == 0 && getSurfaceY(this, xMap, zMap) <= 55 ? -1 : id;
+        //TODO Should return "id" in real life, but we also need to check if this position is not underwater or lava. Here I use getSurfaceY which generate my fake landscape. If the Y of this fake landscape is lower than 55, I consider it's water.
+        //return id;
+        return id == 0 && getSurfaceY(this, xMap, zMap) <= 55 ? -1 : id;
     }
 
     /**
@@ -455,5 +441,115 @@ public class TownMap {
 
     public BlockPos getTownNWCorner(){
         return this.townNWCorner.immutable();
+    }
+
+    /**
+     * Prints a description of the current Town, its size and builds.
+     */
+    public void print_description(){
+        HashMap<Integer, MapBuild> builds = this.getBuilds();
+        System.out.println("//---------------------------------------------- Town Map [" + this.getBuilds().size() + "] ---------------------------------------------//");
+        System.out.println("Town Center: " + str(this.getTownCenter()));
+        System.out.println("Size: " + this.getTownMap()[0].length + "×" + this.getTownMap().length);
+        System.out.println("Builds:");
+        for(int id : builds.keySet()){
+            MapBuild build = builds.get(id);
+            System.out.println("    - " + id + " : " + build.getClass().getSimpleName() + " [origin: " + str(build.getOriginPos()) + ", xSize: " + build.getSizeX() + ", zSize: " + build.getSizeZ() + "]");
+        }
+        System.out.println("Buds:");
+        for(Bud bud : this.getBuds()){
+            System.out.println("    - Bud [origin: " + str(bud.getRealPos()) + ", distance: " + bud.getSquaredDistToCenter() + ", corner: " + bud.getCorner() + "]");
+        }
+        System.out.println("//-------------------------------------------------------------------------------------------------------------//");
+    }
+
+    public static String str(BlockPos pos){
+        return "(" + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + ")";
+    }
+
+    public void print_map(){
+        int height = this.townMap.length;
+        int width = this.townMap[0].length;
+        int [][] displayMap = new int[height][];
+        // First we make a copy of the real townMap.
+        for(int i = 0; i < height; i++)
+            displayMap[i] = this.townMap[i].clone();
+        // Then we put the buds inside.
+        for(Bud bud : this.getBuds()){
+            BlockPos pos = bud.getRealPos();
+            displayMap[this.getMapZ(pos.getZ())][this.getMapX(pos.getX())] = -999;
+        }
+        // Finally we print each row of the map.
+        for(int z = 0; z < height; z++){
+            StringBuilder row = new StringBuilder();
+            int prevY = -999;
+            for(int x = 0; x < width; x++){
+                int id = displayMap[z][x];
+                int currY = this.getFloorHeight(x, z);
+                if(prevY == -999){
+                    prevY = currY;
+                }
+                if(id == -999){ // This is a bud !
+                    row.append(ColorMap.COLOR_BUD.getSquare(false));
+                }else{
+                    MapBuild build = this.getBuild(id);
+                    if(build instanceof MapBuilding building){
+                        currY = building.getOriginPos().getY();
+                        row.append(ColorMap.COLOR_BUILDING.getSquare(currY < prevY));
+                    } else if (build instanceof MapPath) {
+                        row.append(ColorMap.COLOR_PATH.getSquare(currY < prevY));
+                    } else if (build instanceof MapGarden) {
+                        row.append(ColorMap.COLOR_GARDEN.getSquare(currY < prevY));
+                    } else if (id == -1) { // This is Water !
+                        row.append(ColorMap.COLOR_WATER.getSquare(currY < prevY));
+                    }else{ // This is the floor.
+                        row.append(ColorMap.COLOR_FLOOR.getSquare(currY < prevY));
+                    }
+                }
+                prevY = currY;
+            }
+            System.out.println(row);
+        }
+    }
+
+    /**
+     * Temporary function that is used to retrieve the Y level of the floor.
+     * TODO Need to be adapted to MC code.
+     */
+    public int getFloorHeight(int mapX, int mapZ){
+        return getSurfaceY(this, mapX, mapZ);
+    }
+
+    public enum ColorMap{
+        COLOR_BUD("\033[0;105m", "\033[0;105m"), // PURPLE_BACKGROUND_BRIGHT & PURPLE_BACKGROUND_BRIGHT
+        COLOR_FLOOR("\033[0;102m", "\033[42m"), // GREEN_BACKGROUND_BRIGHT & GREEN_BACKGROUND
+        COLOR_WATER("\033[0;104m", "\033[44m"), // BLUE_BACKGROUND_BRIGHT & BLUE_BACKGROUND
+        COLOR_BUILDING("\033[0;103m", "\033[43m"), // YELLOW_BACKGROUND_BRIGHT & YELLOW_BACKGROUND
+        COLOR_PATH("\033[0;101m", "\033[41m"), // RED_BACKGROUND_BRIGHT & RED_BACKGROUND
+        COLOR_GARDEN("\033[0;106m", "\033[46m"); // CYAN_BACKGROUND_BRIGHT & CYAN_BACKGROUND
+
+        /*
+        Unused :
+        BLACK_BACKGROUND = "\033[40m"
+        BLACK_BACKGROUND_BRIGHT = "\033[0;100m"
+        WHITE_BACKGROUND = "\033[47m"
+        WHITE_BACKGROUND_BRIGHT = "\033[0;107m"
+        PURPLE_BACKGROUND = "\033[45m"
+         */
+
+        private static final String SQUARE = "   ";  // Square that we color to generate the Map.
+        private static final String RESET = "\033[0m";  // Text Reset
+
+        private final String lightSquare;
+        private final String darkSquare;
+
+        ColorMap(String lightColor, String darkColor){
+            this.lightSquare = lightColor + SQUARE + RESET;
+            this.darkSquare = darkColor + SQUARE + RESET;
+        }
+
+        public String getSquare(boolean isDark){
+            return isDark ? this.darkSquare : this.lightSquare;
+        }
     }
 }

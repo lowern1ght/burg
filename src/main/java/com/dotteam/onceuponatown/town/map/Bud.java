@@ -1,8 +1,8 @@
 package com.dotteam.onceuponatown.town.map;
 
-import com.dotteam.onceuponatown.town.map.TownMapUtils.Corner;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import com.dotteam.onceuponatown.town.map.TownMapUtils.Corner;
 
 import javax.annotation.Nullable;
 
@@ -16,7 +16,7 @@ public class Bud {
 
     private final BlockPos realPos;
     private int squaredDistToCenter;
-    private final Corner corner;
+    private final TownMapUtils.Corner corner;
     private final Direction[] adjacentPaths;
     private final BudType type;
 
@@ -30,8 +30,8 @@ public class Bud {
     }
 
     /**
-     * Create a new instance of a Bud and adds it to the townMap. If a similar Bud exists, returns null.
-     * @param map townMap of the bud.
+     * Create a new instance of a Bud and adds it to the TownMap. If a similar Bud exists, returns null.
+     * @param map TownMap of the bud.
      * @param type Type of this bud, depending on the building it will be able to support.
      * @param realPos BlockPos of the bud.
      * @param corner Corner type of this bud.
@@ -46,13 +46,13 @@ public class Bud {
             }
         }
         //TODO Replace the method to get Y with a MC one !
-        return new Bud(map, type, realPos/*townMapDisplay.getSurfaceY(realPos))*/, corner, adjacentPaths);
-        //return new Bud(map, type, realPos.atY(80)/*townMapDisplay.getSurfaceY(realPos))*/, corner, adjacentPaths);
+        //TODO Replace the Y with the Y value of the adjacent Path.
+        return new Bud(map, type, realPos.atY(TownMapDisplay.getSurfaceY(realPos)), corner, adjacentPaths);
     }
 
     /**
-     * Create a new instance of a Bud of DEFAULT type, and adds it to the townMap. If a similar Bud exists, returns null.
-     * @param map townMap of the bud.
+     * Create a new instance of a Bud of DEFAULT type, and adds it to the TownMap. If a similar Bud exists, returns null.
+     * @param map TownMap of the bud.
      * @param realPos BlockPos of the bud.
      * @param corner Corner type of this bud.
      * @param adjacentPaths Direction where there is a MapPath from the realPos.
@@ -72,7 +72,7 @@ public class Bud {
 
     /**
      * Function that updates the squared distance between this bud and the town center.
-     * @param map townMap of the bud.
+     * @param map TownMap of the bud.
      */
     public void setSquaredDistToCenter(TownMap map){
         this.squaredDistToCenter = this.getSquaredDistTo(map.getTownCenter());
@@ -117,12 +117,12 @@ public class Bud {
      */
     public BlockPos findOriginPos(MapBuild build, Direction dir){
         BlockPos origin = this.corner.getOrigin(this.realPos, build, dir);
-        return origin.atY(build.findYForPos(origin, dir));
+        return origin.atY(build.findAdaptedY(origin, dir));
     }
 
     /**
      * Creates a MapGarden instance adapted to this Bud generated with the given rotation.
-     * @param map The townMap of this Bud.
+     * @param map The TownMap of this Bud.
      * @param clockwise True if rotating clockwise, false for counterclockwise.
      * @return A MapGarden object with the biggest sizes in X and Z that can fit.
      */
