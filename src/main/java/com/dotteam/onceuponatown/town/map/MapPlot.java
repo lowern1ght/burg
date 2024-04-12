@@ -4,7 +4,7 @@ import net.minecraft.core.BlockPos;
 
 import java.util.HashSet;
 
-;
+import static com.dotteam.onceuponatown.town.map.TownMapUtils.rectangularPosIterator;
 
 public abstract class MapPlot extends MapBuild {
     public  MapPlot(int sizeXNorth, int sizeZNorth) {
@@ -16,7 +16,7 @@ public abstract class MapPlot extends MapBuild {
         // We try to find all the adjacent MapPath to extend them and add the Buds.
         // We will iterate on a one block bigger rectangle to find all the adjacent MapBuild.
         HashSet<Integer> ids = new HashSet<>();
-        for(BlockPos.MutableBlockPos pos : TownMapUtils.rectangularPosIterator(this.getOriginPos().north().west(), this.getSizeX() + 2, this.getSizeZ() + 2)) {
+        for(BlockPos.MutableBlockPos pos : rectangularPosIterator(this.getOriginPos().north().west(), this.getSizeX() + 2, this.getSizeZ() + 2)) {
             ids.add(map.getIDInMapPos(pos));
         }
         for(int id : ids){
