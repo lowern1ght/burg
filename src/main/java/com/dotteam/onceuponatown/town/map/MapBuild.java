@@ -14,6 +14,7 @@ public abstract class MapBuild {
     private BlockPos originPos;
     private int id;
     private Direction direction;
+    private boolean built;
     public MapBuild(int sizeXNorth, int sizeZNorth){
         this.sizeXNorth = sizeXNorth;
         this.sizeZNorth = sizeZNorth;
@@ -117,11 +118,11 @@ public abstract class MapBuild {
     /**
      * Function called to add this MapBuild to the given TownMap, knowing that it can be added with the given parameters.
      * @param map TownMap in which this MapBuild will be added.
-     * @param bud Bud used to put set this Building on the TownMap.
+     * @param buildBud Bud used to put set this Building on the TownMap.
      * @param dir Direction corresponding to the orientation of this MapBuild.
      */
-    public void addToMap(TownMap map, Bud bud, Direction dir){
-        this.originPos = bud.findOriginPos(this, dir);
+    public void addToMap(TownMap map, BuildBud buildBud, Direction dir){
+        this.originPos = buildBud.findOriginPos(this, dir);
         this.direction = dir;
         this.id = map.generateNewID();
         map.addNewBuilds(this.id, this);
@@ -155,13 +156,13 @@ public abstract class MapBuild {
      * Check whenever the given MapBuild can be placed on the given Bud. I.e., we will test if the map is empty or if the
      * terrain is flat enough.
      * @param map TownMap where we are trying to build the MapBuild.
-     * @param bud Bud that we are testing with the given direction.
+     * @param buildBud Bud that we are testing with the given direction.
      * @param dir Direction of the MapPath to which the MapBuild will be connected. The Y position of the MapBuild will correspond
      *            to the Y value of this MapPath at this MapBuild's DoorPoint.
      * @return True if the surface is indeed empty, false otherwise.
      */
-    public boolean canBeBuiltOnBud(TownMap map, Bud bud, Direction dir){
-        BlockPos testedOriginPos = bud.findOriginPos(this, dir);
+    public boolean canBeBuiltOnBud(TownMap map, BuildBud buildBud, Direction dir){
+        BlockPos testedOriginPos = buildBud.findOriginPos(this, dir);
         for(BlockPos.MutableBlockPos testedPos : rectangularPosIterator(testedOriginPos, this.getSizeX(dir), this.getSizeZ(dir))) {
             if(!map.isEmpty(testedPos)){
                 return false;

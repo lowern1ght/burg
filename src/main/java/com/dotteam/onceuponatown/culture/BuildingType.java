@@ -10,6 +10,7 @@ public class BuildingType {
     public static final BuildingType DEFAULT_TYPE = new BuildingType(null);
     private String id;
     private ResourceLocation structureFile;
+    private Vec3i dimensions;
     private HashMap<ResourceLocation, Integer> production;
     private int weight;
     private HashMap<Orientation, Integer> researchGain;

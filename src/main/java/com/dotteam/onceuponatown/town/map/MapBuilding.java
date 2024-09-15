@@ -38,8 +38,8 @@ public class MapBuilding extends MapPlot {
     }
 
     @Override
-    public boolean canBeBuiltOnBud(TownMap map, Bud bud, Direction dir) {
-        BlockPos testedOriginPos = bud.findOriginPos(this, dir);
+    public boolean canBeBuiltOnBud(TownMap map, BuildBud buildBud, Direction dir) {
+        BlockPos testedOriginPos = buildBud.findOriginPos(this, dir);
         for(BlockPos.MutableBlockPos testedPos : rectangularPosIterator(testedOriginPos, this.getSizeX(dir), this.getSizeZ(dir))) {
             if(!map.isEmpty(testedPos) || Math.abs(testedPos.getY() - this.getYOnPos(testedOriginPos, testedPos)) > MAXI_Y_DIFFERENCE){
                 return false;

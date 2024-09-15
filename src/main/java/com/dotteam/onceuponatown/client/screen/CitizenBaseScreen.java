@@ -13,6 +13,7 @@ import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 
@@ -22,6 +23,9 @@ import java.util.Optional;
 
 public abstract class CitizenBaseScreen<T extends AbstractContainerMenu> extends AbstractContainerScreen<T> {
     private static final ResourceLocation EMPTY_TABS_TEXTURE = OuatUtils.resource("textures/gui/tabs/empty_tabs.png");
+    private static final ResourceLocation CITIZEN_HEADER_TEXTURE = OuatUtils.resource("textures/gui/citizen_header.png");
+    private static final int CITIZEN_HEADER_TEXTURE_WIDTH = 289;
+    private static final int CITIZEN_HEADER_TEXTURE_HEIGHT = 49;
     private static final int EMPTY_TABS_TEXTURE_WIDTH = 65;
     private static final int EMPTY_TABS_TEXTURE_HEIGHT = 52;
     private static final int ACTIVE_TAB_OFFSET_X = 30;
@@ -48,13 +52,12 @@ public abstract class CitizenBaseScreen<T extends AbstractContainerMenu> extends
         List<CitizenTab> wantedTabs = new ArrayList<>();
         int[] tabX = {-32, -32, -32, -32, -32, 280, 280, 280, 280, 280};
         int i = 8;
-        int[] tabY = {11+i, 38+i, 65+i, 92+i, 119+i, 11+i, 38+i, 65+i, 92+i, 119+i};
+        int[] tabY = {3, 38+i, 65+i, 92+i, 119+i, 11+i, 38+i, 65+i, 92+i, 119+i};
 
-        wantedTabs.add(CitizenTab.INFO);
         wantedTabs.add(CitizenTab.BUY);
+        wantedTabs.add(CitizenTab.INFO);
         wantedTabs.add(CitizenTab.SELL);
         wantedTabs.add(CitizenTab.QUESTS);
-        //wantedTabs.add(CitizenTab.INFO);
         int index = 0;
         for (CitizenTab wantedTab : wantedTabs) {
             this.drawnTabs.add(new DrawnTab(index, wantedTab, tabX[index], tabY[index]));
@@ -66,7 +69,17 @@ public abstract class CitizenBaseScreen<T extends AbstractContainerMenu> extends
     }
 
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
-        if (this.citizen != null) renderCitizenDoll(graphics, mouseX, mouseY);
+        String npcDescription = "Marchand d'armes";
+        int offset = Mth.clamp(CITIZEN_HEADER_TEXTURE_WIDTH - (this.font.width(npcDescription) + 62), 3, 180);
+        //graphics.blit(CITIZEN_HEADER_TEXTURE, this.leftPos, this.topPos - 46, 0, 0, CITIZEN_HEADER_TEXTURE_WIDTH, CITIZEN_HEADER_TEXTURE_HEIGHT, CITIZEN_HEADER_TEXTURE_WIDTH, CITIZEN_HEADER_TEXTURE_HEIGHT);
+        graphics.blit(CITIZEN_HEADER_TEXTURE, this.leftPos + offset, this.topPos-46, offset, 0, CITIZEN_HEADER_TEXTURE_WIDTH - offset, CITIZEN_HEADER_TEXTURE_HEIGHT, CITIZEN_HEADER_TEXTURE_WIDTH, CITIZEN_HEADER_TEXTURE_HEIGHT);
+        graphics.blit(CITIZEN_HEADER_TEXTURE, this.leftPos + offset - 2, this.topPos-46, 0, 0, 6, CITIZEN_HEADER_TEXTURE_HEIGHT, CITIZEN_HEADER_TEXTURE_WIDTH, CITIZEN_HEADER_TEXTURE_HEIGHT);
+        if (this.citizen != null) {
+            renderCitizenDoll(graphics, mouseX, mouseY);
+        }
+        graphics.drawString(this.font, Component.literal("10"),leftPos + 193, topPos - 17,4210752, false);
+        graphics.drawString(this.font, Component.literal("40"),leftPos + 219, topPos - 17,4210752, false);
+        graphics.drawString(this.font, Component.literal(npcDescription), leftPos +233 - this.font.width(npcDescription) - 1, topPos-30, 4210752, false);
         //graphics.drawString(this.font, Component.literal("Simir Kurtmar").withStyle(ChatFormatting.GRAY), leftPos + 205, topPos - 12, 4210752, false);
         //graphics.drawString(this.font, Component.literal("Toolsmith").withStyle(ChatFormatting.GOLD), leftPos + 205, topPos - 1, 4210752, false);
 
@@ -96,7 +109,7 @@ public abstract class CitizenBaseScreen<T extends AbstractContainerMenu> extends
         });
 
          */
-        graphics.drawString(this.font, Component.literal("Simir Kurtmar, ").withStyle(ChatFormatting.GOLD).append(Component.literal("Inkeeper").withStyle(ChatFormatting.GRAY).withStyle(ChatFormatting.ITALIC)), leftPos + 100, topPos-3, 4210752, false);
+        //graphics.drawString(this.font, Component.literal("Simir Kurtmar, ").withStyle(ChatFormatting.GOLD).append(Component.literal("Inkeeper").withStyle(ChatFormatting.GRAY).withStyle(ChatFormatting.ITALIC)), leftPos + 100, topPos-3, 4210752, false);
 
         if (mouseX >= leftPos + 200 && mouseX <= leftPos + 400 && mouseY >= topPos + 20 && mouseY <= topPos + 50) {
 
@@ -125,7 +138,8 @@ public abstract class CitizenBaseScreen<T extends AbstractContainerMenu> extends
         }
         lookAtY = this.topPos + 145 - mouseY;
         lookAtY = this.topPos + 0 - mouseY; // Math.min(lookAtY, 40);
-        InventoryScreen.renderEntityInInventoryFollowsMouse(graphics,leftPos + 250 ,topPos + 40, 45, lookAtX, lookAtY, this.citizen);
+        //InventoryScreen.renderEntityInInventoryFollowsMouse(graphics,leftPos + 250 ,topPos + 40, 45, lookAtX, lookAtY, this.citizen);
+        InventoryScreen.renderEntityInInventoryFollowsMouse(graphics,leftPos +261 ,topPos + 25, 31, lookAtX, lookAtY-30, this.citizen);
     }
 
     private void renderCitizenDoll2(GuiGraphics graphics, int mouseX, int mouseY) {

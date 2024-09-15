@@ -5,6 +5,7 @@ import com.dotteam.onceuponatown.culture.BuildingType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.Rotation;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,6 +16,7 @@ public class Building {
     private ResourceLocation structurePath;
     private BuildingPlacementSettings placementSettings;
     private BlockPos position;
+    private Rotation rotation;
     private List<BlockPos> sleepPositions = new ArrayList<>();
     private List<BlockPos> workPositions = new ArrayList<>();
 

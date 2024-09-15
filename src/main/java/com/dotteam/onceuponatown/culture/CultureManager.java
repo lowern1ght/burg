@@ -149,8 +149,8 @@ public class CultureManager implements PreparableReloadListener {
         List<Culture.Era> eras = readEras(cultureJsonObject, cultureId);
 
         // Orientations Ids
-        //List<String> orientationsIds = readOrientationsIds(cultureJsonObject, cultureId);
-        
+        List<String> orientationsIds = readOrientationsIds(cultureJsonObject, cultureId);
+        //orientationsIds.forEach(System.out::println);
         
         
         /*

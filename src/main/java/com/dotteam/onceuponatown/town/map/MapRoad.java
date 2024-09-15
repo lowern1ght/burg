@@ -7,12 +7,12 @@ import java.util.ArrayList;
 
 import static com.dotteam.onceuponatown.town.map.TownMapUtils.*;
 
-public class MapPath extends MapBuild{
+public class MapRoad extends MapBuild{
     private final boolean isBig;
     private boolean canGrow = true;
     private int[] yShape;
 
-    public MapPath(int length, boolean isBig) {
+    public MapRoad(int length, boolean isBig) {
         super(getWidth(isBig), length);
         this.isBig = isBig;
         //TODO handle the Y shape
@@ -111,24 +111,24 @@ public class MapPath extends MapBuild{
      * @param map TownMap in which we want to add the Buds.
      */
     private void findAllBuds(TownMap map){
-        ArrayList<Bud> newBuds = new ArrayList<>();
+        ArrayList<BuildBud> newBuildBuds = new ArrayList<>();
         if(this.getDirection() != null){
             if(this.getDirection().getAxis() == Direction.Axis.X){
-                newBuds.addAll(this.findBudsOnSide(map, Corner.NORTH_WEST, this.getSizeX()));
-                newBuds.addAll(this.findBudsOnSide(map, Corner.SOUTH_EAST, this.getSizeX()));
+                newBuildBuds.addAll(this.findBudsOnSide(map, Corner.NORTH_WEST, this.getSizeX()));
+                newBuildBuds.addAll(this.findBudsOnSide(map, Corner.SOUTH_EAST, this.getSizeX()));
                 if(!this.canGrow){
-                    newBuds.addAll(this.findBudsOnSide(map, Corner.NORTH_EAST, this.getSizeZ()));
-                    newBuds.addAll(this.findBudsOnSide(map, Corner.SOUTH_WEST, this.getSizeZ()));
+                    newBuildBuds.addAll(this.findBudsOnSide(map, Corner.NORTH_EAST, this.getSizeZ()));
+                    newBuildBuds.addAll(this.findBudsOnSide(map, Corner.SOUTH_WEST, this.getSizeZ()));
                 }
             }else{
-                newBuds.addAll(this.findBudsOnSide(map, Corner.NORTH_EAST, this.getSizeZ()));
-                newBuds.addAll(this.findBudsOnSide(map, Corner.SOUTH_WEST, this.getSizeZ()));
+                newBuildBuds.addAll(this.findBudsOnSide(map, Corner.NORTH_EAST, this.getSizeZ()));
+                newBuildBuds.addAll(this.findBudsOnSide(map, Corner.SOUTH_WEST, this.getSizeZ()));
                 if(!this.canGrow){
-                    newBuds.addAll(this.findBudsOnSide(map, Corner.NORTH_WEST, this.getSizeX()));
-                    newBuds.addAll(this.findBudsOnSide(map, Corner.SOUTH_EAST, this.getSizeX()));
+                    newBuildBuds.addAll(this.findBudsOnSide(map, Corner.NORTH_WEST, this.getSizeX()));
+                    newBuildBuds.addAll(this.findBudsOnSide(map, Corner.SOUTH_EAST, this.getSizeX()));
                 }
             }
-            newBuds.forEach(map::tryCreatePath);
+            newBuildBuds.forEach(map::tryCreatePath);
         }else{
             throw new IllegalStateException("Unexpected creation of Buds: It's impossible to create Buds before the source MapPath is placed on the TownMap.");
         }
@@ -142,14 +142,14 @@ public class MapPath extends MapBuild{
      * @param sideLength Size of the size to study.
      * @return A list that contains the Buds created in this function.
      */
-    private ArrayList<Bud> findBudsOnSide(TownMap map, Corner corner, int sideLength) {
+    private ArrayList<BuildBud> findBudsOnSide(TownMap map, Corner corner, int sideLength) {
         // We move the start BlockPos one block out of the MapBuild in diagonal.
         BlockPos cornerPos = this.getCornerPos(corner).relative(corner.getRightDirection()).relative(corner.getLeftDirection());
         BlockPos.MutableBlockPos cursor = cornerPos.mutable();
         boolean isPreviousPosEmpty = map.isEmpty(cursor);
         cursor.move(corner.getLeftDirection(), -1);
         boolean isCurrentPosEmpty;
-        ArrayList<Bud> buds = new ArrayList<>();
+        ArrayList<BuildBud> buildBuds = new ArrayList<>();
         // We create an array that contains whenever each BlockPos is empty or not.
         for(int i = 1; i < sideLength + 2; i++){
             isCurrentPosEmpty = map.isEmpty(cursor);
@@ -162,12 +162,12 @@ public class MapPath extends MapBuild{
             }
             // Finally we create the Bud if needed.
             if(isCurrentPosEmpty != isPreviousPosEmpty){
-                buds.add(this.setupBud(map, cursor.immutable(), isCurrentPosEmpty, corner.getRightDirection()));
+                buildBuds.add(this.setupBud(map, cursor.immutable(), isCurrentPosEmpty, corner.getRightDirection()));
             }
             isPreviousPosEmpty = isCurrentPosEmpty;
             cursor.move(corner.getLeftDirection(), -1);
         }
-        return buds;
+        return buildBuds;
     }
 
     /**
@@ -178,20 +178,20 @@ public class MapPath extends MapBuild{
      * @param budDir Direction oriented at the opposite of the MapPath, that corresponds to the RightDir of the Corner.
      * @return The created Bud instance.
      */
-    private Bud setupBud(TownMap map, BlockPos currentPos, boolean isCurrentPosEmpty, Direction budDir) {
+    private BuildBud setupBud(TownMap map, BlockPos currentPos, boolean isCurrentPosEmpty, Direction budDir) {
         BlockPos previousPos = currentPos.relative(budDir.getCounterClockWise());
-        Direction[] pathDirection = new Direction[map.getBuild(isCurrentPosEmpty ? previousPos : currentPos) instanceof MapPath ? 2 : 1];
+        Direction[] pathDirection = new Direction[map.getBuild(isCurrentPosEmpty ? previousPos : currentPos) instanceof MapRoad ? 2 : 1];
         pathDirection[0] = budDir.getOpposite();
         if(pathDirection.length > 1){
             pathDirection[1] = isCurrentPosEmpty ? budDir.getCounterClockWise() : budDir.getClockWise();
         }
-        return Bud.createBud(map, isCurrentPosEmpty ? currentPos : previousPos, Corner.getCornerNextToDir(budDir, isCurrentPosEmpty), pathDirection);
+        return BuildBud.createBud(map, isCurrentPosEmpty ? currentPos : previousPos, Corner.getCornerNextToDir(budDir, isCurrentPosEmpty), pathDirection);
     }
 
     @Override
-    public boolean canBeBuiltOnBud(TownMap map, Bud bud, Direction dir) {
+    public boolean canBeBuiltOnBud(TownMap map, BuildBud buildBud, Direction dir) {
         // In the case of MapPaths, we only checks the line of block. The Map size will be defined when it's placed on the Map.
-        BlockPos testedOriginPos = bud.findOriginPos(this, dir);
+        BlockPos testedOriginPos = buildBud.findOriginPos(this, dir);
         BlockPos cursor = testedOriginPos.mutable();
         // We check all the position from the Bud to the width.
         for(int offset = 0; offset < getWidth(this.isBig()); offset++){

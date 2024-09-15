@@ -12,7 +12,7 @@ import static com.dotteam.onceuponatown.town.map.TownMapUtils.SIDE_SIZE_MAX_GARD
  * Each bud is a point at the intersection of two paths, or a path and a plot border.
  * Buds serve as corners for placing a new parcel, and this class contains the function to place correctly the buildings.
  */
-public class Bud {
+public class BuildBud {
 
     private final BlockPos realPos;
     private int squaredDistToCenter;
@@ -20,7 +20,7 @@ public class Bud {
     private final Direction[] adjacentPaths;
     private final BudType type;
 
-    private Bud(TownMap map, BudType type, BlockPos realPos, Corner corner, Direction[] adjacentPaths){
+    private BuildBud(TownMap map, BudType type, BlockPos realPos, Corner corner, Direction[] adjacentPaths){
         this.type = type;
         this.realPos = realPos;
         this.corner = corner;
@@ -39,14 +39,14 @@ public class Bud {
      * @return The new instance of Bud or null.
      */
     @Nullable
-    public static Bud createBud(TownMap map, BudType type, BlockPos realPos, Corner corner, Direction[] adjacentPaths){
-        for(Bud bud : map.getBuds()){
-            if(bud.realPos.getX() == realPos.getX() && bud.realPos.getZ() == realPos.getZ()){
+    public static BuildBud createBud(TownMap map, BudType type, BlockPos realPos, Corner corner, Direction[] adjacentPaths){
+        for(BuildBud buildBud : map.getBuds()){
+            if(buildBud.realPos.getX() == realPos.getX() && buildBud.realPos.getZ() == realPos.getZ()){
                 return null;
             }
         }
         //TODO Replace the Y with the Y value of the adjacent Path. Is it useful or do I just recalculate the correct Y when a build is set at the given position ?
-        return new Bud(map, type, realPos, corner, adjacentPaths);
+        return new BuildBud(map, type, realPos, corner, adjacentPaths);
     }
 
     /**
@@ -58,7 +58,7 @@ public class Bud {
      * @return The new instance of Bud or null.
      */
     @Nullable
-    public static Bud createBud(TownMap map, BlockPos realPos, Corner corner, Direction[] adjacentPaths){
+    public static BuildBud createBud(TownMap map, BlockPos realPos, Corner corner, Direction[] adjacentPaths){
         return createBud(map, BudType.DEFAULT, realPos, corner, adjacentPaths);
     }
 
@@ -74,7 +74,7 @@ public class Bud {
      * @param map TownMap of the bud.
      */
     public void setSquaredDistToCenter(TownMap map){
-        this.squaredDistToCenter = this.getSquaredDistTo(map.getTownCenter());
+        this.squaredDistToCenter = this.getSquaredDistTo(map.getCenter());
     }
 
     /**

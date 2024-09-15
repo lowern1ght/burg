@@ -1,5 +1,8 @@
 package com.dotteam.onceuponatown.world.structure;
 
+import com.dotteam.onceuponatown.culture.BuildingType;
+import com.dotteam.onceuponatown.culture.Culture;
+import com.dotteam.onceuponatown.culture.CultureManager;
 import com.dotteam.onceuponatown.registry.OuatStructures;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -10,6 +13,7 @@ import net.minecraft.world.level.levelgen.structure.StructureType;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
 import java.util.Optional;
 
 public class TownStructure extends Structure {
@@ -26,9 +30,12 @@ public class TownStructure extends Structure {
     }
 
     private void generatePieces(StructurePiecesBuilder builder, GenerationContext context) {
+        Culture culture = CultureManager.getCultureById(this.cultureID);
+        if (culture == null) return;
+        List<BuildingType> starterPack = culture.getRandomStarterPack();
         int townHeight = context.chunkGenerator().getFirstOccupiedHeight(context.chunkPos().getMinBlockX(), context.chunkPos().getMinBlockZ(), Heightmap.Types.WORLD_SURFACE_WG, context.heightAccessor(), context.randomState());
         BlockPos townCenterPos = new BlockPos(context.chunkPos().getMinBlockX(), townHeight, context.chunkPos().getMinBlockZ());
-        TownGeneration.generateTownPieces(context.structureTemplateManager(), townCenterPos, builder, context.random());
+        TownGenerator.generatePiecesWorldGen(context.structureTemplateManager(), townCenterPos, starterPack, builder, context.random());
     }
 
     public StructureType<?> type() {

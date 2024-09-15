@@ -24,9 +24,9 @@ import static com.dotteam.onceuponatown.client.screen.BuyScreen.DealButton.DEAL_
 import static com.dotteam.onceuponatown.client.screen.BuyScreen.DealButton.DEAL_BUTTON_WIDTH;
 
 public class BuyScreen extends CitizenBaseScreen<BuyMenu> {
-    private static final ResourceLocation TEXTURE = OuatUtils.resource("textures/gui/buy_screen_v2.png");
-    private static final int BUY_SCREEN_TEXTURE_WIDTH = 299;
-    private static final int BUY_SCREEN_TEXTURE_HEIGHT = 174;
+    private static final ResourceLocation TEXTURE = OuatUtils.resource("textures/gui/buy_screen.png");
+    private static final int BUY_SCREEN_TEXTURE_WIDTH = 289;//299;
+    private static final int BUY_SCREEN_TEXTURE_HEIGHT = 166;//174;
     // Texture size and offset in file
     private static final int SCROLLER_HEIGHT = 27;
     private static final int SCROLLER_WIDTH = 6;
@@ -53,8 +53,8 @@ public class BuyScreen extends CitizenBaseScreen<BuyMenu> {
 
     public BuyScreen(BuyMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title, CitizenTab.BUY);
-        this.imageWidth = 281;
-        this.imageHeight = 174;
+        this.imageWidth = 289;
+        this.imageHeight = 193  ;
         this.inventoryLabelX = 113;
         this.inventoryLabelY = 80;
         this.titleLabelX = 44;
@@ -63,8 +63,16 @@ public class BuyScreen extends CitizenBaseScreen<BuyMenu> {
     }
 
     protected void init() {
-        super.init();
+        //super.init();
+        this.leftPos = ((this.width - BUY_SCREEN_TEXTURE_WIDTH) / 2) + 8;
+
+        //this.topPos = this.getMinecraft().options.guiScale().get() < 6 ? ((this.height - BUY_SCREEN_TEXTURE_HEIGHT) / 2) : ((this.height - BUY_SCREEN_TEXTURE_HEIGHT) / 2) + 20;
+        this.topPos = ((this.height - BUY_SCREEN_TEXTURE_HEIGHT) / 2);
         createButtons();
+        String buy = "Buy";
+        String sell = "Sell";
+        this.addRenderableWidget(new Button.Builder(Component.literal(buy), (pButton -> {})).bounds(this.leftPos + 7, this.topPos + 4, this.font.width(buy)+10, 12).build());
+        this.addRenderableWidget(new Button.Builder(Component.literal(sell), (pButton -> {})).bounds(this.leftPos + 37, this.topPos + 4, this.font.width(sell)+10, 12).build());
     }
 
     private void createButtons() {
@@ -140,27 +148,29 @@ public class BuyScreen extends CitizenBaseScreen<BuyMenu> {
         renderBackground(graphics);
         super.renderBg(graphics, partialTick, mouseX, mouseY);
         graphics.pose().translate(0.0F, 0.0F, 100.0F);
-        graphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight, BUY_SCREEN_TEXTURE_WIDTH, BUY_SCREEN_TEXTURE_HEIGHT);
+        //graphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight, BUY_SCREEN_TEXTURE_WIDTH, BUY_SCREEN_TEXTURE_HEIGHT);
+        graphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, BUY_SCREEN_TEXTURE_WIDTH, BUY_SCREEN_TEXTURE_HEIGHT, this.imageWidth, this.imageHeight);
         renderTabs(graphics);
     }
 
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 4210752, false);
+        graphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX-1, this.inventoryLabelY- 8, 4210752, false);
         //graphics.drawString(this.font, title, titleLabelX, titleLabelY, 4210752, false);
         //graphics.drawString(this.font, title, 132, titleLabelY, 4210752, false);
-        graphics.drawString(this.font, "Buy", 46, 14, 4210752, false);
+        //graphics.drawString(this.font, "Buy", 46, 14, 4210752, false);
         //graphics.drawString(this.font, "Cost", 128, 32, 4210752, false);
         //graphics.drawString(this.font, "Get", 234, 30, 4210752, false);
     }
 
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         super.render(graphics, mouseX, mouseY, partialTick);
-        this.renderScroller(graphics);
+        //this.renderScroller(graphics);
 
         for (DealButton button : dealButtons) {
-            button.visible = (button.index + this.scrollOff * GRID_COLUMNS) < nbOfDeals();
+            button.visible = false;//(button.index + this.scrollOff * GRID_COLUMNS) < nbOfDeals();
         }
 
+        /*
         List<BuyDeal> deals = this.menu.getDeals();
         if (!deals.isEmpty()) {
             int startX  = leftPos + GRID_X + 1;
@@ -188,6 +198,8 @@ public class BuyScreen extends CitizenBaseScreen<BuyMenu> {
             RenderSystem.enableDepthTest();
         }
         renderTooltip(graphics, mouseX, mouseY);
+
+         */
     }
 
     private void renderScroller(GuiGraphics graphics) {

@@ -1,6 +1,8 @@
 package com.dotteam.onceuponatown.registry;
 
 import com.dotteam.onceuponatown.OuatConstants;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.common.ForgeSpawnEggItem;
 import net.minecraftforge.eventbus.api.IEventBus;

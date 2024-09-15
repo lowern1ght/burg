@@ -20,7 +20,7 @@ public abstract class MapPlot extends MapBuild {
             ids.add(map.getIDInMapPos(pos));
         }
         for(int id : ids){
-            if(map.getBuild(id) instanceof MapPath path){
+            if(map.getBuild(id) instanceof MapRoad path){
                 path.update(map);
             }
         }

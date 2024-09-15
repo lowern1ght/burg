@@ -2,6 +2,7 @@ package com.dotteam.onceuponatown.town;
 
 import com.dotteam.onceuponatown.building.Building;
 import com.dotteam.onceuponatown.construction.project.ConstructionProject;
+import com.dotteam.onceuponatown.culture.BuildingType;
 import com.dotteam.onceuponatown.culture.Culture;
 import com.dotteam.onceuponatown.entity.Citizen;
 import com.dotteam.onceuponatown.town.map.TownMap;
@@ -48,6 +49,10 @@ public class Town {
     public static int ACTIVE_AREA_RADIUS = 80;
     private boolean active;
     private long lastActiveMoment;
+    private enum CitizenStatus {NOT_SPAWNED, LOADED, UNLOADED, DEAD, MISSING}
+    private List<CitizenRecord> citizenRecordList;
+    private record CitizenRecord(UUID entityUUID, CitizenStatus status) {}
+    public enum TownBellRingType {DAWN_TIME, NOON_TIME, DUSK_TIME, RAID_ALERT, RAID_CELEBRATE_VICTORY, TOWN_COMPLETED, CHRISTMAS_EVENT}
 
     private Town(UUID uuid, Level level, Culture culture, String name, BlockPos townCenter, TownMap townMap, TownInventory townInventory, List<UUID> citizens, List<Building> buildings, List<ConstructionProject> constructionProjects) {
         this.uuid = uuid;
@@ -63,15 +68,48 @@ public class Town {
         createOrLoadXpBar();
     }
 
-    static Town create(Level level, Culture culture, String name, TownMap townMap) {;
+    static Town createWorldGen(Level level, Culture culture, String name, TownMap townMap) {;
         TownInventory townInventory = new TownInventory();
-        List<UUID> citizens = new ArrayList<>();
-        List<Building> buildings = new ArrayList<>();
-        List<ConstructionProject> constructionProjects = new ArrayList<>();
-        return new Town(Mth.createInsecureUUID(RandomSource.create()), level, culture, name, townMap.getTownCenter(), townMap, townInventory, citizens, buildings, constructionProjects);
+        Town town = new Town(Mth.createInsecureUUID(RandomSource.create()), level, culture, name, townMap.getCenter(), townMap, townInventory,  new ArrayList<>(),  new ArrayList<>(),  new ArrayList<>());
+        town.createBuildingsWorldGen(townMap);
+        town.updateConstructionProject();
+        return town;
     }
 
-    static Town loadtown(Level level, CompoundTag tag) {
+    private void createBuildingsWorldGen(TownMap townMap) {
+        /*
+        Iterate through the town map, read building types and create associated Building instances
+        For each building, spawn citizen dwellers if the associated bed is in a loaded chunk.
+         */
+    }
+
+    private void updateConstructionProject() {
+
+    }
+
+    private void beginNewConstructionProject(BuildingType buildingType) {
+        // ask town map for adding a building
+        // town map add a MapBuilding to the map (marked not built) and return the MapBuilding
+        // creates the ConstructionProject class using MapBuilding class
+    }
+
+    private void finishConstructionProject(BuildingType buildingType) {
+        // notifies town map, mark the associated MapBuilding built
+        // creates the Building instance using ConstructionProject
+        // deletes ConstructionProject
+    }
+
+    private void abortConstructionProject(BuildingType buildingType) {
+    }
+
+    private void addBuildingInstantConstruction(BuildingType buildingType, int wantedLevel) {
+        // ask town map for adding a building
+        // town map add a MapBuilding to the map (marked built) and return the MapBuilding
+        // creates the Building instance using MapBuilding class
+    }
+
+
+    static Town load(Level level, CompoundTag tag) {
         List<Building> buildings = new ArrayList<>();
         List<ConstructionProject> constructionProjects = new ArrayList<>();
         List<UUID> citizens = new ArrayList<>();
@@ -109,7 +147,7 @@ public class Town {
         }
     }
 
-    public void saveNBT(CompoundTag tag) {
+    public void save(CompoundTag tag) {
         tag.putUUID("UUID", this.uuid);
         tag.putString("Culture", this.culture.getId());
         tag.putString("Name", this.name);
@@ -148,6 +186,14 @@ public class Town {
         }
     }
 
+    void softDelete() {
+
+    }
+
+    void hardDelete() {
+
+    }
+
     private void collectProduction() {
         for (Building building : this.buildings) {
             HashMap<ResourceLocation, Integer> production = building.getProduction();
@@ -173,12 +219,25 @@ public class Town {
     public void tick() {
        // updateVisitors();
         //updateStatus();
-
+        // If no construction project, creates one
         if (this.active) {
             //this.level.getServer().getPlayerList().broadcastSystemMessage(Component.literal("Ticking \"" + getName() + "\" in ACTIVE mode"), true);
             //maybeCollectProduction();
             //handleUnloadedCitizens();
+            tryStartSurpriseRaid();
         }
+    }
+
+    private void tryStartSurpriseRaid() {
+
+    }
+
+    private void spawnFireworksAt(BlockPos blockPos) {
+
+    }
+
+    public void ringTownBell(TownBellRingType ringType) {
+        // If the town has a bell, plays the desired sound at bell location
     }
 
     private void updateVisitors() {

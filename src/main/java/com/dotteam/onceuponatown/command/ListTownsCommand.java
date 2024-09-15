@@ -18,7 +18,7 @@ public class ListTownsCommand {
     }
 
     private static int listTowns(CommandSourceStack source) {
-        List<Town> towns = TownManager.getTownList(source.getLevel());
+        List<Town> towns = TownManager.getTowns(source.getLevel());
         if (towns != null) {
             if (towns.size() > 0) {
                 source.sendSuccess(() -> Component.literal("Following towns found (" + towns.size() + ") :"), false);

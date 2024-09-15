@@ -48,7 +48,7 @@ public class TownDataBuildingPiece extends BuildingPiece {
     public void postProcess(WorldGenLevel worldGenLevel, StructureManager manager, ChunkGenerator chunkGenerator, RandomSource random, BoundingBox box, ChunkPos chunkPos, BlockPos pos) {
         super.postProcess(worldGenLevel, manager, chunkGenerator, random, box, chunkPos, pos);
         if (!this.townRegistered) {
-            TownManager.createTownFromWorldGen(worldGenLevel.getLevel(), Culture.FAKE_PLAINS, this.townMap);
+            TownManager.createNewTownWorldGen(worldGenLevel.getLevel(), Culture.FAKE_PLAINS, this.townMap);
             this.townRegistered = true;
         }
     }

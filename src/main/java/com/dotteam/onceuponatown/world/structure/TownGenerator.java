@@ -14,7 +14,6 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.chunk.ChunkGenerator;
-import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.WorldgenRandom;
 import net.minecraft.world.level.levelgen.structure.StructurePieceAccessor;
@@ -23,27 +22,34 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
 
 import java.util.*;
 
-public class TownGeneration {
-    public static final int STARTER_PACK_SIZE = 50;
+public class TownGenerator {
+    public static final int STARTER_PACK_SIZE = 21;
     public static final int HEIGHTMAP_SCAN_RADIUS = 100;
     public static final BuildingInfo[] TEST_BUILDINGS = new BuildingInfo[] {
+            new BuildingInfo(OuatUtils.resource("plains/bigchurch"), 19, 32),
             new BuildingInfo(OuatUtils.resource("plains/bighouse"), 13, 11),
             new BuildingInfo(OuatUtils.resource("plains/bighousefront"), 9, 8),
             new BuildingInfo(OuatUtils.resource("plains/bighousestand"), 15, 10),
             new BuildingInfo(OuatUtils.resource("plains/church"), 15, 24),
+            new BuildingInfo(OuatUtils.resource("plains/cowshed"), 16, 11),
             new BuildingInfo(OuatUtils.resource("plains/doubledeckhouse"), 7, 15),
             new BuildingInfo(OuatUtils.resource("plains/fountainplace"), 13, 13),
             new BuildingInfo(OuatUtils.resource("plains/leathershop"), 14, 9),
             new BuildingInfo(OuatUtils.resource("plains/littlefarm"), 9, 7),
+            new BuildingInfo(OuatUtils.resource("plains/lonegarden"), 14, 13),
+            new BuildingInfo(OuatUtils.resource("plains/loneresources"), 14, 11),
             new BuildingInfo(OuatUtils.resource("plains/mediumhouse"), 11, 10),
             new BuildingInfo(OuatUtils.resource("plains/merchantshop"), 15, 12),
+            new BuildingInfo(OuatUtils.resource("plains/smallfarm"), 17, 10),
             new BuildingInfo(OuatUtils.resource("plains/smallhouse"), 8, 9),
+            new BuildingInfo(OuatUtils.resource("plains/smallhousefancy"), 14, 10),
             new BuildingInfo(OuatUtils.resource("plains/smallhousegarden"), 14, 8),
+            new BuildingInfo(OuatUtils.resource("plains/smallmarket"), 25, 18),
             new BuildingInfo(OuatUtils.resource("plains/soldierhouse"), 13, 13),
             new BuildingInfo(OuatUtils.resource("plains/wildspot"), 10, 6)
     };
 
-    public static void generateTownPieces(StructureTemplateManager manager, BlockPos townCenterPos, StructurePieceAccessor pieces, WorldgenRandom random) {
+    public static void generatePiecesWorldGen(StructureTemplateManager manager, BlockPos townCenterPos, List<BuildingType> starter_pack, StructurePieceAccessor pieces, WorldgenRandom random) {
         OuatLog.info("Town at + " + townCenterPos.toShortString() + " : started generating pieces");
         List<BuildingInfo> availableBuildings = new LinkedList<>(Arrays.asList(TEST_BUILDINGS));
         List<BuildingInfo> starterPack = new ArrayList<>();
@@ -57,15 +63,15 @@ public class TownGeneration {
         TownMap townMap = createTownMap(townCenterPos, starterPack);
         OuatLog.info("Town at + " + townCenterPos.toShortString() + " : created town map");
         List<MapBuilding> mapBuildingList = new ArrayList<>();
-        List<MapPath> mapPathList = new ArrayList<>();
+        List<MapRoad> mapRoadList = new ArrayList<>();
 
         HashMap<Integer, MapBuild> mapBuilds = townMap.getBuilds();
         for (Integer key : mapBuilds.keySet()) {
             MapBuild build = mapBuilds.get(key);
             if (build instanceof MapBuilding building) {
                 mapBuildingList.add(building);
-            } else if (build instanceof MapPath path) {
-                mapPathList.add(path);
+            } else if (build instanceof MapRoad path) {
+                mapRoadList.add(path);
             }
         }
         // Buildings
@@ -83,8 +89,8 @@ public class TownGeneration {
             }
         }
         // Paths
-        mapPathList.forEach((mapPath) -> {
-            PathPiece pathPiece = new PathPiece(mapPath.getOriginPos(), mapPath.getSizeX(), mapPath.getSizeZ());
+        mapRoadList.forEach((mapRoad) -> {
+            PathPiece pathPiece = new PathPiece(mapRoad.getOriginPos(), mapRoad.getSizeX(), mapRoad.getSizeZ());
             pieces.addPiece(pathPiece);
         });
 

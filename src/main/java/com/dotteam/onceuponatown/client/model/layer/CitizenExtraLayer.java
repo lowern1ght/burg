@@ -31,7 +31,7 @@ public class CitizenExtraLayer<T extends Citizen, M extends CitizenModel<T>> ext
 
     private void renderCultureClothes(M model, PoseStack poseStack, MultiBufferSource buffer, int packedLight, T citizen) {
         CitizenCulture culture = citizen.getCulture();
-        String path = "textures/entity/citizen/culture_clothes/" + "plains" + ".png";
+        String path = "textures/entity/citizen/culture_clothes/" + "savanna" + ".png";
         ResourceLocation resourceLocation = OuatUtils.resource(path);
         renderColoredCutoutModel(model, resourceLocation, poseStack, buffer, packedLight, citizen, 1.0F, 1.0F, 1.0F);
     }
@@ -39,7 +39,7 @@ public class CitizenExtraLayer<T extends Citizen, M extends CitizenModel<T>> ext
     private void renderProfessionClothes(M model, PoseStack poseStack, MultiBufferSource buffer, int packedLight, T citizen) {
         CitizenProfession profession = citizen.getProfession();
         if (profession != CitizenProfession.UNEMPLOYED) {
-            String path = "textures/entity/citizen/profession_clothes/" + "nitwit" + ".png";
+            String path = "textures/entity/citizen/profession_clothes/" + "farmer" + ".png";
             ResourceLocation resourceLocation = OuatUtils.resource(path);
             renderColoredCutoutModel(model, resourceLocation, poseStack, buffer, packedLight, citizen, 1.0F, 1.0F, 1.0F);
         }
