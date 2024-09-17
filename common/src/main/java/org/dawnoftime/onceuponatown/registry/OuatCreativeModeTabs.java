@@ -17,8 +17,8 @@ public class OuatCreativeModeTabs {
             .icon(() -> new ItemStack(Items.EMERALD))
             .title(Component.translatable("creative_mode_tab.onceuponatown.main_tab"))
             .displayItems((parameters, output) -> {
-                output.accept(OuatItems.CITIZEN_SPAWN_EGG.get());
-                output.accept(OuatItems.EMERALD_SHARD.get());
+                output.accept(OuatItemsRegistry.CITIZEN_SPAWN_EGG.get());
+                output.accept(OuatItemsRegistry.EMERALD_SHARD.get());
             }).build());
 
     public static void register(IEventBus bus) {

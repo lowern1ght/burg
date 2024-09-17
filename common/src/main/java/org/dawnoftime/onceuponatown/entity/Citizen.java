@@ -2,7 +2,7 @@ package org.dawnoftime.onceuponatown.entity;
 
 import org.dawnoftime.onceuponatown.menu.BuyMenu;
 import org.dawnoftime.onceuponatown.menu.InteractableCitizen;
-import org.dawnoftime.onceuponatown.registry.OuatEntities;
+import org.dawnoftime.onceuponatown.registry.OuatEntitiesRegistry;
 import org.dawnoftime.onceuponatown.trade.BuyDeal;
 import org.dawnoftime.onceuponatown.trade.SellDeal;
 import org.dawnoftime.onceuponatown.trade.TradeUtils;
@@ -156,7 +156,7 @@ public class Citizen extends AgeableMob implements InteractableCitizen {
     }
 
     public AgeableMob getBreedOffspring(ServerLevel level, AgeableMob otherParent) {
-        return OuatEntities.CITIZEN.get().create(level);
+        return OuatEntitiesRegistry.CITIZEN.get().create(level);
     }
 
     protected float getStandingEyeHeight(Pose pose, EntityDimensions size) {

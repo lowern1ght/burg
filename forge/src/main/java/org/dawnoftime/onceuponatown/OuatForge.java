@@ -27,11 +27,32 @@ import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
 @Mod(Constants.MOD_ID)
-public class OnceUponATown {
-    public OnceUponATown() {
+public class OuatForge {
+    /*
+    TODO use this code when we will add the configs.
+    public static final ConfigClassHandler<DoTBConfig> HANDLER = ConfigClassHandler.createBuilder(DoTBConfig.class)
+            .id(new ResourceLocation(DoTBCommon.MOD_ID, "config"))
+            .serializer(config -> GsonConfigSerializerBuilder.create(config)
+                    .setPath(YACLPlatform.getConfigDir().resolve("dawnoftimebuilder-config.json5"))
+                    .setJson5(true)
+                    .build())
+            .build();
+
+    // The handler must be loaded in the mod constructor before initializing anything else.
+    HANDLER.load();
+    */
+
+    public OuatForge() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
-        OuatEntities.register(modEventBus);
-        OuatItems.register(modEventBus);
+        Common.init();
+        ForgeSpawnEggItem
+        RegistryImpls.init(modEventBus);
+
+        //modEventBus.register(DoTBForgeClient.class);
+        //modEventBus.register(DataGenerators.class);
+        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+        OuatEntitiesRegistry.register(modEventBus);
+        OuatItemsRegistry.register(modEventBus);
         OuatCreativeModeTabs.register(modEventBus);
         OuatMenus.register(modEventBus);
         OuatStructures.register(modEventBus);
@@ -48,7 +69,7 @@ public class OnceUponATown {
 
         @SubscribeEvent
         public static void createEntityAttributes(EntityAttributeCreationEvent event) {
-            event.put(OuatEntities.CITIZEN.get(), Citizen.createAttributes().build());
+            event.put(OuatEntitiesRegistry.CITIZEN.get(), Citizen.createAttributes().build());
         }
     }
 
@@ -67,16 +88,16 @@ public class OnceUponATown {
         @SubscribeEvent
         public static void addItemsToCreativeModeTabs(BuildCreativeModeTabContentsEvent event) {
             if (event.getTabKey() == CreativeModeTabs.SPAWN_EGGS) {
-                event.accept(OuatItems.CITIZEN_SPAWN_EGG);
+                event.accept(OuatItemsRegistry.CITIZEN_SPAWN_EGG);
             }
             if (event.getTabKey() == CreativeModeTabs.INGREDIENTS) {
-                event.accept(OuatItems.EMERALD_SHARD);
+                event.accept(OuatItemsRegistry.EMERALD_SHARD);
             }
         }
 
         @SubscribeEvent
         public static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
-            event.registerEntityRenderer(OuatEntities.CITIZEN.get(), CitizenRenderer::new);
+            event.registerEntityRenderer(OuatEntitiesRegistry.CITIZEN.get(), CitizenRenderer::new);
         }
 
         @SubscribeEvent

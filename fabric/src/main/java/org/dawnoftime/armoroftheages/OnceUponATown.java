@@ -9,7 +9,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import org.dawnoftime.onceuponatown.CommonClass;
+import org.dawnoftime.onceuponatown.Common;
 
 import static org.dawnoftime.armoroftheages.AotAItemRegistry.ITEMS;
 import static org.dawnoftime.armoroftheages.AotAItemRegistry.TAB_ICON;
@@ -31,6 +31,6 @@ public class OnceUponATown implements ModInitializer {
         // Creative inventory init
         Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, new ResourceLocation(MOD_ID, MOD_ID), CREATIVE_MODE_TAB);
 
-        CommonClass.init();
+        Common.init();
     }
 }
