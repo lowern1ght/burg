@@ -3,7 +3,7 @@ package org.dawnoftime.onceuponatown.client.screen;
 import org.dawnoftime.onceuponatown.client.screen.tooltip.TradeItemTooltip;
 import org.dawnoftime.onceuponatown.menu.SellMenu;
 import org.dawnoftime.onceuponatown.network.C2SSellScreenPacket;
-import org.dawnoftime.onceuponatown.network.OuatNetwork;
+import org.dawnoftime.onceuponatown.platform.Platform;
 import org.dawnoftime.onceuponatown.trade.SellDeal;
 import org.dawnoftime.onceuponatown.util.OuatUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -22,12 +22,13 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Optional;
 
 public class SellScreen extends CitizenBaseScreen<SellMenu> {
-    private static final ResourceLocation TEXTURE = OuatUtils.resource("textures/gui/sell_screen.png");
+    private static final ResourceLocation TEXTURE = OuatUtils.createOuatResource("textures/gui/sell_screen.png");
     private static final int BUY_SCREEN_TEXTURE_WIDTH = 299;
     private static final int BUY_SCREEN_TEXTURE_HEIGHT = 174;
     // Texture size and offset in file
@@ -93,19 +94,19 @@ public class SellScreen extends CitizenBaseScreen<SellMenu> {
     private void onDealButtonLeftClick(DealButton button) {
         this.selectedDealIndex = button.getIndex() + (this.scrollOff * GRID_COLUMNS);
         this.menu.handleClientAction(this.selectedDealIndex, (hasShiftDown() ? C2SSellScreenPacket.RequestType.ONE_TRADE_SELL_EVERYTHING : C2SSellScreenPacket.RequestType.ONE_TRADE_SELL_ONE));
-        OuatNetwork.sendToServer(new C2SSellScreenPacket(this.selectedDealIndex, (hasShiftDown() ? C2SSellScreenPacket.RequestType.ONE_TRADE_SELL_EVERYTHING : C2SSellScreenPacket.RequestType.ONE_TRADE_SELL_ONE)));
+        Platform.PLATFORM.sendToServer(new C2SSellScreenPacket(this.selectedDealIndex, (hasShiftDown() ? C2SSellScreenPacket.RequestType.ONE_TRADE_SELL_EVERYTHING : C2SSellScreenPacket.RequestType.ONE_TRADE_SELL_ONE)));
     }
 
     private void onDealButtonRightClick(DealButton button) {
         Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 0.7F));
         this.selectedDealIndex = button.getIndex() + (this.scrollOff * GRID_COLUMNS);
         this.menu.handleClientAction(this.selectedDealIndex, (hasShiftDown() ? C2SSellScreenPacket.RequestType.ONE_TRADE_REMOVE_EVERYTHING : C2SSellScreenPacket.RequestType.ONE_TRADE_REMOVE_ONE));
-        OuatNetwork.sendToServer(new C2SSellScreenPacket(this.selectedDealIndex, (hasShiftDown() ? C2SSellScreenPacket.RequestType.ONE_TRADE_REMOVE_EVERYTHING : C2SSellScreenPacket.RequestType.ONE_TRADE_REMOVE_ONE)));
+        Platform.PLATFORM.sendToServer(new C2SSellScreenPacket(this.selectedDealIndex, (hasShiftDown() ? C2SSellScreenPacket.RequestType.ONE_TRADE_REMOVE_EVERYTHING : C2SSellScreenPacket.RequestType.ONE_TRADE_REMOVE_ONE)));
     }
 
     private void onSellEverythingButtonClick() {
         this.menu.handleClientAction(this.selectedDealIndex, C2SSellScreenPacket.RequestType.ALL_TRADES_SELL_EVERYTHING);
-        OuatNetwork.sendToServer(new C2SSellScreenPacket(this.selectedDealIndex, C2SSellScreenPacket.RequestType.ALL_TRADES_SELL_EVERYTHING));
+        Platform.PLATFORM.sendToServer(new C2SSellScreenPacket(this.selectedDealIndex, C2SSellScreenPacket.RequestType.ALL_TRADES_SELL_EVERYTHING));
     }
 
     private int nbOfDeals() {
@@ -176,7 +177,7 @@ public class SellScreen extends CitizenBaseScreen<SellMenu> {
         graphics.drawString(this.font, "Needed", 37, 14, 4210752, false);
     }
 
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         super.render(graphics, mouseX, mouseY, partialTick);
         this.renderScroller(graphics);
 
@@ -217,7 +218,7 @@ public class SellScreen extends CitizenBaseScreen<SellMenu> {
         //graphics.pose().translate(0.0F, 0.0F, 100.0F);
         if (this.menu.isGoodsGridLocked()) {
             graphics.pose().translate(0.0F, 0.0F, 400.0F);
-            graphics.blit(OuatUtils.resource("textures/gui/lock.png"), this.leftPos + 143, this.topPos + 48 , 0, 0, 10, 14, 10, 14);
+            graphics.blit(OuatUtils.createOuatResource("textures/gui/lock.png"), this.leftPos + 143, this.topPos + 48 , 0, 0, 10, 14, 10, 14);
         }
         graphics.drawString(this.font, Component.literal("Simir Kurtmar, ").withStyle(ChatFormatting.GOLD).append(Component.literal("Inkeeper").withStyle(ChatFormatting.GRAY).withStyle(ChatFormatting.ITALIC)), leftPos + 305, topPos+18, 4210752, false);
         //graphics.drawString(this.font, Component.literal("                               ").withStyle(ChatFormatting.WHITE).withStyle(ChatFormatting.UNDERLINE),leftPos + 305, topPos +2, 4210752, false);
@@ -307,7 +308,7 @@ public class SellScreen extends CitizenBaseScreen<SellMenu> {
                 ItemStack valueEmeralds = SellScreen.this.menu.getDeals().get(this.index + (SellScreen.this.scrollOff * GRID_COLUMNS)).getValueEmeralds();
                 ItemStack valueBlocks = SellScreen.this.menu.getDeals().get(this.index + (SellScreen.this.scrollOff * GRID_COLUMNS)).getValueBlocks();
                 List<Component> text = Screen.getTooltipFromItem(SellScreen.this.minecraft, good);
-                graphics.renderTooltip(SellScreen.this.font, text, Optional.of(new TradeItemTooltip(valueShards, valueEmeralds, valueBlocks)), good, mouseX, mouseY);
+                Platform.PLATFORM.renderTooltip(graphics, SellScreen.this.font, text, new TradeItemTooltip(valueShards, valueEmeralds, valueBlocks), good, mouseX, mouseY);
             }
         }
     }

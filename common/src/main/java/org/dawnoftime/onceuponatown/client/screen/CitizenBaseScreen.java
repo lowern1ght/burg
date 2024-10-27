@@ -2,7 +2,7 @@ package org.dawnoftime.onceuponatown.client.screen;
 
 import org.dawnoftime.onceuponatown.entity.Citizen;
 import org.dawnoftime.onceuponatown.network.C2SChangeCitizenTabPacket;
-import org.dawnoftime.onceuponatown.network.OuatNetwork;
+import org.dawnoftime.onceuponatown.platform.Platform;
 import org.dawnoftime.onceuponatown.util.OuatUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -21,8 +21,8 @@ import java.util.List;
 import java.util.Optional;
 
 public abstract class CitizenBaseScreen<T extends AbstractContainerMenu> extends AbstractContainerScreen<T> {
-    private static final ResourceLocation EMPTY_TABS_TEXTURE = OuatUtils.resource("textures/gui/tabs/empty_tabs.png");
-    private static final ResourceLocation CITIZEN_HEADER_TEXTURE = OuatUtils.resource("textures/gui/citizen_header.png");
+    private static final ResourceLocation EMPTY_TABS_TEXTURE = OuatUtils.createOuatResource("textures/gui/tabs/empty_tabs.png");
+    private static final ResourceLocation CITIZEN_HEADER_TEXTURE = OuatUtils.createOuatResource("textures/gui/citizen_header.png");
     private static final int CITIZEN_HEADER_TEXTURE_WIDTH = 289;
     private static final int CITIZEN_HEADER_TEXTURE_HEIGHT = 49;
     private static final int EMPTY_TABS_TEXTURE_WIDTH = 65;
@@ -177,7 +177,7 @@ public abstract class CitizenBaseScreen<T extends AbstractContainerMenu> extends
             && (mouseY >= topPos + drawnTab.y)
             && (mouseY <= topPos+ drawnTab.y + INACTIVE_TAB_HEIGHT)) {
                 Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
-                OuatNetwork.sendToServer(new C2SChangeCitizenTabPacket(drawnTab.tab.ordinal()));
+                Platform.PLATFORM.sendToServer(new C2SChangeCitizenTabPacket(drawnTab.tab.ordinal()));
             }
         }
         return super.mouseClicked(mouseX, mouseY, button);
@@ -186,9 +186,9 @@ public abstract class CitizenBaseScreen<T extends AbstractContainerMenu> extends
     private record DrawnTab(int index, CitizenTab tab, int x, int y) {}
 
     public enum CitizenTab {
-        BUY(OuatUtils.resource("textures/gui/tabs/buy_icon.png"), 14, 21, 11, 3),
-        SELL(OuatUtils.resource("textures/gui/tabs/sell_icon.png"), 14, 21, 11, 3),
-        QUESTS(OuatUtils.resource("textures/gui/tabs/quests_icon.png"),15 ,12 ,10 ,7),
+        BUY(OuatUtils.createOuatResource("textures/gui/tabs/buy_icon.png"), 14, 21, 11, 3),
+        SELL(OuatUtils.createOuatResource("textures/gui/tabs/sell_icon.png"), 14, 21, 11, 3),
+        QUESTS(OuatUtils.createOuatResource("textures/gui/tabs/quests_icon.png"),15 ,12 ,10 ,7),
         INFO(new ResourceLocation("textures/item/chainmail_chestplate.png"), 16, 16, 10, 5);
 
         public final ResourceLocation iconTexture;

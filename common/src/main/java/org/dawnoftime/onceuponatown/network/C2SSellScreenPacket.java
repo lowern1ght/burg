@@ -1,58 +1,46 @@
 package org.dawnoftime.onceuponatown.network;
 
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
 import org.dawnoftime.onceuponatown.menu.SellMenu;
 import com.mojang.logging.LogUtils;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraftforge.network.NetworkEvent;
 import org.slf4j.Logger;
 
-import java.util.function.Supplier;
+import static org.dawnoftime.onceuponatown.util.OuatUtils.createOuatResource;
 
-public class C2SSellScreenPacket {
-    private final int dealIndex;
-    private final RequestType requestType;
+public record C2SSellScreenPacket(int dealIndex, RequestType requestType) implements IOuatPacket {
+    public static final ResourceLocation ID = createOuatResource("c2s_sell_screen");
 
-    public C2SSellScreenPacket(int dealIndex, RequestType requestType) {
-        this.dealIndex = dealIndex;
-        this.requestType = requestType;
+    public static C2SSellScreenPacket decode(FriendlyByteBuf buf) {
+        return new C2SSellScreenPacket(buf.readVarInt(), buf.readEnum(RequestType.class));
     }
 
-    public C2SSellScreenPacket(FriendlyByteBuf buffer) {
-        this.dealIndex = buffer.readVarInt();
-        this.requestType = buffer.readEnum(RequestType.class);
+    @Override
+    public void encode(FriendlyByteBuf buf) {
+        buf.writeVarInt(this.dealIndex);
+        buf.writeEnum(this.requestType);
     }
 
-    public void write(FriendlyByteBuf buffer) {
-        buffer.writeVarInt(this.dealIndex);
-        buffer.writeEnum(this.requestType);
+    @Override
+    public ResourceLocation getFabricId() {
+        return ID;
     }
 
-    public int getDealIndex() {
-        return this.dealIndex;
-    }
-
-    public RequestType getRequestType() {
-        return this.requestType;
-    }
-
-    public boolean handle(Supplier<NetworkEvent.Context> contextSupplier) {
-        NetworkEvent.Context context = contextSupplier.get();
-        context.enqueueWork(() -> {
-            int dealIndex = this.getDealIndex();
-            AbstractContainerMenu containerMenu = context.getSender().containerMenu;
-            if (containerMenu instanceof SellMenu sellMenu) {
-                if (!sellMenu.stillValid( context.getSender())) {
-                    Logger LOGGER = LogUtils.getLogger();
-                    LOGGER.debug("Player {} interacted with invalid menu {}", context.getSender(), sellMenu);
-                }
-                else {
-                    sellMenu.setSelectedDeal(dealIndex);
-                    sellMenu.handleClientAction(dealIndex, this.requestType);
-                }
+    public void handle(MinecraftServer server, ServerPlayer player) {
+        AbstractContainerMenu containerMenu = player.containerMenu;
+        if (containerMenu instanceof SellMenu sellMenu) {
+            if (!sellMenu.stillValid(player)) {
+                Logger LOGGER = LogUtils.getLogger();
+                LOGGER.debug("Player {} interacted with invalid menu {}", player, sellMenu);
             }
-        });
-        return true;
+            else {
+                sellMenu.setSelectedDeal(this.dealIndex());
+                sellMenu.handleClientAction(this.dealIndex(), this.requestType());
+            }
+        }
     }
 
     public enum RequestType {

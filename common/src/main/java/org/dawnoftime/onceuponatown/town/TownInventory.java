@@ -1,5 +1,6 @@
 package org.dawnoftime.onceuponatown.town;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.ResourceLocation;
@@ -23,7 +24,7 @@ public class TownInventory {
         ListTag inventoryTag = new ListTag();
         this.inventory.forEach((key, value) -> {
             CompoundTag entryTag = new CompoundTag();
-            entryTag.putString("item", ForgeRegistries.ITEMS.getKey(key).toString());
+            entryTag.putString("item", BuiltInRegistries.ITEM.getKey(key).toString());
             entryTag.putInt("amount", value);
             inventoryTag.add(entryTag);
         });
@@ -34,7 +35,7 @@ public class TownInventory {
         ListTag inventoryTag = tag.getList("townInventory", 10);
         for(int i = 0; i < inventoryTag.size(); ++i) {
             CompoundTag entryTag = inventoryTag.getCompound(i);
-            Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(entryTag.getString("item")));
+            Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(entryTag.getString("item")));
             this.inventory.put(item, entryTag.getInt("amount"));
         }
     }

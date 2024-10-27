@@ -2,7 +2,7 @@ package org.dawnoftime.onceuponatown.menu;
 
 import org.dawnoftime.onceuponatown.entity.Citizen;
 import org.dawnoftime.onceuponatown.network.C2SSellScreenPacket;
-import org.dawnoftime.onceuponatown.registry.OuatMenus;
+import org.dawnoftime.onceuponatown.registry.OuatMenusRegistry;
 import org.dawnoftime.onceuponatown.trade.SellDeal;
 import org.dawnoftime.onceuponatown.trade.TradeUtils;
 import net.minecraft.network.FriendlyByteBuf;
@@ -13,6 +13,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.HashSet;
 import java.util.List;
@@ -43,7 +44,7 @@ public class SellMenu extends CitizenBaseMenu {
     }
 
     public SellMenu(int containerId, Inventory playerInventory, InteractableCitizen citizen) {
-        super(OuatMenus.SELL_MENU.get(), containerId, citizen);
+        super(OuatMenusRegistry.MENU_REGISTRY.SELL_MENU.get(), containerId, citizen);
         this.citizen = citizen;
         citizen.setInteractingPlayer(playerInventory.player);
         this.sellContainer = new SellContainer(citizen);
@@ -77,14 +78,14 @@ public class SellMenu extends CitizenBaseMenu {
         //this.sellContainer.setSelectedDealIndex(selectedDealIndex);
     }
 
-    public boolean canTakeItemForPickAll(ItemStack stack, Slot slot) {
+    public boolean canTakeItemForPickAll(@NotNull ItemStack stack, @NotNull Slot slot) {
         return false;
     }
 
     public ItemStack quickMoveStack(Player player, int slotIndex) {
         ItemStack stackCopy = ItemStack.EMPTY;
         Slot slot = this.slots.get(slotIndex);
-        if (slot != null && slot.hasItem()) {
+        if (slot.hasItem()) {
             ItemStack stackInSlot = slot.getItem();
             stackCopy = stackInSlot.copy();
             if (slotIndex == VALUE_SHARDS_SLOT || slotIndex == VALUE_EMERALDS_SLOT || slotIndex == VALUE_BLOCKS_SLOT) {
@@ -138,7 +139,7 @@ public class SellMenu extends CitizenBaseMenu {
         return this.sellContainer.hasConcludedTrade;
     }
 
-    public void removed(Player player) {
+    public void removed(@NotNull Player player) {
         super.removed(player);
         this.citizen.setInteractingPlayer(null);
         if (this.citizen.isClientSide()) return;;
@@ -280,7 +281,7 @@ public class SellMenu extends CitizenBaseMenu {
         return this.citizen.getSellDeals();
     }
 
-    public class GoodsGridSlot extends Slot {
+    public static class GoodsGridSlot extends Slot {
         private final SellContainer sellContainer;
 
         public GoodsGridSlot(SellContainer container, int slot, int x, int y) {
@@ -288,17 +289,17 @@ public class SellMenu extends CitizenBaseMenu {
             this.sellContainer = container;
         }
 
-        public boolean mayPlace(ItemStack pStack) {
+        public boolean mayPlace(@NotNull ItemStack stack) {
             return !this.sellContainer.hasConcludedTrade;
         }
 
         @Override
-        public boolean mayPickup(Player pPlayer) {
+        public boolean mayPickup(@NotNull Player player) {
             return !this.sellContainer.hasConcludedTrade;
         }
     }
 
-    public class SellResultSlot extends Slot {
+    public static class SellResultSlot extends Slot {
         private final SellContainer sellContainer;
         private final Player player;
         private int removeCount;
@@ -314,11 +315,11 @@ public class SellMenu extends CitizenBaseMenu {
             this.index = index;
         }
 
-        public boolean mayPlace(ItemStack pStack) {
+        public boolean mayPlace(@NotNull ItemStack stack) {
             return false;
         }
 
-        public ItemStack remove(int pAmount) {
+        public @NotNull ItemStack remove(int pAmount) {
             if (this.hasItem()) {
                 this.removeCount += Math.min(pAmount, this.getItem().getCount());
             }
@@ -326,10 +327,10 @@ public class SellMenu extends CitizenBaseMenu {
             return super.remove(pAmount);
         }
 
-        protected void onQuickCraft(ItemStack pStack, int pAmount) {
+        protected void onQuickCraft(@NotNull ItemStack stack, int pAmount) {
             this.requestQuickCraft = true;
             this.removeCount += pAmount;
-            this.checkTakeAchievements(pStack);
+            this.checkTakeAchievements(stack);
         }
 
         protected void checkTakeAchievements(ItemStack pStack) {
@@ -337,7 +338,7 @@ public class SellMenu extends CitizenBaseMenu {
             this.removeCount = 0;
         }
 
-        public void onTake(Player pPlayer, ItemStack pStack) {
+        public void onTake(@NotNull Player player, @NotNull ItemStack stack) {
             this.sellContainer.onValueSlotTake();
             /*
             if (!SellMenu.this.sellContainer.hasConcludedTrade) {

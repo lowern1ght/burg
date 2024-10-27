@@ -35,7 +35,7 @@ public class BuyDeal {
             return true;
         } else {
             ItemStack stack = offer.copy();
-            if (stack.getItem().isDamageable(stack)) {
+            if (stack.getItem().canBeDepleted()) {
                 stack.setDamageValue(stack.getDamageValue());
             }
             return ItemStack.isSameItem(stack, required) && (!required.hasTag() || stack.hasTag() && NbtUtils.compareNbt(required.getTag(), stack.getTag(), false));

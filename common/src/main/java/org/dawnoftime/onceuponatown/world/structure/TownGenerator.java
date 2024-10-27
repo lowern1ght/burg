@@ -1,7 +1,6 @@
 package org.dawnoftime.onceuponatown.world.structure;
 
 import org.dawnoftime.onceuponatown.culture.BuildingType;
-import com.dotteam.onceuponatown.town.map.*;
 import org.dawnoftime.onceuponatown.town.map.*;
 import org.dawnoftime.onceuponatown.util.OuatLog;
 import org.dawnoftime.onceuponatown.util.OuatUtils;
@@ -27,27 +26,27 @@ public class TownGenerator {
     public static final int STARTER_PACK_SIZE = 21;
     public static final int HEIGHTMAP_SCAN_RADIUS = 100;
     public static final BuildingInfo[] TEST_BUILDINGS = new BuildingInfo[] {
-            new BuildingInfo(OuatUtils.resource("plains/bigchurch"), 19, 32),
-            new BuildingInfo(OuatUtils.resource("plains/bighouse"), 13, 11),
-            new BuildingInfo(OuatUtils.resource("plains/bighousefront"), 9, 8),
-            new BuildingInfo(OuatUtils.resource("plains/bighousestand"), 15, 10),
-            new BuildingInfo(OuatUtils.resource("plains/church"), 15, 24),
-            new BuildingInfo(OuatUtils.resource("plains/cowshed"), 16, 11),
-            new BuildingInfo(OuatUtils.resource("plains/doubledeckhouse"), 7, 15),
-            new BuildingInfo(OuatUtils.resource("plains/fountainplace"), 13, 13),
-            new BuildingInfo(OuatUtils.resource("plains/leathershop"), 14, 9),
-            new BuildingInfo(OuatUtils.resource("plains/littlefarm"), 9, 7),
-            new BuildingInfo(OuatUtils.resource("plains/lonegarden"), 14, 13),
-            new BuildingInfo(OuatUtils.resource("plains/loneresources"), 14, 11),
-            new BuildingInfo(OuatUtils.resource("plains/mediumhouse"), 11, 10),
-            new BuildingInfo(OuatUtils.resource("plains/merchantshop"), 15, 12),
-            new BuildingInfo(OuatUtils.resource("plains/smallfarm"), 17, 10),
-            new BuildingInfo(OuatUtils.resource("plains/smallhouse"), 8, 9),
-            new BuildingInfo(OuatUtils.resource("plains/smallhousefancy"), 14, 10),
-            new BuildingInfo(OuatUtils.resource("plains/smallhousegarden"), 14, 8),
-            new BuildingInfo(OuatUtils.resource("plains/smallmarket"), 25, 18),
-            new BuildingInfo(OuatUtils.resource("plains/soldierhouse"), 13, 13),
-            new BuildingInfo(OuatUtils.resource("plains/wildspot"), 10, 6)
+            new BuildingInfo(OuatUtils.createOuatResource("plains/bigchurch"), 19, 32),
+            new BuildingInfo(OuatUtils.createOuatResource("plains/bighouse"), 13, 11),
+            new BuildingInfo(OuatUtils.createOuatResource("plains/bighousefront"), 9, 8),
+            new BuildingInfo(OuatUtils.createOuatResource("plains/bighousestand"), 15, 10),
+            new BuildingInfo(OuatUtils.createOuatResource("plains/church"), 15, 24),
+            new BuildingInfo(OuatUtils.createOuatResource("plains/cowshed"), 16, 11),
+            new BuildingInfo(OuatUtils.createOuatResource("plains/doubledeckhouse"), 7, 15),
+            new BuildingInfo(OuatUtils.createOuatResource("plains/fountainplace"), 13, 13),
+            new BuildingInfo(OuatUtils.createOuatResource("plains/leathershop"), 14, 9),
+            new BuildingInfo(OuatUtils.createOuatResource("plains/littlefarm"), 9, 7),
+            new BuildingInfo(OuatUtils.createOuatResource("plains/lonegarden"), 14, 13),
+            new BuildingInfo(OuatUtils.createOuatResource("plains/loneresources"), 14, 11),
+            new BuildingInfo(OuatUtils.createOuatResource("plains/mediumhouse"), 11, 10),
+            new BuildingInfo(OuatUtils.createOuatResource("plains/merchantshop"), 15, 12),
+            new BuildingInfo(OuatUtils.createOuatResource("plains/smallfarm"), 17, 10),
+            new BuildingInfo(OuatUtils.createOuatResource("plains/smallhouse"), 8, 9),
+            new BuildingInfo(OuatUtils.createOuatResource("plains/smallhousefancy"), 14, 10),
+            new BuildingInfo(OuatUtils.createOuatResource("plains/smallhousegarden"), 14, 8),
+            new BuildingInfo(OuatUtils.createOuatResource("plains/smallmarket"), 25, 18),
+            new BuildingInfo(OuatUtils.createOuatResource("plains/soldierhouse"), 13, 13),
+            new BuildingInfo(OuatUtils.createOuatResource("plains/wildspot"), 10, 6)
     };
 
     public static void generatePiecesWorldGen(StructureTemplateManager manager, BlockPos townCenterPos, List<BuildingType> starter_pack, StructurePieceAccessor pieces, WorldgenRandom random) {

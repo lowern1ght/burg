@@ -138,12 +138,12 @@ public class Town {
     private void createOrLoadXpBar() {
         CustomBossEvents customBossEvents = this.level.getServer().getCustomBossEvents();
         String barID = (getName() + "_bar").replaceAll("\\s","").toLowerCase();
-        if (customBossEvents.get(OuatUtils.resource(barID)) == null) {
+        if (customBossEvents.get(OuatUtils.createOuatResource(barID)) == null) {
             Component barText = Component.literal(this.name).withStyle(ChatFormatting.WHITE);
-            this.townXpBar = customBossEvents.create(OuatUtils.resource(barID), barText);
+            this.townXpBar = customBossEvents.create(OuatUtils.createOuatResource(barID), barText);
             this.townXpBar.setColor(BossEvent.BossBarColor.WHITE);
         } else {
-            this.townXpBar = customBossEvents.get(OuatUtils.resource(barID));
+            this.townXpBar = customBossEvents.get(OuatUtils.createOuatResource(barID));
         }
     }
 

@@ -14,10 +14,11 @@ import net.minecraft.client.renderer.entity.layers.HumanoidArmorLayer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import org.jetbrains.annotations.NotNull;
 
 @OnlyIn(Dist.CLIENT)
 public class CitizenRenderer extends HumanoidMobRenderer<Citizen, CitizenModel<Citizen>> {
-    private static final ResourceLocation CITIZEN_BASE_SKIN = OuatUtils.resource("textures/entity/citizen/base_skin.png");
+    private static final ResourceLocation CITIZEN_BASE_SKIN = OuatUtils.createOuatResource("textures/entity/citizen/base_skin.png");
 
     public CitizenRenderer(EntityRendererProvider.Context context) {
         super(context, new CitizenModel<>(context.bakeLayer(CitizenModel.LAYER_LOCATION)), 0.5F);
@@ -27,12 +28,12 @@ public class CitizenRenderer extends HumanoidMobRenderer<Citizen, CitizenModel<C
         //this.addLayer(new CrossedArmsItemLayer<>(this, pContext.getItemInHandRenderer()));
     }
 
-    public void render(Citizen citizen, float entityYaw, float partialTicks, PoseStack matrixStack, MultiBufferSource buffer, int packedLight) {
+    public void render(Citizen citizen, float entityYaw, float partialTicks, @NotNull PoseStack matrixStack, @NotNull MultiBufferSource buffer, int packedLight) {
         getModel().setCrossedArms(citizen.isCrossingArms());
         super.render(citizen, entityYaw, partialTicks, matrixStack, buffer, packedLight);
     }
 
-    protected void scale(Citizen citizen, PoseStack matrixStack, float partialTickTime) {
+    protected void scale(Citizen citizen, @NotNull PoseStack matrixStack, float partialTickTime) {
         float f = 0.9375F;
         if (citizen.isBaby()) {
             f *= 0.5F;
@@ -43,5 +44,5 @@ public class CitizenRenderer extends HumanoidMobRenderer<Citizen, CitizenModel<C
         matrixStack.scale(f, f, f);
     }
 
-    public ResourceLocation getTextureLocation(Citizen citizen) {return CITIZEN_BASE_SKIN;}
+    public @NotNull ResourceLocation getTextureLocation(@NotNull Citizen citizen) {return CITIZEN_BASE_SKIN;}
 }

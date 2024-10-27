@@ -11,6 +11,7 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.RenderLayerParent;
 import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.resources.ResourceLocation;
+import org.jetbrains.annotations.NotNull;
 
 
 /**
@@ -21,7 +22,7 @@ public class CitizenExtraLayer<T extends Citizen, M extends CitizenModel<T>> ext
         super((RenderLayerParent<T, M>) renderer);
     }
 
-    public void render(PoseStack poseStack, MultiBufferSource buffer, int packedLight, T citizen, float limbSwing, float limbSwingAmount, float partialTick, float ageInTicks, float netHeadYaw, float headPitch) {
+    public void render(@NotNull PoseStack poseStack, @NotNull MultiBufferSource buffer, int packedLight, T citizen, float limbSwing, float limbSwingAmount, float partialTick, float ageInTicks, float netHeadYaw, float headPitch) {
         if (!citizen.isInvisible()) {
             M model = getParentModel();
             renderCultureClothes(model, poseStack, buffer, packedLight, citizen);
@@ -32,7 +33,7 @@ public class CitizenExtraLayer<T extends Citizen, M extends CitizenModel<T>> ext
     private void renderCultureClothes(M model, PoseStack poseStack, MultiBufferSource buffer, int packedLight, T citizen) {
         CitizenCulture culture = citizen.getCulture();
         String path = "textures/entity/citizen/culture_clothes/" + "savanna" + ".png";
-        ResourceLocation resourceLocation = OuatUtils.resource(path);
+        ResourceLocation resourceLocation = OuatUtils.createOuatResource(path);
         renderColoredCutoutModel(model, resourceLocation, poseStack, buffer, packedLight, citizen, 1.0F, 1.0F, 1.0F);
     }
 
@@ -40,7 +41,7 @@ public class CitizenExtraLayer<T extends Citizen, M extends CitizenModel<T>> ext
         CitizenProfession profession = citizen.getProfession();
         if (profession != CitizenProfession.UNEMPLOYED) {
             String path = "textures/entity/citizen/profession_clothes/" + "farmer" + ".png";
-            ResourceLocation resourceLocation = OuatUtils.resource(path);
+            ResourceLocation resourceLocation = OuatUtils.createOuatResource(path);
             renderColoredCutoutModel(model, resourceLocation, poseStack, buffer, packedLight, citizen, 1.0F, 1.0F, 1.0F);
         }
     }

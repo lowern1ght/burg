@@ -18,7 +18,7 @@ public class TradeUtils {
     }
 
     public static BuyDeal buyDeal(Item bought, int amount, int costShards, int costEmeralds, int costBlocks) {
-        return new BuyDeal.Builder(new ItemStack(OuatItemsRegistry.EMERALD_SHARD.get(), costShards), new ItemStack(bought,amount))
+        return new BuyDeal.Builder(new ItemStack(OuatItemsRegistry.ITEM_REGISTRY.EMERALD_SHARD.get(), costShards), new ItemStack(bought,amount))
                 .secondInput(new ItemStack(Items.EMERALD, costEmeralds))
                 .thirdInput(new ItemStack(Items.EMERALD_BLOCK, costBlocks))
                 .build();
@@ -30,7 +30,7 @@ public class TradeUtils {
 
     public static SellDeal sellDeal(Item good, int amount, int valueShards, int valueEmeralds, int valueBlocks) {
         return new SellDeal.Builder(new ItemStack(good, amount), new ItemStack(Items.EMERALD, valueEmeralds))
-                .valueShards(new ItemStack(OuatItemsRegistry.EMERALD_SHARD.get(), valueShards))
+                .valueShards(new ItemStack(OuatItemsRegistry.ITEM_REGISTRY.EMERALD_SHARD.get(), valueShards))
                 .valueBlocks(new ItemStack(Items.EMERALD_BLOCK, valueBlocks))
                 .build();
     }
@@ -75,8 +75,7 @@ public class TradeUtils {
     public static CompoundTag createBuyDealsTag(List<BuyDeal> deals) {
         CompoundTag tag = new CompoundTag();
         ListTag buyDealsTag = new ListTag();
-        for(int i = 0; i < deals.size(); ++i) {
-            BuyDeal deal = deals.get(i);
+        for (BuyDeal deal : deals) {
             buyDealsTag.add(deal.createTag());
         }
         tag.put("BuyDeals", buyDealsTag);
@@ -95,8 +94,7 @@ public class TradeUtils {
     public static CompoundTag createSellDealsTag(List<SellDeal> deals) {
         CompoundTag tag = new CompoundTag();
         ListTag sellDealsTag = new ListTag();
-        for(int i = 0; i < deals.size(); ++i) {
-            SellDeal deal = deals.get(i);
+        for (SellDeal deal : deals) {
             sellDealsTag.add(deal.createTag());
         }
         tag.put("SellDeals", sellDealsTag);
@@ -118,8 +116,7 @@ public class TradeUtils {
             BuyDeal deal = deals.get(index);
             return deal.isSatisfiedBy(stackA, stackB, stackC) ? deal : null;
         } else {
-            for(int i = 0; i < deals.size(); ++i) {
-                BuyDeal deal = deals.get(i);
+            for (BuyDeal deal : deals) {
                 if (deal.isSatisfiedBy(stackA, stackB, stackC)) {
                     return deal;
                 }

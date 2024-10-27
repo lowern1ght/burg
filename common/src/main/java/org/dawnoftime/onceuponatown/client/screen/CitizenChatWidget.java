@@ -4,6 +4,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractScrollWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
+import org.jetbrains.annotations.NotNull;
 
 public class CitizenChatWidget extends AbstractScrollWidget {
     public CitizenChatWidget(int pX, int pY, int pWidth, int pHeight, Component pMessage) {
@@ -21,7 +22,7 @@ public class CitizenChatWidget extends AbstractScrollWidget {
     }
 
     @Override
-    protected void renderContents(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
+    protected void renderContents(@NotNull GuiGraphics guiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
 
     }
 
@@ -34,7 +35,7 @@ public class CitizenChatWidget extends AbstractScrollWidget {
     }
 
     @Override
-    protected void updateWidgetNarration(NarrationElementOutput pNarrationElementOutput) {
+    protected void updateWidgetNarration(@NotNull NarrationElementOutput narrationElementOutput) {
 
     }
 }

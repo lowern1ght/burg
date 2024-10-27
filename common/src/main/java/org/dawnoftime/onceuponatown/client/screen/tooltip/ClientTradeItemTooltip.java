@@ -4,6 +4,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,14 +16,14 @@ public class ClientTradeItemTooltip implements ClientTooltipComponent {
 
 
     public ClientTradeItemTooltip(TradeItemTooltip tooltip) {
-        this.a = tooltip.getA();
-        this.b = tooltip.getB();
-        this.c = tooltip.getC();
+        this.a = tooltip.a();
+        this.b = tooltip.b();
+        this.c = tooltip.c();
     }
 
     @Override
-    public void renderImage(Font font, int pX, int pY, GuiGraphics grpahics) {
-        //grpahics.drawString(font, "Worth", pX, pY, 43520, false);
+    public void renderImage(@NotNull Font font, int pX, int pY, @NotNull GuiGraphics graphics) {
+        //graphics.drawString(font, "Worth", pX, pY, 43520, false);
         int leftOffset = 3;
         int separation = 18;
         List<ItemStack> stacks = new ArrayList<>();
@@ -31,8 +32,8 @@ public class ClientTradeItemTooltip implements ClientTooltipComponent {
         if (!this.c.isEmpty()) stacks.add(this.c);
         int i = 0;
         for (ItemStack stack : stacks) {
-            grpahics.renderItem(stack, pX - leftOffset + i * separation, pY + 1, 1);
-            grpahics.renderItemDecorations(font, stack, pX - leftOffset + i * separation, pY + 1);
+            graphics.renderItem(stack, pX - leftOffset + i * separation, pY + 1, 1);
+            graphics.renderItemDecorations(font, stack, pX - leftOffset + i * separation, pY + 1);
             ++i;
         }
     }
@@ -43,7 +44,7 @@ public class ClientTradeItemTooltip implements ClientTooltipComponent {
     }
 
     @Override
-    public int getWidth(Font pFont) {
+    public int getWidth(@NotNull Font font) {
         int i = 0;
         if (!this.a.isEmpty()) {
             i+= 18;

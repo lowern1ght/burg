@@ -46,7 +46,7 @@ public class FreshBuildingProject extends ConstructionProject {
                 .rotation(Rotation.valueOf(buildingSiteTag.getString("Rotation").toUpperCase()))
                 .mirror(Mirror.valueOf(buildingSiteTag.getString("Mirror").toUpperCase()));
         String name = buildingSiteTag.getString("Name");
-        ConstructionPlan constructionPlan = ConstructionPlan.create(OuatUtils.resource(buildingSiteTag.getString("Structure")), level.getServer().getResourceManager());
+        ConstructionPlan constructionPlan = ConstructionPlan.create(OuatUtils.createOuatResource(buildingSiteTag.getString("Structure")), level.getServer().getResourceManager());
         FreshBuildingProject project = new FreshBuildingProject(level, name, settings , constructionPlan);
         project.currentPhaseIndex = buildingSiteTag.getInt("Phase");
         project.getCurrentPhase().setProgression(buildingSiteTag.getInt("PhaseProgression"));

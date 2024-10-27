@@ -1,7 +1,7 @@
 package org.dawnoftime.armoroftheages.platform;
 
 import net.fabricmc.loader.api.FabricLoader;
-import org.dawnoftime.onceuponatown.platform.services.IPlatformHelper;
+import org.dawnoftime.onceuponatown.platform.IPlatformHelper;
 
 public class FabricPlatformHelper implements IPlatformHelper {
 

@@ -1,0 +1,46 @@
+package org.dawnoftime.onceuponatown.network;
+
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraftforge.network.NetworkEvent;
+import net.minecraftforge.network.NetworkRegistry;
+import net.minecraftforge.network.simple.SimpleChannel;
+import net.minecraft.resources.ResourceLocation;
+import org.apache.logging.log4j.util.TriConsumer;
+import org.dawnoftime.onceuponatown.Constants;
+
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+public class ForgeNetwork {
+    public static final SimpleChannel CHANNEL =  NetworkRegistry.newSimpleChannel(new ResourceLocation(Constants.MOD_ID, "channel"), () -> "0", "0"::equals, "0"::equals);
+
+    public static void init() {
+        int i = 0;
+
+        // Client to Server packets
+        CHANNEL.registerMessage(i++, C2SSelectBuyDealPacket.class, C2SSelectBuyDealPacket::encode, C2SSelectBuyDealPacket::decode, makeC2SHandler(C2SSelectBuyDealPacket::handle));
+        CHANNEL.registerMessage(i++, C2SSellScreenPacket.class, C2SSellScreenPacket::encode, C2SSellScreenPacket::decode, makeC2SHandler(C2SSellScreenPacket::handle));
+        CHANNEL.registerMessage(i++, C2SChangeCitizenTabPacket.class, C2SChangeCitizenTabPacket::encode, C2SChangeCitizenTabPacket::decode, makeC2SHandler(C2SChangeCitizenTabPacket::handle));
+
+        // Server to Client packets
+    }
+
+    private static <T> BiConsumer<T, Supplier<NetworkEvent.Context>> makeC2SHandler(TriConsumer<T, MinecraftServer, ServerPlayer> handler) {
+        return (m, contextSupplier) -> {
+            ServerPlayer player = contextSupplier.get().getSender();
+            if(player != null){
+                handler.accept(m, player.getServer(), contextSupplier.get().getSender());
+                contextSupplier.get().setPacketHandled(true);
+            }
+        };
+    }
+
+    private static <T> BiConsumer<T, Supplier<NetworkEvent.Context>> makeS2CHandler(Consumer<T> consumer) {
+        return (m, contextSupplier) -> {
+            consumer.accept(m);
+            contextSupplier.get().setPacketHandled(true);
+        };
+    }
+}

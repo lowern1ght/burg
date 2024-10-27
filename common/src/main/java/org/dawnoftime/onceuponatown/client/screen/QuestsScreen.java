@@ -3,7 +3,7 @@ package org.dawnoftime.onceuponatown.client.screen;
 import org.dawnoftime.onceuponatown.client.screen.tooltip.TradeItemTooltip;
 import org.dawnoftime.onceuponatown.menu.BuyMenu;
 import org.dawnoftime.onceuponatown.network.C2SSelectBuyDealPacket;
-import org.dawnoftime.onceuponatown.network.OuatNetwork;
+import org.dawnoftime.onceuponatown.platform.Platform;
 import org.dawnoftime.onceuponatown.trade.BuyDeal;
 import org.dawnoftime.onceuponatown.util.OuatUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -16,12 +16,12 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.Optional;
 
 public class QuestsScreen extends CitizenBaseScreen<BuyMenu> {
-    private static final ResourceLocation TEXTURE = OuatUtils.resource("textures/gui/buy_screen.png");
+    private static final ResourceLocation TEXTURE = OuatUtils.createOuatResource("textures/gui/buy_screen.png");
     private static final int BUY_SCREEN_TEXTURE_WIDTH = 299;
     private static final int BUY_SCREEN_TEXTURE_HEIGHT = 174;
     // Texture size and offset in file
@@ -87,7 +87,7 @@ public class QuestsScreen extends CitizenBaseScreen<BuyMenu> {
     private void postButtonClick() {
         this.menu.setSelectedDeal(this.selectedDealIndex);
         this.menu.tryMoveItems(this.selectedDealIndex);
-        OuatNetwork.sendToServer(new C2SSelectBuyDealPacket(this.selectedDealIndex));
+        Platform.PLATFORM.sendToServer(new C2SSelectBuyDealPacket(this.selectedDealIndex));
     }
 
     private int nbOfDeals() {
@@ -148,7 +148,7 @@ public class QuestsScreen extends CitizenBaseScreen<BuyMenu> {
         graphics.drawString(this.font, "Offers", 37, 14, 4210752, false);
     }
 
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         super.render(graphics, mouseX, mouseY, partialTick);
         this.renderScroller(graphics);
 
@@ -265,7 +265,7 @@ public class QuestsScreen extends CitizenBaseScreen<BuyMenu> {
                 ItemStack stackB = QuestsScreen.this.menu.getDeals().get(this.index + (QuestsScreen.this.scrollOff * GRID_COLUMNS)).getInputB();
                 ItemStack stackC = QuestsScreen.this.menu.getDeals().get(this.index + (QuestsScreen.this.scrollOff * GRID_COLUMNS)).getInputC();
                 List<Component> text = getTooltipFromItem(QuestsScreen.this.minecraft, result);
-                graphics.renderTooltip(QuestsScreen.this.font, text, Optional.of(new TradeItemTooltip(stackA, stackB, stackC)), result, mouseX, mouseY);
+                Platform.PLATFORM.renderTooltip(graphics, QuestsScreen.this.font, text, new TradeItemTooltip(stackA, stackB, stackC), result, mouseX, mouseY);
             }
         }
     }

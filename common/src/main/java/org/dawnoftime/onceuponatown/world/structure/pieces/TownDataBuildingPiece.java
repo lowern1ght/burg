@@ -2,7 +2,8 @@ package org.dawnoftime.onceuponatown.world.structure.pieces;
 
 import org.dawnoftime.onceuponatown.culture.BuildingType;
 import org.dawnoftime.onceuponatown.culture.Culture;
-import org.dawnoftime.onceuponatown.registry.OuatStructures;
+import org.dawnoftime.onceuponatown.registry.OuatStructurePiecesRegistry;
+import org.dawnoftime.onceuponatown.registry.OuatStructureTypesRegistry;
 import org.dawnoftime.onceuponatown.town.TownManager;
 import org.dawnoftime.onceuponatown.town.map.TownMap;
 import net.minecraft.core.BlockPos;
@@ -24,13 +25,13 @@ public class TownDataBuildingPiece extends BuildingPiece {
     public boolean townRegistered;
 
     public TownDataBuildingPiece(StructureTemplateManager manager, ResourceLocation resourceLocation, BlockPos pos, Rotation rotation, BuildingType buildingType, TownMap townMap) {
-        super(OuatStructures.TOWN_DATA_BUILDING_PIECE.get(), manager, resourceLocation, pos, rotation, buildingType);
+        super(OuatStructurePiecesRegistry.STRUCTURE_PIECE_REGISTRY.TOWN_DATA_BUILDING_PIECE.get(), manager, resourceLocation, pos, rotation, buildingType);
         this.townMap = townMap;
         this.townRegistered = false;
     }
 
     public TownDataBuildingPiece(StructureTemplateManager manager, CompoundTag tag) {
-        super(OuatStructures.TOWN_DATA_BUILDING_PIECE.get(), manager, tag);
+        super(OuatStructurePiecesRegistry.STRUCTURE_PIECE_REGISTRY.TOWN_DATA_BUILDING_PIECE.get(), manager, tag);
         this.townMap = new TownMap(tag.getCompound("TownMap"));
         this.townRegistered = tag.getBoolean("TownRegistered");
     }

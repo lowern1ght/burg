@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class OuatUtils {
-    public static ResourceLocation resource(String name) {
+    public static ResourceLocation createOuatResource(String name) {
         return new ResourceLocation(Constants.MOD_ID, name);
     }
 
@@ -45,7 +45,7 @@ public class OuatUtils {
         try (InputStream inputStream = resourceManager.open(resourceLocation)) {
             CompoundTag tag = NbtIo.readCompressed(inputStream);
             ListTag entitiesTag = tag.getList("entities", 10);
-            List<EntityInfo> entityInfos = new ArrayList<>();
+            List<EntityInfo> entityInfoList = new ArrayList<>();
             for(int i = 0; i < entitiesTag.size(); ++i) {
                 CompoundTag entityTag = entitiesTag.getCompound(i);
                 ListTag posTag = entityTag.getList("pos", 6);
@@ -54,10 +54,10 @@ public class OuatUtils {
                 BlockPos blockPos = new BlockPos(blockPosTag.getInt(0), blockPosTag.getInt(1), blockPosTag.getInt(2));
                 if (entityTag.contains("nbt")) {
                     CompoundTag entityNBT = entityTag.getCompound("nbt");
-                    entityInfos.add(new EntityInfo(pos, blockPos, entityNBT));
+                    entityInfoList.add(new EntityInfo(pos, blockPos, entityNBT));
                 }
             }
-            return entityInfos;
+            return entityInfoList;
         } catch (FileNotFoundException fileNotFoundException) {
             LogUtils.getLogger().error("Structure not found {}", resourceLocation, fileNotFoundException);
             return null;

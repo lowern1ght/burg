@@ -5,18 +5,23 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.level.levelgen.structure.StructureType;
+import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
 import net.minecraftforge.common.ForgeSpawnEggItem;
+import net.minecraftforge.common.extensions.IForgeMenuType;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.eventbus.api.IEventBus;
 import org.dawnoftime.onceuponatown.entity.Citizen;
-import org.dawnoftime.onceuponatown.registry.OuatEntitiesRegistry;
-import org.dawnoftime.onceuponatown.registry.OuatItemsRegistry;
+import org.dawnoftime.onceuponatown.registry.*;
 
 import java.util.function.Supplier;
 
@@ -26,36 +31,20 @@ public class RegistryImpls {
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TAB = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MOD_ID);
     public static void init(IEventBus modEventBus) {
         // Create the registries.
-        OuatEntitiesRegistry.INSTANCE = new ForgeEntitiesRegistry();
-        ForgeItemsRegistry.INSTANCE = new ForgeItemsRegistry();
+        ForgeEntitiesRegistry.ENTITY_REGISTRY = new ForgeEntitiesRegistry();
+        ForgeItemsRegistry.ITEM_REGISTRY = new ForgeItemsRegistry();
+        ForgeMenusRegistry.MENU_REGISTRY = new ForgeMenusRegistry();
+        ForgeStructureTypesRegistry.STRUCTURE_TYPE_REGISTRY = new ForgeStructureTypesRegistry();
+        ForgeStructurePiecesRegistry.STRUCTURE_PIECE_REGISTRY = new ForgeStructurePiecesRegistry();
 
         // Populates the registries and register their contents.
         ForgeEntitiesRegistry.REGISTRY.register(modEventBus);
         ForgeItemsRegistry.REGISTRY.register(modEventBus);
+        ForgeMenusRegistry.REGISTRY.register(modEventBus);
+        ForgeStructureTypesRegistry.REGISTRY.register(modEventBus);
+        ForgeStructurePiecesRegistry.REGISTRY.register(modEventBus);
 
-        /*
-        DoTBBlocksRegistry.INSTANCE = new ForgeBlocksRegistry();
-        DoTBItemsRegistry.INSTANCE = new ForgeItemsRegistry();
-        DoTBBlockEntitiesRegistry.INSTANCE = new ForgeBlockEntitiesRegistry();
-        DoTBFeaturesRegistry.INSTANCE = new ForgeFeaturesRegistry();
-        DoTBMenuTypesRegistry.INSTANCE = new ForgeMenuTypesRegistry();
-        DoTBRecipeSerializersRegistry.INSTANCE = new ForgeRecipeSerializersRegistry();
-        DoTBRecipeTypesRegistry.INSTANCE = new ForgeRecipeTypesRegistry();
-        DoTBTags.INSTANCE = new ForgeTagsRegistry();
-        DoTBCreativeModeTabsRegistry.INSTANCE = new ForgeCreativeModeTabsRegistry();
-
-
-        ForgeBlocksRegistry.BLOCKS_REGISTRY.register(modEventBus);
-        ForgeBlocksRegistry.BLOCK_ITEMS_REGISTRY.register(modEventBus);
-        ForgeBlockEntitiesRegistry.BLOCK_ENTITY_TYPES_REGISTRY.register(modEventBus);
-        ForgeFeaturesRegistry.FEATURES_REGISTRY.register(modEventBus);
-        ForgeMenuTypesRegistry.MENU_TYPES_REGISTRY.register(modEventBus);
-        ForgeRecipeSerializersRegistry.RECIPE_SERIALIZERS_REGISTRY.register(modEventBus);
-        ForgeRecipeTypesRegistry.RECIPE_TYPES_REGISTRY.register(modEventBus);
-        ForgeCreativeModeTabsRegistry.CREATIVE_MODE_TABS_REGISTRY.register(modEventBus);
-         */
-
-        modEventBus.addListener((EntityAttributeCreationEvent event) -> event.put(OuatEntitiesRegistry.INSTANCE.CITIZEN.get(), Citizen.createAttributes().build()));
+        modEventBus.addListener((EntityAttributeCreationEvent event) -> event.put(OuatEntitiesRegistry.ENTITY_REGISTRY.CITIZEN.get(), Citizen.createAttributes().build()));
 
         // Creative inventory init
         CREATIVE_MODE_TAB.register(modEventBus);
@@ -87,6 +76,33 @@ public class RegistryImpls {
         @Override
         public <T extends Item> Supplier<Item> registerSpawnEgg(String name, Supplier<? extends EntityType<? extends Mob>> type, int backgroundColor, int highlightColor) {
             return register(name, () -> new ForgeSpawnEggItem(type, backgroundColor, highlightColor, new Item.Properties()));
+        }
+    }
+
+    public static class ForgeMenusRegistry extends OuatMenusRegistry{
+        public static final DeferredRegister<MenuType<?>> REGISTRY = DeferredRegister.create(ForgeRegistries.MENU_TYPES, Constants.MOD_ID);
+
+        @Override
+        public <T extends AbstractContainerMenu> Supplier<MenuType<T>> register(String name, MenuTypeFactory<T> factory) {
+            return REGISTRY.register(name, () -> IForgeMenuType.create((i, inventory, friendlyByteBuf) -> (T) factory.create(i, inventory, friendlyByteBuf)));
+        }
+    }
+
+    public static class ForgeStructureTypesRegistry extends OuatStructureTypesRegistry {
+        public static final DeferredRegister<StructureType<?>> REGISTRY = DeferredRegister.create(Registries.STRUCTURE_TYPE, Constants.MOD_ID);
+
+        @Override
+        public <T extends Structure> Supplier<StructureType<T>> register(String name, Supplier<StructureType<T>> structureTypeSupplier) {
+            return REGISTRY.register(name, structureTypeSupplier);
+        }
+    }
+
+    public static class ForgeStructurePiecesRegistry extends OuatStructurePiecesRegistry{
+        public static final DeferredRegister<StructurePieceType> REGISTRY = DeferredRegister.create(Registries.STRUCTURE_PIECE, Constants.MOD_ID);
+
+        @Override
+        public Supplier<StructurePieceType> register(String name, Supplier<StructurePieceType> structurePieceTypeSupplier) {
+            return REGISTRY.register(name, structurePieceTypeSupplier);
         }
     }
 }

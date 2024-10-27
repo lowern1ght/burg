@@ -8,7 +8,7 @@ import net.minecraft.world.entity.MobCategory;
 import java.util.function.Supplier;
 
 public abstract class OuatEntitiesRegistry {
-    public static OuatEntitiesRegistry INSTANCE;
+    public static OuatEntitiesRegistry ENTITY_REGISTRY;
     public abstract <T extends Entity> Supplier<EntityType<T>> register(String name, Supplier<EntityType.Builder<T>> builder);
     public final Supplier<EntityType<Citizen>> CITIZEN = register("citizen", () -> EntityType.Builder.of(Citizen::new, MobCategory.MISC).sized(0.6F, 1.95F).clientTrackingRange(10));
 }

@@ -3,7 +3,7 @@ package org.dawnoftime.onceuponatown.client.screen;
 import org.dawnoftime.onceuponatown.client.screen.tooltip.TradeItemTooltip;
 import org.dawnoftime.onceuponatown.menu.BuyMenu;
 import org.dawnoftime.onceuponatown.network.C2SSelectBuyDealPacket;
-import org.dawnoftime.onceuponatown.network.OuatNetwork;
+import org.dawnoftime.onceuponatown.platform.Platform;
 import org.dawnoftime.onceuponatown.util.OuatUtils;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -14,15 +14,15 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.dawnoftime.onceuponatown.client.screen.BuyScreen.DealButton.DEAL_BUTTON_HEIGHT;
 import static org.dawnoftime.onceuponatown.client.screen.BuyScreen.DealButton.DEAL_BUTTON_WIDTH;
 
 public class BuyScreen extends CitizenBaseScreen<BuyMenu> {
-    private static final ResourceLocation TEXTURE = OuatUtils.resource("textures/gui/buy_screen.png");
+    private static final ResourceLocation TEXTURE = OuatUtils.createOuatResource("textures/gui/buy_screen.png");
     private static final int BUY_SCREEN_TEXTURE_WIDTH = 289;//299;
     private static final int BUY_SCREEN_TEXTURE_HEIGHT = 166;//174;
     // Texture size and offset in file
@@ -96,7 +96,7 @@ public class BuyScreen extends CitizenBaseScreen<BuyMenu> {
     private void postButtonClick() {
         this.menu.setSelectedDeal(this.selectedDealIndex);
         this.menu.tryMoveItems(this.selectedDealIndex);
-        OuatNetwork.sendToServer(new C2SSelectBuyDealPacket(this.selectedDealIndex));
+        Platform.PLATFORM.sendToServer(new C2SSelectBuyDealPacket(this.selectedDealIndex));
     }
 
     private int nbOfDeals() {
@@ -247,7 +247,7 @@ public class BuyScreen extends CitizenBaseScreen<BuyMenu> {
             return this.index;
         }
 
-        public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             if (this.visible) {
                 this.isHovered = mouseX >= this.getX() && mouseY >= this.getY() && mouseX < this.getX() + this.width && mouseY < this.getY() + this.height;
 
@@ -280,7 +280,7 @@ public class BuyScreen extends CitizenBaseScreen<BuyMenu> {
                 ItemStack stackB = BuyScreen.this.menu.getDeals().get(this.index + (BuyScreen.this.scrollOff * GRID_COLUMNS)).getInputB();
                 ItemStack stackC = BuyScreen.this.menu.getDeals().get(this.index + (BuyScreen.this.scrollOff * GRID_COLUMNS)).getInputC();
                 List<Component> text = getTooltipFromItem(BuyScreen.this.minecraft, result);
-                graphics.renderTooltip(BuyScreen.this.font, text, Optional.of(new TradeItemTooltip(stackA, stackB, stackC)), result, mouseX, mouseY);
+                Platform.PLATFORM.renderTooltip(graphics, BuyScreen.this.font, text, new TradeItemTooltip(stackA, stackB, stackC), result, mouseX, mouseY);
             }
         }
     }

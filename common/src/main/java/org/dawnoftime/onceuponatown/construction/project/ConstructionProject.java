@@ -99,7 +99,7 @@ public abstract class ConstructionProject {
     }
 
     protected class PlacingBlocksPhase extends ProjectPhase {
-        private List<BlockInfo> blocksToPlace;
+        private final List<BlockInfo> blocksToPlace;
 
         PlacingBlocksPhase(List<BlockInfo> blocksToPlace) {
             this.blocksToPlace = blocksToPlace;
@@ -158,7 +158,7 @@ public abstract class ConstructionProject {
         }
     }
 
-    protected class PlacingEntitiesPhase extends ProjectPhase {
+    protected static class PlacingEntitiesPhase extends ProjectPhase {
         private List<EntityInfo> entitiesToPlace;
 
         PlacingEntitiesPhase(List<EntityInfo> entitiesToPlace) {
@@ -206,7 +206,7 @@ public abstract class ConstructionProject {
         }
     }
 
-    protected class RemovingBlocksPhase extends ProjectPhase {
+    protected static class RemovingBlocksPhase extends ProjectPhase {
         private List<BlockPos> blocksToRemove;
 
         RemovingBlocksPhase(List<BlockPos> blocksToRemove) {
@@ -222,7 +222,7 @@ public abstract class ConstructionProject {
         }
     }
 
-    protected class RemovingEntitiesPhase extends ProjectPhase {
+    protected static class RemovingEntitiesPhase extends ProjectPhase {
         private List<Entity> entitiesToRemove;
 
         RemovingEntitiesPhase(List<Entity> entitiesToRemove) {

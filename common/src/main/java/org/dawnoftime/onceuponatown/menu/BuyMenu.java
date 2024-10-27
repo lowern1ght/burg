@@ -1,7 +1,7 @@
 package org.dawnoftime.onceuponatown.menu;
 
 import org.dawnoftime.onceuponatown.entity.Citizen;
-import org.dawnoftime.onceuponatown.registry.OuatMenus;
+import org.dawnoftime.onceuponatown.registry.OuatMenusRegistry;
 import org.dawnoftime.onceuponatown.trade.BuyDeal;
 import org.dawnoftime.onceuponatown.trade.TradeUtils;
 import net.minecraft.network.FriendlyByteBuf;
@@ -13,6 +13,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
@@ -41,7 +42,7 @@ public class BuyMenu extends CitizenBaseMenu {
     }
 
     public BuyMenu(int containerId, Inventory playerInventory, InteractableCitizen citizen) {
-        super(OuatMenus.BUY_MENU.get(), containerId, citizen);
+        super(OuatMenusRegistry.MENU_REGISTRY.BUY_MENU.get(), containerId, citizen);
         this.citizen = citizen;
         citizen.setInteractingPlayer(playerInventory.player);
         this.buyContainer = new BuyContainer(citizen);
@@ -59,7 +60,8 @@ public class BuyMenu extends CitizenBaseMenu {
         }
     }
 
-    public void slotsChanged(Container container) {
+    @Override
+    public void slotsChanged(@NotNull Container container) {
         this.buyContainer.updateResultItem();
         super.slotsChanged(container);
     }
@@ -68,14 +70,16 @@ public class BuyMenu extends CitizenBaseMenu {
         this.buyContainer.setSelectedDealIndex(selectedDealIndex);
     }
 
-    public boolean canTakeItemForPickAll(ItemStack stack, Slot slot) {
+    @Override
+    public boolean canTakeItemForPickAll(@NotNull ItemStack stack, @NotNull Slot slot) {
         return false;
     }
 
+    @Override
     public ItemStack quickMoveStack(Player player, int slotIndex) {
         ItemStack stackCopy = ItemStack.EMPTY;
         Slot slot = this.slots.get(slotIndex);
-        if (slot != null && slot.hasItem()) {
+        if (slot.hasItem()) {
             ItemStack stackInSlot = slot.getItem();
             stackCopy = stackInSlot.copy();
             if (slotIndex == RESULT_SLOT) {
@@ -120,7 +124,8 @@ public class BuyMenu extends CitizenBaseMenu {
         }
     }
 
-    public void removed(Player player) {
+    @Override
+    public void removed(@NotNull Player player) {
         super.removed(player);
         this.citizen.setInteractingPlayer(null);
         if (!this.citizen.isClientSide()) {
@@ -232,6 +237,7 @@ public class BuyMenu extends CitizenBaseMenu {
         /**
          * Check if the stack is allowed to be placed in this slot, used for armor slots as well as furnace fuel.
          */
+        @Override
         public boolean mayPlace(ItemStack pStack) {
             return false;
         }
@@ -239,6 +245,7 @@ public class BuyMenu extends CitizenBaseMenu {
         /**
          * Decrease the size of the stack in slot (first int arg) by the amount of the second int arg. Returns the new stack.
          */
+        @Override
         public ItemStack remove(int pAmount) {
             if (this.hasItem()) {
                 this.removeCount += Math.min(pAmount, this.getItem().getCount());
@@ -251,6 +258,7 @@ public class BuyMenu extends CitizenBaseMenu {
          * Typically increases an internal count, then calls {@code onCrafting(item)}.
          * @param pStack the output - ie, iron ingots, and pickaxes, not ore and wood.
          */
+        @Override
         protected void onQuickCraft(ItemStack pStack, int pAmount) {
             this.removeCount += pAmount;
             this.checkTakeAchievements(pStack);
@@ -260,11 +268,13 @@ public class BuyMenu extends CitizenBaseMenu {
          *
          * @param pStack the output - ie, iron ingots, and pickaxes, not ore and wood.
          */
+        @Override
         protected void checkTakeAchievements(ItemStack pStack) {
             pStack.onCraftedBy(this.player.level(), this.player, this.removeCount);
             this.removeCount = 0;
         }
 
+        @Override
         public void onTake(Player pPlayer, ItemStack pStack) {
             this.checkTakeAchievements(pStack);
             BuyDeal deal = this.slots.getActiveDeal();

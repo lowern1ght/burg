@@ -7,9 +7,9 @@ import net.minecraft.world.item.Item;
 import java.util.function.Supplier;
 
 public abstract class OuatItemsRegistry {
-    public static OuatItemsRegistry INSTANCE;
+    public static OuatItemsRegistry ITEM_REGISTRY;
 
-    public final Supplier<Item> CITIZEN_SPAWN_EGG = registerSpawnEgg("citizen_spawn_egg", OuatEntitiesRegistry.INSTANCE.CITIZEN, 0x96691f, 0x38b934/*51A03E*/);
+    public final Supplier<Item> CITIZEN_SPAWN_EGG = registerSpawnEgg("citizen_spawn_egg", OuatEntitiesRegistry.ENTITY_REGISTRY.CITIZEN, 0x96691f, 0x38b934/*51A03E*/);
     public final Supplier<Item> EMERALD_SHARD = register("emerald_shard", () -> new Item(new Item.Properties()));
 
     public abstract <T extends Item> Supplier<Item> register(final String name, final Supplier<T> itemSupplier);

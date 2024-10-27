@@ -1,48 +1,43 @@
 package org.dawnoftime.onceuponatown.network;
 
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
 import org.dawnoftime.onceuponatown.menu.BuyMenu;
 import com.mojang.logging.LogUtils;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraftforge.network.NetworkEvent;
 import org.slf4j.Logger;
 
-import java.util.function.Supplier;
+import static org.dawnoftime.onceuponatown.util.OuatUtils.createOuatResource;
 
-public class C2SSelectBuyDealPacket {
-    private final int dealIndex;
+public record C2SSelectBuyDealPacket(int dealIndex) implements IOuatPacket {
+    public static final ResourceLocation ID = createOuatResource("c2s_select_buy_deal");
 
-    public C2SSelectBuyDealPacket(int dealIndex) {
-        this.dealIndex = dealIndex;
+    public static C2SSelectBuyDealPacket decode(FriendlyByteBuf buf) {
+        return new C2SSelectBuyDealPacket(buf.readVarInt());
     }
 
-    public C2SSelectBuyDealPacket(FriendlyByteBuf buffer) {
-        this.dealIndex = buffer.readVarInt();
+    @Override
+    public void encode(FriendlyByteBuf buf) {
+        buf.writeVarInt(this.dealIndex);
     }
 
-    public void write(FriendlyByteBuf buffer) {
-        buffer.writeVarInt(this.dealIndex);
-    }
+    @Override
+    public ResourceLocation getFabricId() {
+        return ID;
+}
 
-    public int getDealIndex() {
-        return this.dealIndex;
-    }
-
-    public boolean handle(Supplier<NetworkEvent.Context> contextSupplier) {
-        NetworkEvent.Context context = contextSupplier.get();
-        context.enqueueWork(() -> {
-            int dealIndex = this.getDealIndex();
-            AbstractContainerMenu containerMenu = context.getSender().containerMenu;
-            if (containerMenu instanceof BuyMenu buyMenu) {
-                if (!buyMenu.stillValid(context.getSender())) {
-                    Logger LOGGER = LogUtils.getLogger();
-                    LOGGER.debug("Player {} interacted with invalid menu {}", context.getSender(), buyMenu);
-                } else {
-                    buyMenu.setSelectedDeal(dealIndex);
-                    buyMenu.tryMoveItems(dealIndex);
-                }
+    public void handle(MinecraftServer server, ServerPlayer player) {
+        AbstractContainerMenu containerMenu = player.containerMenu;
+        if (containerMenu instanceof BuyMenu buyMenu) {
+            if (!buyMenu.stillValid(player)) {
+                Logger LOGGER = LogUtils.getLogger();
+                LOGGER.debug("Player {} interacted with invalid menu {}", player, buyMenu);
+            } else {
+                buyMenu.setSelectedDeal(this.dealIndex());
+                buyMenu.tryMoveItems(this.dealIndex());
             }
-        });
-        return true;
+        }
     }
 }

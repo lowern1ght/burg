@@ -2,6 +2,7 @@ package org.dawnoftime.onceuponatown.entity;
 
 import org.dawnoftime.onceuponatown.menu.BuyMenu;
 import org.dawnoftime.onceuponatown.menu.InteractableCitizen;
+import org.dawnoftime.onceuponatown.platform.Platform;
 import org.dawnoftime.onceuponatown.registry.OuatEntitiesRegistry;
 import org.dawnoftime.onceuponatown.trade.BuyDeal;
 import org.dawnoftime.onceuponatown.trade.SellDeal;
@@ -119,7 +120,7 @@ public class Citizen extends AgeableMob implements InteractableCitizen {
         if (!level().isClientSide() && (hand == InteractionHand.MAIN_HAND)) {
             this.interactingPlayer = player;
             if (player instanceof ServerPlayer serverPlayer) {
-                NetworkHooks.openScreen(serverPlayer, new SimpleMenuProvider((containerID, playerInventory, p) -> new BuyMenu(containerID, playerInventory, this), Component.literal("Buy")), buffer -> {
+                Platform.PLATFORM.openMenu(serverPlayer, new SimpleMenuProvider((containerID, playerInventory, p) -> new BuyMenu(containerID, playerInventory, this), Component.literal("Buy")), buffer -> {
                     buffer.writeInt(this.getId());
                     TradeUtils.writeBuyDealsToStream(getBuyDeals(), buffer);
                 });
@@ -156,7 +157,7 @@ public class Citizen extends AgeableMob implements InteractableCitizen {
     }
 
     public AgeableMob getBreedOffspring(ServerLevel level, AgeableMob otherParent) {
-        return OuatEntitiesRegistry.CITIZEN.get().create(level);
+        return OuatEntitiesRegistry.ENTITY_REGISTRY.CITIZEN.get().create(level);
     }
 
     protected float getStandingEyeHeight(Pose pose, EntityDimensions size) {
