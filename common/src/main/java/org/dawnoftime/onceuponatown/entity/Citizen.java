@@ -35,7 +35,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.network.NetworkHooks;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
@@ -55,8 +55,8 @@ public class Citizen extends AgeableMob implements InteractableCitizen {
     }
 
     @Override
-    public boolean save(CompoundTag pCompound) {
-        return super.save(pCompound);
+    public boolean save(@NotNull CompoundTag compound) {
+        return super.save(compound);
     }
 
     @Override
@@ -72,6 +72,7 @@ public class Citizen extends AgeableMob implements InteractableCitizen {
         setItemInHand(InteractionHand.OFF_HAND, new ItemStack(Items.MILK_BUCKET));
     }
 
+    @Override
     protected void defineSynchedData() {
         super.defineSynchedData();
         this.entityData.define(DATA_CROSSING_ARMS, false);
@@ -84,6 +85,7 @@ public class Citizen extends AgeableMob implements InteractableCitizen {
         return Mob.createMobAttributes().add(Attributes.MOVEMENT_SPEED, 0.5D).add(Attributes.ATTACK_DAMAGE, 7.0D).add(Attributes.FOLLOW_RANGE, 200.0D);
     }
 
+    @Override
     protected void registerGoals() {
         int priority = -1;
         this.goalSelector.addGoal(++priority, new FloatGoal(this));
@@ -93,7 +95,8 @@ public class Citizen extends AgeableMob implements InteractableCitizen {
         this.goalSelector.addGoal(++priority, new RandomLookAroundGoal(this));
     }
 
-    public void readAdditionalSaveData(CompoundTag tag) {
+    @Override
+    public void readAdditionalSaveData(@NotNull CompoundTag tag) {
         super.readAdditionalSaveData(tag);
         this.entityData.set(DATA_CULTURE, tag.getByte("Culture"));
         this.entityData.set(DATA_PROFESSION, tag.getByte("Profession"));
@@ -105,18 +108,21 @@ public class Citizen extends AgeableMob implements InteractableCitizen {
         }
     }
 
-    public void addAdditionalSaveData(CompoundTag tag) {
+    @Override
+    public void addAdditionalSaveData(@NotNull CompoundTag tag) {
         super.addAdditionalSaveData(tag);
         tag.putByte("Culture", this.entityData.get(DATA_CULTURE));
         tag.putByte("Profession", this.entityData.get(DATA_PROFESSION));
     }
 
+    @Override
     public void aiStep() {
         this.updateSwingTime();
         super.aiStep();
     }
 
-    protected InteractionResult mobInteract(Player player, InteractionHand hand) {
+    @Override
+    protected @NotNull InteractionResult mobInteract(@NotNull Player player, @NotNull InteractionHand hand) {
         if (!level().isClientSide() && (hand == InteractionHand.MAIN_HAND)) {
             this.interactingPlayer = player;
             if (player instanceof ServerPlayer serverPlayer) {
@@ -136,45 +142,48 @@ public class Citizen extends AgeableMob implements InteractableCitizen {
         }
     }
 
-    public boolean hurt(DamageSource source, float amount) {
+    @Override
+    public boolean hurt(@NotNull DamageSource source, float amount) {
         setCrossingArms(false);
         return super.hurt(source, amount);
     }
 
-    public void die(DamageSource cause) {
+    @Override
+    public void die(@NotNull DamageSource cause) {
         super.die(cause);
         //tradingHandler.stopTrading();
         LOGGER.info("Citizen {} died, message: '{}'", this, cause.getLocalizedDeathMessage(this).getString());
     }
 
+    @Override
     public boolean isInvulnerableTo(DamageSource source) {
         return source.is(DamageTypes.IN_WALL) || super.isInvulnerableTo(source);
     }
 
-    public Entity changeDimension(ServerLevel server, net.minecraftforge.common.util.ITeleporter teleporter) {
-        //tradingHandler.stopTrading();
-        return super.changeDimension(server, teleporter);
-    }
-
-    public AgeableMob getBreedOffspring(ServerLevel level, AgeableMob otherParent) {
+    @Override
+    public AgeableMob getBreedOffspring(@NotNull ServerLevel level, @NotNull AgeableMob otherParent) {
         return OuatEntitiesRegistry.ENTITY_REGISTRY.CITIZEN.get().create(level);
     }
 
-    protected float getStandingEyeHeight(Pose pose, EntityDimensions size) {
+    @Override
+    protected float getStandingEyeHeight(@NotNull Pose pose, @NotNull EntityDimensions size) {
         return this.isBaby() ? 0.81F : 1.62F;
     }
 
+    @Override
     protected SoundEvent getAmbientSound() {
         return null; //SoundEvents.VILLAGER_AMBIENT;
         //return tradingHandler.isTrading() ? SoundEvents.VILLAGER_TRADE : SoundEvents.VILLAGER_AMBIENT;
     }
 
-    public boolean canBeLeashed(Player player) {
+    @Override
+    public boolean canBeLeashed(@NotNull Player player) {
         return false;
     }
 
-    public void thunderHit(ServerLevel level, LightningBolt lightningBolt) {
-        if (level.getDifficulty() != Difficulty.PEACEFUL && net.minecraftforge.event.ForgeEventFactory.canLivingConvert(this, EntityType.WITCH, (timer) -> {})) {
+    @Override
+    public void thunderHit(ServerLevel level, @NotNull LightningBolt lightningBolt) {
+        if (level.getDifficulty() != Difficulty.PEACEFUL && Platform.PLATFORM.canLivingConvert(this, EntityType.WITCH)) {
             LOGGER.info("Citizen {} was struck by lightning {}.", this, lightningBolt);
             Witch witch = EntityType.WITCH.create(level);
             if (witch != null) {
@@ -187,7 +196,7 @@ public class Citizen extends AgeableMob implements InteractableCitizen {
                 }
 
                 witch.setPersistenceRequired();
-                net.minecraftforge.event.ForgeEventFactory.onLivingConvert(this, witch);
+                Platform.PLATFORM.onLivingConvert(this, witch);
                 level.addFreshEntityWithPassengers(witch);
                 this.discard();
             } else {
@@ -198,10 +207,13 @@ public class Citizen extends AgeableMob implements InteractableCitizen {
         }
     }
 
-    protected SoundEvent getHurtSound(DamageSource damageSource) {return SoundEvents.VILLAGER_HURT;}
+    @Override
+    protected SoundEvent getHurtSound(@NotNull DamageSource damageSource) {return SoundEvents.VILLAGER_HURT;}
 
+    @Override
     protected SoundEvent getDeathSound() {return SoundEvents.VILLAGER_DEATH;}
 
+    @Override
     public int getAmbientSoundInterval() {return 200;}
 
     public CitizenCulture getCulture() {return CitizenCulture.byId(this.entityData.get(DATA_CULTURE));}
@@ -220,6 +232,7 @@ public class Citizen extends AgeableMob implements InteractableCitizen {
 
     public void setReading(boolean reading) {this.entityData.set(DATA_READING, reading);}
 
+    @Override
     public Player getInteractingPlayer() {return this.interactingPlayer;}
 
     @Override

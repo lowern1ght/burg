@@ -6,6 +6,8 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 import org.dawnoftime.onceuponatown.network.IOuatPacket;
@@ -56,4 +58,8 @@ public interface IPlatformHelper {
      * @param mouseY Mouse Y coordinate.
      */
     void renderTooltip(GuiGraphics graphics, Font font, List<Component> textComponents, @Nullable TooltipComponent tooltipComponent, ItemStack stack, int mouseX, int mouseY);
+
+    boolean canLivingConvert(LivingEntity entity, EntityType<? extends LivingEntity> outcome);
+
+    void onLivingConvert(LivingEntity entity, LivingEntity outcome);
 }
