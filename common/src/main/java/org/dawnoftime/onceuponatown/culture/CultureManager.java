@@ -1,5 +1,6 @@
 package org.dawnoftime.onceuponatown.culture;
 
+import org.dawnoftime.onceuponatown.town.building.type.BuildingType;
 import org.dawnoftime.onceuponatown.util.OuatLog;
 import com.google.gson.JsonObject;
 import net.minecraft.resources.ResourceLocation;

@@ -1,7 +1,6 @@
 package org.dawnoftime.onceuponatown.town;
 
 import org.dawnoftime.onceuponatown.culture.Culture;
-import org.dawnoftime.onceuponatown.town.map.TownMap;
 import net.minecraft.SharedConstants;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;

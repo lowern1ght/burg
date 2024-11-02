@@ -1,15 +1,16 @@
-package org.dawnoftime.onceuponatown.town.map;
+package org.dawnoftime.onceuponatown.town.building.placement;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import org.dawnoftime.onceuponatown.town.map.TownMapUtils.Corner;
+import org.dawnoftime.onceuponatown.town.TownMap;
+import org.dawnoftime.onceuponatown.town.TownMapUtils.Corner;
 
-import static org.dawnoftime.onceuponatown.town.map.TownMapUtils.MAXI_Y_DIFFERENCE;
-import static org.dawnoftime.onceuponatown.town.map.TownMapUtils.rectangularPosIterator;
+import static org.dawnoftime.onceuponatown.town.TownMapUtils.MAXI_Y_DIFFERENCE;
+import static org.dawnoftime.onceuponatown.town.TownMapUtils.rectangularPosIterator;
 
-public class MapBuilding extends MapPlot {
+public class BuildingPlacement extends PlotPlacement {
 
-    public MapBuilding(int sizeXNorth, int sizeZNorth) {
+    public BuildingPlacement(int sizeXNorth, int sizeZNorth) {
         super(sizeXNorth, sizeZNorth);
     }
 

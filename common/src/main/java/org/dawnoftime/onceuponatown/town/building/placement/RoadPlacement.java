@@ -1,18 +1,20 @@
-package org.dawnoftime.onceuponatown.town.map;
+package org.dawnoftime.onceuponatown.town.building.placement;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import org.dawnoftime.onceuponatown.town.map.TownMapUtils.Corner;
+import org.dawnoftime.onceuponatown.town.TownMap;
+import org.dawnoftime.onceuponatown.town.TownMapUtils;
+import org.dawnoftime.onceuponatown.town.TownMapUtils.Corner;
 import java.util.ArrayList;
 
-import static org.dawnoftime.onceuponatown.town.map.TownMapUtils.*;
+import static org.dawnoftime.onceuponatown.town.TownMapUtils.*;
 
-public class MapRoad extends MapBuild{
+public class RoadPlacement extends BuildPlacement {
     private final boolean isBig;
     private boolean canGrow = true;
     private int[] yShape;
 
-    public MapRoad(int length, boolean isBig) {
+    public RoadPlacement(int length, boolean isBig) {
         super(getWidth(isBig), length);
         this.isBig = isBig;
         //TODO handle the Y shape
@@ -180,7 +182,7 @@ public class MapRoad extends MapBuild{
      */
     private BuildBud setupBud(TownMap map, BlockPos currentPos, boolean isCurrentPosEmpty, Direction budDir) {
         BlockPos previousPos = currentPos.relative(budDir.getCounterClockWise());
-        Direction[] pathDirection = new Direction[map.getBuild(isCurrentPosEmpty ? previousPos : currentPos) instanceof MapRoad ? 2 : 1];
+        Direction[] pathDirection = new Direction[map.getBuild(isCurrentPosEmpty ? previousPos : currentPos) instanceof RoadPlacement ? 2 : 1];
         pathDirection[0] = budDir.getOpposite();
         if(pathDirection.length > 1){
             pathDirection[1] = isCurrentPosEmpty ? budDir.getCounterClockWise() : budDir.getClockWise();

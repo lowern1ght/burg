@@ -1,6 +1,6 @@
 package org.dawnoftime.onceuponatown.world.structure;
 
-import org.dawnoftime.onceuponatown.town.map.BuildBud;
+import org.dawnoftime.onceuponatown.town.building.placement.BuildBud;
 import net.minecraft.core.BlockPos;
 
 import java.util.ArrayList;

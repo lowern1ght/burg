@@ -1,6 +1,6 @@
 package org.dawnoftime.onceuponatown.construction.project;
 
-import org.dawnoftime.onceuponatown.building.Building;
+import org.dawnoftime.onceuponatown.town.building.Building;
 import org.dawnoftime.onceuponatown.construction.BuildingPlacementSettings;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;

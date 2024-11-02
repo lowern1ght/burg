@@ -1,11 +1,10 @@
 package org.dawnoftime.onceuponatown.town;
 
-import org.dawnoftime.onceuponatown.building.Building;
+import org.dawnoftime.onceuponatown.town.building.Building;
 import org.dawnoftime.onceuponatown.construction.project.ConstructionProject;
-import org.dawnoftime.onceuponatown.culture.BuildingType;
+import org.dawnoftime.onceuponatown.town.building.type.BuildingType;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.entity.Citizen;
-import org.dawnoftime.onceuponatown.town.map.TownMap;
 import org.dawnoftime.onceuponatown.util.OuatUtils;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;

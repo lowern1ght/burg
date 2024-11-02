@@ -1,21 +1,22 @@
-package org.dawnoftime.onceuponatown.town.map;
+package org.dawnoftime.onceuponatown.town.building.placement;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import org.dawnoftime.onceuponatown.town.map.TownMapUtils.Corner;
+import org.dawnoftime.onceuponatown.town.TownMap;
+import org.dawnoftime.onceuponatown.town.TownMapUtils.Corner;
 
 import javax.annotation.Nullable;
 
-import static org.dawnoftime.onceuponatown.town.map.TownMapUtils.rectangularPosIterator;
+import static org.dawnoftime.onceuponatown.town.TownMapUtils.rectangularPosIterator;
 
-public abstract class MapBuild {
+public abstract class BuildPlacement {
     private final int sizeXNorth;
     private int sizeZNorth;
     private BlockPos originPos;
     private int id;
     private Direction direction;
     private boolean built;
-    public MapBuild(int sizeXNorth, int sizeZNorth){
+    public BuildPlacement(int sizeXNorth, int sizeZNorth){
         this.sizeXNorth = sizeXNorth;
         this.sizeZNorth = sizeZNorth;
     }

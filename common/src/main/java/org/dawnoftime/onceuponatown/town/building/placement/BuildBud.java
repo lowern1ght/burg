@@ -1,12 +1,13 @@
-package org.dawnoftime.onceuponatown.town.map;
+package org.dawnoftime.onceuponatown.town.building.placement;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import org.dawnoftime.onceuponatown.town.map.TownMapUtils.Corner;
+import org.dawnoftime.onceuponatown.town.TownMap;
+import org.dawnoftime.onceuponatown.town.TownMapUtils.Corner;
 
 import javax.annotation.Nullable;
 
-import static org.dawnoftime.onceuponatown.town.map.TownMapUtils.SIDE_SIZE_MAX_GARDEN;
+import static org.dawnoftime.onceuponatown.town.TownMapUtils.SIDE_SIZE_MAX_GARDEN;
 
 /**
  * Each bud is a point at the intersection of two paths, or a path and a plot border.
@@ -16,7 +17,7 @@ public class BuildBud {
 
     private final BlockPos realPos;
     private int squaredDistToCenter;
-    private final TownMapUtils.Corner corner;
+    private final Corner corner;
     private final Direction[] adjacentPaths;
     private final BudType type;
 
@@ -114,7 +115,7 @@ public class BuildBud {
      * @param dir Direction of the MapBuild, used to get the size on X and Z axis.
      * @return The BlockPos of the origin of the MapBuild, at the correct Y.
      */
-    public BlockPos findOriginPos(MapBuild build, Direction dir){
+    public BlockPos findOriginPos(BuildPlacement build, Direction dir){
         BlockPos origin = this.corner.getOrigin(this.realPos, build, dir);
         return origin.atY(build.findAdaptedY(origin, dir));
     }
@@ -125,7 +126,7 @@ public class BuildBud {
      * @param clockwise True if rotating clockwise, false for counterclockwise.
      * @return A MapGarden object with the biggest sizes in X and Z that can fit.
      */
-    public MapGarden createAdaptedGarden(TownMap map, boolean clockwise) {
+    public GardenPlacement createAdaptedGarden(TownMap map, boolean clockwise) {
         int[] sizes = new int[4];
         Direction dir = clockwise ? this.getCorner().getLeftDirection() : this.getCorner().getRightDirection();
         dir = dir.getOpposite();
@@ -150,7 +151,7 @@ public class BuildBud {
             sideIndex++;
             dir = clockwise ? dir.getClockWise() : dir.getCounterClockWise();
         }
-        return dir.getAxis() == Direction.Axis.X ? new MapGarden(sizes[0], sizes[1]) : new MapGarden(sizes[1], sizes[0]);
+        return dir.getAxis() == Direction.Axis.X ? new GardenPlacement(sizes[0], sizes[1]) : new GardenPlacement(sizes[1], sizes[0]);
     }
 
     /**

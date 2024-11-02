@@ -1,7 +1,10 @@
-package org.dawnoftime.onceuponatown.culture;
+package org.dawnoftime.onceuponatown.town.building.type;
 
 import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceLocation;
+import org.dawnoftime.onceuponatown.culture.CitizenAction;
+import org.dawnoftime.onceuponatown.culture.CitizenJob;
+import org.dawnoftime.onceuponatown.culture.Orientation;
 
 import java.util.HashMap;
 import java.util.List;
