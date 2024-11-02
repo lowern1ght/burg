@@ -6,7 +6,26 @@ import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.Comparator;
+import java.util.List;
+
 public class ConstructionUtils {
+
+    /**
+     * Sort the list of blocks in the structure
+     * @param blockList The list of blocks in the structure
+     */
+    public static void sortBlocks(List<BlockInfo> blockList) {
+        Comparator<BlockInfo> comparator = Comparator.<BlockInfo>comparingInt((pY) -> {
+            return pY.pos().getY();
+        }).thenComparingInt((pX) -> {
+            return pX.pos().getX();
+        }).thenComparingInt((pZ) -> {
+            return pZ.pos().getZ();
+        });
+        blockList.sort(comparator);
+    }
+
     public static Vec3 transformEntityPos(Vec3 posInStructure, Mirror mirror, Rotation rotation, BlockPos rotationPivot) {
         double d0 = posInStructure.x;
         double d1 = posInStructure.y;

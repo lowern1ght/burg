@@ -2,7 +2,6 @@ package com.dotteam.onceuponatown.world.structure;
 
 import com.dotteam.onceuponatown.town.map.BuildBud;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.block.Block;
 
 import java.util.ArrayList;
 

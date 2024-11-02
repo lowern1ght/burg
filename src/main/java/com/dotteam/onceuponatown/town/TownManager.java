@@ -8,8 +8,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,7 +28,7 @@ public class TownManager {
     }
 
     /**
-     * Delete town instance, keep structures, convert citizens to wanderers
+     * Delete town instance, keep structures, convert npcs to wanderers
      * @param level Level of the town to delete
      * @param uuid UUID of the town to delete
      */
@@ -46,7 +44,7 @@ public class TownManager {
     }
 
     /**
-     * Delete town instance, destroy structures, kill citizens
+     * Delete town instance, destroy structures, kill npcs
      * @param level Level of the town to delete
      * @param uuid UUID of the town to delete
      */
@@ -69,9 +67,9 @@ public class TownManager {
             if (towns != null && !towns.isEmpty()) {
                 for (Town town : towns) {
                     switch (dayTime) {
-                        case 0 -> town.ringTownBell(Town.TownBellRingType.DAWN_TIME);
-                        case 6000 -> town.ringTownBell(Town.TownBellRingType.NOON_TIME);
-                        case 13000 -> town.ringTownBell(Town.TownBellRingType.DUSK_TIME);
+                        case 0 -> town.ringTownBell(Town.TownBellRingType.DAWN);
+                        case 6000 -> town.ringTownBell(Town.TownBellRingType.NOON);
+                        case 13000 -> town.ringTownBell(Town.TownBellRingType.DUSK);
                     }
                 }
             }

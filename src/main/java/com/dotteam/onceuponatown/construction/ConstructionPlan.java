@@ -1,6 +1,5 @@
 package com.dotteam.onceuponatown.construction;
 
-import com.dotteam.onceuponatown.construction.project.FreshBuildingProject;
 import com.dotteam.onceuponatown.util.OuatLog;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderGetter;
@@ -22,7 +21,6 @@ import net.minecraft.world.phys.Vec3;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
@@ -138,23 +136,8 @@ public class ConstructionPlan {
             BlockInfo blockInfo = new BlockInfo(blockPos, blockState, blockNBT);
             blockInfoList.add(blockInfo);
         }
-        sortBlocks(blockInfoList);
+        ConstructionUtils.sortBlocks(blockInfoList);
         this.blocks.addAll(blockInfoList);
-    }
-
-    /**
-     * Sort the list of blocks in the structure
-     * @param blockList The list of blocks in the structure
-     */
-    private void sortBlocks(List<BlockInfo> blockList) {
-        Comparator<BlockInfo> comparator = Comparator.<BlockInfo>comparingInt((pY) -> {
-            return pY.pos().getY();
-        }).thenComparingInt((pX) -> {
-            return pX.pos().getX();
-        }).thenComparingInt((pZ) -> {
-            return pZ.pos().getZ();
-        });
-        blockList.sort(comparator);
     }
 
     /**

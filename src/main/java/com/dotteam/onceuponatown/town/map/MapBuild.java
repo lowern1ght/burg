@@ -1,8 +1,8 @@
 package com.dotteam.onceuponatown.town.map;
 
+import com.dotteam.onceuponatown.town.map.TownMapUtils.Corner;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import com.dotteam.onceuponatown.town.map.TownMapUtils.Corner;
 
 import javax.annotation.Nullable;
 

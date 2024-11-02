@@ -2,19 +2,17 @@ package com.dotteam.onceuponatown.town.map;
 
 import com.dotteam.onceuponatown.culture.BuildingType;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.levelgen.structure.Structure;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
-
-import com.dotteam.onceuponatown.town.map.TownMapUtils.Corner;
-import net.minecraft.core.Direction;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtUtils;
-import net.minecraft.util.RandomSource;
-import net.minecraft.world.level.levelgen.structure.Structure;
 
 import static com.dotteam.onceuponatown.town.map.TownMapUtils.*;
 

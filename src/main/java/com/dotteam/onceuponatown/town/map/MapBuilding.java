@@ -1,8 +1,8 @@
 package com.dotteam.onceuponatown.town.map;
 
+import com.dotteam.onceuponatown.town.map.TownMapUtils.Corner;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import com.dotteam.onceuponatown.town.map.TownMapUtils.Corner;
 
 import static com.dotteam.onceuponatown.town.map.TownMapUtils.MAXI_Y_DIFFERENCE;
 import static com.dotteam.onceuponatown.town.map.TownMapUtils.rectangularPosIterator;

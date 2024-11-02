@@ -1,13 +1,14 @@
 package com.dotteam.onceuponatown;
 
-import com.dotteam.onceuponatown.client.model.CitizenModel;
-import com.dotteam.onceuponatown.client.renderer.CitizenRenderer;
+import com.dotteam.onceuponatown.client.model.NpcModel;
+import com.dotteam.onceuponatown.client.renderer.NpcFishingHookRenderer;
+import com.dotteam.onceuponatown.client.renderer.NpcRenderer;
 import com.dotteam.onceuponatown.client.screen.BuyScreen;
 import com.dotteam.onceuponatown.client.screen.SellScreen;
 import com.dotteam.onceuponatown.client.screen.tooltip.ClientTradeItemTooltip;
 import com.dotteam.onceuponatown.client.screen.tooltip.TradeItemTooltip;
 import com.dotteam.onceuponatown.config.OuatConfig;
-import com.dotteam.onceuponatown.entity.Citizen;
+import com.dotteam.onceuponatown.entity.Npc;
 import com.dotteam.onceuponatown.network.OuatNetwork;
 import com.dotteam.onceuponatown.registry.*;
 import net.minecraft.client.gui.screens.MenuScreens;
@@ -48,7 +49,7 @@ public class OnceUponATown {
 
         @SubscribeEvent
         public static void createEntityAttributes(EntityAttributeCreationEvent event) {
-            event.put(OuatEntities.CITIZEN.get(), Citizen.createAttributes().build());
+            event.put(OuatEntities.NPC.get(), Npc.createAttributes().build());
         }
     }
 
@@ -76,12 +77,13 @@ public class OnceUponATown {
 
         @SubscribeEvent
         public static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
-            event.registerEntityRenderer(OuatEntities.CITIZEN.get(), CitizenRenderer::new);
+            event.registerEntityRenderer(OuatEntities.NPC.get(), NpcRenderer::new);
+            event.registerEntityRenderer(OuatEntities.NPC_FISHING_HOOK.get(), NpcFishingHookRenderer::new);
         }
 
         @SubscribeEvent
         public static void registerEntityLayerDefinitions(EntityRenderersEvent.RegisterLayerDefinitions event) {
-            event.registerLayerDefinition(CitizenModel.LAYER_LOCATION, CitizenModel::createBodyLayer);
+            event.registerLayerDefinition(NpcModel.LAYER_LOCATION, NpcModel::createBodyLayer);
         }
 
         @SubscribeEvent

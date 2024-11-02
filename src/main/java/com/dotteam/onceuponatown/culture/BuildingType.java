@@ -2,6 +2,7 @@ package com.dotteam.onceuponatown.culture;
 
 import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceLocation;
+import oshi.util.tuples.Pair;
 
 import java.util.HashMap;
 import java.util.List;
@@ -9,12 +10,11 @@ import java.util.List;
 public class BuildingType {
     public static final BuildingType DEFAULT_TYPE = new BuildingType(null);
     private String id;
-    private ResourceLocation structureFile;
     private Vec3i dimensions;
     private HashMap<ResourceLocation, Integer> production;
     private int weight;
     private HashMap<Orientation, Integer> researchGain;
-    private HashMap<CitizenJob, Integer> citizenJobs;
+    private HashMap<NpcJob, Integer> npcJobs;
     private List<BuildingLevel> levels;
 
     BuildingType(HashMap<ResourceLocation, Integer> production) {
@@ -25,10 +25,15 @@ public class BuildingType {
         return this.production;
     }
 
+    public ResourceLocation getStructureFileForLevel(int buildingLevel) {
+        return levels.get(buildingLevel).structureFile;
+    }
+
     public record BuildingLevel(
+            ResourceLocation structureFile,
             int unlockEra,
-            HashMap<ResourceLocation, Integer> constructionCost,
+            Pair<Orientation, Integer> requirement,
             int experienceGain,
-            HashMap<Vec3i, CitizenAction> actionsPos
+            HashMap<Vec3i, NpcAction> actionsPos
     ) {}
 }

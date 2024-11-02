@@ -2,15 +2,11 @@ package com.dotteam.onceuponatown.command;
 
 import com.dotteam.onceuponatown.culture.Culture;
 import com.dotteam.onceuponatown.culture.CultureManager;
-import com.dotteam.onceuponatown.town.Town;
-import com.dotteam.onceuponatown.town.TownManager;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.HoverEvent;
 
 import java.util.List;
 

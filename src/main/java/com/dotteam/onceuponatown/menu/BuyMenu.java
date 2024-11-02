@@ -1,6 +1,6 @@
 package com.dotteam.onceuponatown.menu;
 
-import com.dotteam.onceuponatown.entity.Citizen;
+import com.dotteam.onceuponatown.entity.Npc;
 import com.dotteam.onceuponatown.registry.OuatMenus;
 import com.dotteam.onceuponatown.trade.BuyDeal;
 import com.dotteam.onceuponatown.trade.TradeUtils;
@@ -16,7 +16,7 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
 
-public class BuyMenu extends CitizenBaseMenu {
+public class BuyMenu extends NpcBaseMenu {
     protected static final int INPUT_A_SLOT = 0;
     protected static final int INPUT_B_SLOT = 1;
     protected static final int INPUT_C_SLOT = 2;
@@ -34,21 +34,21 @@ public class BuyMenu extends CitizenBaseMenu {
 
     public BuyMenu(int containerId, Inventory playerInventory, FriendlyByteBuf friendlyByteBuf) {
         this(containerId, playerInventory,
-                new ClientSideInteractingCitizen.Builder(
-                        (Citizen)(playerInventory.player.level().getEntity(friendlyByteBuf.readInt())), playerInventory.player)
+                new ClientSideInteractingNpc.Builder(
+                        (Npc)(playerInventory.player.level().getEntity(friendlyByteBuf.readInt())), playerInventory.player)
                         .buyDeals(TradeUtils.createBuyDealsFromStream(friendlyByteBuf))
                         .build());
     }
 
-    public BuyMenu(int containerId, Inventory playerInventory, InteractableCitizen citizen) {
-        super(OuatMenus.BUY_MENU.get(), containerId, citizen);
-        this.citizen = citizen;
-        citizen.setInteractingPlayer(playerInventory.player);
-        this.buyContainer = new BuyContainer(citizen);
+    public BuyMenu(int containerId, Inventory playerInventory, NpcInteraction npc) {
+        super(OuatMenus.BUY_MENU.get(), containerId, npc);
+        this.npc = npc;
+        npc.setInteractingPlayer(playerInventory.player);
+        this.buyContainer = new BuyContainer(npc);
         this.addSlot(new Slot(this.buyContainer, INPUT_A_SLOT, INPUT_A_X, ROW_Y));
         this.addSlot(new Slot(this.buyContainer, INPUT_B_SLOT, INPUT_B_X, ROW_Y));
         this.addSlot(new Slot(this.buyContainer, INPUT_C_SLOT, INPUT_C_X, ROW_Y));
-        this.addSlot(new BuyResultSlot(playerInventory.player, citizen, this.buyContainer, RESULT_SLOT, RESULT_X, ROW_Y));
+        this.addSlot(new BuyResultSlot(playerInventory.player, npc, this.buyContainer, RESULT_SLOT, RESULT_X, ROW_Y));
         for(int i = 0; i < 3; ++i) { // Inventory
             for(int j = 0; j < 9; ++j) {
                 this.addSlot(new Slot(playerInventory, j + i * 9 + 9, 113 + j * 18, 92 + i * 18));
@@ -114,16 +114,16 @@ public class BuyMenu extends CitizenBaseMenu {
     }
 
     private void playThankYouSound() {
-        if (this.citizen instanceof Citizen) {
-            Citizen entity = citizen.getCitizen();
+        if (this.npc instanceof Npc) {
+            Npc entity = npc.getNpc();
             entity.playSound(SoundEvents.VILLAGER_YES, 1.0F,1.0F);
         }
     }
 
     public void removed(Player player) {
         super.removed(player);
-        this.citizen.setInteractingPlayer(null);
-        if (!this.citizen.isClientSide()) {
+        this.npc.setInteractingPlayer(null);
+        if (!this.npc.isClientSide()) {
             if (!player.isAlive() || player instanceof ServerPlayer serverPlayer && serverPlayer.hasDisconnected()) {
                 ItemStack itemstack = this.buyContainer.removeItemNoUpdate(INPUT_A_SLOT);
                 if (!itemstack.isEmpty()) {
@@ -213,19 +213,19 @@ public class BuyMenu extends CitizenBaseMenu {
     }
 
     public List<BuyDeal> getDeals() {
-        return this.citizen.getBuyDeals();
+        return this.npc.getBuyDeals();
     }
 
     public static class BuyResultSlot extends Slot {
         private final BuyContainer slots;
         private final Player player;
         private int removeCount;
-        private final InteractableCitizen citizen;
+        private final NpcInteraction npc;
 
-        public BuyResultSlot(Player player, InteractableCitizen citizen, BuyContainer buyContainer, int slot, int posX, int posY) {
+        public BuyResultSlot(Player player, NpcInteraction npc, BuyContainer buyContainer, int slot, int posX, int posY) {
             super(buyContainer, slot, posX, posY);
             this.player = player;
-            this.citizen = citizen;
+            this.npc = npc;
             this.slots = buyContainer;
         }
 
@@ -278,7 +278,7 @@ public class BuyMenu extends CitizenBaseMenu {
                         || deal.makeDeal(stackB, stackC, stackA)
                         || deal.makeDeal(stackC, stackA, stackB)
                         || deal.makeDeal(stackC, stackB, stackA)) {
-                    this.citizen.notifyDealMade(deal);
+                    this.npc.notifyDealMade(deal);
                     pPlayer.awardStat(Stats.TRADED_WITH_VILLAGER);
                     this.slots.setItem(0, stackA);
                     this.slots.setItem(1, stackB);

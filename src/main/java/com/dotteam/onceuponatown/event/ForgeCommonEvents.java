@@ -2,7 +2,7 @@ package com.dotteam.onceuponatown.event;
 
 import com.dotteam.onceuponatown.OuatConstants;
 import com.dotteam.onceuponatown.culture.CultureManager;
-import com.dotteam.onceuponatown.entity.Citizen;
+import com.dotteam.onceuponatown.entity.Npc;
 import com.dotteam.onceuponatown.registry.OuatCommands;
 import com.dotteam.onceuponatown.town.TownManager;
 import net.minecraft.server.level.ServerLevel;
@@ -40,8 +40,8 @@ public class ForgeCommonEvents {
 
     @SubscribeEvent
     public static void finalizeSpawn(MobSpawnEvent.FinalizeSpawn event) {
-        if (event.getEntity() instanceof Citizen citizen) {
-            citizen.onFinalizeSpawnEvent();
+        if (event.getEntity() instanceof Npc npc) {
+            npc.onFinalizeSpawnEvent();
         }
     }
 }

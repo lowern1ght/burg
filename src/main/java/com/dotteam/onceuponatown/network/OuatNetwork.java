@@ -32,10 +32,10 @@ public class OuatNetwork {
                 C2SSellScreenPacket::handle);
 
         INSTANCE.registerMessage(id(),
-                C2SChangeCitizenTabPacket.class,
-                C2SChangeCitizenTabPacket::write,
-                C2SChangeCitizenTabPacket::new,
-                C2SChangeCitizenTabPacket::handle);
+                C2SChangeNpcTabPacket.class,
+                C2SChangeNpcTabPacket::write,
+                C2SChangeNpcTabPacket::new,
+                C2SChangeNpcTabPacket::handle);
     }
 
     public static <MSG> void sendToServer(MSG pMessage) {

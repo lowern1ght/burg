@@ -83,7 +83,7 @@ public class CultureManager implements PreparableReloadListener {
     }
 
     private static List<Item> readFoodList(JsonObject cultureJsonObject) {
-        // Foods that the citizen are allowed to eat
+        // Foods that the npc are allowed to eat
         /*
         List<Item> foodList = new ArrayList<>();
         var foods = cultureJson.getAsJsonArray("foods");
@@ -170,7 +170,7 @@ public class CultureManager implements PreparableReloadListener {
         return null;
     }
 
-    private CitizenJob readJobJson(ResourceLocation jobJson, ResourceManager manager) {
+    private NpcJob readJobJson(ResourceLocation jobJson, ResourceManager manager) {
         return null;
     }
 

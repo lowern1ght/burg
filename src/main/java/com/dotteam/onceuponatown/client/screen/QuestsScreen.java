@@ -20,10 +20,10 @@ import net.minecraft.world.item.ItemStack;
 import java.util.List;
 import java.util.Optional;
 
-import static com.dotteam.onceuponatown.client.screen.BuyScreen.DealButton.DEAL_BUTTON_HEIGHT;
-import static com.dotteam.onceuponatown.client.screen.BuyScreen.DealButton.DEAL_BUTTON_WIDTH;
+import static com.dotteam.onceuponatown.client.screen.BuyScreen.DealButton.HEIGHT;
+import static com.dotteam.onceuponatown.client.screen.BuyScreen.DealButton.WIDTH;
 
-public class QuestsScreen extends CitizenBaseScreen<BuyMenu> {
+public class QuestsScreen extends NpcBaseScreen<BuyMenu> {
     private static final ResourceLocation TEXTURE = OuatUtils.resource("textures/gui/buy_screen.png");
     private static final int BUY_SCREEN_TEXTURE_WIDTH = 299;
     private static final int BUY_SCREEN_TEXTURE_HEIGHT = 174;
@@ -41,8 +41,8 @@ public class QuestsScreen extends CitizenBaseScreen<BuyMenu> {
     private static final int SCROLL_BAR_TOP_Y = 26;
     private static final int SCROLL_BAR_HEIGHT = 139;
     private static final int SCROLL_BAR_BOTTOM_Y = 99;
-    private Component citizenInfo = Component.literal("Armorer");
-    private Component citizenSentence;
+    private Component npcInfo = Component.literal("Armorer");
+    private Component npcSentence;
     private static final int GRID_COLUMNS = 5;
     private static final int GRID_ROWS = 7;
     public static final int NUMBER_OF_DEAL_BUTTONS = GRID_ROWS * GRID_COLUMNS;
@@ -52,14 +52,14 @@ public class QuestsScreen extends CitizenBaseScreen<BuyMenu> {
     private boolean isDragging;
 
     public QuestsScreen(BuyMenu menu, Inventory inventory, Component title) {
-        super(menu, inventory, title, CitizenTab.BUY);
+        super(menu, inventory, title, NpcTab.BUY);
         this.imageWidth = 281;
         this.imageHeight = 174;
         this.inventoryLabelX = 113;
         this.inventoryLabelY = 80;
         this.titleLabelX = 44;
         this.titleLabelY = 5;
-        this.citizen = menu.getCitizen().getCitizen();
+        this.npc = menu.getNpc().getNpc();
     }
 
     protected void init() {
@@ -81,9 +81,9 @@ public class QuestsScreen extends CitizenBaseScreen<BuyMenu> {
                     }
                 }));
                 ++buttonIndex;
-                x += DEAL_BUTTON_WIDTH;
+                x += WIDTH;
             }
-            y += DEAL_BUTTON_HEIGHT;
+            y += HEIGHT;
         }
     }
 
@@ -175,10 +175,10 @@ public class QuestsScreen extends CitizenBaseScreen<BuyMenu> {
                     renderSoldItemDecorations(graphics, this.font, result, x, y);
                     graphics.pose().popPose();
 
-                    x += DEAL_BUTTON_WIDTH;
-                    if (x == startX + (DEAL_BUTTON_WIDTH * GRID_COLUMNS)) {
+                    x += WIDTH;
+                    if (x == startX + (WIDTH * GRID_COLUMNS)) {
                         x = startX;
-                        y += DEAL_BUTTON_HEIGHT;
+                        y += HEIGHT;
                     }
                 }
                 ++index;
