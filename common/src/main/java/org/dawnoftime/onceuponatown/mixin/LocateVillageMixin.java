@@ -1,6 +1,6 @@
 package org.dawnoftime.onceuponatown.mixin;
 
-import org.dawnoftime.onceuponatown.Constants;
+import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.config.OuatConfig;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
@@ -37,9 +37,9 @@ public class LocateVillageMixin {
             new SimpleCommandExceptionType(Component.literal("Vanilla villages are replaced by the ")
                     .append(Component.literal("Once upon a town").withStyle(ChatFormatting.YELLOW))
                     .append(Component.literal(" mod.\nUse "))
-                    .append(Component.literal("/locate structure " + Constants.MOD_ID + ":plains_village").withStyle((style -> style
+                    .append(Component.literal("/locate structure " + Ouat.MOD_ID + ":plains_village").withStyle((style -> style
                             .withColor(ChatFormatting.YELLOW)
-                            .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/locate structure " + Constants.MOD_ID + ":plains_village"))
+                            .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/locate structure " + Ouat.MOD_ID + ":plains_village"))
                             .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("Click to locate"))))))
                     .append(Component.literal(" instead.")));
 
@@ -47,9 +47,9 @@ public class LocateVillageMixin {
             new SimpleCommandExceptionType(Component.literal("Vanilla villages are replaced by the ")
                     .append(Component.literal("Once upon a town").withStyle(ChatFormatting.YELLOW))
                     .append(Component.literal(" mod.\nUse "))
-                    .append(Component.literal("/locate structure " + Constants.MOD_ID + ":desert_village").withStyle((style -> style
+                    .append(Component.literal("/locate structure " + Ouat.MOD_ID + ":desert_village").withStyle((style -> style
                             .withColor(ChatFormatting.YELLOW)
-                            .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/locate structure " + Constants.MOD_ID + ":desert_village"))
+                            .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/locate structure " + Ouat.MOD_ID + ":desert_village"))
                             .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("Click to locate"))))))
                     .append(Component.literal(" instead.")));
 
@@ -57,9 +57,9 @@ public class LocateVillageMixin {
             new SimpleCommandExceptionType(Component.literal("Vanilla villages are replaced by the ")
                     .append(Component.literal("Once upon a town").withStyle(ChatFormatting.YELLOW))
                     .append(Component.literal(" mod.\nUse "))
-                    .append(Component.literal("/locate structure " + Constants.MOD_ID + ":savanna_village").withStyle((style -> style
+                    .append(Component.literal("/locate structure " + Ouat.MOD_ID + ":savanna_village").withStyle((style -> style
                             .withColor(ChatFormatting.YELLOW)
-                            .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/locate structure " + Constants.MOD_ID + ":savanna_village"))
+                            .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/locate structure " + Ouat.MOD_ID + ":savanna_village"))
                             .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("Click to locate"))))))
                     .append(Component.literal(" instead.")));
 
@@ -67,9 +67,9 @@ public class LocateVillageMixin {
             new SimpleCommandExceptionType(Component.literal("Vanilla villages are replaced by the ")
                     .append(Component.literal("Once upon a town").withStyle(ChatFormatting.YELLOW))
                     .append(Component.literal(" mod.\nUse "))
-                    .append(Component.literal("/locate structure " + Constants.MOD_ID + ":taiga_village").withStyle((style -> style
+                    .append(Component.literal("/locate structure " + Ouat.MOD_ID + ":taiga_village").withStyle((style -> style
                             .withColor(ChatFormatting.YELLOW)
-                            .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/locate structure " + Constants.MOD_ID + ":taiga_village"))
+                            .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/locate structure " + Ouat.MOD_ID + ":taiga_village"))
                             .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("Click to locate"))))))
                     .append(Component.literal(" instead.")));
 
@@ -77,9 +77,9 @@ public class LocateVillageMixin {
             new SimpleCommandExceptionType(Component.literal("Vanilla villages are replaced by the ")
                     .append(Component.literal("Once upon a town").withStyle(ChatFormatting.YELLOW))
                     .append(Component.literal(" mod.\nUse "))
-                    .append(Component.literal("/locate structure " + Constants.MOD_ID + ":snowy_village").withStyle((style -> style
+                    .append(Component.literal("/locate structure " + Ouat.MOD_ID + ":snowy_village").withStyle((style -> style
                             .withColor(ChatFormatting.YELLOW)
-                            .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/locate structure " + Constants.MOD_ID + ":snowy_village"))
+                            .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/locate structure " + Ouat.MOD_ID + ":snowy_village"))
                             .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("Click to locate"))))))
                     .append(Component.literal(" instead.")));
 
@@ -87,7 +87,7 @@ public class LocateVillageMixin {
 
     @Inject(method = "locateStructure", at = @At(value = "HEAD"))
     private static void notifyWrongVillageCommand(CommandSourceStack sourceStack, ResourceOrTagKeyArgument.Result<Structure> result, CallbackInfoReturnable<Integer> cir) throws CommandSyntaxException {
-        if (OuatConfig.disableVanillaVillages) {
+        if (OuatConfig.DISABLE_VANILLA_VILLAGES) {
             Optional<ResourceKey<Structure>> optional = result.unwrap().left();
             for (ResourceLocation resourceLocation : DISABLED_VILLAGES) {
                 if (optional.isPresent() && optional.get().location().equals(resourceLocation)) {

@@ -1,11 +1,10 @@
 package org.dawnoftime.onceuponatown.client.screen;
 
+import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.screen.tooltip.TradeItemTooltip;
 import org.dawnoftime.onceuponatown.menu.BuyMenu;
 import org.dawnoftime.onceuponatown.network.C2SSelectBuyDealPacket;
-import org.dawnoftime.onceuponatown.platform.Platform;
 import org.dawnoftime.onceuponatown.trade.BuyDeal;
-import org.dawnoftime.onceuponatown.util.OuatUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -20,8 +19,11 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-public class QuestsScreen extends CitizenBaseScreen<BuyMenu> {
-    private static final ResourceLocation TEXTURE = OuatUtils.createOuatResource("textures/gui/buy_screen.png");
+import static org.dawnoftime.onceuponatown.client.screen.BuyScreen.DealButton.HEIGHT;
+import static org.dawnoftime.onceuponatown.client.screen.BuyScreen.DealButton.WIDTH;
+
+public class QuestsScreen extends NpcBaseScreen<BuyMenu> {
+    private static final ResourceLocation TEXTURE = Ouat.createOuatResource("textures/gui/buy_screen.png");
     private static final int BUY_SCREEN_TEXTURE_WIDTH = 299;
     private static final int BUY_SCREEN_TEXTURE_HEIGHT = 174;
     // Texture size and offset in file
@@ -38,8 +40,8 @@ public class QuestsScreen extends CitizenBaseScreen<BuyMenu> {
     private static final int SCROLL_BAR_TOP_Y = 26;
     private static final int SCROLL_BAR_HEIGHT = 139;
     private static final int SCROLL_BAR_BOTTOM_Y = 99;
-    private Component citizenInfo = Component.literal("Armorer");
-    private Component citizenSentence;
+    private Component npcInfo = Component.literal("Armorer");
+    private Component npcSentence;
     private static final int GRID_COLUMNS = 5;
     private static final int GRID_ROWS = 7;
     public static final int NUMBER_OF_DEAL_BUTTONS = GRID_ROWS * GRID_COLUMNS;
@@ -49,14 +51,14 @@ public class QuestsScreen extends CitizenBaseScreen<BuyMenu> {
     private boolean isDragging;
 
     public QuestsScreen(BuyMenu menu, Inventory inventory, Component title) {
-        super(menu, inventory, title, CitizenTab.BUY);
+        super(menu, inventory, title, NpcTab.BUY);
         this.imageWidth = 281;
         this.imageHeight = 174;
         this.inventoryLabelX = 113;
         this.inventoryLabelY = 80;
         this.titleLabelX = 44;
         this.titleLabelY = 5;
-        this.citizen = menu.getCitizen().getCitizen();
+        this.npc = menu.getNpcInteraction().getNpc();
     }
 
     protected void init() {
@@ -78,9 +80,9 @@ public class QuestsScreen extends CitizenBaseScreen<BuyMenu> {
                     }
                 }));
                 ++buttonIndex;
-                x += BuyScreen.DealButton.DEAL_BUTTON_WIDTH;
+                x += WIDTH;
             }
-            y += BuyScreen.DealButton.DEAL_BUTTON_HEIGHT;
+            y += HEIGHT;
         }
     }
 
@@ -172,10 +174,10 @@ public class QuestsScreen extends CitizenBaseScreen<BuyMenu> {
                     renderSoldItemDecorations(graphics, this.font, result, x, y);
                     graphics.pose().popPose();
 
-                    x += BuyScreen.DealButton.DEAL_BUTTON_WIDTH;
-                    if (x == startX + (BuyScreen.DealButton.DEAL_BUTTON_WIDTH * GRID_COLUMNS)) {
+                    x += WIDTH;
+                    if (x == startX + (WIDTH * GRID_COLUMNS)) {
                         x = startX;
-                        y += BuyScreen.DealButton.DEAL_BUTTON_HEIGHT;
+                        y += HEIGHT;
                     }
                 }
                 ++index;

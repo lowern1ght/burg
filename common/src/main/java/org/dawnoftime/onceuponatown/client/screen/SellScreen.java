@@ -1,11 +1,10 @@
 package org.dawnoftime.onceuponatown.client.screen;
 
+import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.screen.tooltip.TradeItemTooltip;
 import org.dawnoftime.onceuponatown.menu.SellMenu;
 import org.dawnoftime.onceuponatown.network.C2SSellScreenPacket;
-import org.dawnoftime.onceuponatown.platform.Platform;
 import org.dawnoftime.onceuponatown.trade.SellDeal;
-import org.dawnoftime.onceuponatown.util.OuatUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -25,10 +24,9 @@ import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.Optional;
 
-public class SellScreen extends CitizenBaseScreen<SellMenu> {
-    private static final ResourceLocation TEXTURE = OuatUtils.createOuatResource("textures/gui/sell_screen.png");
+public class SellScreen extends NpcBaseScreen<SellMenu> {
+    private static final ResourceLocation TEXTURE = Ouat.createOuatResource("textures/gui/sell_screen.png");
     private static final int BUY_SCREEN_TEXTURE_WIDTH = 299;
     private static final int BUY_SCREEN_TEXTURE_HEIGHT = 174;
     // Texture size and offset in file
@@ -45,8 +43,8 @@ public class SellScreen extends CitizenBaseScreen<SellMenu> {
     private static final int SCROLL_BAR_TOP_Y = 26;
     private static final int SCROLL_BAR_HEIGHT = 139;
     private static final int SCROLL_BAR_BOTTOM_Y = 99;
-    private Component citizenInfo = Component.literal("Armorer");
-    private Component citizenSentence;
+    private Component npcInfo = Component.literal("Armorer");
+    private Component npcSentence;
     private static final int GRID_COLUMNS = 5;
     private static final int GRID_ROWS = 7;
     public static final int NUMBER_OF_DEAL_BUTTONS = GRID_ROWS * GRID_COLUMNS;
@@ -56,14 +54,14 @@ public class SellScreen extends CitizenBaseScreen<SellMenu> {
     private boolean isDragging;
 
     public SellScreen(SellMenu menu, Inventory inventory, Component title) {
-        super(menu, inventory, title, CitizenTab.SELL);
+        super(menu, inventory, title, NpcTab.SELL);
         this.imageWidth = 281;
         this.imageHeight = 174;
         this.inventoryLabelX = 113;
         this.inventoryLabelY = 80;
         this.titleLabelX = 44;
         this.titleLabelY = 5;
-        this.citizen = menu.getCitizen().getCitizen();
+        this.npc = menu.getNpcInteraction().getNpc();
     }
 
     protected void init() {
@@ -85,9 +83,9 @@ public class SellScreen extends CitizenBaseScreen<SellMenu> {
             for(int j = 0; j < GRID_COLUMNS; ++j) {
                 this.dealButtons[buttonIndex] = this.addRenderableWidget(new DealButton(x, y, buttonIndex, (button) -> onDealButtonLeftClick((DealButton)button)));
                 ++buttonIndex;
-                x += BuyScreen.DealButton.DEAL_BUTTON_WIDTH;
+                x += BuyScreen.DealButton.WIDTH;
             }
-            y += BuyScreen.DealButton.DEAL_BUTTON_HEIGHT;
+            y += BuyScreen.DealButton.HEIGHT;
         }
     }
 
@@ -203,10 +201,10 @@ public class SellScreen extends CitizenBaseScreen<SellMenu> {
                     //graphics.setColor((float)1,(float)1,(float)1, 1);
                     graphics.pose().popPose();
 
-                    x += BuyScreen.DealButton.DEAL_BUTTON_WIDTH;
-                    if (x == startX + (BuyScreen.DealButton.DEAL_BUTTON_WIDTH * GRID_COLUMNS)) {
+                    x += BuyScreen.DealButton.WIDTH;
+                    if (x == startX + (BuyScreen.DealButton.WIDTH * GRID_COLUMNS)) {
                         x = startX;
-                        y += BuyScreen.DealButton.DEAL_BUTTON_HEIGHT;
+                        y += BuyScreen.DealButton.HEIGHT;
                     }
                 }
                 ++index;
@@ -218,7 +216,7 @@ public class SellScreen extends CitizenBaseScreen<SellMenu> {
         //graphics.pose().translate(0.0F, 0.0F, 100.0F);
         if (this.menu.isGoodsGridLocked()) {
             graphics.pose().translate(0.0F, 0.0F, 400.0F);
-            graphics.blit(OuatUtils.createOuatResource("textures/gui/lock.png"), this.leftPos + 143, this.topPos + 48 , 0, 0, 10, 14, 10, 14);
+            graphics.blit(Ouat.createOuatResource("textures/gui/lock.png"), this.leftPos + 143, this.topPos + 48 , 0, 0, 10, 14, 10, 14);
         }
         graphics.drawString(this.font, Component.literal("Simir Kurtmar, ").withStyle(ChatFormatting.GOLD).append(Component.literal("Inkeeper").withStyle(ChatFormatting.GRAY).withStyle(ChatFormatting.ITALIC)), leftPos + 305, topPos+18, 4210752, false);
         //graphics.drawString(this.font, Component.literal("                               ").withStyle(ChatFormatting.WHITE).withStyle(ChatFormatting.UNDERLINE),leftPos + 305, topPos +2, 4210752, false);

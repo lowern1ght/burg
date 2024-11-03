@@ -1,6 +1,6 @@
 package org.dawnoftime.onceuponatown.registry;
 
-import org.dawnoftime.onceuponatown.Constants;
+import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.command.CultureInfoCommand;
 import org.dawnoftime.onceuponatown.command.ListCulturesCommand;
 import org.dawnoftime.onceuponatown.command.ListTownsCommand;
@@ -13,7 +13,7 @@ import net.minecraft.commands.Commands;
 
 public class OuatCommands {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        LiteralArgumentBuilder<CommandSourceStack> builder = Commands.literal(Constants.MOD_ID)
+        LiteralArgumentBuilder<CommandSourceStack> builder = Commands.literal(Ouat.MOD_ID)
                 .then(CultureInfoCommand.register())
                 .then(ListCulturesCommand.register())
                 .then(ListTownsCommand.register())

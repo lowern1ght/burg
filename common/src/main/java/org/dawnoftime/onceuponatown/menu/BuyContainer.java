@@ -13,7 +13,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 public class BuyContainer implements Container {
-    private final InteractableCitizen citizen;
+    private final NpcInteraction npc;
     private final NonNullList<ItemStack> itemStacks = NonNullList.withSize(4, ItemStack.EMPTY);
     @Nullable
     private BuyDeal activeDeal;
@@ -23,8 +23,8 @@ public class BuyContainer implements Container {
     private static final int INPUT_C = 2;
     private static final int RESULT = 3;
 
-    public BuyContainer(InteractableCitizen citizen) {
-        this.citizen = citizen;
+    public BuyContainer(NpcInteraction npc) {
+        this.npc = npc;
     }
 
     public int getContainerSize() {
@@ -80,7 +80,7 @@ public class BuyContainer implements Container {
     }
 
     public boolean stillValid(Player pPlayer) {
-        return this.citizen.getInteractingPlayer() == pPlayer;
+        return this.npc.getInteractingPlayer() == pPlayer;
     }
 
     public void setChanged() {
@@ -96,7 +96,7 @@ public class BuyContainer implements Container {
         if (stackInSlotA.isEmpty() && stackInSlotB.isEmpty() && stackInSlotC.isEmpty()) {
             this.setItem(RESULT, ItemStack.EMPTY);
         } else {
-            List<BuyDeal> deals = this.citizen.getBuyDeals();
+            List<BuyDeal> deals = this.npc.getBuyDeals();
             if (!deals.isEmpty()) {
                 BuyDeal deal1 = TradeUtils.getBuyDealFor(deals, stackInSlotA, stackInSlotB, stackInSlotC, this.selectedDealIndex);
                 BuyDeal deal2 = TradeUtils.getBuyDealFor(deals, stackInSlotA, stackInSlotC, stackInSlotB, this.selectedDealIndex);

@@ -1,7 +1,6 @@
 package org.dawnoftime.onceuponatown.construction;
 
-import org.dawnoftime.onceuponatown.construction.project.FreshBuildingProject;
-import org.dawnoftime.onceuponatown.util.OuatLog;
+import org.dawnoftime.onceuponatown.Ouat;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderGetter;
 import net.minecraft.core.IdMapper;
@@ -22,7 +21,6 @@ import net.minecraft.world.phys.Vec3;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
@@ -31,7 +29,6 @@ import java.util.List;
  * Can be seen as the construction plan of a structure.<br>
  * Shared by all structures which are described by the same NBT file.<br>
  * Does not contain any information about how the structure should be placed in world (position, rotation...).<br>
- * @see FreshBuildingProject
  */
 public class ConstructionPlan {
     /**
@@ -71,10 +68,10 @@ public class ConstructionPlan {
             constructionPlan.readStructureTag(blockLookup, tag);
             return constructionPlan.withoutAirBlocks();
         } catch (FileNotFoundException fileNotFoundException) {
-            OuatLog.LOG.error("Structure not found {}", resourceLocation, fileNotFoundException);
+            Ouat.OuatLog.LOG.error("Structure not found {}", resourceLocation, fileNotFoundException);
             return null;
         } catch (Throwable throwable) {
-            OuatLog.LOG.error("Could not load structure {}", resourceLocation, throwable);
+            Ouat.OuatLog.LOG.error("Could not load structure {}", resourceLocation, throwable);
             return null;
         }
     }
@@ -138,23 +135,8 @@ public class ConstructionPlan {
             BlockInfo blockInfo = new BlockInfo(blockPos, blockState, blockNBT);
             blockInfoList.add(blockInfo);
         }
-        sortBlocks(blockInfoList);
+        ConstructionUtils.sortBlocks(blockInfoList);
         this.blocks.addAll(blockInfoList);
-    }
-
-    /**
-     * Sort the list of blocks in the structure
-     * @param blockList The list of blocks in the structure
-     */
-    private void sortBlocks(List<BlockInfo> blockList) {
-        Comparator<BlockInfo> comparator = Comparator.<BlockInfo>comparingInt((pY) -> {
-            return pY.pos().getY();
-        }).thenComparingInt((pX) -> {
-            return pX.pos().getX();
-        }).thenComparingInt((pZ) -> {
-            return pZ.pos().getZ();
-        });
-        blockList.sort(comparator);
     }
 
     /**

@@ -1,13 +1,12 @@
 package org.dawnoftime.onceuponatown.world.structure;
 
+import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.town.building.type.BuildingType;
 import org.dawnoftime.onceuponatown.town.TownMap;
 import org.dawnoftime.onceuponatown.town.TownMapUtils;
 import org.dawnoftime.onceuponatown.town.building.placement.BuildPlacement;
 import org.dawnoftime.onceuponatown.town.building.placement.BuildingPlacement;
 import org.dawnoftime.onceuponatown.town.building.placement.RoadPlacement;
-import org.dawnoftime.onceuponatown.util.OuatLog;
-import org.dawnoftime.onceuponatown.util.OuatUtils;
 import org.dawnoftime.onceuponatown.world.structure.pieces.BuildingPiece;
 import org.dawnoftime.onceuponatown.world.structure.pieces.PathPiece;
 import org.dawnoftime.onceuponatown.world.structure.pieces.TownDataBuildingPiece;
@@ -30,31 +29,31 @@ public class TownGenerator {
     public static final int STARTER_PACK_SIZE = 21;
     public static final int HEIGHTMAP_SCAN_RADIUS = 100;
     public static final BuildingInfo[] TEST_BUILDINGS = new BuildingInfo[] {
-            new BuildingInfo(OuatUtils.createOuatResource("plains/bigchurch"), 19, 32),
-            new BuildingInfo(OuatUtils.createOuatResource("plains/bighouse"), 13, 11),
-            new BuildingInfo(OuatUtils.createOuatResource("plains/bighousefront"), 9, 8),
-            new BuildingInfo(OuatUtils.createOuatResource("plains/bighousestand"), 15, 10),
-            new BuildingInfo(OuatUtils.createOuatResource("plains/church"), 15, 24),
-            new BuildingInfo(OuatUtils.createOuatResource("plains/cowshed"), 16, 11),
-            new BuildingInfo(OuatUtils.createOuatResource("plains/doubledeckhouse"), 7, 15),
-            new BuildingInfo(OuatUtils.createOuatResource("plains/fountainplace"), 13, 13),
-            new BuildingInfo(OuatUtils.createOuatResource("plains/leathershop"), 14, 9),
-            new BuildingInfo(OuatUtils.createOuatResource("plains/littlefarm"), 9, 7),
-            new BuildingInfo(OuatUtils.createOuatResource("plains/lonegarden"), 14, 13),
-            new BuildingInfo(OuatUtils.createOuatResource("plains/loneresources"), 14, 11),
-            new BuildingInfo(OuatUtils.createOuatResource("plains/mediumhouse"), 11, 10),
-            new BuildingInfo(OuatUtils.createOuatResource("plains/merchantshop"), 15, 12),
-            new BuildingInfo(OuatUtils.createOuatResource("plains/smallfarm"), 17, 10),
-            new BuildingInfo(OuatUtils.createOuatResource("plains/smallhouse"), 8, 9),
-            new BuildingInfo(OuatUtils.createOuatResource("plains/smallhousefancy"), 14, 10),
-            new BuildingInfo(OuatUtils.createOuatResource("plains/smallhousegarden"), 14, 8),
-            new BuildingInfo(OuatUtils.createOuatResource("plains/smallmarket"), 25, 18),
-            new BuildingInfo(OuatUtils.createOuatResource("plains/soldierhouse"), 13, 13),
-            new BuildingInfo(OuatUtils.createOuatResource("plains/wildspot"), 10, 6)
+            new BuildingInfo(Ouat.createOuatResource("plains/bigchurch"), 19, 32),
+            new BuildingInfo(Ouat.createOuatResource("plains/bighouse"), 13, 11),
+            new BuildingInfo(Ouat.createOuatResource("plains/bighousefront"), 9, 8),
+            new BuildingInfo(Ouat.createOuatResource("plains/bighousestand"), 15, 10),
+            new BuildingInfo(Ouat.createOuatResource("plains/church"), 15, 24),
+            new BuildingInfo(Ouat.createOuatResource("plains/cowshed"), 16, 11),
+            new BuildingInfo(Ouat.createOuatResource("plains/doubledeckhouse"), 7, 15),
+            new BuildingInfo(Ouat.createOuatResource("plains/fountainplace"), 13, 13),
+            new BuildingInfo(Ouat.createOuatResource("plains/leathershop"), 14, 9),
+            new BuildingInfo(Ouat.createOuatResource("plains/littlefarm"), 9, 7),
+            new BuildingInfo(Ouat.createOuatResource("plains/lonegarden"), 14, 13),
+            new BuildingInfo(Ouat.createOuatResource("plains/loneresources"), 14, 11),
+            new BuildingInfo(Ouat.createOuatResource("plains/mediumhouse"), 11, 10),
+            new BuildingInfo(Ouat.createOuatResource("plains/merchantshop"), 15, 12),
+            new BuildingInfo(Ouat.createOuatResource("plains/smallfarm"), 17, 10),
+            new BuildingInfo(Ouat.createOuatResource("plains/smallhouse"), 8, 9),
+            new BuildingInfo(Ouat.createOuatResource("plains/smallhousefancy"), 14, 10),
+            new BuildingInfo(Ouat.createOuatResource("plains/smallhousegarden"), 14, 8),
+            new BuildingInfo(Ouat.createOuatResource("plains/smallmarket"), 25, 18),
+            new BuildingInfo(Ouat.createOuatResource("plains/soldierhouse"), 13, 13),
+            new BuildingInfo(Ouat.createOuatResource("plains/wildspot"), 10, 6)
     };
 
     public static void generatePiecesWorldGen(StructureTemplateManager manager, BlockPos townCenterPos, List<BuildingType> starter_pack, StructurePieceAccessor pieces, WorldgenRandom random) {
-        OuatLog.info("Town at + " + townCenterPos.toShortString() + " : started generating pieces");
+        Ouat.OuatLog.info("Town at + " + townCenterPos.toShortString() + " : started generating pieces");
         List<BuildingInfo> availableBuildings = new LinkedList<>(Arrays.asList(TEST_BUILDINGS));
         List<BuildingInfo> starterPack = new ArrayList<>();
         for (int i = 0; i < STARTER_PACK_SIZE; ++i) {
@@ -65,7 +64,7 @@ public class TownGenerator {
             }
         }
         TownMap townMap = createTownMap(townCenterPos, starterPack);
-        OuatLog.info("Town at + " + townCenterPos.toShortString() + " : created town map");
+        Ouat.OuatLog.info("Town at + " + townCenterPos.toShortString() + " : created town map");
         List<BuildingPlacement> mapBuildingList = new ArrayList<>();
         List<RoadPlacement> mapRoadList = new ArrayList<>();
 
@@ -98,7 +97,7 @@ public class TownGenerator {
             pieces.addPiece(pathPiece);
         });
 
-        OuatLog.info("Town at + " + townCenterPos.toShortString() + " : finished generating pieces");
+        Ouat.OuatLog.info("Town at + " + townCenterPos.toShortString() + " : finished generating pieces");
     }
 
     private static TownMap createTownMap(BlockPos townCenterPos, List<BuildingInfo> starterPack) {

@@ -21,6 +21,7 @@ public class Building {
     private Rotation rotation;
     private final List<BlockPos> sleepPositions = new ArrayList<>();
     private final List<BlockPos> workPositions = new ArrayList<>();
+    private int level;
 
     private Building(BuildingType buildingType) {
         this.buildingType = buildingType;
@@ -49,5 +50,17 @@ public class Building {
 
     public HashMap<ResourceLocation, Integer> getProduction() {
         return this.buildingType.getProduction();
+    }
+
+    public int getLevel() {
+        return level;
+    }
+
+    public BuildingType getType() {
+        return buildingType;
+    }
+
+    public BuildingPlacementSettings getPlacementSettings() {
+        return placementSettings;
     }
 }

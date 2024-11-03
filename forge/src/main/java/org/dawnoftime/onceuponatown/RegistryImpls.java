@@ -25,7 +25,7 @@ import org.dawnoftime.onceuponatown.registry.*;
 
 import java.util.function.Supplier;
 
-import static org.dawnoftime.onceuponatown.Constants.MOD_ID;
+import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
 
 public class RegistryImpls {
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TAB = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MOD_ID);
@@ -44,7 +44,7 @@ public class RegistryImpls {
         ForgeStructureTypesRegistry.REGISTRY.register(modEventBus);
         ForgeStructurePiecesRegistry.REGISTRY.register(modEventBus);
 
-        modEventBus.addListener((EntityAttributeCreationEvent event) -> event.put(OuatEntitiesRegistry.ENTITY_REGISTRY.CITIZEN.get(), Citizen.createAttributes().build()));
+        modEventBus.addListener((EntityAttributeCreationEvent event) -> event.put(OuatEntitiesRegistry.ENTITY_REGISTRY.NPC.get(), Citizen.createAttributes().build()));
 
         // Creative inventory init
         CREATIVE_MODE_TAB.register(modEventBus);
@@ -80,7 +80,7 @@ public class RegistryImpls {
     }
 
     public static class ForgeMenusRegistry extends OuatMenusRegistry{
-        public static final DeferredRegister<MenuType<?>> REGISTRY = DeferredRegister.create(ForgeRegistries.MENU_TYPES, Constants.MOD_ID);
+        public static final DeferredRegister<MenuType<?>> REGISTRY = DeferredRegister.create(ForgeRegistries.MENU_TYPES, Ouat.MOD_ID);
 
         @Override
         public <T extends AbstractContainerMenu> Supplier<MenuType<T>> register(String name, MenuTypeFactory<T> factory) {
@@ -89,7 +89,7 @@ public class RegistryImpls {
     }
 
     public static class ForgeStructureTypesRegistry extends OuatStructureTypesRegistry {
-        public static final DeferredRegister<StructureType<?>> REGISTRY = DeferredRegister.create(Registries.STRUCTURE_TYPE, Constants.MOD_ID);
+        public static final DeferredRegister<StructureType<?>> REGISTRY = DeferredRegister.create(Registries.STRUCTURE_TYPE, Ouat.MOD_ID);
 
         @Override
         public <T extends Structure> Supplier<StructureType<T>> register(String name, Supplier<StructureType<T>> structureTypeSupplier) {
@@ -98,7 +98,7 @@ public class RegistryImpls {
     }
 
     public static class ForgeStructurePiecesRegistry extends OuatStructurePiecesRegistry{
-        public static final DeferredRegister<StructurePieceType> REGISTRY = DeferredRegister.create(Registries.STRUCTURE_PIECE, Constants.MOD_ID);
+        public static final DeferredRegister<StructurePieceType> REGISTRY = DeferredRegister.create(Registries.STRUCTURE_PIECE, Ouat.MOD_ID);
 
         @Override
         public Supplier<StructurePieceType> register(String name, Supplier<StructurePieceType> structurePieceTypeSupplier) {

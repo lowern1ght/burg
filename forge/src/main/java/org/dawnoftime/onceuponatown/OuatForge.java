@@ -6,14 +6,15 @@ import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.MobSpawnEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
-import org.dawnoftime.onceuponatown.client.model.CitizenModel;
-import org.dawnoftime.onceuponatown.client.renderer.CitizenRenderer;
+import org.dawnoftime.onceuponatown.client.model.NpcModel;
+import org.dawnoftime.onceuponatown.client.renderer.NpcRenderer;
 import org.dawnoftime.onceuponatown.client.screen.BuyScreen;
 import org.dawnoftime.onceuponatown.client.screen.SellScreen;
 import org.dawnoftime.onceuponatown.client.screen.tooltip.ClientTradeItemTooltip;
 import org.dawnoftime.onceuponatown.client.screen.tooltip.TradeItemTooltip;
 import org.dawnoftime.onceuponatown.culture.CultureManager;
-import org.dawnoftime.onceuponatown.entity.Citizen;
+import org.dawnoftime.onceuponatown.entity.Npc;
+import org.dawnoftime.onceuponatown.network.ForgeNetwork;
 import org.dawnoftime.onceuponatown.registry.*;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.world.item.CreativeModeTabs;
@@ -30,41 +31,25 @@ import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.dawnoftime.onceuponatown.town.TownManager;
 
-@Mod(Constants.MOD_ID)
+@Mod(Ouat.MOD_ID)
 public class OuatForge {
-    /*
-    TODO use this code when we will add the configs.
-    public static final ConfigClassHandler<DoTBConfig> HANDLER = ConfigClassHandler.createBuilder(DoTBConfig.class)
-            .id(new ResourceLocation(DoTBCommon.MOD_ID, "config"))
-            .serializer(config -> GsonConfigSerializerBuilder.create(config)
-                    .setPath(YACLPlatform.getConfigDir().resolve("dawnoftimebuilder-config.json5"))
-                    .setJson5(true)
-                    .build())
-            .build();
-
-    // The handler must be loaded in the mod constructor before initializing anything else.
-    HANDLER.load();
-    */
 
     public OuatForge() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
         Common.init();
         RegistryImpls.init(modEventBus);
-
-        //modEventBus.register(DoTBForgeClient.class);
-        //modEventBus.register(DataGenerators.class);
     }
 
-    @Mod.EventBusSubscriber(modid = Constants.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
+    @Mod.EventBusSubscriber(modid = Ouat.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
     public static class ModCommonEvents {
         @SubscribeEvent
         public static void commonSetup(FMLCommonSetupEvent event) {
-            event.enqueueWork(OuatNetwork::init);
+            event.enqueueWork(ForgeNetwork::init);
         }
 
         @SubscribeEvent
         public static void createEntityAttributes(EntityAttributeCreationEvent event) {
-            event.put(OuatEntitiesRegistry.ENTITY_REGISTRY.CITIZEN.get(), Citizen.createAttributes().build());
+            event.put(OuatEntitiesRegistry.ENTITY_REGISTRY.NPC.get(), Npc.createAttributes().build());
         }
 
         @SubscribeEvent
@@ -91,13 +76,13 @@ public class OuatForge {
 
         @SubscribeEvent
         public static void finalizeSpawn(MobSpawnEvent.FinalizeSpawn event) {
-            if (event.getEntity() instanceof Citizen citizen) {
-                citizen.onFinalizeSpawnEvent();
+            if (event.getEntity() instanceof Npc npc) {
+                npc.onFinalizeSpawnEvent();
             }
         }
     }
 
-    @Mod.EventBusSubscriber(modid = Constants.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+    @Mod.EventBusSubscriber(modid = Ouat.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
     public static class ModClientEvents {
         @SubscribeEvent
         public static void clientSetup(FMLClientSetupEvent event) {
@@ -121,12 +106,12 @@ public class OuatForge {
 
         @SubscribeEvent
         public static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
-            event.registerEntityRenderer(OuatEntitiesRegistry.ENTITY_REGISTRY.CITIZEN.get(), CitizenRenderer::new);
+            event.registerEntityRenderer(OuatEntitiesRegistry.ENTITY_REGISTRY.NPC.get(), NpcRenderer::new);
         }
 
         @SubscribeEvent
         public static void registerEntityLayerDefinitions(EntityRenderersEvent.RegisterLayerDefinitions event) {
-            event.registerLayerDefinition(CitizenModel.LAYER_LOCATION, CitizenModel::createBodyLayer);
+            event.registerLayerDefinition(NpcModel.LAYER_LOCATION, NpcModel::createBodyLayer);
         }
 
         @SubscribeEvent

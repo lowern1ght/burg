@@ -1,0 +1,201 @@
+package org.dawnoftime.onceuponatown.client.model;
+
+import com.google.common.collect.ImmutableList;
+import net.minecraft.client.model.HumanoidModel;
+import net.minecraft.client.model.geom.ModelLayerLocation;
+import net.minecraft.client.model.geom.ModelPart;
+import net.minecraft.client.model.geom.PartPose;
+import net.minecraft.client.model.geom.builders.*;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.HumanoidArm;
+import net.minecraft.world.item.CrossbowItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.UseAnim;
+import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.entity.Npc;
+
+import java.util.List;
+
+public class NpcModel<T extends Npc> extends HumanoidModel<T> {
+    public static final ModelLayerLocation LAYER_LOCATION = new ModelLayerLocation(Ouat.createOuatResource("npc"), "main_layer");
+    private final List<ModelPart> parts;
+    private final ModelPart crossedArms;
+
+    public NpcModel(ModelPart root) {
+        super(root);
+        this.crossedArms = this.body.getChild("crossed_arms");
+        this.parts = root.getAllParts().filter((part) -> !part.isEmpty()).collect(ImmutableList.toImmutableList());
+    }
+
+    public static LayerDefinition createBodyLayer() {
+        MeshDefinition meshDefinition = HumanoidModel.createMesh(CubeDeformation.NONE, 0.0f);
+        PartDefinition root = meshDefinition.getRoot();
+        // Hat
+        PartDefinition hat = root.addOrReplaceChild("hat", CubeListBuilder.create().texOffs(32, 0).addBox(-4.0F, -10.0F, -4.0F, 8.0F, 10.0F, 8.0F, new CubeDeformation(0.51F)), PartPose.ZERO);
+        hat.addOrReplaceChild("hat_rim", CubeListBuilder.create().texOffs(30, 47).addBox(-8.0F, -8.0F, -6.0F, 16.0F, 16.0F, 1.0F), PartPose.rotation((-(float)Math.PI / 2F), 0.0F, 0.0F));
+        // Head
+        PartDefinition head = root.addOrReplaceChild("head", CubeListBuilder.create().texOffs(0, 0).addBox(-4.0F, -10.0F, -4.0F, 8.0F, 10.0F, 8.0F), PartPose.ZERO);
+        head.addOrReplaceChild("nose", CubeListBuilder.create().texOffs(24, 0).addBox(-1.0F, -1.0F, -6.0F, 2.0F, 4.0F, 2.0F), PartPose.offset(0.0F, -2.0F, 0.0F));
+        // Body & crossed arms
+        PartDefinition body = root.addOrReplaceChild("body", CubeListBuilder.create().texOffs(16, 20).addBox(-4.0F, 0.0F, -3.0F, 8.0F, 12.0F, 6.0F), PartPose.ZERO);
+        body.addOrReplaceChild("jacket", CubeListBuilder.create().texOffs(0, 38).addBox(-4.0F, 0.0F, -3.0F, 8.0F, 20.0F, 6.0F, new CubeDeformation(0.5F)), PartPose.ZERO);
+        body.addOrReplaceChild("crossed_arms", CubeListBuilder.create().texOffs(40, 38).addBox(-4.0F, 2.0F, -2.0F, 8.0F, 4.0F, 4.0F, new CubeDeformation(0.0F)).texOffs(44, 22).addBox(-8.0F, -2.0F, -2.0F, 4.0F, 8.0F, 4.0F, new CubeDeformation(0.0F)).texOffs(44, 22).mirror().addBox(4.0F, -2.0F, -2.0F, 4.0F, 8.0F, 4.0F, new CubeDeformation(0.0F)).mirror(false), PartPose.offsetAndRotation(0.0F, 3.0F, -1.0F, -0.75F, 0.0F, 0.0F));
+        // Arms
+        root.addOrReplaceChild("right_arm", CubeListBuilder.create().texOffs(44, 22).addBox(-3.0F, -2.0F, -2.0F, 4.0F, 12.0F, 4.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, 0.0F, 0.0F));
+        root.addOrReplaceChild("left_arm", CubeListBuilder.create().texOffs(44, 22).mirror().addBox(-1.0F, -2.0F, -2.0F, 4.0F, 12.0F, 4.0F,  new CubeDeformation(0.0F)). mirror(false), PartPose.offset(0.0F, 0.0F, 0.0F));
+        // Legs
+        root.addOrReplaceChild("right_leg", CubeListBuilder.create().texOffs(0, 22).addBox(-2.0F, 0.0F, -2.0F, 4.0F, 12.0F, 4.0F), PartPose.offset(-2.0F, 12.0F, 0.0F));
+        root.addOrReplaceChild("left_leg", CubeListBuilder.create().texOffs(0, 22).mirror().addBox(-2.0F, 0.0F, -2.0F, 4.0F, 12.0F, 4.0F), PartPose.offset(2.0F, 12.0F, 0.0F));
+        return LayerDefinition.create(meshDefinition, 64, 64);
+    }
+
+    public void prepareMobModel(T npc, float limbSwing, float limbSwingAmount, float partialTick) {
+        HumanoidModel.ArmPose leftArmPose = getArmPose(npc, InteractionHand.MAIN_HAND);
+        HumanoidModel.ArmPose rightArmPose = getArmPose(npc, InteractionHand.OFF_HAND);
+        if (leftArmPose.isTwoHanded())
+            rightArmPose = npc.getOffhandItem().isEmpty() ? HumanoidModel.ArmPose.EMPTY : HumanoidModel.ArmPose.ITEM;
+        if (npc.getMainArm() == HumanoidArm.RIGHT) {
+            this.rightArmPose = leftArmPose;
+            this.leftArmPose = rightArmPose;
+        } else {
+            this.rightArmPose = rightArmPose;
+            this.leftArmPose = leftArmPose;
+        }
+        setCrossedArms(npc.isCrossingArms());
+        super.prepareMobModel(npc, limbSwing, limbSwingAmount, partialTick);
+    }
+
+    public void setupAnim(T npc, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch) {
+        super.setupAnim(npc, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch);
+        //animateReadingPose(npc);
+        //animateCelebrating(npc);
+        //animateDabbingPose(npc);
+    }
+
+    private void animateCelebrating(T npc, float ageInTicks) {
+        this.rightArm.z = 0.0F;
+        this.rightArm.x = -5.0F;
+        this.rightArm.xRot = Mth.cos(ageInTicks * 0.6662F) * 0.05F;
+        this.rightArm.zRot = 2.670354F;
+        this.rightArm.yRot = 0.0F;
+        this.leftArm.z = 0.0F;
+        this.leftArm.x = 5.0F;
+        this.leftArm.xRot = Mth.cos(ageInTicks * 0.6662F) * 0.05F;
+        this.leftArm.zRot = -2.3561945F;
+        this.leftArm.yRot = 0.0F;
+    }
+
+    public void animateDabbingPose(T npc) {
+        if (!npc.isLeftHanded()) {
+            this.rightArm.xRot = -2.30F;
+            this.rightArm.yRot = -0.46F;
+            this.rightArm.zRot = 0.9F;
+            this.rightArm.y += 1F;
+            this.rightArm.x -= 0.75F;
+            this.leftArm.xRot = -2.0F;
+            this.leftArm.yRot = -1.1F;
+            this.leftArm.zRot = 0.1F;
+        } else {
+            this.leftArm.xRot = -1.65F;
+            this.leftArm.yRot = 0.36F;
+            this.leftArm.zRot = -1.5F;
+            this.leftArm.y += 1F;
+            this.leftArm.x += 0.75F;
+            this.rightArm.xRot = -1.2F;
+            this.rightArm.yRot = -0.1F;
+            this.rightArm.zRot = -0.1F;
+
+        }
+        this.head.xRot = 0.54F;
+        this.head.yRot = 0.50F;
+        this.head.zRot = -0.32F;
+
+        this.hat.xRot = this.head.xRot;
+        this.hat.yRot = this.head.yRot;
+        this.hat.zRot = this.head.zRot;;
+    }
+
+    private void animateReadingPose(T npc) {
+        if (npc.isReading()) {
+            if (!npc.isLeftHanded()) {
+                this.rightArm.xRot = -1.65F;
+                this.rightArm.yRot = -0.36F;
+                this.rightArm.zRot = 1.5F;
+                this.rightArm.y += 1F;
+                this.rightArm.x -= 0.75F;
+                this.leftArm.xRot = -1.2F;
+                this.leftArm.yRot = 0.1F;
+                this.leftArm.zRot = 0.1F;
+            } else {
+                this.leftArm.xRot = -1.65F;
+                this.leftArm.yRot = 0.36F;
+                this.leftArm.zRot = -1.5F;
+                this.leftArm.y += 1F;
+                this.leftArm.x += 0.75F;
+                this.rightArm.xRot = -1.2F;
+                this.rightArm.yRot = -0.1F;
+                this.rightArm.zRot = -0.1F;
+
+            }
+            this.head.xRot = 0.38F;
+            this.hat.xRot = this.head.xRot;
+        }
+    }
+
+    private HumanoidModel.ArmPose getArmPose(T npc, InteractionHand pHand) {
+        ItemStack itemstack = npc.getItemInHand(pHand);
+        if (itemstack.isEmpty()) {
+            return HumanoidModel.ArmPose.EMPTY;
+        } else {
+            if (npc.getUsedItemHand() == pHand && npc.getUseItemRemainingTicks() > 0) {
+                UseAnim useanim = itemstack.getUseAnimation();
+                if (useanim == UseAnim.BLOCK) {
+                    return HumanoidModel.ArmPose.BLOCK;
+                }
+
+                if (useanim == UseAnim.BOW) {
+                    return HumanoidModel.ArmPose.BOW_AND_ARROW;
+                }
+
+                if (useanim == UseAnim.SPEAR) {
+                    return HumanoidModel.ArmPose.THROW_SPEAR;
+                }
+
+                if (useanim == UseAnim.CROSSBOW && pHand == npc.getUsedItemHand()) {
+                    return HumanoidModel.ArmPose.CROSSBOW_CHARGE;
+                }
+
+                if (useanim == UseAnim.SPYGLASS) {
+                    return HumanoidModel.ArmPose.SPYGLASS;
+                }
+
+                if (useanim == UseAnim.TOOT_HORN) {
+                    return HumanoidModel.ArmPose.TOOT_HORN;
+                }
+
+                if (useanim == UseAnim.BRUSH) {
+                    return HumanoidModel.ArmPose.BRUSH;
+                }
+            } else if (!npc.swinging && itemstack.getItem() instanceof CrossbowItem && CrossbowItem.isCharged(itemstack)) {
+                return HumanoidModel.ArmPose.CROSSBOW_HOLD;
+            }
+
+            HumanoidModel.ArmPose forgeArmPose = IClientItemExtensions.of(itemstack).getArmPose(npc, pHand, itemstack);
+            if (forgeArmPose != null) return forgeArmPose;
+
+            return HumanoidModel.ArmPose.ITEM;
+        }
+    }
+
+    public void setCrossedArms(boolean crossedArms) {
+        this.crossedArms.visible = crossedArms;
+        this.rightArm.visible = !crossedArms;
+        this.leftArm.visible = !crossedArms;
+    }
+
+    public ModelPart getRandomModelPart(RandomSource pRandom) {
+        return this.parts.get(pRandom.nextInt(this.parts.size()));
+    }
+}

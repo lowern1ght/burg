@@ -1,6 +1,6 @@
 package org.dawnoftime.onceuponatown.menu;
 
-import org.dawnoftime.onceuponatown.entity.Citizen;
+import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.registry.OuatItemsRegistry;
 import org.dawnoftime.onceuponatown.trade.SellDeal;
 import net.minecraft.core.NonNullList;
@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SellContainer implements Container {
-    private final InteractableCitizen citizen;
+    private final NpcInteraction npc;
     private final NonNullList<ItemStack> itemStacks = NonNullList.withSize(11, ItemStack.EMPTY);
     @Nullable
     private SellDeal activeDeal;
@@ -35,8 +35,8 @@ public class SellContainer implements Container {
     List<ItemStack> futureStacks = new ArrayList<>();
     public boolean hasConcludedTrade;
 
-    public SellContainer(InteractableCitizen citizen) {
-        this.citizen = citizen;
+    public SellContainer(NpcInteraction npc) {
+        this.npc = npc;
     }
 
     public int getContainerSize() {
@@ -93,7 +93,7 @@ public class SellContainer implements Container {
     }
 
     public boolean stillValid(Player player) {
-        return this.citizen.getInteractingPlayer() == player;
+        return this.npc.getInteractingPlayer() == player;
     }
 
     public void setChanged() {
@@ -103,7 +103,7 @@ public class SellContainer implements Container {
     public void updateValue() {
         /*
         //ModLogger.info("UPDATE VALUE");
-        List<SellDeal> deals = this.citizen.getSellDeals();
+        List<SellDeal> deals = this.npc.getSellDeals();
         if (deals.isEmpty()) return;
         int valueShards = 0;
         int valueEmeralds = 0;
@@ -156,7 +156,7 @@ public class SellContainer implements Container {
         this.futureStacks = newStacks;
 
          */
-        List<SellDeal> deals = this.citizen.getSellDeals();
+        List<SellDeal> deals = this.npc.getSellDeals();
         if (deals.isEmpty()) return;
         int valueShards = 0;
         int valueEmeralds = 0;
@@ -242,8 +242,8 @@ public class SellContainer implements Container {
     public void onValueSlotTake() {
 
         if (!this.hasConcludedTrade) {
-            if (this.citizen instanceof Citizen) {
-                Citizen entity = citizen.getCitizen();
+            if (this.npc instanceof Npc) {
+                Npc entity = npc.getNpc();
                 entity.playSound(SoundEvents.VILLAGER_YES, 1.0F,1.0F);
             }
             this.hasConcludedTrade = true;

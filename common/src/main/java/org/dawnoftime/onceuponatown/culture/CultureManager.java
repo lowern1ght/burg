@@ -1,7 +1,9 @@
 package org.dawnoftime.onceuponatown.culture;
 
+import com.google.gson.JsonElement;
+import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.town.building.type.BuildingType;
-import org.dawnoftime.onceuponatown.util.OuatLog;
+import org.dawnoftime.onceuponatown.town.building.type.NpcJob;
 import com.google.gson.JsonObject;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.PreparableReloadListener;
@@ -10,6 +12,7 @@ import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.item.Item;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -35,12 +38,12 @@ public class CultureManager implements PreparableReloadListener {
     public static void loadCultures(ResourceManager manager) {
         loadedCultures.clear();
         var detectedCultures = new HashMap<>(manager.listResources("cultures", (rl) -> rl.getPath().endsWith("/ouat_culture.json")));
-        OuatLog.info(detectedCultures.size() + " detected cultures will be loaded");
+        Ouat.OuatLog.info(detectedCultures.size() + " detected cultures will be loaded");
         detectedCultures.forEach((rl, res) -> {
             Culture culture = createCulture(rl, res, manager);
             loadedCultures.put(culture.getId(), culture);
         });
-        OuatLog.info("Loaded " + loadedCultures.size() + " culture(s)");
+        Ouat.OuatLog.info("Loaded " + loadedCultures.size() + " culture(s)");
     }
 
     private static String readCultureId(JsonObject cultureJsonObject, ResourceLocation cultureJsonResourceLocation) {
@@ -84,7 +87,7 @@ public class CultureManager implements PreparableReloadListener {
     }
 
     private static List<Item> readFoodList(JsonObject cultureJsonObject) {
-        // Foods that the citizen are allowed to eat
+        // Foods that the npc are allowed to eat
         /*
         List<Item> foodList = new ArrayList<>();
         var foods = cultureJson.getAsJsonArray("foods");
@@ -106,14 +109,7 @@ public class CultureManager implements PreparableReloadListener {
             throw new CorruptedCultureException(cultureId, CULTURE_FILE, "orientations", "Missing town orientations definition");
         }
         orientations.forEach((jsonElement -> {
-            var jsonObject = jsonElement.getAsJsonObject();
-            String orientationId = jsonObject.get("id").getAsString();
-            if (orientationId == null ) { // Error : missing orientation id
-                throw new CorruptedCultureException(cultureId, CULTURE_FILE, "orientations", "Missing an orientation id");
-            }
-            if (orientationId.isBlank()) { // Error : invalid orientation id
-                throw new CorruptedCultureException(cultureId, CULTURE_FILE, "orientations", "Invalid orientation id");
-            }
+            String orientationId = getString(cultureId, jsonElement);
             orientationsIds.forEach((id) -> {
                 if (id.equals(orientationId)) { // Error : duplicate orientation id
                     throw new CorruptedCultureException(cultureId, CULTURE_FILE, "orientations", "Multiple orientations share the same id");
@@ -124,8 +120,21 @@ public class CultureManager implements PreparableReloadListener {
         return orientationsIds;
     }
 
+    @NotNull
+    private static String getString(String cultureId, JsonElement jsonElement) {
+        var jsonObject = jsonElement.getAsJsonObject();
+        String orientationId = jsonObject.get("id").getAsString();
+        if (orientationId == null ) { // Error : missing orientation id
+            throw new CorruptedCultureException(cultureId, CULTURE_FILE, "orientations", "Missing an orientation id");
+        }
+        if (orientationId.isBlank()) { // Error : invalid orientation id
+            throw new CorruptedCultureException(cultureId, CULTURE_FILE, "orientations", "Invalid orientation id");
+        }
+        return orientationId;
+    }
+
     private static Culture createCulture(ResourceLocation cultureJsonResourceLocation, Resource cultureJsonResource, ResourceManager resourceManager) {
-        OuatLog.info("Loading culture \"" + cultureJsonResourceLocation.getPath() + "\"");
+        Ouat.OuatLog.info("Loading culture \"" + cultureJsonResourceLocation.getPath() + "\"");
         JsonObject cultureJsonObject;
         try (Reader reader = cultureJsonResource.openAsReader()){
             cultureJsonObject = GsonHelper.parse(reader);
@@ -171,7 +180,7 @@ public class CultureManager implements PreparableReloadListener {
         return null;
     }
 
-    private CitizenJob readJobJson(ResourceLocation jobJson, ResourceManager manager) {
+    private NpcJob readJobJson(ResourceLocation jobJson, ResourceManager manager) {
         return null;
     }
 

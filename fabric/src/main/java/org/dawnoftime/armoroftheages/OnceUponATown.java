@@ -9,11 +9,10 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import org.dawnoftime.onceuponatown.Common;
 
 import static org.dawnoftime.armoroftheages.AotAItemRegistry.ITEMS;
 import static org.dawnoftime.armoroftheages.AotAItemRegistry.TAB_ICON;
-import static org.dawnoftime.onceuponatown.Constants.MOD_ID;
+import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
 
 public class OnceUponATown implements ModInitializer {
 

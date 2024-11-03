@@ -3,8 +3,11 @@ package org.dawnoftime.onceuponatown.town.building;
 import org.dawnoftime.onceuponatown.town.Town;
 import org.dawnoftime.onceuponatown.town.building.type.BuildingType;
 
+import javax.annotation.Nullable;
+
 public class TownGenerator {
 
+    @Nullable
     public static boolean tryGenerateTown(){
         /*
          Parameters :

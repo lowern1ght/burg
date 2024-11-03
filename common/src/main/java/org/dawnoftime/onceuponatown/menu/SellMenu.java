@@ -1,6 +1,6 @@
 package org.dawnoftime.onceuponatown.menu;
 
-import org.dawnoftime.onceuponatown.entity.Citizen;
+import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.network.C2SSellScreenPacket;
 import org.dawnoftime.onceuponatown.registry.OuatMenusRegistry;
 import org.dawnoftime.onceuponatown.trade.SellDeal;
@@ -19,7 +19,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class SellMenu extends CitizenBaseMenu {
+public class SellMenu extends NpcBaseMenu {
     protected static final int GOOD_SLOT_START = 0;
     protected static final int GOOD_SLOT_END = 7;
     protected static final int VALUE_SHARDS_SLOT = 8;
@@ -37,17 +37,17 @@ public class SellMenu extends CitizenBaseMenu {
 
     public SellMenu(int containerId, Inventory playerInventory, FriendlyByteBuf friendlyByteBuf) {
         this(containerId, playerInventory,
-                new ClientSideInteractingCitizen.Builder(
-                        (Citizen)(playerInventory.player.level().getEntity(friendlyByteBuf.readInt())), playerInventory.player)
+                new ClientSideInteractingNpc.Builder(
+                        (Npc)(playerInventory.player.level().getEntity(friendlyByteBuf.readInt())), playerInventory.player)
                         .sellDeals(TradeUtils.createSellDealsFromStream(friendlyByteBuf))
                         .build());
     }
 
-    public SellMenu(int containerId, Inventory playerInventory, InteractableCitizen citizen) {
-        super(OuatMenusRegistry.MENU_REGISTRY.SELL_MENU.get(), containerId, citizen);
-        this.citizen = citizen;
-        citizen.setInteractingPlayer(playerInventory.player);
-        this.sellContainer = new SellContainer(citizen);
+    public SellMenu(int containerId, Inventory playerInventory, NpcInteraction npc) {
+        super(OuatMenusRegistry.MENU_REGISTRY.SELL_MENU.get(), containerId, npc);
+        this.npc = npc;
+        npc.setInteractingPlayer(playerInventory.player);
+        this.sellContainer = new SellContainer(npc);
         int slotWidth = 18;
         int index = 0;
         for (int i = 0; i < 2; ++i) { // Goods
@@ -56,9 +56,9 @@ public class SellMenu extends CitizenBaseMenu {
                 ++index;
             }
         }
-        this.addSlot(new SellResultSlot(playerInventory.player, citizen, this.sellContainer, VALUE_SHARDS_SLOT, RESULT_START_X + slotWidth * 2, RESULT_ROW_Y, VALUE_SHARDS_SLOT));
-        this.addSlot(new SellResultSlot(playerInventory.player, citizen, this.sellContainer, VALUE_EMERALDS_SLOT, RESULT_START_X + slotWidth, RESULT_ROW_Y, VALUE_EMERALDS_SLOT));
-        this.addSlot(new SellResultSlot(playerInventory.player, citizen, this.sellContainer, VALUE_BLOCKS_SLOT, RESULT_START_X, RESULT_ROW_Y, VALUE_BLOCKS_SLOT));
+        this.addSlot(new SellResultSlot(playerInventory.player, npc, this.sellContainer, VALUE_SHARDS_SLOT, RESULT_START_X + slotWidth * 2, RESULT_ROW_Y, VALUE_SHARDS_SLOT));
+        this.addSlot(new SellResultSlot(playerInventory.player, npc, this.sellContainer, VALUE_EMERALDS_SLOT, RESULT_START_X + slotWidth, RESULT_ROW_Y, VALUE_EMERALDS_SLOT));
+        this.addSlot(new SellResultSlot(playerInventory.player, npc, this.sellContainer, VALUE_BLOCKS_SLOT, RESULT_START_X, RESULT_ROW_Y, VALUE_BLOCKS_SLOT));
         for(int i = 0; i < 3; ++i) { // Inventory
             for(int j = 0; j < 9; ++j) {
                 this.addSlot(new Slot(playerInventory, j + i * 9 + 9, 113 + j * 18, 92 + i * 18));
@@ -129,8 +129,8 @@ public class SellMenu extends CitizenBaseMenu {
     }
 
     private void playThankYouSound() {
-        if (this.citizen instanceof Citizen) {
-            Citizen entity = citizen.getCitizen();
+        if (this.npc instanceof Npc) {
+            Npc entity = npc.getNpc();
             entity.playSound(SoundEvents.VILLAGER_YES, 1.0F,1.0F);
         }
     }
@@ -141,8 +141,8 @@ public class SellMenu extends CitizenBaseMenu {
 
     public void removed(@NotNull Player player) {
         super.removed(player);
-        this.citizen.setInteractingPlayer(null);
-        if (this.citizen.isClientSide()) return;;
+        this.npc.setInteractingPlayer(null);
+        if (this.npc.isClientSide()) return;;
         if (!player.isAlive() || player instanceof ServerPlayer serverPlayer && serverPlayer.hasDisconnected()) {
             for (int i = GOOD_SLOT_START; i <= GOOD_SLOT_END; ++i) {
                 ItemStack stack = this.sellContainer.removeItemNoUpdate(i);
@@ -278,7 +278,7 @@ public class SellMenu extends CitizenBaseMenu {
     }
 
     public List<SellDeal> getDeals() {
-        return this.citizen.getSellDeals();
+        return this.npc.getSellDeals();
     }
 
     public static class GoodsGridSlot extends Slot {
@@ -303,14 +303,14 @@ public class SellMenu extends CitizenBaseMenu {
         private final SellContainer sellContainer;
         private final Player player;
         private int removeCount;
-        private final InteractableCitizen citizen;
+        private final NpcInteraction npc;
         private final int index;
         private boolean requestQuickCraft;
 
-        public SellResultSlot(Player player, InteractableCitizen citizen, SellContainer buyContainer, int slot, int posX, int posY, int index) {
+        public SellResultSlot(Player player, NpcInteraction npc, SellContainer buyContainer, int slot, int posX, int posY, int index) {
             super(buyContainer, slot, posX, posY);
             this.player = player;
-            this.citizen = citizen;
+            this.npc = npc;
             this.sellContainer = buyContainer;
             this.index = index;
         }

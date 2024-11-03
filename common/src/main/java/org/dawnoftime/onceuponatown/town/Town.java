@@ -1,12 +1,14 @@
 package org.dawnoftime.onceuponatown.town;
 
-import org.dawnoftime.onceuponatown.town.building.Building;
-import org.dawnoftime.onceuponatown.construction.project.ConstructionProject;
-import org.dawnoftime.onceuponatown.town.building.type.BuildingType;
+import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.construction.ConstructionProject;
 import org.dawnoftime.onceuponatown.culture.Culture;
-import org.dawnoftime.onceuponatown.entity.Citizen;
-import org.dawnoftime.onceuponatown.util.OuatUtils;
+import org.dawnoftime.onceuponatown.culture.Orientation;
+import org.dawnoftime.onceuponatown.entity.Npc;
+import org.dawnoftime.onceuponatown.town.building.Building;
+import org.dawnoftime.onceuponatown.town.building.type.BuildingType;
 import net.minecraft.ChatFormatting;
+import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -31,16 +33,19 @@ import java.util.List;
 import java.util.UUID;
 
 public class Town {
+    public static final int PRODUCTION_HARVEST_RATE = SharedConstants.TICKS_PER_GAME_DAY;
     private final UUID uuid;
     public final Level level;
     private final Culture culture;
     private final String name;
     private final BlockPos centerPosition;
     public TownMap townMap;
+    private HashMap<Integer, Orientation> developmentProgress;
+    private int experience;
+    private int buildingClutter;
     private final TownInventory inventory;
-    private final List<UUID> citizens;
+    private final List<UUID> npcs;
     private final List<Building> buildings;
-    public static final long BUILDING_PRODUCTION_HARVEST_INTERVAL = 24000L;
     private long lastProductionHarvest;
     private final List<ConstructionProject> constructionProjects;
     private CustomBossEvent townXpBar;
@@ -48,12 +53,9 @@ public class Town {
     public static int ACTIVE_AREA_RADIUS = 80;
     private boolean active;
     private long lastActiveMoment;
-    private enum CitizenStatus {NOT_SPAWNED, LOADED, UNLOADED, DEAD, MISSING}
-    private List<CitizenRecord> citizenRecordList;
-    private record CitizenRecord(UUID entityUUID, CitizenStatus status) {}
-    public enum TownBellRingType {DAWN_TIME, NOON_TIME, DUSK_TIME, RAID_ALERT, RAID_CELEBRATE_VICTORY, TOWN_COMPLETED, CHRISTMAS_EVENT}
+    private List<NpcRecord> npcRecordList;
 
-    private Town(UUID uuid, Level level, Culture culture, String name, BlockPos townCenter, TownMap townMap, TownInventory townInventory, List<UUID> citizens, List<Building> buildings, List<ConstructionProject> constructionProjects) {
+    private Town(UUID uuid, Level level, Culture culture, String name, BlockPos townCenter, TownMap townMap, TownInventory townInventory, List<UUID> npcs, List<Building> buildings, List<ConstructionProject> constructionProjects) {
         this.uuid = uuid;
         this.level = level;
         this.culture = culture;
@@ -61,7 +63,7 @@ public class Town {
         this.centerPosition = townCenter;
         this.townMap = townMap;
         this.inventory = townInventory;
-        this.citizens = citizens;
+        this.npcs = npcs;
         this.buildings = buildings;
         this.constructionProjects = constructionProjects;
         createOrLoadXpBar();
@@ -75,10 +77,14 @@ public class Town {
         return town;
     }
 
+    static Town createCommand(Level level, Culture culture, String name) {
+        return null;
+    }
+
     private void createBuildingsWorldGen(TownMap townMap) {
         /*
         Iterate through the town map, read building types and create associated Building instances
-        For each building, spawn citizen dwellers if the associated bed is in a loaded chunk.
+        For each building, spawn npc dwellers if the associated bed is in a loaded chunk.
          */
     }
 
@@ -111,38 +117,38 @@ public class Town {
     static Town load(Level level, CompoundTag tag) {
         List<Building> buildings = new ArrayList<>();
         List<ConstructionProject> constructionProjects = new ArrayList<>();
-        List<UUID> citizens = new ArrayList<>();
+        List<UUID> npcs = new ArrayList<>();
 
         UUID uuid = tag.getUUID("UUID");
         //Culture culture = Cultures.PLAINS;
         String name = tag.getString("Name");
         BlockPos townCenter = NbtUtils.readBlockPos(tag.getCompound("Position"));
         TownInventory inventory = new TownInventory(tag.getCompound("TownInventory"));
-        ListTag citizensTag = tag.getList("Citizens", 10);
-        for (int i = 0; i < citizensTag.size(); ++i) {
-            CompoundTag citizenTag = citizensTag.getCompound(i);
-            citizens.add(citizenTag.getUUID("UUID"));
+        ListTag npcsTag = tag.getList("Npcs", 10);
+        for (int i = 0; i < npcsTag.size(); ++i) {
+            CompoundTag npcTag = npcsTag.getCompound(i);
+            npcs.add(npcTag.getUUID("UUID"));
             /*
             if (level instanceof ServerLevel serverLevel) {
-                Entity entity = serverLevel.getEntity(citizenTag.getUUID("UUID"));
-                if (entity instanceof Citizen citizen) {
-                    citizens.add(citizen);
+                Entity entity = serverLevel.getEntity(npcTag.getUUID("UUID"));
+                if (entity instanceof Npc npc) {
+                    npcs.add(npc);
                 }
             }*/
         }
         return null;
-        //return new Town(uuid, level, culture, name, townCenter, null, inventory, citizens, buildings, constructionProjects);
+        //return new Town(uuid, level, culture, name, townCenter, null, inventory, npcs, buildings, constructionProjects);
     }
 
     private void createOrLoadXpBar() {
         CustomBossEvents customBossEvents = this.level.getServer().getCustomBossEvents();
         String barID = (getName() + "_bar").replaceAll("\\s","").toLowerCase();
-        if (customBossEvents.get(OuatUtils.createOuatResource(barID)) == null) {
+        if (customBossEvents.get(Ouat.createOuatResource(barID)) == null) {
             Component barText = Component.literal(this.name).withStyle(ChatFormatting.WHITE);
-            this.townXpBar = customBossEvents.create(OuatUtils.createOuatResource(barID), barText);
+            this.townXpBar = customBossEvents.create(Ouat.createOuatResource(barID), barText);
             this.townXpBar.setColor(BossEvent.BossBarColor.WHITE);
         } else {
-            this.townXpBar = customBossEvents.get(OuatUtils.createOuatResource(barID));
+            this.townXpBar = customBossEvents.get(Ouat.createOuatResource(barID));
         }
     }
 
@@ -152,13 +158,13 @@ public class Town {
         tag.putString("Name", this.name);
         tag.put("Position", NbtUtils.writeBlockPos(this.centerPosition));
         this.inventory.saveNBT(tag);
-        ListTag citizensTag = new ListTag();
-        for (UUID uuid : this.citizens) {
-            CompoundTag citizenTag = new CompoundTag();
-            citizenTag.putUUID("UUID", uuid);
-            citizensTag.add(citizenTag);
+        ListTag npcsTag = new ListTag();
+        for (UUID uuid : this.npcs) {
+            CompoundTag npcTag = new CompoundTag();
+            npcTag.putUUID("UUID", uuid);
+            npcsTag.add(npcTag);
         }
-        tag.put("Citizens", citizensTag);
+        tag.put("Npcs", npcsTag);
     }
 
     public void addBuilding(Building building) {
@@ -167,7 +173,7 @@ public class Town {
 
     private void updateAfterInactivity() {
         long currentTime = this.level.getGameTime();
-        // Move citizens
+        // Move npcs
         // Update constructions
         // Collect building production;
         maybeCollectProduction();
@@ -176,8 +182,8 @@ public class Town {
     private void maybeCollectProduction() {
         long now = this.level.getGameTime();
         long lastHarvest = this.lastProductionHarvest;
-        if (now >= lastHarvest + BUILDING_PRODUCTION_HARVEST_INTERVAL) {
-            int availableHarvests = (int)((now - lastHarvest) / BUILDING_PRODUCTION_HARVEST_INTERVAL);
+        if (now >= lastHarvest + PRODUCTION_HARVEST_RATE) {
+            int availableHarvests = (int)((now - lastHarvest) / PRODUCTION_HARVEST_RATE);
             for (int i = 0; i < availableHarvests; ++i) {
                 collectProduction();
             }
@@ -200,18 +206,18 @@ public class Town {
         }
     }
 
-    private void handleUnloadedCitizens() {
-        List<Citizen> unloadedCitizens = new ArrayList<>();
-        for (UUID citizenUUID : this.citizens) {
+    private void handleAllUnloadedNpc() {
+        List<Npc> allUnloadedNpc = new ArrayList<>();
+        for (UUID npcUUID : this.npcs) {
             if (this.level instanceof ServerLevel serverLevel) {
-                Entity entity = serverLevel.getEntity(citizenUUID);
-                if (entity instanceof Citizen citizen && !serverLevel.isLoaded(citizen.blockPosition())) {
-                    unloadedCitizens.add(citizen);
+                Entity entity = serverLevel.getEntity(npcUUID);
+                if (entity instanceof Npc npc && !serverLevel.isLoaded(npc.blockPosition())) {
+                    allUnloadedNpc.add(npc);
                 }
             }
         }
-        for (Citizen citizen : unloadedCitizens) {
-            citizen.sendSystemMessage(Component.literal("I am unloaded !"));
+        for (Npc npc : allUnloadedNpc) {
+            npc.sendSystemMessage(Component.literal("I am unloaded !"));
         }
     }
 
@@ -222,7 +228,7 @@ public class Town {
         if (this.active) {
             //this.level.getServer().getPlayerList().broadcastSystemMessage(Component.literal("Ticking \"" + getName() + "\" in ACTIVE mode"), true);
             //maybeCollectProduction();
-            //handleUnloadedCitizens();
+            //handleUnloadedNpcs();
             tryStartSurpriseRaid();
         }
     }
@@ -252,26 +258,26 @@ public class Town {
                     leavingPlayers.add(player);
                 }
             }
-            leavingPlayers.forEach(this::onPlayerLeavestown);
+            leavingPlayers.forEach(this::onPlayerLeavesTown);
 
             for (Player player : newPlayers) {
                 if (!oldPlayers.contains(player)) {
                     arrivingPlayers.add(player);
                 }
             }
-            arrivingPlayers.forEach(this::onPlayerEnterstown);
+            arrivingPlayers.forEach(this::onPlayerEntersTown);
         }
         this.visitors = newPlayers;
     }
 
-    private void onPlayerEnterstown(Player player) {
+    private void onPlayerEntersTown(Player player) {
         // Player has already been added the town player list
         Component component = Component.literal("Entering " + getName()).withStyle(ChatFormatting.YELLOW);
         player.displayClientMessage(component, true);
         this.townXpBar.addPlayer(this.level.getServer().getPlayerList().getPlayer(player.getUUID()));
     }
 
-    private void onPlayerLeavestown(Player player) {
+    private void onPlayerLeavesTown(Player player) {
         // Player has already been removed from the town player list
         Component component = Component.literal("Leaving " + getName()).withStyle(ChatFormatting.YELLOW);
         player.displayClientMessage(component, true);
@@ -297,6 +303,10 @@ public class Town {
         this.lastActiveMoment = this.level.getGameTime();
     }
 
+    public ConstructionProject getCurrentConstructionProject() {
+        return null;
+    }
+
     public boolean isActive() {
         return this.active;
     }
@@ -311,5 +321,23 @@ public class Town {
 
     public BlockPos getCenterPosition() {
         return this.centerPosition;
+    }
+
+    private enum NpcStatus {
+        NOT_SPAWNED,
+        LOADED,
+        UNLOADED,
+        DEAD,
+        MISSING
+    }
+    private record NpcRecord(UUID entityUUID, NpcStatus status) {}
+    public enum TownBellRingType {
+        DAWN,
+        NOON,
+        DUSK,
+        RAID_ALERT,
+        RAID_VICTORY,
+        TOWN_COMPLETED,
+        CHRISTMAS_EVENT
     }
 }
