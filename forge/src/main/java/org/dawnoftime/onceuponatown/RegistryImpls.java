@@ -20,7 +20,7 @@ import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.eventbus.api.IEventBus;
-import org.dawnoftime.onceuponatown.entity.Citizen;
+import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.registry.*;
 
 import java.util.function.Supplier;
@@ -44,7 +44,7 @@ public class RegistryImpls {
         ForgeStructureTypesRegistry.REGISTRY.register(modEventBus);
         ForgeStructurePiecesRegistry.REGISTRY.register(modEventBus);
 
-        modEventBus.addListener((EntityAttributeCreationEvent event) -> event.put(OuatEntitiesRegistry.ENTITY_REGISTRY.NPC.get(), Citizen.createAttributes().build()));
+        modEventBus.addListener((EntityAttributeCreationEvent event) -> event.put(OuatEntitiesRegistry.ENTITY_REGISTRY.NPC.get(), Npc.createAttributes().build()));
 
         // Creative inventory init
         CREATIVE_MODE_TAB.register(modEventBus);

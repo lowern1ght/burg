@@ -39,7 +39,7 @@ public class ConstructionProject {
     private final ProjectType projectType;
     protected final BuildingType buildingType;
     private final BuildingPlacementSettings placementSettings;
-    private List<ProjectStep> projectSteps;
+    private final List<ProjectStep> projectSteps;
     private int progress = 0;
     protected boolean completed;
 

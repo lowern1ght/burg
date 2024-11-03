@@ -38,12 +38,12 @@ public class CultureManager implements PreparableReloadListener {
     public static void loadCultures(ResourceManager manager) {
         loadedCultures.clear();
         var detectedCultures = new HashMap<>(manager.listResources("cultures", (rl) -> rl.getPath().endsWith("/ouat_culture.json")));
-        Ouat.OuatLog.info(detectedCultures.size() + " detected cultures will be loaded");
+        Ouat.info(detectedCultures.size() + " detected cultures will be loaded");
         detectedCultures.forEach((rl, res) -> {
             Culture culture = createCulture(rl, res, manager);
             loadedCultures.put(culture.getId(), culture);
         });
-        Ouat.OuatLog.info("Loaded " + loadedCultures.size() + " culture(s)");
+        Ouat.info("Loaded " + loadedCultures.size() + " culture(s)");
     }
 
     private static String readCultureId(JsonObject cultureJsonObject, ResourceLocation cultureJsonResourceLocation) {
@@ -134,7 +134,7 @@ public class CultureManager implements PreparableReloadListener {
     }
 
     private static Culture createCulture(ResourceLocation cultureJsonResourceLocation, Resource cultureJsonResource, ResourceManager resourceManager) {
-        Ouat.OuatLog.info("Loading culture \"" + cultureJsonResourceLocation.getPath() + "\"");
+        Ouat.info("Loading culture \"" + cultureJsonResourceLocation.getPath() + "\"");
         JsonObject cultureJsonObject;
         try (Reader reader = cultureJsonResource.openAsReader()){
             cultureJsonObject = GsonHelper.parse(reader);
@@ -184,7 +184,7 @@ public class CultureManager implements PreparableReloadListener {
         return null;
     }
 
-    public CompletableFuture<Void> reload(PreparationBarrier stage, ResourceManager resourceManager, ProfilerFiller preparationsProfiler, ProfilerFiller reloadProfiler, Executor backgroundExecutor, Executor gameExecutor) {
+    public @NotNull CompletableFuture<Void> reload(PreparationBarrier stage, @NotNull ResourceManager resourceManager, @NotNull ProfilerFiller preparationsProfiler, @NotNull ProfilerFiller reloadProfiler, @NotNull Executor backgroundExecutor, @NotNull Executor gameExecutor) {
         return CompletableFuture.allOf(CompletableFuture.runAsync(() -> {
         }, backgroundExecutor)).thenCompose(stage::wait);
     }

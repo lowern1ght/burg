@@ -1,6 +1,6 @@
 package org.dawnoftime.onceuponatown.mixin;
 
-import org.dawnoftime.onceuponatown.config.OuatConfig;
+import org.dawnoftime.onceuponatown.OuatConfig;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.SectionPos;
 import net.minecraft.resources.ResourceKey;

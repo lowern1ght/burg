@@ -68,10 +68,10 @@ public class ConstructionPlan {
             constructionPlan.readStructureTag(blockLookup, tag);
             return constructionPlan.withoutAirBlocks();
         } catch (FileNotFoundException fileNotFoundException) {
-            Ouat.OuatLog.LOG.error("Structure not found {}", resourceLocation, fileNotFoundException);
+            Ouat.LOG.error("Structure not found {}", resourceLocation, fileNotFoundException);
             return null;
         } catch (Throwable throwable) {
-            Ouat.OuatLog.LOG.error("Could not load structure {}", resourceLocation, throwable);
+            Ouat.LOG.error("Could not load structure {}", resourceLocation, throwable);
             return null;
         }
     }

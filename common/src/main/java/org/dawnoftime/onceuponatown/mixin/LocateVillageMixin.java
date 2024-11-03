@@ -1,7 +1,7 @@
 package org.dawnoftime.onceuponatown.mixin;
 
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.config.OuatConfig;
+import org.dawnoftime.onceuponatown.OuatConfig;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import net.minecraft.ChatFormatting;
@@ -87,7 +87,7 @@ public class LocateVillageMixin {
 
     @Inject(method = "locateStructure", at = @At(value = "HEAD"))
     private static void notifyWrongVillageCommand(CommandSourceStack sourceStack, ResourceOrTagKeyArgument.Result<Structure> result, CallbackInfoReturnable<Integer> cir) throws CommandSyntaxException {
-        if (OuatConfig.DISABLE_VANILLA_VILLAGES) {
+        if (OuatConfig.DISABLE_VANILLA_VILLAGES.get()) {
             Optional<ResourceKey<Structure>> optional = result.unwrap().left();
             for (ResourceLocation resourceLocation : DISABLED_VILLAGES) {
                 if (optional.isPresent() && optional.get().location().equals(resourceLocation)) {

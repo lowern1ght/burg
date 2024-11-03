@@ -1,7 +1,5 @@
 package org.dawnoftime.onceuponatown.entity;
 
-import com.dotteam.onceuponatown.entity.ai.goal.core.NpcPanicGoal;
-import com.dotteam.onceuponatown.entity.ai.goal.fight.SelfDefenseGoal;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -38,6 +36,9 @@ import net.minecraft.world.item.*;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockState;
+import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.entity.ai.goal.core.NpcPanicGoal;
+import org.dawnoftime.onceuponatown.entity.ai.goal.fight.SelfDefenseGoal;
 import org.dawnoftime.onceuponatown.entity.ai.goal.work.FishermanWorkGoal;
 import org.dawnoftime.onceuponatown.menu.BuyMenu;
 import org.dawnoftime.onceuponatown.menu.NpcInteraction;
@@ -88,13 +89,13 @@ public class Npc extends AgeableMob implements NpcInteraction, RangedAttackMob, 
         return Mob.createMobAttributes().add(Attributes.MOVEMENT_SPEED, DEFAULT_SPEED).add(Attributes.ATTACK_DAMAGE, 1.0D).add(Attributes.FOLLOW_RANGE, 50.0D);
     }
 
-    public void readAdditionalSaveData(CompoundTag compoundTag) {
+    public void readAdditionalSaveData(@NotNull CompoundTag compoundTag) {
         super.readAdditionalSaveData(compoundTag);
         entityData.set(DATA_CULTURE, compoundTag.getByte("Culture"));
         entityData.set(DATA_PROFESSION, compoundTag.getByte("Profession"));
     }
 
-    public void addAdditionalSaveData(CompoundTag compoundTag) {
+    public void addAdditionalSaveData(@NotNull CompoundTag compoundTag) {
         super.addAdditionalSaveData(compoundTag);
         compoundTag.putByte("Culture", entityData.get(DATA_CULTURE));
         compoundTag.putByte("Profession", entityData.get(DATA_PROFESSION));
@@ -200,22 +201,22 @@ public class Npc extends AgeableMob implements NpcInteraction, RangedAttackMob, 
         super.rideTick(); //if (this.getVehicle() instanceof AbstractHorse horse && !horse.isTamed())//horse.setTamed(true);
     }
 
-    public boolean hurt(DamageSource source, float amount) {
+    public boolean hurt(@NotNull DamageSource source, float amount) {
         setCrossingArms(false);
         return super.hurt(source, amount);
     }
 
-    public void die(DamageSource cause) {
+    public void die(@NotNull DamageSource cause) {
         super.die(cause);
         //tradingHandler.stopTrading();
         LOGGER.info("Npc {} died, message: '{}'", this, cause.getLocalizedDeathMessage(this).getString());
     }
 
-    protected InteractionResult mobInteract(Player player, InteractionHand hand) {
+    protected @NotNull InteractionResult mobInteract(@NotNull Player player, @NotNull InteractionHand hand) {
         if (!level().isClientSide() && (hand == InteractionHand.MAIN_HAND)) {
             this.interactingPlayer = player;
             if (player instanceof ServerPlayer serverPlayer) {
-                Platform.PLATFORM.openMenu(serverPlayer, new SimpleMenuProvider((containerID, playerInventory, p) -> new BuyMenu(containerID, playerInventory, this), Component.literal("Buy")), buffer -> {
+                Ouat.COMMON.openMenu(serverPlayer, new SimpleMenuProvider((containerID, playerInventory, p) -> new BuyMenu(containerID, playerInventory, this), Component.literal("Buy")), buffer -> {
                     buffer.writeInt(this.getId());
                     TradeUtils.writeBuyDealsToStream(getBuyDeals(), buffer);
                 });
@@ -260,7 +261,7 @@ public class Npc extends AgeableMob implements NpcInteraction, RangedAttackMob, 
         }
     }
 
-    public void performRangedAttack(LivingEntity target, float velocity) {
+    public void performRangedAttack(@NotNull LivingEntity target, float velocity) {
         if (isHolding(stack -> stack.getItem() instanceof BowItem)) {
             performBowAttack(target);
         } else if (isHolding(stack -> stack.getItem() instanceof CrossbowItem)) {
@@ -282,17 +283,17 @@ public class Npc extends AgeableMob implements NpcInteraction, RangedAttackMob, 
         level().addFreshEntity(arrow);
     }
 
-    public ItemStack getProjectile(ItemStack weaponStack) {
+    public @NotNull ItemStack getProjectile(ItemStack weaponStack) {
         if (weaponStack.getItem() instanceof ProjectileWeaponItem projectileWeaponItem) {
             Predicate<ItemStack> predicate = projectileWeaponItem.getSupportedHeldProjectiles();
             ItemStack heldProjectile = ProjectileWeaponItem.getHeldProjectile(this, predicate);
-            return net.minecraftforge.common.ForgeHooks.getProjectile(this, weaponStack, heldProjectile.isEmpty() ? new ItemStack(Items.ARROW) : heldProjectile);
+            return Ouat.COMMON.getProjectile(this, weaponStack, heldProjectile.isEmpty() ? new ItemStack(Items.ARROW) : heldProjectile);
         } else {
-            return net.minecraftforge.common.ForgeHooks.getProjectile(this, weaponStack, ItemStack.EMPTY);
+            return Ouat.COMMON.getProjectile(this, weaponStack, ItemStack.EMPTY);
         }
     }
 
-    public boolean canFireProjectileWeapon(ProjectileWeaponItem projectileWeaponItem) {
+    public boolean canFireProjectileWeapon(@NotNull ProjectileWeaponItem projectileWeaponItem) {
         return projectileWeaponItem == Items.CROSSBOW || projectileWeaponItem == Items.BOW;
     }
 
@@ -323,7 +324,7 @@ public class Npc extends AgeableMob implements NpcInteraction, RangedAttackMob, 
     }
 
     public void thunderHit(ServerLevel level, @NotNull LightningBolt lightningBolt) {
-        if (level.getDifficulty() != Difficulty.PEACEFUL && Platform.PLATFORM.canLivingConvert(this, EntityType.WITCH)) {
+        if (level.getDifficulty() != Difficulty.PEACEFUL && Ouat.COMMON.canLivingConvert(this, EntityType.WITCH)) {
             LOGGER.info("Npc {} was struck by lightning {}.", this, lightningBolt);
             Witch witch = EntityType.WITCH.create(level);
             if (witch != null) {
@@ -336,7 +337,7 @@ public class Npc extends AgeableMob implements NpcInteraction, RangedAttackMob, 
                 }
 
                 witch.setPersistenceRequired();
-                Platform.PLATFORM.onLivingConvert(this, witch);
+                Ouat.COMMON.onLivingConvert(this, witch);
                 level.addFreshEntityWithPassengers(witch);
                 this.discard();
             } else {
@@ -347,7 +348,7 @@ public class Npc extends AgeableMob implements NpcInteraction, RangedAttackMob, 
         }
     }
 
-    public void shootCrossbowProjectile(LivingEntity target, ItemStack crossbowStack, Projectile projectile, float projectileAngle) {
+    public void shootCrossbowProjectile(@NotNull LivingEntity target, @NotNull ItemStack crossbowStack, @NotNull Projectile projectile, float projectileAngle) {
         shootCrossbowProjectile(this, target, projectile, projectileAngle, 1.6F);
     }
 
@@ -355,7 +356,7 @@ public class Npc extends AgeableMob implements NpcInteraction, RangedAttackMob, 
         noActionTime = 0;
     }
 
-    protected SoundEvent getHurtSound(DamageSource damageSource) {
+    protected SoundEvent getHurtSound(@NotNull DamageSource damageSource) {
         return SoundEvents.VILLAGER_HURT;
     }
 
@@ -372,7 +373,7 @@ public class Npc extends AgeableMob implements NpcInteraction, RangedAttackMob, 
         return 600;
     }
 
-    protected float getStandingEyeHeight(Pose pose, EntityDimensions size) {
+    protected float getStandingEyeHeight(@NotNull Pose pose, @NotNull EntityDimensions size) {
         return isBaby() ? 0.81F : 1.62F;
     }
 
@@ -380,7 +381,7 @@ public class Npc extends AgeableMob implements NpcInteraction, RangedAttackMob, 
         return isBaby() ? 0.0D : -0.30D;
     }
 
-    public AgeableMob getBreedOffspring(ServerLevel level, AgeableMob otherParent) {
+    public AgeableMob getBreedOffspring(@NotNull ServerLevel level, @NotNull AgeableMob otherParent) {
         return OuatEntitiesRegistry.ENTITY_REGISTRY.NPC.get().create(level);
     }
 
@@ -388,7 +389,7 @@ public class Npc extends AgeableMob implements NpcInteraction, RangedAttackMob, 
         return false; // Todo : set to true
     }
 
-    public boolean canBeLeashed(Player player) {
+    public boolean canBeLeashed(@NotNull Player player) {
         return true;
     }
 

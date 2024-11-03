@@ -53,7 +53,7 @@ public class TownGenerator {
     };
 
     public static void generatePiecesWorldGen(StructureTemplateManager manager, BlockPos townCenterPos, List<BuildingType> starter_pack, StructurePieceAccessor pieces, WorldgenRandom random) {
-        Ouat.OuatLog.info("Town at + " + townCenterPos.toShortString() + " : started generating pieces");
+        Ouat.info("Town at + " + townCenterPos.toShortString() + " : started generating pieces");
         List<BuildingInfo> availableBuildings = new LinkedList<>(Arrays.asList(TEST_BUILDINGS));
         List<BuildingInfo> starterPack = new ArrayList<>();
         for (int i = 0; i < STARTER_PACK_SIZE; ++i) {
@@ -64,7 +64,7 @@ public class TownGenerator {
             }
         }
         TownMap townMap = createTownMap(townCenterPos, starterPack);
-        Ouat.OuatLog.info("Town at + " + townCenterPos.toShortString() + " : created town map");
+        Ouat.info("Town at + " + townCenterPos.toShortString() + " : created town map");
         List<BuildingPlacement> mapBuildingList = new ArrayList<>();
         List<RoadPlacement> mapRoadList = new ArrayList<>();
 
@@ -97,7 +97,7 @@ public class TownGenerator {
             pieces.addPiece(pathPiece);
         });
 
-        Ouat.OuatLog.info("Town at + " + townCenterPos.toShortString() + " : finished generating pieces");
+        Ouat.info("Town at + " + townCenterPos.toShortString() + " : finished generating pieces");
     }
 
     private static TownMap createTownMap(BlockPos townCenterPos, List<BuildingInfo> starterPack) {

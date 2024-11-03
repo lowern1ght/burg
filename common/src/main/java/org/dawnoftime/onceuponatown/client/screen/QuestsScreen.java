@@ -89,7 +89,7 @@ public class QuestsScreen extends NpcBaseScreen<BuyMenu> {
     private void postButtonClick() {
         this.menu.setSelectedDeal(this.selectedDealIndex);
         this.menu.tryMoveItems(this.selectedDealIndex);
-        Platform.PLATFORM.sendToServer(new C2SSelectBuyDealPacket(this.selectedDealIndex));
+        Ouat.COMMON.sendToServer(new C2SSelectBuyDealPacket(this.selectedDealIndex));
     }
 
     private int nbOfDeals() {
@@ -234,7 +234,7 @@ public class QuestsScreen extends NpcBaseScreen<BuyMenu> {
             return this.index;
         }
 
-        public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             if (this.visible) {
                 this.isHovered = mouseX >= this.getX() && mouseY >= this.getY() && mouseX < this.getX() + this.width && mouseY < this.getY() + this.height;
 
@@ -267,7 +267,7 @@ public class QuestsScreen extends NpcBaseScreen<BuyMenu> {
                 ItemStack stackB = QuestsScreen.this.menu.getDeals().get(this.index + (QuestsScreen.this.scrollOff * GRID_COLUMNS)).getInputB();
                 ItemStack stackC = QuestsScreen.this.menu.getDeals().get(this.index + (QuestsScreen.this.scrollOff * GRID_COLUMNS)).getInputC();
                 List<Component> text = getTooltipFromItem(QuestsScreen.this.minecraft, result);
-                Platform.PLATFORM.renderTooltip(graphics, QuestsScreen.this.font, text, new TradeItemTooltip(stackA, stackB, stackC), result, mouseX, mouseY);
+                Ouat.COMMON.renderTooltip(graphics, QuestsScreen.this.font, text, new TradeItemTooltip(stackA, stackB, stackC), result, mouseX, mouseY);
             }
         }
     }

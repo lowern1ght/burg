@@ -35,88 +35,10 @@ import org.dawnoftime.onceuponatown.town.TownManager;
 public class OuatForge {
 
     public OuatForge() {
+        Ouat.COMMON.init();
+        Ouat.CLIENT.init();
+
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
-        Common.init();
         RegistryImpls.init(modEventBus);
-    }
-
-    @Mod.EventBusSubscriber(modid = Ouat.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
-    public static class ModCommonEvents {
-        @SubscribeEvent
-        public static void commonSetup(FMLCommonSetupEvent event) {
-            event.enqueueWork(ForgeNetwork::init);
-        }
-
-        @SubscribeEvent
-        public static void createEntityAttributes(EntityAttributeCreationEvent event) {
-            event.put(OuatEntitiesRegistry.ENTITY_REGISTRY.NPC.get(), Npc.createAttributes().build());
-        }
-
-        @SubscribeEvent
-        public static void addReloadListener(AddReloadListenerEvent event) {
-            //event.addListener(CultureManager.instance());
-        }
-
-        //@SubscribeEvent
-        public static void onLevelTick(TickEvent.LevelTickEvent event) {
-            if (event.level instanceof ServerLevel level && event.phase.equals(TickEvent.Phase.END)) {
-                TownManager.tickTowns(level);
-            }
-        }
-
-        @SubscribeEvent
-        public static void onServerStarting(ServerStartingEvent event) {
-            CultureManager.loadCultures(event.getServer().getResourceManager());
-        }
-
-        @SubscribeEvent
-        public static void registerCommands(RegisterCommandsEvent event) {
-            OuatCommands.register(event.getDispatcher());
-        }
-
-        @SubscribeEvent
-        public static void finalizeSpawn(MobSpawnEvent.FinalizeSpawn event) {
-            if (event.getEntity() instanceof Npc npc) {
-                npc.onFinalizeSpawnEvent();
-            }
-        }
-    }
-
-    @Mod.EventBusSubscriber(modid = Ouat.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
-    public static class ModClientEvents {
-        @SubscribeEvent
-        public static void clientSetup(FMLClientSetupEvent event) {
-            event.enqueueWork(
-                    () -> {
-                        MenuScreens.register(OuatMenusRegistry.MENU_REGISTRY.BUY_MENU.get(), BuyScreen::new);
-                        MenuScreens.register(OuatMenusRegistry.MENU_REGISTRY.SELL_MENU.get(), SellScreen::new);
-                    }
-            );
-        }
-
-        @SubscribeEvent
-        public static void addItemsToCreativeModeTabs(BuildCreativeModeTabContentsEvent event) {
-            if (event.getTabKey() == CreativeModeTabs.SPAWN_EGGS) {
-                event.accept(OuatItemsRegistry.ITEM_REGISTRY.CITIZEN_SPAWN_EGG);
-            }
-            if (event.getTabKey() == CreativeModeTabs.INGREDIENTS) {
-                event.accept(OuatItemsRegistry.ITEM_REGISTRY.EMERALD_SHARD);
-            }
-        }
-
-        @SubscribeEvent
-        public static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
-            event.registerEntityRenderer(OuatEntitiesRegistry.ENTITY_REGISTRY.NPC.get(), NpcRenderer::new);
-        }
-
-        @SubscribeEvent
-        public static void registerEntityLayerDefinitions(EntityRenderersEvent.RegisterLayerDefinitions event) {
-            event.registerLayerDefinition(NpcModel.LAYER_LOCATION, NpcModel::createBodyLayer);
-        }
-
-        @SubscribeEvent
-        public static void registerClientTooltips(RegisterClientTooltipComponentFactoriesEvent event) {
-            event.register(TradeItemTooltip.class, ClientTradeItemTooltip::new);
-        }
     }
 }

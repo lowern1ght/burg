@@ -94,7 +94,7 @@ public class BuyScreen extends NpcBaseScreen<BuyMenu> {
     private void onDealButtonClicked() {
         this.menu.setSelectedDeal(this.selectedDealIndex);
         this.menu.tryMoveItems(this.selectedDealIndex);
-        Platform.PLATFORM.sendToServer(new C2SSelectBuyDealPacket(this.selectedDealIndex));
+        Ouat.COMMON.sendToServer(new C2SSelectBuyDealPacket(this.selectedDealIndex));
     }
 
     private int dealsAmount() {
@@ -277,7 +277,7 @@ public class BuyScreen extends NpcBaseScreen<BuyMenu> {
                 ItemStack stackB = BuyScreen.this.menu.getDeals().get(this.index + (BuyScreen.this.scrollOff * OFFERS_GRID_COLUMNS)).getInputB();
                 ItemStack stackC = BuyScreen.this.menu.getDeals().get(this.index + (BuyScreen.this.scrollOff * OFFERS_GRID_COLUMNS)).getInputC();
                 List<Component> text = getTooltipFromItem(BuyScreen.this.minecraft, result);
-                Platform.PLATFORM.renderTooltip(graphics, BuyScreen.this.font, text, new TradeItemTooltip(stackA, stackB, stackC), result, mouseX, mouseY);
+                Ouat.COMMON.renderTooltip(graphics, BuyScreen.this.font, text, new TradeItemTooltip(stackA, stackB, stackC), result, mouseX, mouseY);
             }
         }
     }

@@ -48,17 +48,17 @@ public record C2SChangeNpcTabPacket(int newTab) implements IOuatPacket {
                 Npc npc = menu.getNpcInteraction().getNpc();
                 switch (tab) {
                     case BUY -> {
-                        Platform.PLATFORM.openMenu(player, new SimpleMenuProvider((containerID, playerInventory, p) -> new BuyMenu(containerID, playerInventory, npc), Component.literal("Buy")), buffer -> {
+                        Ouat.COMMON.openMenu(player, new SimpleMenuProvider((containerID, playerInventory, p) -> new BuyMenu(containerID, playerInventory, npc), Component.literal("Buy")), buffer -> {
                             buffer.writeInt(npc.getId());
                             TradeUtils.writeBuyDealsToStream(npc.getBuyDeals(), buffer);
-                            Ouat.OuatLog.info("EXTRA DATA WRITTEN : " + buffer.readableBytes());
+                            Ouat.info("EXTRA DATA WRITTEN : " + buffer.readableBytes());
                         });
                     }
                     case SELL -> {
-                        Platform.PLATFORM.openMenu(player, new SimpleMenuProvider((containerID, playerInventory, p) -> new SellMenu(containerID, playerInventory, npc), Component.literal("Sell")), buffer -> {
+                        Ouat.COMMON.openMenu(player, new SimpleMenuProvider((containerID, playerInventory, p) -> new SellMenu(containerID, playerInventory, npc), Component.literal("Sell")), buffer -> {
                             buffer.writeInt(npc.getId());
                             TradeUtils.writeSellDealsToStream(npc.getSellDeals(), buffer);
-                            Ouat.OuatLog.info("OPENED SELL SCREEN");
+                            Ouat.info("OPENED SELL SCREEN");
                         });
                     }
                 }

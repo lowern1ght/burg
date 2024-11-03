@@ -43,7 +43,7 @@ public class SellScreen extends NpcBaseScreen<SellMenu> {
     private static final int SCROLL_BAR_TOP_Y = 26;
     private static final int SCROLL_BAR_HEIGHT = 139;
     private static final int SCROLL_BAR_BOTTOM_Y = 99;
-    private Component npcInfo = Component.literal("Armorer");
+    private final Component npcInfo = Component.literal("Armorer");
     private Component npcSentence;
     private static final int GRID_COLUMNS = 5;
     private static final int GRID_ROWS = 7;
@@ -69,7 +69,7 @@ public class SellScreen extends NpcBaseScreen<SellMenu> {
         //this.leftPos = this.leftPos - 80;
         //this.leftPos = 167 + (this.width - this.imageWidth - 200) / 2;
         createButtons();
-        this.addRenderableWidget(new Button.Builder(Component.literal("\u2191"),(button -> onSellEverythingButtonClick()))
+        this.addRenderableWidget(new Button.Builder(Component.literal("↑"),(button -> onSellEverythingButtonClick()))
                 .bounds(this.leftPos + 169,this.topPos + 77,12,13)
                 .tooltip(Tooltip.create(Component.literal("Sell all wanted items"))).build());
     }
@@ -92,19 +92,19 @@ public class SellScreen extends NpcBaseScreen<SellMenu> {
     private void onDealButtonLeftClick(DealButton button) {
         this.selectedDealIndex = button.getIndex() + (this.scrollOff * GRID_COLUMNS);
         this.menu.handleClientAction(this.selectedDealIndex, (hasShiftDown() ? C2SSellScreenPacket.RequestType.ONE_TRADE_SELL_EVERYTHING : C2SSellScreenPacket.RequestType.ONE_TRADE_SELL_ONE));
-        Platform.PLATFORM.sendToServer(new C2SSellScreenPacket(this.selectedDealIndex, (hasShiftDown() ? C2SSellScreenPacket.RequestType.ONE_TRADE_SELL_EVERYTHING : C2SSellScreenPacket.RequestType.ONE_TRADE_SELL_ONE)));
+        Ouat.COMMON.sendToServer(new C2SSellScreenPacket(this.selectedDealIndex, (hasShiftDown() ? C2SSellScreenPacket.RequestType.ONE_TRADE_SELL_EVERYTHING : C2SSellScreenPacket.RequestType.ONE_TRADE_SELL_ONE)));
     }
 
     private void onDealButtonRightClick(DealButton button) {
         Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 0.7F));
         this.selectedDealIndex = button.getIndex() + (this.scrollOff * GRID_COLUMNS);
         this.menu.handleClientAction(this.selectedDealIndex, (hasShiftDown() ? C2SSellScreenPacket.RequestType.ONE_TRADE_REMOVE_EVERYTHING : C2SSellScreenPacket.RequestType.ONE_TRADE_REMOVE_ONE));
-        Platform.PLATFORM.sendToServer(new C2SSellScreenPacket(this.selectedDealIndex, (hasShiftDown() ? C2SSellScreenPacket.RequestType.ONE_TRADE_REMOVE_EVERYTHING : C2SSellScreenPacket.RequestType.ONE_TRADE_REMOVE_ONE)));
+        Ouat.COMMON.sendToServer(new C2SSellScreenPacket(this.selectedDealIndex, (hasShiftDown() ? C2SSellScreenPacket.RequestType.ONE_TRADE_REMOVE_EVERYTHING : C2SSellScreenPacket.RequestType.ONE_TRADE_REMOVE_ONE)));
     }
 
     private void onSellEverythingButtonClick() {
         this.menu.handleClientAction(this.selectedDealIndex, C2SSellScreenPacket.RequestType.ALL_TRADES_SELL_EVERYTHING);
-        Platform.PLATFORM.sendToServer(new C2SSellScreenPacket(this.selectedDealIndex, C2SSellScreenPacket.RequestType.ALL_TRADES_SELL_EVERYTHING));
+        Ouat.COMMON.sendToServer(new C2SSellScreenPacket(this.selectedDealIndex, C2SSellScreenPacket.RequestType.ALL_TRADES_SELL_EVERYTHING));
     }
 
     private int nbOfDeals() {
@@ -306,7 +306,7 @@ public class SellScreen extends NpcBaseScreen<SellMenu> {
                 ItemStack valueEmeralds = SellScreen.this.menu.getDeals().get(this.index + (SellScreen.this.scrollOff * GRID_COLUMNS)).getValueEmeralds();
                 ItemStack valueBlocks = SellScreen.this.menu.getDeals().get(this.index + (SellScreen.this.scrollOff * GRID_COLUMNS)).getValueBlocks();
                 List<Component> text = Screen.getTooltipFromItem(SellScreen.this.minecraft, good);
-                Platform.PLATFORM.renderTooltip(graphics, SellScreen.this.font, text, new TradeItemTooltip(valueShards, valueEmeralds, valueBlocks), good, mouseX, mouseY);
+                Ouat.COMMON.renderTooltip(graphics, SellScreen.this.font, text, new TradeItemTooltip(valueShards, valueEmeralds, valueBlocks), good, mouseX, mouseY);
             }
         }
     }

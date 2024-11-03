@@ -9,6 +9,7 @@ import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.model.NpcModel;
 import org.dawnoftime.onceuponatown.client.renderer.NpcRenderer;
 import org.dawnoftime.onceuponatown.entity.Npc;
+import org.jetbrains.annotations.NotNull;
 
 
 /**
@@ -19,7 +20,7 @@ public class NpcClothesLayer<T extends Npc, M extends NpcModel<T>> extends Rende
         super((RenderLayerParent<T, M>) renderer);
     }
 
-    public void render(PoseStack poseStack, MultiBufferSource buffer, int packedLight, T npc, float limbSwing, float limbSwingAmount, float partialTick, float ageInTicks, float netHeadYaw, float headPitch) {
+    public void render(@NotNull PoseStack poseStack, @NotNull MultiBufferSource buffer, int packedLight, T npc, float limbSwing, float limbSwingAmount, float partialTick, float ageInTicks, float netHeadYaw, float headPitch) {
         if (!npc.isInvisible()) {
             M model = getParentModel();
             renderCultureClothes(model, poseStack, buffer, packedLight, npc);

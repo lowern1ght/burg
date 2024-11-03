@@ -18,6 +18,10 @@ import java.util.function.Consumer;
 
 public abstract class Common {
 
+    public void init(){
+
+    }
+
     /**
      * Checks if a mod with the given id is loaded.
      *
@@ -61,4 +65,6 @@ public abstract class Common {
 
     // TODO Maybe we could find a way to check directly in the class NpcFishingHookRenderer without using this ?
     public abstract boolean canUseFishingRod(ItemStack stack);
+
+    public abstract ItemStack getProjectile(LivingEntity entity, ItemStack weaponStack, ItemStack projectileStack);
 }
