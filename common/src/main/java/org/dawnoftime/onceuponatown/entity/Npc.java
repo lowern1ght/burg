@@ -177,7 +177,7 @@ public class Npc extends AgeableMob implements NpcInteraction, RangedAttackMob, 
             float destroySpeed = stateAboveHead.getDestroySpeed(level(), posAboveHead);
             if (blockBreakTime % 4 == 0) {
                 swing(getUsedItemHand());
-                SoundType soundType = stateAboveHead.getSoundType(level(), posAboveHead, this);
+                SoundType soundType = stateAboveHead.getSoundType();
                 playSound(soundType.getHitSound(), (soundType.getVolume() + 1.0F) / 8.0F, soundType.getPitch() * 0.5F);
             }
 
@@ -270,10 +270,7 @@ public class Npc extends AgeableMob implements NpcInteraction, RangedAttackMob, 
     }
 
     private void performBowAttack(LivingEntity target) { // Vanilla
-        AbstractArrow arrow = new Arrow(level(), this);
-        if (getMainHandItem().getItem() instanceof BowItem bowItem) {
-            arrow = bowItem.customArrow(arrow);
-        }
+        AbstractArrow arrow = Ouat.COMMON.getArrow(this.level(), this, this.getMainHandItem());
         double d0 = target.getX() - this.getX();
         double d1 = target.getY(0.3333333333333333D) - arrow.getY();
         double d2 = target.getZ() - this.getZ();

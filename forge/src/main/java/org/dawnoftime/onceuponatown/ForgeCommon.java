@@ -2,6 +2,7 @@ package org.dawnoftime.onceuponatown;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -9,8 +10,15 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.entity.projectile.Arrow;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
+import net.minecraft.world.item.BowItem;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.common.ToolActions;
 import net.minecraftforge.event.AddReloadListenerEvent;
@@ -119,5 +127,14 @@ public class ForgeCommon extends Common {
     @Override
     public ItemStack getProjectile(LivingEntity entity, ItemStack weaponStack, ItemStack projectileStack) {
         return ForgeHooks.getProjectile(entity, weaponStack, projectileStack);
+    }
+
+    @Override
+    public AbstractArrow getArrow(Level level, LivingEntity entity, ItemStack itemStackInHand){
+        AbstractArrow arrow = new Arrow(level, entity);
+        if (itemStackInHand.getItem() instanceof BowItem bowItem) {
+            return bowItem.customArrow(arrow);
+        }
+        return arrow;
     }
 }

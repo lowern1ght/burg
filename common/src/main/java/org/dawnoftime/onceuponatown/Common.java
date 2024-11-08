@@ -8,8 +8,12 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.entity.projectile.Arrow;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
+import net.minecraft.world.item.BowItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import org.dawnoftime.onceuponatown.network.IOuatPacket;
 
 import javax.annotation.Nullable;
@@ -67,4 +71,6 @@ public abstract class Common {
     public abstract boolean canUseFishingRod(ItemStack stack);
 
     public abstract ItemStack getProjectile(LivingEntity entity, ItemStack weaponStack, ItemStack projectileStack);
+
+    public abstract AbstractArrow getArrow(Level level, LivingEntity entity, ItemStack itemStackInHand);
 }

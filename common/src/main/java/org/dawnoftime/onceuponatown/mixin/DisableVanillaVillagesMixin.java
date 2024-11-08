@@ -33,7 +33,7 @@ public class DisableVanillaVillagesMixin {
 
     @Inject(method = "tryGenerateStructure", at = @At(value = "HEAD"), cancellable = true)
     private void disableVanillaVillages(StructureSet.StructureSelectionEntry structureSetEntry, StructureManager structureManager, RegistryAccess registryAccess, RandomState randomState, StructureTemplateManager structureTemplateManager, long seed, ChunkAccess chunkAccess, ChunkPos chunkPos, SectionPos sectionPos, CallbackInfoReturnable<Boolean> cir) {
-        if (OuatConfig.DISABLE_VANILLA_VILLAGES) {
+        if (OuatConfig.DISABLE_VANILLA_VILLAGES.get()) {
             DISABLED_VILLAGES.forEach((structure) -> {
                 if (structureSetEntry.structure().is(structure)) cir.setReturnValue(false);
             });

@@ -146,7 +146,7 @@ public class ConstructionProject {
             case PLACE_BLOCK -> {
                 success = level.setBlock(nextStepPos, nextStepState, 2);
                 if (success) {
-                    level.playSound(null, nextStepPos, nextStepState.getSoundType(level, nextStepPos, null).getPlaceSound(), SoundSource.BLOCKS, 1.0F, 1.0F);
+                    level.playSound(null, nextStepPos, nextStepState.getSoundType().getPlaceSound(), SoundSource.BLOCKS, 1.0F, 1.0F);
                 }
                 if (nextStep.blockNbt != null && !nextStep.blockNbt.isEmpty()) {
                     BlockEntity blockEntity = level.getBlockEntity(nextStepPos);

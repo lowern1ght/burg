@@ -27,7 +27,7 @@ public class TownMap {
     // The Integer key must match the key in the Town's builds hashmap
     private final HashMap<Integer, BuildPlacement> builds = new HashMap<>();
     private final ArrayList<BuildBud> buildBuds = new ArrayList<>();
-    protected static final RandomSource randomSource = RandomSource.create();
+    public static final RandomSource randomSource = RandomSource.create();
 
     /**
      * Create the new instance of TownMap, object use to position the building in Minecraft.
@@ -209,7 +209,7 @@ public class TownMap {
      * Update the VilleMap by resizing it so that the new build fits, and add its ids in the TownMap matrix.
      * @param build MapBuild that must be added or updated on the TownMap.
      */
-    protected void updateTownMap(BuildPlacement build){
+    public void updateTownMap(BuildPlacement build){
         this.resizeTownMap(build);
         int xStart = this.getMapX(build.getOriginPos().getX());
         int zStart = this.getMapZ(build.getOriginPos().getZ());
