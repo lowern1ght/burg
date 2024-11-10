@@ -1,7 +1,7 @@
-package org.dawnoftime.onceuponatown.town.building;
+package org.dawnoftime.onceuponatown.building;
 
 import org.dawnoftime.onceuponatown.town.Town;
-import org.dawnoftime.onceuponatown.town.building.type.BuildingType;
+import org.dawnoftime.onceuponatown.building.type.BuildingType;
 
 import javax.annotation.Nullable;
 

@@ -1,6 +1,6 @@
 package org.dawnoftime.onceuponatown.world.structure.pieces;
 
-import org.dawnoftime.onceuponatown.town.building.type.BuildingType;
+import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.registry.OuatStructurePiecesRegistry;
 import org.dawnoftime.onceuponatown.town.TownManager;

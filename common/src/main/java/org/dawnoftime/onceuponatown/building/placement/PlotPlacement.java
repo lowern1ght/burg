@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.town.building.placement;
+package org.dawnoftime.onceuponatown.building.placement;
 
 import net.minecraft.core.BlockPos;
 import org.dawnoftime.onceuponatown.town.TownMap;

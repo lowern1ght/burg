@@ -16,7 +16,7 @@
     "environment": "*",
     "entrypoints": {
         "main": [
-            "org.dawnoftime.armoroftheages.ArmorOfTheAges.OnceUponATown"
+            "org.dawnoftime.onceuponatown.OnceUponATown"
         ]
     },
     "mixins": [

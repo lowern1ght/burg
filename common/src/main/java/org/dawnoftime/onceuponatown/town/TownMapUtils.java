@@ -3,7 +3,7 @@ package org.dawnoftime.onceuponatown.town;
 import com.google.common.collect.AbstractIterator;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import org.dawnoftime.onceuponatown.town.building.placement.BuildPlacement;
+import org.dawnoftime.onceuponatown.building.placement.BuildPlacement;
 
 import java.util.Collections;
 

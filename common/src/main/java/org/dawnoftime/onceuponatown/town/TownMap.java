@@ -1,6 +1,6 @@
 package org.dawnoftime.onceuponatown.town;
 
-import org.dawnoftime.onceuponatown.town.building.type.BuildingType;
+import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import net.minecraft.core.BlockPos;
 
 import javax.annotation.Nullable;
@@ -9,7 +9,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 
-import org.dawnoftime.onceuponatown.town.building.placement.*;
+import org.dawnoftime.onceuponatown.building.placement.*;
 import org.dawnoftime.onceuponatown.town.TownMapUtils.Corner;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;

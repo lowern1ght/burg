@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.town.building.placement;
+package org.dawnoftime.onceuponatown.building.placement;
 
 public class GardenPlacement extends PlotPlacement {
     public GardenPlacement(int sizeXNorth, int sizeZNorth){

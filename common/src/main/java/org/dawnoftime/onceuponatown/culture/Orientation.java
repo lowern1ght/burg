@@ -1,7 +1,7 @@
 package org.dawnoftime.onceuponatown.culture;
 
 import net.minecraft.resources.ResourceLocation;
-import org.dawnoftime.onceuponatown.town.building.type.BuildingType;
+import org.dawnoftime.onceuponatown.building.type.BuildingType;
 
 import java.util.List;
 

@@ -1,4 +1,4 @@
-package org.dawnoftime.armoroftheages;
+package org.dawnoftime.onceuponatown;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
@@ -10,8 +10,6 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
-import static org.dawnoftime.armoroftheages.AotAItemRegistry.ITEMS;
-import static org.dawnoftime.armoroftheages.AotAItemRegistry.TAB_ICON;
 import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
 
 public class OnceUponATown implements ModInitializer {

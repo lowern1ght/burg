@@ -2,8 +2,8 @@ package org.dawnoftime.onceuponatown.culture;
 
 import com.google.gson.JsonElement;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.town.building.type.BuildingType;
-import org.dawnoftime.onceuponatown.town.building.type.NpcJob;
+import org.dawnoftime.onceuponatown.building.type.BuildingType;
+import org.dawnoftime.onceuponatown.building.type.NpcJob;
 import com.google.gson.JsonObject;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.PreparableReloadListener;

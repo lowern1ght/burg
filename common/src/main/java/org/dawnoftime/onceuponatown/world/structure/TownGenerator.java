@@ -1,12 +1,12 @@
 package org.dawnoftime.onceuponatown.world.structure;
 
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.town.building.type.BuildingType;
+import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import org.dawnoftime.onceuponatown.town.TownMap;
 import org.dawnoftime.onceuponatown.town.TownMapUtils;
-import org.dawnoftime.onceuponatown.town.building.placement.BuildPlacement;
-import org.dawnoftime.onceuponatown.town.building.placement.BuildingPlacement;
-import org.dawnoftime.onceuponatown.town.building.placement.RoadPlacement;
+import org.dawnoftime.onceuponatown.building.placement.BuildPlacement;
+import org.dawnoftime.onceuponatown.building.placement.BuildingPlacement;
+import org.dawnoftime.onceuponatown.building.placement.RoadPlacement;
 import org.dawnoftime.onceuponatown.world.structure.pieces.BuildingPiece;
 import org.dawnoftime.onceuponatown.world.structure.pieces.PathPiece;
 import org.dawnoftime.onceuponatown.world.structure.pieces.TownDataBuildingPiece;

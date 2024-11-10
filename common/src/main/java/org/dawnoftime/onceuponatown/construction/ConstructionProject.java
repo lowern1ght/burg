@@ -16,8 +16,8 @@ import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import org.dawnoftime.onceuponatown.town.building.Building;
-import org.dawnoftime.onceuponatown.town.building.type.BuildingType;
+import org.dawnoftime.onceuponatown.building.Building;
+import org.dawnoftime.onceuponatown.building.type.BuildingType;
 
 import java.util.ArrayList;
 import java.util.List;

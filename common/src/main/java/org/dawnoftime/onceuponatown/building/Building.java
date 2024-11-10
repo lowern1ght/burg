@@ -1,8 +1,7 @@
-package org.dawnoftime.onceuponatown.town.building;
+package org.dawnoftime.onceuponatown.building;
 
 import org.dawnoftime.onceuponatown.construction.BuildingPlacementSettings;
-import org.dawnoftime.onceuponatown.town.building.placement.BuildPlacement;
-import org.dawnoftime.onceuponatown.town.building.type.BuildingType;
+import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;

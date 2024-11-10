@@ -1,4 +1,4 @@
-package org.dawnoftime.armoroftheages.platform;
+package org.dawnoftime.onceuponatown.platform;
 
 import net.fabricmc.loader.api.FabricLoader;
 import org.dawnoftime.onceuponatown.Common;

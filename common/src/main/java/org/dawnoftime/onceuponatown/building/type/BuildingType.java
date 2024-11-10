@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.town.building.type;
+package org.dawnoftime.onceuponatown.building.type;
 
 import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceLocation;
