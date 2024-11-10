@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.building;
+package org.dawnoftime.onceuponatown.town.generation;
 
 import org.dawnoftime.onceuponatown.town.Town;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;

@@ -26,6 +26,7 @@ import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
+import org.dawnoftime.onceuponatown.town.generation.TownMap;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -69,13 +70,28 @@ public class Town {
         createOrLoadXpBar();
     }
 
-    static Town createWorldGen(Level level, Culture culture, String name, TownMap townMap) {;
+    public static Town createWorldGenOld(Level level, Culture culture, String name, TownMap townMap) {;
         TownInventory townInventory = new TownInventory();
         Town town = new Town(Mth.createInsecureUUID(RandomSource.create()), level, culture, name, townMap.getCenter(), townMap, townInventory,  new ArrayList<>(),  new ArrayList<>(),  new ArrayList<>());
         town.createBuildingsWorldGen(townMap);
         town.updateConstructionProject();
         return town;
     }
+
+    /**
+     * Creates a new instance of Town from the NBT data saved during world generation.
+     * @param level Level in which the Town was generated.
+     * @param tag NBT component that contains the raw information.
+     * @return The new instance of Town.
+     */
+    public static Town createWorldGen(Level level, CompoundTag tag) {;
+        TownInventory townInventory = new TownInventory();
+        Town town = new Town(Mth.createInsecureUUID(RandomSource.create()), level, culture, name, townMap.getCenter(), townMap, townInventory,  new ArrayList<>(),  new ArrayList<>(),  new ArrayList<>());
+        town.createBuildingsWorldGen(townMap);
+        town.updateConstructionProject();
+        return town;
+    }
+
 
     static Town createCommand(Level level, Culture culture, String name) {
         return null;

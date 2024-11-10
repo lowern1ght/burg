@@ -3,7 +3,7 @@ package org.dawnoftime.onceuponatown.registry;
 import com.mojang.serialization.Codec;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureType;
-import org.dawnoftime.onceuponatown.world.structure.TownStructure;
+import org.dawnoftime.onceuponatown.structure.TownStructure;
 
 import java.util.function.Supplier;
 

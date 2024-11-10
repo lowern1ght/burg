@@ -1,10 +1,10 @@
-package org.dawnoftime.onceuponatown.world.structure.pieces;
+package org.dawnoftime.onceuponatown.structure.pieces;
 
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.registry.OuatStructurePiecesRegistry;
 import org.dawnoftime.onceuponatown.town.TownManager;
-import org.dawnoftime.onceuponatown.town.TownMap;
+import org.dawnoftime.onceuponatown.town.generation.TownMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;

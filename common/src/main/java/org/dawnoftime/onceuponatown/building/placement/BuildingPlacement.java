@@ -2,11 +2,12 @@ package org.dawnoftime.onceuponatown.building.placement;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import org.dawnoftime.onceuponatown.town.TownMap;
-import org.dawnoftime.onceuponatown.town.TownMapUtils.Corner;
+import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
+import org.dawnoftime.onceuponatown.town.generation.TownMap;
+import org.dawnoftime.onceuponatown.town.generation.TownMapUtils.Corner;
 
-import static org.dawnoftime.onceuponatown.town.TownMapUtils.MAXI_Y_DIFFERENCE;
-import static org.dawnoftime.onceuponatown.town.TownMapUtils.rectangularPosIterator;
+import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.MAXI_Y_DIFFERENCE;
+import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.rectangularPosIterator;
 
 public class BuildingPlacement extends PlotPlacement {
 

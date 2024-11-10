@@ -1,15 +1,13 @@
-package org.dawnoftime.onceuponatown.world.structure;
+package org.dawnoftime.onceuponatown.town.generation;
 
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
-import org.dawnoftime.onceuponatown.town.TownMap;
-import org.dawnoftime.onceuponatown.town.TownMapUtils;
 import org.dawnoftime.onceuponatown.building.placement.BuildPlacement;
 import org.dawnoftime.onceuponatown.building.placement.BuildingPlacement;
 import org.dawnoftime.onceuponatown.building.placement.RoadPlacement;
-import org.dawnoftime.onceuponatown.world.structure.pieces.BuildingPiece;
-import org.dawnoftime.onceuponatown.world.structure.pieces.PathPiece;
-import org.dawnoftime.onceuponatown.world.structure.pieces.TownDataBuildingPiece;
+import org.dawnoftime.onceuponatown.structure.pieces.BuildingPiece;
+import org.dawnoftime.onceuponatown.structure.pieces.PathPiece;
+import org.dawnoftime.onceuponatown.structure.pieces.TownDataBuildingPiece;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
@@ -25,9 +23,8 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
 
 import java.util.*;
 
-public class TownGenerator {
+public class TownGeneratorOld {
     public static final int STARTER_PACK_SIZE = 21;
-    public static final int HEIGHTMAP_SCAN_RADIUS = 100;
     public static final BuildingInfo[] TEST_BUILDINGS = new BuildingInfo[] {
             new BuildingInfo(Ouat.createOuatResource("plains/bigchurch"), 19, 32),
             new BuildingInfo(Ouat.createOuatResource("plains/bighouse"), 13, 11),

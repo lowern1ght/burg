@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.town;
+package org.dawnoftime.onceuponatown.town.generation;
 
 import com.google.common.collect.AbstractIterator;
 import net.minecraft.core.BlockPos;

@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.world.structure;
+package org.dawnoftime.onceuponatown.structure;
 
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import org.dawnoftime.onceuponatown.culture.Culture;
@@ -11,6 +11,7 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureType;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
+import org.dawnoftime.onceuponatown.town.generation.TownGeneratorOld;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -35,7 +36,7 @@ public class TownStructure extends Structure {
         List<BuildingType> starterPack = culture.getRandomStarterPack();
         int townHeight = context.chunkGenerator().getFirstOccupiedHeight(context.chunkPos().getMinBlockX(), context.chunkPos().getMinBlockZ(), Heightmap.Types.WORLD_SURFACE_WG, context.heightAccessor(), context.randomState());
         BlockPos townCenterPos = new BlockPos(context.chunkPos().getMinBlockX(), townHeight, context.chunkPos().getMinBlockZ());
-        TownGenerator.generatePiecesWorldGen(context.structureTemplateManager(), townCenterPos, starterPack, builder, context.random());
+        TownGeneratorOld.generatePiecesWorldGen(context.structureTemplateManager(), townCenterPos, starterPack, builder, context.random());
     }
 
     public @NotNull StructureType<?> type() {

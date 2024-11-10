@@ -1,5 +1,6 @@
-package org.dawnoftime.onceuponatown.town;
+package org.dawnoftime.onceuponatown.town.generation;
 
+import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import net.minecraft.core.BlockPos;
 
@@ -10,14 +11,14 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.dawnoftime.onceuponatown.building.placement.*;
-import org.dawnoftime.onceuponatown.town.TownMapUtils.Corner;
+import org.dawnoftime.onceuponatown.town.generation.TownMapUtils.Corner;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.levelgen.structure.Structure;
 
-import static org.dawnoftime.onceuponatown.town.TownMapUtils.*;
+import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.*;
 
 public class TownMap {
     private BlockPos center;

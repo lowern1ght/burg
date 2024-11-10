@@ -1,7 +1,6 @@
-package org.dawnoftime.onceuponatown.world.structure.pieces;
+package org.dawnoftime.onceuponatown.structure.pieces;
 
 import org.dawnoftime.onceuponatown.registry.OuatStructurePiecesRegistry;
-import org.dawnoftime.onceuponatown.registry.OuatStructureTypesRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;

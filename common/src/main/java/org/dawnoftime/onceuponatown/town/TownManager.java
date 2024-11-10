@@ -6,6 +6,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
+import org.dawnoftime.onceuponatown.town.generation.TownMap;
 
 import java.util.List;
 import java.util.UUID;
@@ -17,7 +18,7 @@ public class TownManager {
         TownSavedData savedData = TownSavedData.get(level);
         if (savedData != null) {
             String name = "plains" + Mth.nextInt(RandomSource.create(), 0, 100);
-            Town town = Town.createWorldGen(level, culture, name, townMap);
+            Town town = Town.createWorldGenOld(level, culture, name, townMap);
             level.getServer().getPlayerList().broadcastSystemMessage(Component.literal(town.getName() + " discovered at " + town.getCenterPosition().toShortString()), false);
             savedData.addTown(town);
         }

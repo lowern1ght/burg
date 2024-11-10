@@ -2,12 +2,13 @@ package org.dawnoftime.onceuponatown.building.placement;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import org.dawnoftime.onceuponatown.town.TownMap;
-import org.dawnoftime.onceuponatown.town.TownMapUtils;
-import org.dawnoftime.onceuponatown.town.TownMapUtils.Corner;
+import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
+import org.dawnoftime.onceuponatown.town.generation.TownMap;
+import org.dawnoftime.onceuponatown.town.generation.TownMapUtils;
+import org.dawnoftime.onceuponatown.town.generation.TownMapUtils.Corner;
 import java.util.ArrayList;
 
-import static org.dawnoftime.onceuponatown.town.TownMapUtils.*;
+import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.*;
 
 public class RoadPlacement extends BuildPlacement {
     private final boolean isBig;

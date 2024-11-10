@@ -1,13 +1,15 @@
-package org.dawnoftime.onceuponatown.building.placement;
+package org.dawnoftime.onceuponatown.town.generation.bud;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import org.dawnoftime.onceuponatown.town.TownMap;
-import org.dawnoftime.onceuponatown.town.TownMapUtils.Corner;
+import org.dawnoftime.onceuponatown.building.placement.BuildPlacement;
+import org.dawnoftime.onceuponatown.building.placement.GardenPlacement;
+import org.dawnoftime.onceuponatown.town.generation.TownMap;
+import org.dawnoftime.onceuponatown.town.generation.TownMapUtils.Corner;
 
 import javax.annotation.Nullable;
 
-import static org.dawnoftime.onceuponatown.town.TownMapUtils.SIDE_SIZE_MAX_GARDEN;
+import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.SIDE_SIZE_MAX_GARDEN;
 
 /**
  * Each bud is a point at the intersection of two paths, or a path and a plot border.

@@ -1,9 +1,9 @@
 package org.dawnoftime.onceuponatown.registry;
 
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-import org.dawnoftime.onceuponatown.world.structure.pieces.BuildingPiece;
-import org.dawnoftime.onceuponatown.world.structure.pieces.PathPiece;
-import org.dawnoftime.onceuponatown.world.structure.pieces.TownDataBuildingPiece;
+import org.dawnoftime.onceuponatown.structure.pieces.BuildingPiece;
+import org.dawnoftime.onceuponatown.structure.pieces.PathPiece;
+import org.dawnoftime.onceuponatown.structure.pieces.TownDataBuildingPiece;
 
 import java.util.function.Supplier;
 

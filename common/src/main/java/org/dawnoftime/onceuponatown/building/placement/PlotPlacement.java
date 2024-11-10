@@ -1,11 +1,11 @@
 package org.dawnoftime.onceuponatown.building.placement;
 
 import net.minecraft.core.BlockPos;
-import org.dawnoftime.onceuponatown.town.TownMap;
+import org.dawnoftime.onceuponatown.town.generation.TownMap;
 
 import java.util.HashSet;
 
-import static org.dawnoftime.onceuponatown.town.TownMapUtils.rectangularPosIterator;
+import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.rectangularPosIterator;
 
 public abstract class PlotPlacement extends BuildPlacement {
     public PlotPlacement(int sizeXNorth, int sizeZNorth) {

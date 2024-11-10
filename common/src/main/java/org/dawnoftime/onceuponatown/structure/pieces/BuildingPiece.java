@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.world.structure.pieces;
+package org.dawnoftime.onceuponatown.structure.pieces;
 
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import org.dawnoftime.onceuponatown.registry.OuatStructurePiecesRegistry;
