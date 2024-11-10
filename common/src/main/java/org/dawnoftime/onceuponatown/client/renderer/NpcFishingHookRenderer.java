@@ -31,7 +31,7 @@ public class NpcFishingHookRenderer extends EntityRenderer<NpcFishingHook> {
     }
 
     @Override
-    public void render(NpcFishingHook fishingHook, float pEntityYaw, float pPartialTicks, PoseStack pPoseStack, MultiBufferSource pBuffer, int pPackedLight) {
+    public void render(NpcFishingHook fishingHook, float pEntityYaw, float pPartialTicks, @NotNull PoseStack pPoseStack, @NotNull MultiBufferSource pBuffer, int pPackedLight) {
         Npc npc = fishingHook.getNpcOwner();
         if (npc != null) {
             pPoseStack.pushPose();
@@ -50,7 +50,7 @@ public class NpcFishingHookRenderer extends EntityRenderer<NpcFishingHook> {
             pPoseStack.popPose();
             int i = npc.getMainArm() == HumanoidArm.RIGHT ? 1 : -1;
             ItemStack itemstack = npc.getMainHandItem();
-            if (!COMMON.canUseFishingRod(itemstack)) {
+            if (!COMMON.canBeUsedAsFishingRod(itemstack)) {
                 i = -i;
             }
 
@@ -127,7 +127,7 @@ public class NpcFishingHookRenderer extends EntityRenderer<NpcFishingHook> {
      * Returns the location of an entity's texture.
      */
     @Override
-    public @NotNull ResourceLocation getTextureLocation(NpcFishingHook pEntity) {
+    public @NotNull ResourceLocation getTextureLocation(@NotNull NpcFishingHook pEntity) {
         return TEXTURE_LOCATION;
     }
 }

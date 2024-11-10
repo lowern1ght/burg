@@ -10,6 +10,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import org.dawnoftime.onceuponatown.client.model.NpcModel;
+import org.dawnoftime.onceuponatown.client.renderer.NpcFishingHookRenderer;
 import org.dawnoftime.onceuponatown.client.renderer.NpcRenderer;
 import org.dawnoftime.onceuponatown.client.screen.BuyScreen;
 import org.dawnoftime.onceuponatown.client.screen.SellScreen;
@@ -44,6 +45,7 @@ public class ForgeClient extends Client {
     @SubscribeEvent
     public static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(OuatEntitiesRegistry.ENTITY_REGISTRY.NPC.get(), NpcRenderer::new);
+        event.registerEntityRenderer(OuatEntitiesRegistry.ENTITY_REGISTRY.NPC_FISHING_HOOK.get(), NpcFishingHookRenderer::new);
     }
 
     @SubscribeEvent

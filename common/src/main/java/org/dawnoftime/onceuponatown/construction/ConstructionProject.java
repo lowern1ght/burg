@@ -91,9 +91,11 @@ public class ConstructionProject {
                     BlockState blockState = level.getBlockState(blockPos);
                     CompoundTag blockNbt = null;
                     BlockEntity blockEntity = level.getBlockEntity(blockPos);
+                    /* TODO get BlockEntity NBT data.
                     if (blockEntity != null) {
                         blockNbt = blockEntity.getPersistentData();
                     }
+                     */
                     existingBlocks.add(new BlockInfo(blockPos, blockState, blockNbt));
                 }
             }

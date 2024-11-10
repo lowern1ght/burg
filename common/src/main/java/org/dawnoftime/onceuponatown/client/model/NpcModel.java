@@ -149,6 +149,11 @@ public class NpcModel<T extends Npc> extends HumanoidModel<T> {
         if (itemstack.isEmpty()) {
             return HumanoidModel.ArmPose.EMPTY;
         } else {
+            // First we check if the item has a custom modded animation.
+            HumanoidModel.ArmPose pose = Ouat.COMMON.getItemCustomArmPose(npc, pHand, itemstack);
+            if (pose != null) return pose;
+
+            // If not, we will decide the arm pose based on the item itself.
             if (npc.getUsedItemHand() == pHand && npc.getUseItemRemainingTicks() > 0) {
                 UseAnim useanim = itemstack.getUseAnimation();
                 if (useanim == UseAnim.BLOCK) {
@@ -181,10 +186,6 @@ public class NpcModel<T extends Npc> extends HumanoidModel<T> {
             } else if (!npc.swinging && itemstack.getItem() instanceof CrossbowItem && CrossbowItem.isCharged(itemstack)) {
                 return HumanoidModel.ArmPose.CROSSBOW_HOLD;
             }
-
-            HumanoidModel.ArmPose forgeArmPose = IClientItemExtensions.of(itemstack).getArmPose(npc, pHand, itemstack);
-            if (forgeArmPose != null) return forgeArmPose;
-
             return HumanoidModel.ArmPose.ITEM;
         }
     }

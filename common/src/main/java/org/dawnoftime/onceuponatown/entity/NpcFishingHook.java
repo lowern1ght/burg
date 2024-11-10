@@ -20,8 +20,8 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.projectile.FishingHook;
-import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
+import net.minecraft.world.entity.projectile.ThrowableProjectile;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
@@ -31,19 +31,21 @@ import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.registry.OuatEntitiesRegistry;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class NpcFishingHook extends Projectile {
+public class NpcFishingHook extends ThrowableProjectile {
     private static final Logger LOGGER = LogUtils.getLogger();
     private final RandomSource synchronizedRandom = RandomSource.create();
     private boolean biting;
     private int outOfWaterTime;
     private static final int MAX_OUT_OF_WATER_TIME = 10;
-    private static final EntityDataAccessor<Boolean> DATA_BITING = SynchedEntityData.defineId(FishingHook.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> DATA_BITING = SynchedEntityData.defineId(NpcFishingHook.class, EntityDataSerializers.BOOLEAN);
     private int life;
     private int nibble;
     private int timeUntilLured;
@@ -85,15 +87,15 @@ public class NpcFishingHook extends Projectile {
         this.getEntityData().define(DATA_BITING, false);
     }
 
-    public void onSyncedDataUpdated(EntityDataAccessor<?> pKey) {
-        if (DATA_BITING.equals(pKey)) {
+    public void onSyncedDataUpdated(@NotNull EntityDataAccessor<?> key) {
+        if (DATA_BITING.equals(key)) {
             this.biting = this.getEntityData().get(DATA_BITING);
             if (this.biting) {
                 this.setDeltaMovement(this.getDeltaMovement().x, (double)(-0.4F * Mth.nextFloat(this.synchronizedRandom, 0.6F, 1.0F)), this.getDeltaMovement().z);
             }
         }
 
-        super.onSyncedDataUpdated(pKey);
+        super.onSyncedDataUpdated(key);
     }
 
     public boolean shouldRenderAtSqrDistance(double pDistance) {
@@ -174,10 +176,8 @@ public class NpcFishingHook extends Projectile {
     }
 
     private boolean shouldStopFishing(Npc npc) {
-        ItemStack stackInMainHand = npc.getMainHandItem();
-        ItemStack stackInOffHand = npc.getOffhandItem();
-        boolean validMainStack = stackInMainHand.canPerformAction(net.minecraftforge.common.ToolActions.FISHING_ROD_CAST);
-        boolean validOffStack = stackInOffHand.canPerformAction(net.minecraftforge.common.ToolActions.FISHING_ROD_CAST);
+        boolean validMainStack = Ouat.COMMON.canBeUsedAsFishingRod(npc.getMainHandItem());
+        boolean validOffStack = Ouat.COMMON.canBeUsedAsFishingRod(npc.getOffhandItem());
         if (!npc.isRemoved() && npc.isAlive() && (validMainStack || validOffStack) && !(this.distanceToSqr(npc) > 1024.0D)) {
             return false;
         } else {
@@ -188,7 +188,9 @@ public class NpcFishingHook extends Projectile {
 
     private void checkCollision() {
         HitResult hitresult = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity);
-        if (hitresult.getType() == HitResult.Type.MISS || !net.minecraftforge.event.ForgeEventFactory.onProjectileImpact(this, hitresult)) this.onHit(hitresult);
+        // TODO : Use forge event to check if impact...
+        //if (hitresult.getType() == HitResult.Type.MISS || !net.minecraftforge.event.ForgeEventFactory.onProjectileImpact(this, hitresult)) this.onHit(hitresult);
+        this.onHit(hitresult);
     }
 
     protected void onHitBlock(BlockHitResult pResult) {
@@ -297,11 +299,11 @@ public class NpcFishingHook extends Projectile {
         }
     }
 
-    protected Entity.MovementEmission getMovementEmission() {
+    protected Entity.@NotNull MovementEmission getMovementEmission() {
         return Entity.MovementEmission.NONE;
     }
 
-    public void remove(Entity.RemovalReason pReason) {
+    public void remove(Entity.@NotNull RemovalReason pReason) {
         this.updateOwnerInfo(null);
         super.remove(pReason);
     }
@@ -337,12 +339,12 @@ public class NpcFishingHook extends Projectile {
         return biting;
     }
 
-    public Packet<ClientGamePacketListener> getAddEntityPacket() {
+    public @NotNull Packet<ClientGamePacketListener> getAddEntityPacket() {
         Entity entity = this.getOwner();
         return new ClientboundAddEntityPacket(this, entity == null ? this.getId() : entity.getId());
     }
 
-    public void recreateFromPacket(ClientboundAddEntityPacket pPacket) {
+    public void recreateFromPacket(@NotNull ClientboundAddEntityPacket pPacket) {
         super.recreateFromPacket(pPacket);
         if (this.getNpcOwner() == null) {
             int i = pPacket.getData();

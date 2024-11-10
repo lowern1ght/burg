@@ -2,16 +2,17 @@ package org.dawnoftime.onceuponatown;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.AbstractArrow;
-import net.minecraft.world.entity.projectile.Arrow;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
-import net.minecraft.world.item.BowItem;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.dawnoftime.onceuponatown.network.IOuatPacket;
@@ -19,6 +20,7 @@ import org.dawnoftime.onceuponatown.network.IOuatPacket;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public abstract class Common {
 
@@ -67,10 +69,23 @@ public abstract class Common {
 
     public abstract void onLivingConvert(LivingEntity entity, LivingEntity outcome);
 
-    // TODO Maybe we could find a way to check directly in the class NpcFishingHookRenderer without using this ?
-    public abstract boolean canUseFishingRod(ItemStack stack);
-
     public abstract ItemStack getProjectile(LivingEntity entity, ItemStack weaponStack, ItemStack projectileStack);
 
     public abstract AbstractArrow getArrow(Level level, LivingEntity entity, ItemStack itemStackInHand);
+
+    /**
+     * Function that returns an ArmPose if the item in hand has a custom animation. Returns null otherwise.
+     * @param entity LivingEntity that is holding the ItemStack.
+     * @param hand Hand in which the ItemStack is hold.
+     * @param stack ItemStack of the Item being used by the entity.
+     * @return An ArmPose if a custom animation is defined for this item (modded items).
+     */
+    public abstract @Nullable HumanoidModel.ArmPose getItemCustomArmPose(LivingEntity entity, InteractionHand hand, ItemStack stack);
+
+    /**
+     * Function used to check whether an item can be used as a fishing rod, for example to render the position of the arms correctly.
+     * @param itemStack to be checked.
+     * @return True if this item can be used to fish.
+     */
+    public abstract boolean canBeUsedAsFishingRod(ItemStack itemStack);
 }

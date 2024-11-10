@@ -2,11 +2,13 @@ package org.dawnoftime.onceuponatown;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -18,7 +20,9 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.client.extensions.common.IClientItemExtensions;
 import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.common.ToolActions;
 import net.minecraftforge.event.AddReloadListenerEvent;
@@ -41,13 +45,14 @@ import org.dawnoftime.onceuponatown.network.IOuatPacket;
 import org.dawnoftime.onceuponatown.registry.OuatCommands;
 import org.dawnoftime.onceuponatown.registry.OuatEntitiesRegistry;
 import org.dawnoftime.onceuponatown.town.TownManager;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-@Mod.EventBusSubscriber(modid = Ouat.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
+@Mod.EventBusSubscriber(modid = Ouat.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class ForgeCommon extends Common {
     @SubscribeEvent
     public static void commonSetup(FMLCommonSetupEvent event) {
@@ -120,8 +125,8 @@ public class ForgeCommon extends Common {
     }
 
     @Override
-    public boolean canUseFishingRod(ItemStack stack){
-        return stack.canPerformAction(ToolActions.FISHING_ROD_CAST);
+    public boolean canBeUsedAsFishingRod(ItemStack itemStack) {
+        return itemStack.canPerformAction(ToolActions.FISHING_ROD_CAST);
     }
 
     @Override
@@ -136,5 +141,10 @@ public class ForgeCommon extends Common {
             return bowItem.customArrow(arrow);
         }
         return arrow;
+    }
+
+    @Override
+    public @Nullable HumanoidModel.ArmPose getItemCustomArmPose(LivingEntity entity, InteractionHand hand, ItemStack stack) {
+        return IClientItemExtensions.of(stack).getArmPose(entity, hand, stack);
     }
 }
