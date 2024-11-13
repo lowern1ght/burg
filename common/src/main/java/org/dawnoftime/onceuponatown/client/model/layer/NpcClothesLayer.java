@@ -17,7 +17,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public class NpcClothesLayer<T extends Npc, M extends NpcModel<T>> extends RenderLayer<T, M> {
     public NpcClothesLayer(NpcRenderer renderer) {
-        super((RenderLayerParent<T, M>) renderer);
+        super((RenderLayerParent<T, M>) renderer);// TODO I have a warning here, how can we fix it ?
     }
 
     public void render(@NotNull PoseStack poseStack, @NotNull MultiBufferSource buffer, int packedLight, T npc, float limbSwing, float limbSwingAmount, float partialTick, float ageInTicks, float netHeadYaw, float headPitch) {

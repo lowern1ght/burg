@@ -30,4 +30,8 @@ public class CorruptedCultureException extends RuntimeException{
     public static CorruptedCultureException missingField(String cultureName, String objectClassName, String fileName, String missingField, String missingFieldDescription, ResourceLocation rl){
         return new CorruptedCultureException("Culture [%s]: Failed to register a %s. '%s' is missing the field '%s'%s. Please check the file: %s".formatted(cultureName, objectClassName, fileName, missingField, missingFieldDescription, rl.getPath()));
     }
+
+    public static CorruptedCultureException missingFile(String cultureName, String objectClassName, String fileName, ResourceLocation rl){
+        return new CorruptedCultureException("Culture [%s]: Impossible to find the %s file '%s'. Please check at this location: %s".formatted(cultureName, objectClassName, fileName, rl.getPath()));
+    }
 }

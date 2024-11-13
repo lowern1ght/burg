@@ -83,7 +83,7 @@ public class ConstructionProject {
         // 4. Add constructionPlan blocks in blocksToAdd only if position is not listed in toKeep
         // 5. Add constructionPlan entities in entitiesToAdd
         BuildSchematic constructionPlan = BuildSchematic.create(Ouat.createOuatResource("plains/big_house"), ((ServerLevel)level).getServer().getResourceManager());
-        Vec3i planDimensions = constructionPlan.getDimensions();
+        Vec3i planDimensions = new Vec3i(10, 10, 10); //TODO Replace with the actual size constructionPlan.getSize();
         BlockPos firstCorner = buildingPlacementSettings.getPosition();
         BlockPos secondCorner = firstCorner.offset(planDimensions.getX(), planDimensions.getY(), planDimensions.getZ());
         List<BlockInfo> existingBlocks = new ArrayList<>();

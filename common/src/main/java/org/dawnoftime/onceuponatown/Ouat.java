@@ -18,15 +18,15 @@ public class Ouat {
     // Logs
     public static final Logger LOG = LogManager.getLogger(MOD_NAME);
     public static void info(String info) {
-        LOG.info(info);
+        LOG.info("\u001B[32m{}\u001B[0m", info);
     }
 
     public static void debug(String debug) {
-        LOG.debug(debug);
+        LOG.debug("\u001B[33m{}\u001B[0m", debug);
     }
 
     public static void error(String error) {
-        LOG.error(error);
+        LOG.error("\u001B[31m{}\u001B[0m", error);
     }
 
     // Common and client events and calls.

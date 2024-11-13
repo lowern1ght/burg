@@ -1,9 +1,9 @@
 {
     "build_type": "big_house",
-    "size": {"x": 30, "y": 30, "z": 30},
+    "size": {"x": 15, "y": 11, "z": 10},
     "levels": [
         {
-            "level": 0,
+            "level": 1,
             "schematic": "big_house_stand",
             "waypoints": []
         }

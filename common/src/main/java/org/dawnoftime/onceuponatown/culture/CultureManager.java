@@ -196,7 +196,7 @@ public class CultureManager implements PreparableReloadListener {
         }, backgroundExecutor)).thenCompose(stage::wait);
     }
 
-    public static JsonElement tryGet(JsonObject element, String field, String fieldLocation, String objectLoadedName, String cultureName, String fileName, ResourceLocation fileRL){
+    public static JsonElement tryGet(JsonObject element, String field, String fieldLocation, String objectLoadedName, String cultureName, String fileName, ResourceLocation fileRL) throws CorruptedCultureException{
         JsonElement elem = element.get(field);
         if(elem == null){
             throw CorruptedCultureException.missingField(cultureName, objectLoadedName, fileName, field, fieldLocation, fileRL);
@@ -204,7 +204,7 @@ public class CultureManager implements PreparableReloadListener {
         return elem;
     }
 
-    public static JsonElement tryGet(JsonObject element, String field, String objectLoadedName, String cultureName, String fileName, ResourceLocation fileRL){
+    public static JsonElement tryGet(JsonObject element, String field, String objectLoadedName, String cultureName, String fileName, ResourceLocation fileRL) throws CorruptedCultureException{
         return tryGet(element, field, "", objectLoadedName, cultureName, fileName, fileRL);
     }
 }

@@ -20,6 +20,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.dawnoftime.onceuponatown.construction.BlockInfo;
 import org.dawnoftime.onceuponatown.construction.ConstructionUtils;
 import org.dawnoftime.onceuponatown.construction.EntityInfo;
+import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -35,16 +36,12 @@ import java.util.List;
  * Can be seen as the construction plan of a structure.<br>
  * Shared by all structures which are described by the same NBT file.<br>
  * Does not contain any information about how the structure should be placed in world (position, rotation...).<br>
+ * Warning ! The content of the NBT is only loaded when needed, only the resourceLocation is kept in cache.
  */
 public class BuildSchematic {
-    /**
-     * The structure NBT file path
-     */
-    private final ResourceLocation structurePath;
-    /**
-     * Length, width, height of this building
-     */
-    private Vec3i dimensions = Vec3i.ZERO;
+
+    private final ResourceLocation schematicResourceLocation;
+    private final HashMap<Vec3i, Waypoint> waypoints = new HashMap<>();
     /**
      * The list of blocks in this building
      */
@@ -53,10 +50,36 @@ public class BuildSchematic {
      * The list of entities in this building
      */
     private final List<EntityInfo> entities = new ArrayList<>();
-    private final List<Waypoint> waypoints = new ArrayList<>();
+
+    private BuildSchematic(ResourceLocation schematicResourceLocation){
+        this.schematicResourceLocation = schematicResourceLocation;
+    }
+
+    public static BuildSchematic create(ResourceManager resourceManager, ResourceLocation schematicResourceLocation, Vec3i requiredSize, String cultureName, String buildVariantName) throws CorruptedCultureException{
+        Vec3i size;
+        try (InputStream inputStream = resourceManager.open(schematicResourceLocation)) {
+            CompoundTag tag = NbtIo.readCompressed(inputStream);
+            ListTag sizeTag = tag.getList("size", 3);
+            size = new Vec3i(sizeTag.getInt(0), sizeTag.getInt(1), sizeTag.getInt(2));
+        } catch (FileNotFoundException fileNotFoundException) {
+            String path = schematicResourceLocation.getPath();
+            throw CorruptedCultureException.missingFile(cultureName, "schematic", path.substring(path.lastIndexOf('/') + 1, path.lastIndexOf('.')), schematicResourceLocation);
+        } catch (Throwable throwable) {
+            throw new CorruptedCultureException("Culture [%s]: Error loading a schematic for the build_variant '%s'. Could not load the file: %s".formatted(cultureName, buildVariantName, schematicResourceLocation));
+        }
+        if(requiredSize.equals(size)){
+            return new BuildSchematic(schematicResourceLocation);
+        }else{
+            throw new CorruptedCultureException("Culture [%s]: A schematic loaded has a size of [%s], instead of the size [%s] defined in the build_variant '%s'. Check this file: %s".formatted(cultureName, size.toShortString(), requiredSize.toShortString(), buildVariantName, schematicResourceLocation));
+        }
+    }
+
+    public void addWaypoint(Vec3i position, Waypoint waypoint){
+        this.waypoints.put(position, waypoint);
+    }
 
     private BuildSchematic(ResourceLocation structurePath, HolderGetter<Block> blockGetter, CompoundTag structureTag) {
-        this.structurePath = structurePath;
+        this.schematicResourceLocation = structurePath;
         this.readSchematic(blockGetter, structureTag);
     }
 
@@ -89,7 +112,6 @@ public class BuildSchematic {
     private void readSchematic(HolderGetter<Block> blockGetter, CompoundTag structureTag) {
         // Extracting dimensions
         ListTag sizeTag = structureTag.getList("size", 3);
-        this.dimensions = new Vec3i(sizeTag.getInt(0), sizeTag.getInt(1), sizeTag.getInt(2));
         // Extracting entities
         ListTag entitiesTag = structureTag.getList("entities", 10);
         for(int i = 0; i < entitiesTag.size(); ++i) {
@@ -163,10 +185,6 @@ public class BuildSchematic {
         return this.blocks.size();
     }
 
-    public Vec3i getDimensions() {
-        return this.dimensions;
-    }
-
     public Block getBlock(int index) {
         return this.blocks.get(index).state().getBlock();
     }
@@ -192,10 +210,10 @@ public class BuildSchematic {
     }
 
     public ResourceLocation getStructurePath() {
-        return this.structurePath;
+        return this.schematicResourceLocation;
     }
 
-    public List<Waypoint> getWaypoints() {
+    public HashMap<Vec3i, Waypoint> getWaypoints() {
         return this.waypoints;
     }
 

@@ -1,9 +1,9 @@
 {
     "build_type": "big_house",
-    "size": {"x": 30, "y": 30, "z": 30},
+    "size": {"x": 7, "y": 13, "z": 15},
     "levels": [
         {
-            "level": 0,
+            "level": 1,
             "schematic": "double_deck_house",
             "waypoints": []
         }

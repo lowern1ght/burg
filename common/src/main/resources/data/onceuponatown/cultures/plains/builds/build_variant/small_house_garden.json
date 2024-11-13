@@ -1,9 +1,9 @@
 {
     "build_type": "small_house",
-    "size": {"x": 30, "y": 30, "z": 30},
+    "size": {"x": 14, "y": 9, "z": 8},
     "levels": [
         {
-            "level": 0,
+            "level": 1,
             "schematic": "small_house_garden",
             "waypoints": []
         }
