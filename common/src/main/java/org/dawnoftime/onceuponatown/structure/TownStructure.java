@@ -1,20 +1,18 @@
 package org.dawnoftime.onceuponatown.structure;
 
-import org.dawnoftime.onceuponatown.building.type.BuildingType;
+import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.culture.CultureManager;
 import org.dawnoftime.onceuponatown.registry.OuatStructureTypesRegistry;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureType;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
-import org.dawnoftime.onceuponatown.town.generation.TownGeneratorOld;
+import org.dawnoftime.onceuponatown.town.generation.TownGenerator;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
 import java.util.Optional;
 
 public class TownStructure extends Structure {
@@ -32,11 +30,11 @@ public class TownStructure extends Structure {
 
     private void generatePieces(StructurePiecesBuilder builder, GenerationContext context) {
         Culture culture = CultureManager.getCultureById(this.cultureID);
-        if (culture == null) return;
-        List<BuildingType> starterPack = culture.getRandomStarterPack();
-        int townHeight = context.chunkGenerator().getFirstOccupiedHeight(context.chunkPos().getMinBlockX(), context.chunkPos().getMinBlockZ(), Heightmap.Types.WORLD_SURFACE_WG, context.heightAccessor(), context.randomState());
-        BlockPos townCenterPos = new BlockPos(context.chunkPos().getMinBlockX(), townHeight, context.chunkPos().getMinBlockZ());
-        TownGeneratorOld.generatePiecesWorldGen(context.structureTemplateManager(), townCenterPos, starterPack, builder, context.random());
+        if (culture == null) {
+            Ouat.error("Village generation failed, because the culture with ID [" + this.cultureID + "] could not be find.");
+        }else{
+            TownGenerator.tryGenerateTown(culture, builder, context);
+        }
     }
 
     public @NotNull StructureType<?> type() {

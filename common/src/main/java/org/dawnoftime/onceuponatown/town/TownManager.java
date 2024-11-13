@@ -15,16 +15,13 @@ public class TownManager {
     public static int TOWN_TICK_RATE_SECONDS = 5;
 
     public static void createNewTownWorldGen(ServerLevel level, Culture culture, TownMap townMap) {
-        TownSavedData savedData = TownSavedData.get(level);
+        LevelTownsSavedData savedData = LevelTownsSavedData.get(level);
         if (savedData != null) {
             String name = "plains" + Mth.nextInt(RandomSource.create(), 0, 100);
             Town town = Town.createWorldGenOld(level, culture, name, townMap);
             level.getServer().getPlayerList().broadcastSystemMessage(Component.literal(town.getName() + " discovered at " + town.getCenterPosition().toShortString()), false);
             savedData.addTown(town);
         }
-    }
-
-    public static void createNewTownPlayerCommand(ServerLevel level, Culture culture, String biome, TownMap townMap) {
     }
 
     /**
@@ -37,7 +34,7 @@ public class TownManager {
         if (town != null) {
             town.softDelete();
         }
-        TownSavedData savedData = TownSavedData.get(level);
+        LevelTownsSavedData savedData = LevelTownsSavedData.get(level);
         if (savedData != null) {
             savedData.removeTown(town);
         }
@@ -53,7 +50,7 @@ public class TownManager {
         if (town != null) {
             town.hardDelete();
         }
-        TownSavedData savedData = TownSavedData.get(level);
+        LevelTownsSavedData savedData = LevelTownsSavedData.get(level);
         if (savedData != null) {
             savedData.removeTown(town);
         }
@@ -87,7 +84,7 @@ public class TownManager {
     }
 
     public static List<Town> getTowns(ServerLevel level) {
-        TownSavedData savedData = TownSavedData.get(level);
+        LevelTownsSavedData savedData = LevelTownsSavedData.get(level);
         return savedData != null ? savedData.getTowns() : null;
     }
 

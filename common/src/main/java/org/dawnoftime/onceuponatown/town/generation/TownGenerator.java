@@ -1,33 +1,38 @@
 package org.dawnoftime.onceuponatown.town.generation;
 
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
+import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.town.Town;
-import org.dawnoftime.onceuponatown.building.type.BuildingType;
+import org.dawnoftime.onceuponatown.building.type.BuildType;
 
-import javax.annotation.Nullable;
+import java.util.List;
 
 public class TownGenerator {
 
-    @Nullable
-    public static boolean tryGenerateTown(){
-        /*
-         Parameters :
-         - Culture so that I can get :
-            - the list of the starter buildings loaded.
-            - How do I get the building type of th path of the correspond culture ?
-            - The random number of building that I have to build (comes from a config parameter in the culture datapack)
-         - The chunk or the object that contains the map information.
+    /**
+     *
+     * @param culture
+     * @param builder
+     * @param context
+     */
+    public static void tryGenerateTown(Culture culture, StructurePiecesBuilder builder, Structure.GenerationContext context){
+        StructureTemplateManager manager = context.structureTemplateManager();
+        int townHeight = context.chunkGenerator().getFirstOccupiedHeight(context.chunkPos().getMinBlockX(), context.chunkPos().getMinBlockZ(), Heightmap.Types.WORLD_SURFACE_WG, context.heightAccessor(), context.randomState());
+        BlockPos townCenterPos = new BlockPos(context.chunkPos().getMinBlockX(), townHeight, context.chunkPos().getMinBlockZ());
+        List<BuildType> starterPack = culture.getRandomStarterPack();
+        RandomSource rand = context.random();
 
-         We might need another function that first chose the culture that will spawn at the given location.
-         Then it triggers this function with the selected culture.
+        Ouat.info("Town at + " + townCenterPos.toShortString() + " : started generating pieces...");
 
-         At the end, saves a NBT in the town standard format.
-         */
-
-        return true;
     }
 
-    public static boolean addBuilding(Town town, BuildingType buildingType){
+    public static boolean addBuilding(Town town, BuildType buildingType){
         return true;
     }
-
 }

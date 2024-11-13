@@ -1,6 +1,6 @@
 package org.dawnoftime.onceuponatown.structure.pieces;
 
-import org.dawnoftime.onceuponatown.building.type.BuildingType;
+import org.dawnoftime.onceuponatown.building.type.BuildType;
 import org.dawnoftime.onceuponatown.registry.OuatStructurePiecesRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -20,25 +20,21 @@ import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 
-public class BuildingPiece extends TemplateStructurePiece {
-    private BuildingType buildingType;
-
-    public BuildingPiece(StructureTemplateManager manager, ResourceLocation resourceLocation, BlockPos pos, Rotation rotation, BuildingType buildingType) {
+public class BuildPiece extends TemplateStructurePiece {
+    public BuildPiece(StructureTemplateManager manager, ResourceLocation resourceLocation, BlockPos pos, Rotation rotation, BuildType buildingType) {
         super(OuatStructurePiecesRegistry.STRUCTURE_PIECE_REGISTRY.BUILDING_PIECE.get(), 0, manager, resourceLocation, resourceLocation.toString(), new StructurePlaceSettings().setRotation(rotation), pos);
-        this.buildingType = buildingType;
     }
 
-    protected BuildingPiece(StructurePieceType type, StructureTemplateManager manager, ResourceLocation resourceLocation, BlockPos pos, Rotation rotation, BuildingType buildingType) {
+    protected BuildPiece(StructurePieceType type, StructureTemplateManager manager, ResourceLocation resourceLocation, BlockPos pos, Rotation rotation, BuildType buildingType) {
         super(type, 0, manager, resourceLocation, resourceLocation.toString(), new StructurePlaceSettings().setRotation(rotation), pos);
-        this.buildingType = buildingType;
     }
 
-    public BuildingPiece(StructureTemplateManager manager, CompoundTag tag) {
+    public BuildPiece(StructureTemplateManager manager, CompoundTag tag) {
         super(OuatStructurePiecesRegistry.STRUCTURE_PIECE_REGISTRY.BUILDING_PIECE.get(), tag, manager, (rl) -> new StructurePlaceSettings().setRotation(Rotation.valueOf(tag.getString("Rot"))));
         //TODO: Read building type
     }
 
-    protected BuildingPiece(StructurePieceType type, StructureTemplateManager manager, CompoundTag tag) {
+    protected BuildPiece(StructurePieceType type, StructureTemplateManager manager, CompoundTag tag) {
         super(type, tag, manager, (p) -> new StructurePlaceSettings().setRotation(Rotation.valueOf(tag.getString("Rot"))));
         //TODO: Read building type
     }
@@ -55,9 +51,7 @@ public class BuildingPiece extends TemplateStructurePiece {
         super.postProcess(worldGenLevel, manager, chunkGenerator, random, box, chunkPos, pos);
     }
 
-    protected void handleDataMarker(String name, BlockPos pos, ServerLevelAccessor levelAccessor, RandomSource random, BoundingBox box) {}
+    protected void handleDataMarker(String name, BlockPos pos, ServerLevelAccessor levelAccessor, RandomSource random, BoundingBox box) {
 
-    public BuildingType getBuildingType() {
-        return this.buildingType;
     }
 }

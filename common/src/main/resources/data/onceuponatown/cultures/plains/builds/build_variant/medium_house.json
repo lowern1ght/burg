@@ -1,0 +1,11 @@
+{
+    "build_type": "small_house",
+    "size": {"x": 30, "y": 30, "z": 30},
+    "levels": [
+        {
+            "level": 0,
+            "schematic": "medium_house",
+            "waypoints": []
+        }
+    ]
+}

@@ -1,0 +1,11 @@
+{
+    "build_type": "church",
+    "size": {"x": 10, "y": 30, "z": 29},
+    "levels": [
+        {
+            "level": 0,
+            "schematic": "small_market",
+            "waypoints": []
+        }
+    ]
+}

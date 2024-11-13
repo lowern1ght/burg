@@ -2,8 +2,9 @@ package org.dawnoftime.onceuponatown.culture;
 
 import com.google.gson.JsonElement;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.building.type.BuildingType;
-import org.dawnoftime.onceuponatown.building.type.NpcJob;
+import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
+import org.dawnoftime.onceuponatown.building.type.BuildType;
+import org.dawnoftime.onceuponatown.entity.NpcJob;
 import com.google.gson.JsonObject;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.PreparableReloadListener;
@@ -13,6 +14,7 @@ import net.minecraft.util.GsonHelper;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.item.Item;
 import org.jetbrains.annotations.NotNull;
+import oshi.util.tuples.Pair;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -44,6 +46,62 @@ public class CultureManager implements PreparableReloadListener {
             loadedCultures.put(culture.getId(), culture);
         });
         Ouat.info("Loaded " + loadedCultures.size() + " culture(s)");
+    }
+
+    private static Culture createCulture(ResourceLocation cultureJsonResourceLocation, Resource cultureJsonResource, ResourceManager resourceManager) {
+        Ouat.info("Loading culture \"" + cultureJsonResourceLocation.getPath() + "\"");
+        JsonObject cultureJsonObject;
+        try (Reader reader = cultureJsonResource.openAsReader()){
+            cultureJsonObject = GsonHelper.parse(reader);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        // Culture ID
+        String cultureId = readCultureId(cultureJsonObject, cultureJsonResourceLocation);
+
+        // Minimum amount of initial buildings
+        int starterPackMinSize = cultureJsonObject.get("starter_pack_min_size").getAsInt();
+        if (starterPackMinSize <= 0) { // Error : less than 1 building in starter pack
+            throw new CorruptedCultureException(cultureId, CULTURE_FILE, "starter_pack_min_size", "Town starter_pack should have at least one building. Detected value is <= 0.");
+        }
+
+        // Maximum amount of initial buildings
+        int starterPackMaxSize = cultureJsonObject.get("starter_pack_max_size").getAsInt();
+        if (starterPackMaxSize < starterPackMinSize) {  // Error : starter pack min boundary is greater than max boundary
+            throw new CorruptedCultureException(cultureId, CULTURE_FILE, "starter_pack_max_size", "starter_pack_max_size has to be greater than starter_pack_min_size.");
+        }
+
+        // Eras
+        List<Culture.Era> eras = readEras(cultureJsonObject, cultureId);
+
+        // Orientations Ids
+        List<String> orientationsIds = readOrientationsIds(cultureJsonObject, cultureId);
+
+        Culture culture = new Culture(cultureId, starterPackMinSize, starterPackMaxSize, eras);
+
+        // BuildType
+        var buildResources = resourceManager.listResources("cultures/" + cultureId + "/builds/build_type", (resourceLocation) -> resourceLocation.getPath().endsWith(".json")).keySet();
+        buildResources.forEach((buildResource) -> {
+            BuildType buildingType = BuildType.createFromJson(resourceManager, buildResource, cultureId);
+            if(buildingType != null){
+                culture.addBuildType(buildingType);
+            }
+        });
+
+        // BuildVariant
+        buildResources = resourceManager.listResources("cultures/" + cultureId + "/builds/build_variant", (resourceLocation) -> resourceLocation.getPath().endsWith(".json")).keySet();
+        buildResources.forEach((buildResource) -> {
+            Pair<String, BuildVariant> variant = BuildVariant.createFromJson(resourceManager, buildResource, cultureId);
+            if(variant != null){
+                culture.addBuildVariant(variant.getA(), variant.getB());
+            }
+        });
+
+        // Now we remove the BuildType that don't have any variant since they can't be built.
+        culture.dropBuildTypeWithoutVariant();
+
+        return culture;
     }
 
     private static String readCultureId(JsonObject cultureJsonObject, ResourceLocation cultureJsonResourceLocation) {
@@ -133,59 +191,20 @@ public class CultureManager implements PreparableReloadListener {
         return orientationId;
     }
 
-    private static Culture createCulture(ResourceLocation cultureJsonResourceLocation, Resource cultureJsonResource, ResourceManager resourceManager) {
-        Ouat.info("Loading culture \"" + cultureJsonResourceLocation.getPath() + "\"");
-        JsonObject cultureJsonObject;
-        try (Reader reader = cultureJsonResource.openAsReader()){
-            cultureJsonObject = GsonHelper.parse(reader);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        // Culture ID
-        String cultureId = readCultureId(cultureJsonObject, cultureJsonResourceLocation);
-
-        // Minimum amount of initial buildings
-        int starterPackMinSize = cultureJsonObject.get("starter_pack_min_size").getAsInt();
-        if (starterPackMinSize <= 0) { // Error : less than 1 building in starter pack
-            throw new CorruptedCultureException(cultureId, CULTURE_FILE, "starter_pack_min_size", "Town starterpack should have at least one building. Detected value is <= 0.");
-        }
-        // Maximum amount of initial buildings
-        int starterPackMaxSize = cultureJsonObject.get("starter_pack_max_size").getAsInt();
-        if (starterPackMaxSize < starterPackMinSize) {  // Error : starter pack min boundary is greater than max boundary
-            throw new CorruptedCultureException(cultureId, CULTURE_FILE, "starter_pack_max_size", "starter_pack_max_size has to be greater than starter_pack_min_size.");
-        }
-        // Eras
-        List<Culture.Era> eras = readEras(cultureJsonObject, cultureId);
-
-        // Orientations Ids
-        List<String> orientationsIds = readOrientationsIds(cultureJsonObject, cultureId);
-        //orientationsIds.forEach(System.out::println);
-        
-        
-        /*
-        String cultureNamespace = cultureJsonResourceLocation.getNamespace();
-        var buildingJsons = manager.listResources("cultures/" + culture.getId() + "/buildings",
-                    (resourceLocation) -> resourceLocation.getNamespace().equals(cultureNamespace) && resourceLocation.getPath().endsWith(".json")).keySet();
-            buildingJsons.forEach((buildingJson) -> {
-                BuildingType buildingType = readBuildingJson(buildingJson, manager);
-                culture.addBuildingType(buildingType);
-            });
-
-         */
-        return new Culture(cultureId, starterPackMinSize, starterPackMaxSize, eras);
-    }
-
-    private BuildingType readBuildingJson(ResourceLocation buildingJson, ResourceManager manager) {
-        return null;
-    }
-
-    private NpcJob readJobJson(ResourceLocation jobJson, ResourceManager manager) {
-        return null;
-    }
-
     public @NotNull CompletableFuture<Void> reload(PreparationBarrier stage, @NotNull ResourceManager resourceManager, @NotNull ProfilerFiller preparationsProfiler, @NotNull ProfilerFiller reloadProfiler, @NotNull Executor backgroundExecutor, @NotNull Executor gameExecutor) {
         return CompletableFuture.allOf(CompletableFuture.runAsync(() -> {
         }, backgroundExecutor)).thenCompose(stage::wait);
+    }
+
+    public static JsonElement tryGet(JsonObject element, String field, String fieldLocation, String objectLoadedName, String cultureName, String fileName, ResourceLocation fileRL){
+        JsonElement elem = element.get(field);
+        if(elem == null){
+            throw CorruptedCultureException.missingField(cultureName, objectLoadedName, fileName, field, fieldLocation, fileRL);
+        }
+        return elem;
+    }
+
+    public static JsonElement tryGet(JsonObject element, String field, String objectLoadedName, String cultureName, String fileName, ResourceLocation fileRL){
+        return tryGet(element, field, "", objectLoadedName, cultureName, fileName, fileRL);
     }
 }

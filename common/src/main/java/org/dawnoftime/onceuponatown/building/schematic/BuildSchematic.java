@@ -1,5 +1,6 @@
-package org.dawnoftime.onceuponatown.construction;
+package org.dawnoftime.onceuponatown.building.schematic;
 
+import net.minecraft.world.phys.Vec3;
 import org.dawnoftime.onceuponatown.Ouat;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderGetter;
@@ -16,11 +17,16 @@ import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.Vec3;
+import org.dawnoftime.onceuponatown.construction.BlockInfo;
+import org.dawnoftime.onceuponatown.construction.ConstructionUtils;
+import org.dawnoftime.onceuponatown.construction.EntityInfo;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
@@ -30,11 +36,15 @@ import java.util.List;
  * Shared by all structures which are described by the same NBT file.<br>
  * Does not contain any information about how the structure should be placed in world (position, rotation...).<br>
  */
-public class ConstructionPlan {
+public class BuildSchematic {
     /**
      * The structure NBT file path
      */
     private final ResourceLocation structurePath;
+    /**
+     * Length, width, height of this building
+     */
+    private Vec3i dimensions = Vec3i.ZERO;
     /**
      * The list of blocks in this building
      */
@@ -43,29 +53,25 @@ public class ConstructionPlan {
      * The list of entities in this building
      */
     private final List<EntityInfo> entities = new ArrayList<>();
-    /**
-     * Length, width, height of this building
-     */
-    private Vec3i dimensions = Vec3i.ZERO;
+    private final List<Waypoint> waypoints = new ArrayList<>();
 
-    private ConstructionPlan(ResourceLocation structurePath) {
+    private BuildSchematic(ResourceLocation structurePath, HolderGetter<Block> blockGetter, CompoundTag structureTag) {
         this.structurePath = structurePath;
+        this.readSchematic(blockGetter, structureTag);
     }
 
     /**
-     * Creates a building plan, replaces constructor
+     * Creates a building plan from its RL, replaces the constructor. Returns null if the file could not be loaded.
      * @param structurePath The structure NBT file path of the desired structure
-     * @param resourceManager Ressource manager
-     * @return a new building plan
+     * @param resourceManager Resource manager
+     * @return a new building plan.
      */
-    public static ConstructionPlan create(ResourceLocation structurePath, ResourceManager resourceManager) {
+    public static @Nullable BuildSchematic create(ResourceLocation structurePath, ResourceManager resourceManager) {
         FileToIdConverter converter = new FileToIdConverter("structures", ".nbt");
         ResourceLocation resourceLocation = converter.idToFile(structurePath);
         try (InputStream inputStream = resourceManager.open(resourceLocation)) {
             CompoundTag tag = NbtIo.readCompressed(inputStream);
-            ConstructionPlan constructionPlan = new ConstructionPlan(structurePath);
-            HolderGetter<Block> blockLookup =  BuiltInRegistries.BLOCK.asLookup();
-            constructionPlan.readStructureTag(blockLookup, tag);
+            BuildSchematic constructionPlan = new BuildSchematic(structurePath, BuiltInRegistries.BLOCK.asLookup(), tag);
             return constructionPlan.withoutAirBlocks();
         } catch (FileNotFoundException fileNotFoundException) {
             Ouat.LOG.error("Structure not found {}", resourceLocation, fileNotFoundException);
@@ -80,7 +86,7 @@ public class ConstructionPlan {
      * Read the structure NBT file, initialize building plan blocks and entities
      * @param structureTag The structure NBT tag
      */
-    private void readStructureTag(HolderGetter<Block> blockGetter, CompoundTag structureTag) {
+    private void readSchematic(HolderGetter<Block> blockGetter, CompoundTag structureTag) {
         // Extracting dimensions
         ListTag sizeTag = structureTag.getList("size", 3);
         this.dimensions = new Vec3i(sizeTag.getInt(0), sizeTag.getInt(1), sizeTag.getInt(2));
@@ -142,7 +148,7 @@ public class ConstructionPlan {
     /**
      * @return This building plan without air blocks
      */
-    public ConstructionPlan withoutAirBlocks() {
+    public BuildSchematic withoutAirBlocks() {
         List<BlockInfo> toRemove = new ArrayList<>();
         for (BlockInfo blockInfo : this.blocks) {
             if (blockInfo.state().isAir()) {
@@ -189,6 +195,10 @@ public class ConstructionPlan {
         return this.structurePath;
     }
 
+    public List<Waypoint> getWaypoints() {
+        return this.waypoints;
+    }
+
     static class Palette implements Iterable<BlockState> {
         public static final BlockState DEFAULT_BLOCK_STATE = Blocks.AIR.defaultBlockState();
         private final IdMapper<BlockState> ids = new IdMapper<>(16);
@@ -209,7 +219,7 @@ public class ConstructionPlan {
             return blockstate == null ? DEFAULT_BLOCK_STATE : blockstate;
         }
 
-        public Iterator<BlockState> iterator() {
+        public @NotNull Iterator<BlockState> iterator() {
             return this.ids.iterator();
         }
 

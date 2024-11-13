@@ -16,8 +16,11 @@ import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.Building;
-import org.dawnoftime.onceuponatown.building.type.BuildingType;
+import org.dawnoftime.onceuponatown.building.schematic.BuildSchematic;
+import org.dawnoftime.onceuponatown.building.placement.BuildingPlacementSettings;
+import org.dawnoftime.onceuponatown.building.type.BuildType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,13 +40,13 @@ public class ConstructionProject {
     protected final Level level;
     protected final String name;
     private final ProjectType projectType;
-    protected final BuildingType buildingType;
+    protected final BuildType buildingType;
     private final BuildingPlacementSettings placementSettings;
     private final List<ProjectStep> projectSteps;
     private int progress = 0;
     protected boolean completed;
 
-    private ConstructionProject(Level level, String name, ProjectType projectType, BuildingType buildingType, BuildingPlacementSettings placementSettings, List<ProjectStep> projectSteps) {
+    private ConstructionProject(Level level, String name, ProjectType projectType, BuildType buildingType, BuildingPlacementSettings placementSettings, List<ProjectStep> projectSteps) {
         this.level = level;
         this.name = name;
         this.projectType = projectType;
@@ -52,11 +55,11 @@ public class ConstructionProject {
         this.projectSteps = projectSteps;
     }
 
-    public ConstructionProject newBuildProject(Level level, String name, BuildingType type, BuildingPlacementSettings placementSettings) {
+    public ConstructionProject newBuildProject(Level level, String name, BuildType type, BuildingPlacementSettings placementSettings) {
         return newBuildProject(level, name, type, 1, placementSettings);
     }
 
-    public ConstructionProject newBuildProject(Level level, String name, BuildingType buildingType, int buildingLevel, BuildingPlacementSettings buildingPlacementSettings) {
+    public ConstructionProject newBuildProject(Level level, String name, BuildType buildingType, int buildingLevel, BuildingPlacementSettings buildingPlacementSettings) {
         return createProject(level, name, ProjectType.NEW_BUILD, buildingType, buildingLevel, buildingPlacementSettings);
     }
 
@@ -72,14 +75,14 @@ public class ConstructionProject {
         return createProject(level, name, ProjectType.REPAIR, building.getType(), building.getLevel(), building.getPlacementSettings());
     }
 
-    private ConstructionProject createProject(Level level, String name, ProjectType projectType, BuildingType buildingType, int buildingLevel, BuildingPlacementSettings buildingPlacementSettings) {
+    private ConstructionProject createProject(Level level, String name, ProjectType projectType, BuildType buildingType, int buildingLevel, BuildingPlacementSettings buildingPlacementSettings) {
         // 1. Create ConstructionPlan
         // 2. Scan plot. List blocks in variable existingBlocks, same with decoration entities (armor stands, paintings...)
         // 2. Compare existing with plan. Put valid blocks positions in variable toKeep
         // 3. Add existingEntities in entitiesToRemove
         // 4. Add constructionPlan blocks in blocksToAdd only if position is not listed in toKeep
         // 5. Add constructionPlan entities in entitiesToAdd
-        ConstructionPlan constructionPlan = ConstructionPlan.create(buildingType.getStructureFileForLevel(buildingLevel), ((ServerLevel)level).getServer().getResourceManager());
+        BuildSchematic constructionPlan = BuildSchematic.create(Ouat.createOuatResource("plains/big_house"), ((ServerLevel)level).getServer().getResourceManager());
         Vec3i planDimensions = constructionPlan.getDimensions();
         BlockPos firstCorner = buildingPlacementSettings.getPosition();
         BlockPos secondCorner = firstCorner.offset(planDimensions.getX(), planDimensions.getY(), planDimensions.getZ());

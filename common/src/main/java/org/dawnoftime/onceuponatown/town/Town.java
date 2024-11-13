@@ -6,7 +6,7 @@ import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.culture.Orientation;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.building.Building;
-import org.dawnoftime.onceuponatown.building.type.BuildingType;
+import org.dawnoftime.onceuponatown.building.type.BuildType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
@@ -78,22 +78,23 @@ public class Town {
         return town;
     }
 
-    /**
+    /*
      * Creates a new instance of Town from the NBT data saved during world generation.
      * @param level Level in which the Town was generated.
      * @param tag NBT component that contains the raw information.
      * @return The new instance of Town.
      */
-    public static Town createWorldGen(Level level, CompoundTag tag) {;
+    /*
+    public static Town createFromWorldGen(Level level, CompoundTag tag) {;
         TownInventory townInventory = new TownInventory();
         Town town = new Town(Mth.createInsecureUUID(RandomSource.create()), level, culture, name, townMap.getCenter(), townMap, townInventory,  new ArrayList<>(),  new ArrayList<>(),  new ArrayList<>());
         town.createBuildingsWorldGen(townMap);
         town.updateConstructionProject();
         return town;
     }
+     */
 
-
-    static Town createCommand(Level level, Culture culture, String name) {
+    public static Town createFromCommand(Level level, Culture culture, String name) {
         return null;
     }
 
@@ -108,22 +109,22 @@ public class Town {
 
     }
 
-    private void beginNewConstructionProject(BuildingType buildingType) {
+    private void beginNewConstructionProject(BuildType buildingType) {
         // ask town map for adding a building
         // town map add a MapBuilding to the map (marked not built) and return the MapBuilding
         // creates the ConstructionProject class using MapBuilding class
     }
 
-    private void finishConstructionProject(BuildingType buildingType) {
+    private void finishConstructionProject(BuildType buildingType) {
         // notifies town map, mark the associated MapBuilding built
         // creates the Building instance using ConstructionProject
         // deletes ConstructionProject
     }
 
-    private void abortConstructionProject(BuildingType buildingType) {
+    private void abortConstructionProject(BuildType buildingType) {
     }
 
-    private void addBuildingInstantConstruction(BuildingType buildingType, int wantedLevel) {
+    private void addBuildingInstantConstruction(BuildType buildingType, int wantedLevel) {
         // ask town map for adding a building
         // town map add a MapBuilding to the map (marked built) and return the MapBuilding
         // creates the Building instance using MapBuilding class

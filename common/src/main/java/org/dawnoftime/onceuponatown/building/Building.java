@@ -1,7 +1,7 @@
 package org.dawnoftime.onceuponatown.building;
 
-import org.dawnoftime.onceuponatown.construction.BuildingPlacementSettings;
-import org.dawnoftime.onceuponatown.building.type.BuildingType;
+import org.dawnoftime.onceuponatown.building.placement.BuildingPlacementSettings;
+import org.dawnoftime.onceuponatown.building.type.BuildType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 
 public class Building {
-    private final BuildingType buildingType;
+    private final BuildType buildingType;
     //private final BuildPlacement buildPlacement;
     private ResourceLocation structurePath;
     private BuildingPlacementSettings placementSettings;
@@ -22,12 +22,12 @@ public class Building {
     private final List<BlockPos> workPositions = new ArrayList<>();
     private int level;
 
-    private Building(BuildingType buildingType) {
+    private Building(BuildType buildingType) {
         this.buildingType = buildingType;
         //this.buildPlacement = buildPlacement;
     }
 
-    public static Building create(BuildingType buildingType) {
+    public static Building create(BuildType buildingType) {
         return new Building(buildingType);
     }
 
@@ -55,7 +55,7 @@ public class Building {
         return level;
     }
 
-    public BuildingType getType() {
+    public BuildType getType() {
         return buildingType;
     }
 

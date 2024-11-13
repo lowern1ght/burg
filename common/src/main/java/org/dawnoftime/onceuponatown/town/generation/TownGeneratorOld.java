@@ -1,11 +1,11 @@
 package org.dawnoftime.onceuponatown.town.generation;
 
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.building.type.BuildingType;
+import org.dawnoftime.onceuponatown.building.type.BuildType;
 import org.dawnoftime.onceuponatown.building.placement.BuildPlacement;
 import org.dawnoftime.onceuponatown.building.placement.BuildingPlacement;
 import org.dawnoftime.onceuponatown.building.placement.RoadPlacement;
-import org.dawnoftime.onceuponatown.structure.pieces.BuildingPiece;
+import org.dawnoftime.onceuponatown.structure.pieces.BuildPiece;
 import org.dawnoftime.onceuponatown.structure.pieces.PathPiece;
 import org.dawnoftime.onceuponatown.structure.pieces.TownDataBuildingPiece;
 import net.minecraft.core.BlockPos;
@@ -49,7 +49,7 @@ public class TownGeneratorOld {
             new BuildingInfo(Ouat.createOuatResource("plains/wildspot"), 10, 6)
     };
 
-    public static void generatePiecesWorldGen(StructureTemplateManager manager, BlockPos townCenterPos, List<BuildingType> starter_pack, StructurePieceAccessor pieces, WorldgenRandom random) {
+    public static void generatePiecesWorldGen(StructureTemplateManager manager, BlockPos townCenterPos, List<BuildType> starter_pack, StructurePieceAccessor pieces, WorldgenRandom random) {
         Ouat.info("Town at + " + townCenterPos.toShortString() + " : started generating pieces");
         List<BuildingInfo> availableBuildings = new LinkedList<>(Arrays.asList(TEST_BUILDINGS));
         List<BuildingInfo> starterPack = new ArrayList<>();
@@ -81,10 +81,10 @@ public class TownGeneratorOld {
             TownMapUtils.Corner corner = cornerFromDir(building.getDirection() != null ? building.getDirection() : Direction.NORTH);
             ResourceLocation buildingName = starterPack.get(i).name;
             if (i == 0) {
-                var piece = new TownDataBuildingPiece(manager, buildingName, building.getCornerPos(corner), rotation, BuildingType.DEFAULT_TYPE, townMap);
+                var piece = new TownDataBuildingPiece(manager, buildingName, building.getCornerPos(corner), rotation, BuildType.DEFAULT_TYPE, townMap);
                 pieces.addPiece(piece);
             } else {
-                var piece = new BuildingPiece(manager, buildingName, building.getCornerPos(corner), rotation, BuildingType.DEFAULT_TYPE);
+                var piece = new BuildPiece(manager, buildingName, building.getCornerPos(corner), rotation, BuildType.DEFAULT_TYPE);
                 pieces.addPiece(piece);
             }
         }

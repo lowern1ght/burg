@@ -17,6 +17,7 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
 
+@Deprecated
 public class PathPiece extends StructurePiece {
     private BlockPos originPos;
     private int sizeX;

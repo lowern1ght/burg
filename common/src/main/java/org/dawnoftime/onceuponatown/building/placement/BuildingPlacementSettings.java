@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.construction;
+package org.dawnoftime.onceuponatown.building.placement;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Mirror;
