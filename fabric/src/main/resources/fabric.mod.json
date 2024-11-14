@@ -16,7 +16,7 @@
     "environment": "*",
     "entrypoints": {
         "main": [
-            "org.dawnoftime.onceuponatown.OnceUponATown"
+            "org.dawnoftime.onceuponatown.OuatFabric"
         ]
     },
     "mixins": [

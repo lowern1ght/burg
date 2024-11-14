@@ -3,6 +3,7 @@ package org.dawnoftime.onceuponatown.registry;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.item.Item;
+import org.dawnoftime.onceuponatown.item.TownMapItem;
 
 import java.util.function.Supplier;
 
@@ -11,6 +12,7 @@ public abstract class OuatItemsRegistry {
 
     public final Supplier<Item> CITIZEN_SPAWN_EGG = registerSpawnEgg("citizen_spawn_egg", OuatEntitiesRegistry.ENTITY_REGISTRY.NPC, 0x96691f, 0x38b934/*51A03E*/);
     public final Supplier<Item> EMERALD_SHARD = register("emerald_shard", () -> new Item(new Item.Properties()));
+    public final Supplier<Item> TOWN_MAP = register("town_map", () -> new TownMapItem(new Item.Properties()));
 
     public abstract <T extends Item> Supplier<Item> register(final String name, final Supplier<T> itemSupplier);
     public abstract <T extends Item> Supplier<Item> registerSpawnEgg(final String name, Supplier<? extends EntityType<? extends Mob>> type, int backgroundColor, int highlightColor);

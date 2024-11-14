@@ -36,7 +36,9 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkHooks;
+import net.minecraftforge.network.PacketDistributor;
 import org.dawnoftime.onceuponatown.Common;
 import org.dawnoftime.onceuponatown.culture.CultureManager;
 import org.dawnoftime.onceuponatown.entity.Npc;
@@ -52,60 +54,25 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-@Mod.EventBusSubscriber(modid = Ouat.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class ForgeCommon extends Common {
-    @SubscribeEvent
-    public static void commonSetup(FMLCommonSetupEvent event) {
-        event.enqueueWork(ForgeNetwork::init);
-    }
-
-    @SubscribeEvent
-    public static void createEntityAttributes(EntityAttributeCreationEvent event) {
-        event.put(OuatEntitiesRegistry.ENTITY_REGISTRY.NPC.get(), Npc.createAttributes().build());
-    }
-
-    @SubscribeEvent
-    public static void addReloadListener(AddReloadListenerEvent event) {
-        //event.addListener(CultureManager.instance());
-    }
-
-    //@SubscribeEvent
-    public static void onLevelTick(TickEvent.LevelTickEvent event) {
-        if (event.level instanceof ServerLevel level && event.phase.equals(TickEvent.Phase.END)) {
-            TownManager.tickTowns(level);
-        }
-    }
-
-    @SubscribeEvent
-    public static void onServerStarting(ServerStartingEvent event) {
-        CultureManager.loadCultures(event.getServer().getResourceManager());
-    }
-
-    @SubscribeEvent
-    public static void registerCommands(RegisterCommandsEvent event) {
-        OuatCommands.register(event.getDispatcher());
-    }
-
-    @SubscribeEvent
-    public static void finalizeSpawn(MobSpawnEvent.FinalizeSpawn event) {
-        if (event.getEntity() instanceof Npc npc) {
-            npc.onFinalizeSpawnEvent();
-        }
-    }
-
     @Override
     public boolean isModLoaded(String modId) {
         return ModList.get().isLoaded(modId);
     }
 
     @Override
-    public void openMenu(ServerPlayer player, MenuProvider menu, Consumer<FriendlyByteBuf> buf) {
-        NetworkHooks.openScreen(player, menu, buf);
+    public void sendToClient(ServerPlayer player, IOuatPacket packet) {
+        ForgeNetwork.CHANNEL.sendTo(packet, player.connection.connection, NetworkDirection.PLAY_TO_CLIENT);
     }
 
     @Override
     public void sendToServer(IOuatPacket packet) {
         ForgeNetwork.CHANNEL.sendToServer(packet);
+    }
+
+    @Override
+    public void openMenu(ServerPlayer player, MenuProvider menu, Consumer<FriendlyByteBuf> buf) {
+        NetworkHooks.openScreen(player, menu, buf);
     }
 
     @Override
@@ -146,5 +113,48 @@ public class ForgeCommon extends Common {
     @Override
     public @Nullable HumanoidModel.ArmPose getItemCustomArmPose(LivingEntity entity, InteractionHand hand, ItemStack stack) {
         return IClientItemExtensions.of(stack).getArmPose(entity, hand, stack);
+    }
+
+    @Mod.EventBusSubscriber(modid = Ouat.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
+    public static class ModBusCommonEvents {
+        @SubscribeEvent
+        public static void commonSetup(FMLCommonSetupEvent event) {
+            event.enqueueWork(ForgeNetwork::init);
+        }
+    }
+
+    @Mod.EventBusSubscriber(modid = Ouat.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+    public static class ForgeBusCommonEvents {
+        @SubscribeEvent
+        public static void createEntityAttributes(EntityAttributeCreationEvent event) {
+            event.put(OuatEntitiesRegistry.ENTITY_REGISTRY.NPC.get(), Npc.createAttributes().build());
+        }
+        @SubscribeEvent
+        public static void registerCommands(RegisterCommandsEvent event) {
+            OuatCommands.register(event.getDispatcher());
+        }
+
+        @SubscribeEvent
+        public static void onServerStarting(ServerStartingEvent event) {
+            CultureManager.loadCultures(event.getServer().getResourceManager());
+        }
+
+        @SubscribeEvent
+        public static void onLevelTick(TickEvent.LevelTickEvent event) {
+            if (event.level instanceof ServerLevel level && event.phase.equals(TickEvent.Phase.END)) {
+                //TownManager.tickTowns(level);
+            }
+        }
+
+        @SubscribeEvent
+        public static void addReloadListener(AddReloadListenerEvent event) {
+            //event.addListener(CultureManager.instance());
+        }
+        @SubscribeEvent
+        public static void finalizeSpawn(MobSpawnEvent.FinalizeSpawn event) {
+            if (event.getEntity() instanceof Npc npc) {
+                npc.onFinalizeSpawnEvent();
+            }
+        }
     }
 }

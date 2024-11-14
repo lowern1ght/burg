@@ -52,6 +52,8 @@ public abstract class Common {
      */
     public abstract void sendToServer(IOuatPacket packet);
 
+    public abstract void sendToClient(ServerPlayer player, IOuatPacket packet);
+
     /**
      * Function called to render tooltips on a GUI. Forge requires an ItemStack while Vanilla does not.
      *

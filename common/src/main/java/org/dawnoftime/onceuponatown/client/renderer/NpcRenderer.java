@@ -8,15 +8,12 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.HumanoidMobRenderer;
 import net.minecraft.client.renderer.entity.layers.HumanoidArmorLayer;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.model.NpcModel;
 import org.dawnoftime.onceuponatown.client.model.layer.NpcArrowLayer;
 import org.dawnoftime.onceuponatown.client.model.layer.NpcClothesLayer;
 import org.dawnoftime.onceuponatown.entity.Npc;
 
-@OnlyIn(Dist.CLIENT)
 public class NpcRenderer extends HumanoidMobRenderer<Npc, NpcModel<Npc>> {
     private static final ResourceLocation NPC_BASE_SKIN = Ouat.createOuatResource("textures/entity/npc/base_skin.png");
 
