@@ -16,15 +16,15 @@ public class CorruptedCultureException extends RuntimeException{
      * @param element The element in the file that may be invalid
      */
     public CorruptedCultureException(String culture, String file, String element, String message) {
-        this("Once upon a town MOD : " + culture + " is corrupted. Affected file : " + file + ". Affected element in file : " + element + "." + ((message == null) ? "" : " " + message));
+        this("Culture [" + culture + "]: This culture is corrupted. Affected file : " + file + ". Affected element in file : " + element + "." + ((message == null) ? "" : " " + message));
     }
 
     public CorruptedCultureException(String culture, String file, String message) {
-        this("Once upon a town MOD : " + culture + " is corrupted. Affected file : " + file + "." + ((message == null) ? "" : " " + message));
+        this("Culture [" + culture + "]: This culture is corrupted. Affected file : " + file + "." + ((message == null) ? "" : " " + message));
     }
 
     public CorruptedCultureException(String culture, String message) {
-        this("Once upon a town MOD : " + culture + " is corrupted." + ((message == null) ? "" : " " + message));
+        this("Culture [" + culture + "]: This culture is corrupted." + ((message == null) ? "" : " " + message));
     }
 
     public static CorruptedCultureException missingField(String cultureName, String objectClassName, String fileName, String missingField, String missingFieldDescription, ResourceLocation rl){

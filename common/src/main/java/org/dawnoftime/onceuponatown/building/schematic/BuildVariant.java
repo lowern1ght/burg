@@ -105,6 +105,10 @@ public class BuildVariant {
         return this.buildSchematicArray[level - 1].getWaypoints();
     }
 
+    public SchematicContent getSchematic(ResourceManager resourceManager, int level){
+        return this.buildSchematicArray[level - 1].load(resourceManager);
+    }
+
     public String getName() {
         return this.name;
     }

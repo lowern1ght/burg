@@ -64,32 +64,4 @@ public class BuildType {
     public int getVariantNumber(){
         return this.variants.size();
     }
-/*
-    // TODO Temporary code to generate the started pack for any culture.
-    public static final int STARTER_PACK_SIZE = 21;
-    public static final BuildType[] TEST_BUILDINGS = new BuildType[] {
-            new BuildType(Ouat.createOuatResource("plains/bigchurch"), 19, 32),
-            new BuildType(Ouat.createOuatResource("plains/bighouse"), 13, 11),
-            new BuildType(Ouat.createOuatResource("plains/bighousefront"), 9, 8),
-            new BuildType(Ouat.createOuatResource("plains/bighousestand"), 15, 10),
-            new BuildType(Ouat.createOuatResource("plains/church"), 15, 24),
-            new BuildType(Ouat.createOuatResource("plains/cowshed"), 16, 11),
-            new BuildType(Ouat.createOuatResource("plains/doubledeckhouse"), 7, 15),
-            new BuildType(Ouat.createOuatResource("plains/fountainplace"), 13, 13),
-            new BuildType(Ouat.createOuatResource("plains/leathershop"), 14, 9),
-            new BuildType(Ouat.createOuatResource("plains/littlefarm"), 9, 7),
-            new BuildType(Ouat.createOuatResource("plains/lonegarden"), 14, 13),
-            new BuildType(Ouat.createOuatResource("plains/loneresources"), 14, 11),
-            new BuildType(Ouat.createOuatResource("plains/mediumhouse"), 11, 10),
-            new BuildType(Ouat.createOuatResource("plains/merchantshop"), 15, 12),
-            new BuildType(Ouat.createOuatResource("plains/smallfarm"), 17, 10),
-            new BuildType(Ouat.createOuatResource("plains/smallhouse"), 8, 9),
-            new BuildType(Ouat.createOuatResource("plains/smallhousefancy"), 14, 10),
-            new BuildType(Ouat.createOuatResource("plains/smallhousegarden"), 14, 8),
-            new BuildType(Ouat.createOuatResource("plains/smallmarket"), 25, 18),
-            new BuildType(Ouat.createOuatResource("plains/soldierhouse"), 13, 13),
-            new BuildType(Ouat.createOuatResource("plains/wildspot"), 10, 6)
-    };
-
- */
 }

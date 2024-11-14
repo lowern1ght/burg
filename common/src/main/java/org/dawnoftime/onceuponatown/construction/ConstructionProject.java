@@ -20,7 +20,8 @@ import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.Building;
 import org.dawnoftime.onceuponatown.building.schematic.BuildSchematic;
 import org.dawnoftime.onceuponatown.building.placement.BuildingPlacementSettings;
-import org.dawnoftime.onceuponatown.building.type.BuildType;
+import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
+import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,27 +41,27 @@ public class ConstructionProject {
     protected final Level level;
     protected final String name;
     private final ProjectType projectType;
-    protected final BuildType buildingType;
+    protected final BuildVariant buildVariant;
     private final BuildingPlacementSettings placementSettings;
     private final List<ProjectStep> projectSteps;
     private int progress = 0;
     protected boolean completed;
 
-    private ConstructionProject(Level level, String name, ProjectType projectType, BuildType buildingType, BuildingPlacementSettings placementSettings, List<ProjectStep> projectSteps) {
+    private ConstructionProject(Level level, String name, ProjectType projectType, BuildVariant variant, BuildingPlacementSettings placementSettings, List<ProjectStep> projectSteps) {
         this.level = level;
         this.name = name;
         this.projectType = projectType;
-        this.buildingType = buildingType;
+        this.buildVariant = variant;
         this.placementSettings = placementSettings;
         this.projectSteps = projectSteps;
     }
 
-    public ConstructionProject newBuildProject(Level level, String name, BuildType type, BuildingPlacementSettings placementSettings) {
-        return newBuildProject(level, name, type, 1, placementSettings);
+    public ConstructionProject newBuildProject(Level level, String name, BuildVariant variant, BuildingPlacementSettings placementSettings) {
+        return newBuildProject(level, name, variant, 1, placementSettings);
     }
 
-    public ConstructionProject newBuildProject(Level level, String name, BuildType buildingType, int buildingLevel, BuildingPlacementSettings buildingPlacementSettings) {
-        return createProject(level, name, ProjectType.NEW_BUILD, buildingType, buildingLevel, buildingPlacementSettings);
+    public ConstructionProject newBuildProject(Level level, String name, BuildVariant variant, int buildingLevel, BuildingPlacementSettings buildingPlacementSettings) {
+        return createProject(level, name, ProjectType.NEW_BUILD, variant, buildingLevel, buildingPlacementSettings);
     }
 
     public ConstructionProject upgradeProject(Level level, String name, Building building) {
@@ -68,64 +69,69 @@ public class ConstructionProject {
     }
 
     public ConstructionProject upgradeProject(Level level, String name, Building building, int wantedLevel) {
-        return createProject(level, name, ProjectType.UPGRADE, building.getType(), wantedLevel, building.getPlacementSettings());
+        return createProject(level, name, ProjectType.UPGRADE, building.getVariant(), wantedLevel, building.getPlacementSettings());
     }
 
     public ConstructionProject repairProject(Level level, String name, Building building) {
-        return createProject(level, name, ProjectType.REPAIR, building.getType(), building.getLevel(), building.getPlacementSettings());
+        return createProject(level, name, ProjectType.REPAIR, building.getVariant(), building.getLevel(), building.getPlacementSettings());
     }
 
-    private ConstructionProject createProject(Level level, String name, ProjectType projectType, BuildType buildingType, int buildingLevel, BuildingPlacementSettings buildingPlacementSettings) {
+    private ConstructionProject createProject(Level level, String name, ProjectType projectType, BuildVariant buildVariant, int buildingLevel, BuildingPlacementSettings buildingPlacementSettings) {
+
         // 1. Create ConstructionPlan
         // 2. Scan plot. List blocks in variable existingBlocks, same with decoration entities (armor stands, paintings...)
         // 2. Compare existing with plan. Put valid blocks positions in variable toKeep
         // 3. Add existingEntities in entitiesToRemove
-        // 4. Add constructionPlan blocks in blocksToAdd only if position is not listed in toKeep
-        // 5. Add constructionPlan entities in entitiesToAdd
-        BuildSchematic constructionPlan = BuildSchematic.create(Ouat.createOuatResource("plains/big_house"), ((ServerLevel)level).getServer().getResourceManager());
-        Vec3i planDimensions = new Vec3i(10, 10, 10); //TODO Replace with the actual size constructionPlan.getSize();
-        BlockPos firstCorner = buildingPlacementSettings.getPosition();
-        BlockPos secondCorner = firstCorner.offset(planDimensions.getX(), planDimensions.getY(), planDimensions.getZ());
-        List<BlockInfo> existingBlocks = new ArrayList<>();
-        for (int y = firstCorner.getY(); y <= secondCorner.getY(); ++y) {
-            for (int x = firstCorner.getX(); x <= secondCorner.getX(); ++x) {
-                for (int z = firstCorner.getZ(); z <= secondCorner.getZ(); ++z) {
-                    BlockPos blockPos = new BlockPos(x, y, z);
-                    BlockState blockState = level.getBlockState(blockPos);
-                    CompoundTag blockNbt = null;
-                    BlockEntity blockEntity = level.getBlockEntity(blockPos);
-                    /* TODO get BlockEntity NBT data.
-                    if (blockEntity != null) {
-                        blockNbt = blockEntity.getPersistentData();
-                    }
-                     */
-                    existingBlocks.add(new BlockInfo(blockPos, blockState, blockNbt));
-                }
-            }
-        }
-        ConstructionUtils.sortBlocks(existingBlocks);
-        List<BlockInfo> blocksToAdd = new ArrayList<>();
-        List<BlockPos> blocksToRemove = new ArrayList<>();
-        for (int i = 0; i < existingBlocks.size(); ++i) {
-            BlockState existingBlockState = existingBlocks.get(i).state();
-            CompoundTag existingBlockNbt = existingBlocks.get(i).nbt();
-            BlockState newBlockState = constructionPlan.getBlockState(i);
-            CompoundTag newBlockNbt = constructionPlan.getBlockNBT(i);
-            if (existingBlockState != newBlockState) {
-                if (newBlockState.isAir()) {
-                    blocksToRemove.add(existingBlocks.get(i).pos());
-                }
-                blocksToAdd.add(existingBlocks.get(i));
-            }
-        }
-        List<EntityInfo> entitiesToRemove = new ArrayList<>();
-        List<EntityInfo> entitiesToAdd = new ArrayList<>();
-
+        // 4. Add schematic blocks in blocksToAdd only if position is not listed in toKeep
+        // 5. Add schematic entities in entitiesToAdd
         List<ProjectStep> projectSteps = new ArrayList<>();
-        blocksToRemove.forEach((blockPos -> projectSteps.add(new ProjectStep(StepType.REMOVE_BLOCK, blockPos, null, null, null, null))));
-        blocksToAdd.forEach((blockInfo -> projectSteps.add(new ProjectStep(StepType.PLACE_BLOCK, blockInfo.pos(), blockInfo.state(),blockInfo.nbt(), null, null))));
+        if(!level.isClientSide()){
+            if(level instanceof ServerLevel serverLevel){
+                SchematicContent schematic = buildVariant.getSchematic(serverLevel.getServer().getResourceManager(), buildingLevel);
+                Vec3i planDimensions = buildVariant.getSize();
+                BlockPos firstCorner = buildingPlacementSettings.getPosition();
+                BlockPos secondCorner = firstCorner.offset(planDimensions.getX(), planDimensions.getY(), planDimensions.getZ());
+                List<BlockInfo> existingBlocks = new ArrayList<>();
+                for (int y = firstCorner.getY(); y <= secondCorner.getY(); ++y) {
+                    for (int x = firstCorner.getX(); x <= secondCorner.getX(); ++x) {
+                        for (int z = firstCorner.getZ(); z <= secondCorner.getZ(); ++z) {
+                            BlockPos blockPos = new BlockPos(x, y, z);
+                            BlockState blockState = level.getBlockState(blockPos);
+                            CompoundTag blockNbt = null;
+                            BlockEntity blockEntity = level.getBlockEntity(blockPos);
+                            /* TODO get BlockEntity NBT data.
+                            if (blockEntity != null) {
+                                blockNbt = blockEntity.getPersistentData();
+                            }
+                             */
+                            existingBlocks.add(new BlockInfo(blockPos, blockState, blockNbt));
+                        }
+                    }
+                }
+                ConstructionUtils.sortBlocks(existingBlocks);
+                List<BlockInfo> blocksToAdd = new ArrayList<>();
+                List<BlockPos> blocksToRemove = new ArrayList<>();
+                for (int i = 0; i < existingBlocks.size(); ++i) {
+                    BlockState existingBlockState = existingBlocks.get(i).state();
+                    CompoundTag existingBlockNbt = existingBlocks.get(i).nbt();
+                    BlockState newBlockState = schematic.getBlockState(i);
+                    CompoundTag newBlockNbt = schematic.getBlockNBT(i);
+                    if (existingBlockState != newBlockState) {
+                        if (newBlockState.isAir()) {
+                            blocksToRemove.add(existingBlocks.get(i).pos());
+                        }
+                        blocksToAdd.add(existingBlocks.get(i));
+                    }
+                }
+                List<EntityInfo> entitiesToRemove = new ArrayList<>();
+                List<EntityInfo> entitiesToAdd = new ArrayList<>();
 
-        return new ConstructionProject(level, name, projectType, buildingType, buildingPlacementSettings, projectSteps);
+                blocksToRemove.forEach((blockPos -> projectSteps.add(new ProjectStep(StepType.REMOVE_BLOCK, blockPos, null, null, null, null))));
+                blocksToAdd.forEach((blockInfo -> projectSteps.add(new ProjectStep(StepType.PLACE_BLOCK, blockInfo.pos(), blockInfo.state(),blockInfo.nbt(), null, null))));
+            }
+        }
+        // TODO The project list is empty on Client side. Do we need to send some packet or is it OK ?
+        return new ConstructionProject(level, name, projectType, buildVariant, buildingPlacementSettings, projectSteps);
     }
 
     public void executeNSteps(int times) {
@@ -182,10 +188,7 @@ public class ConstructionProject {
                     }
                     ((ServerLevelAccessor) level).addFreshEntityWithPassengers(entity);
                     success = true;
-                } else {
-                    success = false;
                 }
-
             }
         }
         if (success) {
