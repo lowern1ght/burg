@@ -20,41 +20,46 @@ import org.dawnoftime.onceuponatown.registry.OuatEntitiesRegistry;
 import org.dawnoftime.onceuponatown.registry.OuatItemsRegistry;
 import org.dawnoftime.onceuponatown.registry.OuatMenusRegistry;
 
-@Mod.EventBusSubscriber(modid = Ouat.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public class ForgeClient extends Client {
-    @SubscribeEvent
-    public static void clientSetup(FMLClientSetupEvent event) {
-        event.enqueueWork(
-                () -> {
-                    MenuScreens.register(OuatMenusRegistry.MENU_REGISTRY.BUY_MENU.get(), BuyScreen::new);
-                    MenuScreens.register(OuatMenusRegistry.MENU_REGISTRY.SELL_MENU.get(), SellScreen::new);
-                }
-        );
-    }
 
-    @SubscribeEvent
-    public static void addItemsToCreativeModeTabs(BuildCreativeModeTabContentsEvent event) {
-        if (event.getTabKey() == CreativeModeTabs.SPAWN_EGGS) {
-            event.accept(OuatItemsRegistry.ITEM_REGISTRY.CITIZEN_SPAWN_EGG);
+    @Mod.EventBusSubscriber(modid = Ouat.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+    public static class ModBusClientEvents {
+        @SubscribeEvent
+        public static void clientSetup(FMLClientSetupEvent event) {
+            event.enqueueWork(() -> {
+                MenuScreens.register(OuatMenusRegistry.MENU_REGISTRY.BUY_MENU.get(), BuyScreen::new);
+                MenuScreens.register(OuatMenusRegistry.MENU_REGISTRY.SELL_MENU.get(), SellScreen::new);}
+            );
         }
-        if (event.getTabKey() == CreativeModeTabs.INGREDIENTS) {
-            event.accept(OuatItemsRegistry.ITEM_REGISTRY.EMERALD_SHARD);
+
+        @SubscribeEvent
+        public static void addItemsToCreativeModeTabs(BuildCreativeModeTabContentsEvent event) {
+            if (event.getTabKey() == CreativeModeTabs.SPAWN_EGGS) {
+                event.accept(OuatItemsRegistry.ITEM_REGISTRY.CITIZEN_SPAWN_EGG);
+            }
+            if (event.getTabKey() == CreativeModeTabs.INGREDIENTS) {
+                event.accept(OuatItemsRegistry.ITEM_REGISTRY.EMERALD_SHARD);
+            }
+        }
+
+        @SubscribeEvent
+        public static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
+            event.registerEntityRenderer(OuatEntitiesRegistry.ENTITY_REGISTRY.NPC.get(), NpcRenderer::new);
+            event.registerEntityRenderer(OuatEntitiesRegistry.ENTITY_REGISTRY.NPC_FISHING_HOOK.get(), NpcFishingHookRenderer::new);
+        }
+
+        @SubscribeEvent
+        public static void registerEntityLayerDefinitions(EntityRenderersEvent.RegisterLayerDefinitions event) {
+            event.registerLayerDefinition(NpcModel.LAYER_LOCATION, NpcModel::createBodyLayer);
+        }
+
+        @SubscribeEvent
+        public static void registerClientTooltips(RegisterClientTooltipComponentFactoriesEvent event) {
+            event.register(TradeItemTooltip.class, ClientTradeItemTooltip::new);
         }
     }
 
-    @SubscribeEvent
-    public static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
-        event.registerEntityRenderer(OuatEntitiesRegistry.ENTITY_REGISTRY.NPC.get(), NpcRenderer::new);
-        event.registerEntityRenderer(OuatEntitiesRegistry.ENTITY_REGISTRY.NPC_FISHING_HOOK.get(), NpcFishingHookRenderer::new);
-    }
-
-    @SubscribeEvent
-    public static void registerEntityLayerDefinitions(EntityRenderersEvent.RegisterLayerDefinitions event) {
-        event.registerLayerDefinition(NpcModel.LAYER_LOCATION, NpcModel::createBodyLayer);
-    }
-
-    @SubscribeEvent
-    public static void registerClientTooltips(RegisterClientTooltipComponentFactoriesEvent event) {
-        event.register(TradeItemTooltip.class, ClientTradeItemTooltip::new);
+    @Mod.EventBusSubscriber(modid = Ouat.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
+    public static class ForgeBusClientEvents {
     }
 }

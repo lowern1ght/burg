@@ -8,15 +8,15 @@
         "${mod_author}"
     ],
     "contact": {
-        "homepage": "https://fabricmc.net/",
-        "sources": "https://github.com/FabricMC/fabric-example-mod"
+        "homepage": "https://github.com/DawnOfTimeMC/onceuponatown",
+        "sources": "https://github.com/DawnOfTimeMC/onceuponatown"
     },
     "license": "${license}",
     "icon": "${mod_id}.png",
     "environment": "*",
     "entrypoints": {
         "main": [
-            "org.dawnoftime.onceuponatown.OnceUponATown"
+            "org.dawnoftime.onceuponatown.OuatFabric"
         ]
     },
     "mixins": [
