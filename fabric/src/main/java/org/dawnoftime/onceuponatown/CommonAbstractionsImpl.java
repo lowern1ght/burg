@@ -11,6 +11,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
@@ -21,7 +22,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class FabricCommon extends Common {
+public class CommonAbstractionsImpl implements CommonAbstractions {
 
     public String getPlatformName() {
         return "Fabric";
@@ -29,7 +30,6 @@ public class FabricCommon extends Common {
 
     @Override
     public boolean isModLoaded(String modId) {
-
         return FabricLoader.getInstance().isModLoaded(modId);
     }
 
@@ -39,12 +39,7 @@ public class FabricCommon extends Common {
     }
 
     @Override
-    public void sendToServer(IOuatPacket packet) {
-
-    }
-
-    @Override
-    public void sendToClient(ServerPlayer player, IOuatPacket packet) {
+    public void sendToClient(Player player, IOuatPacket packet) {
 
     }
 
@@ -84,7 +79,6 @@ public class FabricCommon extends Common {
     }
     
     public boolean isDevelopmentEnvironment() {
-
         return FabricLoader.getInstance().isDevelopmentEnvironment();
     }
 }

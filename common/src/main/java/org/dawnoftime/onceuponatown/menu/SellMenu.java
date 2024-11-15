@@ -2,7 +2,7 @@ package org.dawnoftime.onceuponatown.menu;
 
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.network.C2SSellScreenPacket;
-import org.dawnoftime.onceuponatown.registry.OuatMenusRegistry;
+import org.dawnoftime.onceuponatown.registry.MenuRegistry;
 import org.dawnoftime.onceuponatown.trade.SellDeal;
 import org.dawnoftime.onceuponatown.trade.TradeUtils;
 import net.minecraft.network.FriendlyByteBuf;
@@ -44,7 +44,7 @@ public class SellMenu extends NpcBaseMenu {
     }
 
     public SellMenu(int containerId, Inventory playerInventory, NpcInteraction npc) {
-        super(OuatMenusRegistry.MENU_REGISTRY.SELL_MENU.get(), containerId, npc);
+        super(MenuRegistry.REGISTRY.SELL_MENU.get(), containerId, npc);
         this.npc = npc;
         npc.setInteractingPlayer(playerInventory.player);
         this.sellContainer = new SellContainer(npc);

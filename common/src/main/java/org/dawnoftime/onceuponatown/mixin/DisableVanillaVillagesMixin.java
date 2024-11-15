@@ -1,6 +1,6 @@
 package org.dawnoftime.onceuponatown.mixin;
 
-import org.dawnoftime.onceuponatown.OuatConfig;
+import org.dawnoftime.onceuponatown.Config;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.SectionPos;
 import net.minecraft.resources.ResourceKey;
@@ -24,19 +24,10 @@ import java.util.List;
 
 @Mixin(ChunkGenerator.class)
 public class DisableVanillaVillagesMixin {
-    private static List<ResourceKey<Structure>> DISABLED_VILLAGES = new ArrayList<>(Arrays.asList(
-            BuiltinStructures.VILLAGE_PLAINS,
-            BuiltinStructures.VILLAGE_DESERT,
-            BuiltinStructures.VILLAGE_SAVANNA,
-            BuiltinStructures.VILLAGE_SNOWY,
-            BuiltinStructures.VILLAGE_TAIGA));
-
     @Inject(method = "tryGenerateStructure", at = @At(value = "HEAD"), cancellable = true)
     private void disableVanillaVillages(StructureSet.StructureSelectionEntry structureSetEntry, StructureManager structureManager, RegistryAccess registryAccess, RandomState randomState, StructureTemplateManager structureTemplateManager, long seed, ChunkAccess chunkAccess, ChunkPos chunkPos, SectionPos sectionPos, CallbackInfoReturnable<Boolean> cir) {
-        if (OuatConfig.DISABLE_VANILLA_VILLAGES.get()) {
-            DISABLED_VILLAGES.forEach((structure) -> {
-                if (structureSetEntry.structure().is(structure)) cir.setReturnValue(false);
-            });
-        }
+        Config.getDisabledVillages().forEach((structure) -> {
+            if (structureSetEntry.structure().is(structure)) cir.setReturnValue(false);
+        });
     }
 }

@@ -3,7 +3,7 @@ package org.dawnoftime.onceuponatown.structure;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.culture.CultureManager;
-import org.dawnoftime.onceuponatown.registry.OuatStructureTypesRegistry;
+import org.dawnoftime.onceuponatown.registry.StructureTypeRegistry;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -38,6 +38,6 @@ public class TownStructure extends Structure {
     }
 
     public @NotNull StructureType<?> type() {
-        return OuatStructureTypesRegistry.STRUCTURE_TYPE_REGISTRY.TOWN_STRUCTURE.get();
+        return StructureTypeRegistry.REGISTRY.TOWN_STRUCTURE.get();
     }
 }

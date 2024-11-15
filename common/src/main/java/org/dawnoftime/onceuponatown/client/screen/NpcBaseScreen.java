@@ -131,7 +131,7 @@ public abstract class NpcBaseScreen<T extends AbstractContainerMenu> extends Abs
             && (mouseY >= topPos + drawnTab.y)
             && (mouseY <= topPos+ drawnTab.y + INACTIVE_TAB_HEIGHT)) {
                 Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
-                Ouat.COMMON.sendToServer(new C2SChangeNpcTabPacket(drawnTab.tab.ordinal()));
+                Ouat.CLIENT.sendToServer(new C2SChangeNpcTabPacket(drawnTab.tab.ordinal()));
             }
         }
         return super.mouseClicked(mouseX, mouseY, button);

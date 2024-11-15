@@ -9,10 +9,11 @@ import net.minecraft.world.inventory.MenuType;
 
 import java.util.function.Supplier;
 
-public abstract class OuatMenusRegistry {
-    public static OuatMenusRegistry MENU_REGISTRY;
+public abstract class MenuRegistry {
+    public static MenuRegistry REGISTRY;
 
     public final Supplier<MenuType<BuyMenu>> BUY_MENU = register("buy_menu", BuyMenu::new);
+
     public final Supplier<MenuType<SellMenu>> SELL_MENU = register("sell_menu", SellMenu::new);
 
     public abstract <T extends AbstractContainerMenu> Supplier<MenuType<T>> register(final String name, MenuTypeFactory<T> factory);

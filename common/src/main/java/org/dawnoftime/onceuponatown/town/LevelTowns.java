@@ -10,19 +10,19 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
-public class LevelTownsSavedData extends SavedData {
+public class LevelTowns extends SavedData {
     private final List<Town> towns = new ArrayList<>();
     private final Level level;
 
-    public static LevelTownsSavedData get(ServerLevel level) {
-        return level.isClientSide() ? null : level.getDataStorage().computeIfAbsent((tag) -> new LevelTownsSavedData(level, tag), () -> new LevelTownsSavedData(level), "ouat_towns");
+    public static LevelTowns get(ServerLevel level) {
+        return level.isClientSide() ? null : level.getDataStorage().computeIfAbsent((tag) -> new LevelTowns(level, tag), () -> new LevelTowns(level), "ouat_towns");
     }
 
-    private LevelTownsSavedData(ServerLevel level) {
+    private LevelTowns(ServerLevel level) {
         this.level = level;
     }
 
-    private LevelTownsSavedData(ServerLevel level, CompoundTag tag) {
+    private LevelTowns(ServerLevel level, CompoundTag tag) {
         this(level);
         loadTowns(tag);
     }

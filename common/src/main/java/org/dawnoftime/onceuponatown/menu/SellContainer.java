@@ -1,7 +1,7 @@
 package org.dawnoftime.onceuponatown.menu;
 
 import org.dawnoftime.onceuponatown.entity.Npc;
-import org.dawnoftime.onceuponatown.registry.OuatItemsRegistry;
+import org.dawnoftime.onceuponatown.registry.ItemRegistry;
 import org.dawnoftime.onceuponatown.trade.SellDeal;
 import net.minecraft.core.NonNullList;
 import net.minecraft.sounds.SoundEvents;
@@ -177,7 +177,7 @@ public class SellContainer implements Container {
             if (available == 0) continue;
             int timesSellable = available / wantedItem.getCount();
 
-            int maxShards = OuatItemsRegistry.ITEM_REGISTRY.EMERALD_SHARD.get().getMaxStackSize() - valueShards;
+            int maxShards = ItemRegistry.REGISTRY.EMERALD_SHARD.get().getMaxStackSize() - valueShards;
             int maxEmeralds = Items.EMERALD.getMaxStackSize() - valueEmeralds;
             int maxBlocks = Items.EMERALD_BLOCK.getMaxStackSize() - valueEmeraldBlocks;
 
@@ -230,7 +230,7 @@ public class SellContainer implements Container {
             }
         }
 
-        ItemStack shards = (valueShards <= 0) ? ItemStack.EMPTY : new ItemStack(OuatItemsRegistry.ITEM_REGISTRY.EMERALD_SHARD.get(), valueShards);
+        ItemStack shards = (valueShards <= 0) ? ItemStack.EMPTY : new ItemStack(ItemRegistry.REGISTRY.EMERALD_SHARD.get(), valueShards);
         ItemStack emeralds = (valueEmeralds <= 0) ? ItemStack.EMPTY : new ItemStack(Items.EMERALD, valueEmeralds);
         ItemStack emeraldBlocks = (valueEmeraldBlocks <= 0) ? ItemStack.EMPTY : new ItemStack(Items.EMERALD_BLOCK, valueEmeraldBlocks);
         this.itemStacks.set(VALUE_SHARDS_SLOT, shards);
