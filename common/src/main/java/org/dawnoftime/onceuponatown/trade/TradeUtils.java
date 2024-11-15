@@ -1,6 +1,6 @@
 package org.dawnoftime.onceuponatown.trade;
 
-import org.dawnoftime.onceuponatown.registry.OuatItemsRegistry;
+import org.dawnoftime.onceuponatown.registry.ItemRegistry;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.FriendlyByteBuf;
@@ -18,7 +18,7 @@ public class TradeUtils {
     }
 
     public static BuyDeal buyDeal(Item bought, int amount, int costShards, int costEmeralds, int costBlocks) {
-        return new BuyDeal.Builder(new ItemStack(OuatItemsRegistry.ITEM_REGISTRY.EMERALD_SHARD.get(), costShards), new ItemStack(bought,amount))
+        return new BuyDeal.Builder(new ItemStack(ItemRegistry.REGISTRY.EMERALD_SHARD.get(), costShards), new ItemStack(bought,amount))
                 .secondInput(new ItemStack(Items.EMERALD, costEmeralds))
                 .thirdInput(new ItemStack(Items.EMERALD_BLOCK, costBlocks))
                 .build();
@@ -30,7 +30,7 @@ public class TradeUtils {
 
     public static SellDeal sellDeal(Item good, int amount, int valueShards, int valueEmeralds, int valueBlocks) {
         return new SellDeal.Builder(new ItemStack(good, amount), new ItemStack(Items.EMERALD, valueEmeralds))
-                .valueShards(new ItemStack(OuatItemsRegistry.ITEM_REGISTRY.EMERALD_SHARD.get(), valueShards))
+                .valueShards(new ItemStack(ItemRegistry.REGISTRY.EMERALD_SHARD.get(), valueShards))
                 .valueBlocks(new ItemStack(Items.EMERALD_BLOCK, valueBlocks))
                 .build();
     }

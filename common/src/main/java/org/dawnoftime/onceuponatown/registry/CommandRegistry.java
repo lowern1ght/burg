@@ -11,7 +11,7 @@ import com.mojang.brigadier.tree.LiteralCommandNode;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 
-public class OuatCommands {
+public class CommandRegistry {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         LiteralArgumentBuilder<CommandSourceStack> builder = Commands.literal(Ouat.MOD_ID)
                 .then(CultureInfoCommand.register())

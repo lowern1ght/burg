@@ -92,19 +92,19 @@ public class SellScreen extends NpcBaseScreen<SellMenu> {
     private void onDealButtonLeftClick(DealButton button) {
         this.selectedDealIndex = button.getIndex() + (this.scrollOff * GRID_COLUMNS);
         this.menu.handleClientAction(this.selectedDealIndex, (hasShiftDown() ? C2SSellScreenPacket.RequestType.ONE_TRADE_SELL_EVERYTHING : C2SSellScreenPacket.RequestType.ONE_TRADE_SELL_ONE));
-        Ouat.COMMON.sendToServer(new C2SSellScreenPacket(this.selectedDealIndex, (hasShiftDown() ? C2SSellScreenPacket.RequestType.ONE_TRADE_SELL_EVERYTHING : C2SSellScreenPacket.RequestType.ONE_TRADE_SELL_ONE)));
+        Ouat.CLIENT.sendToServer(new C2SSellScreenPacket(this.selectedDealIndex, (hasShiftDown() ? C2SSellScreenPacket.RequestType.ONE_TRADE_SELL_EVERYTHING : C2SSellScreenPacket.RequestType.ONE_TRADE_SELL_ONE)));
     }
 
     private void onDealButtonRightClick(DealButton button) {
         Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 0.7F));
         this.selectedDealIndex = button.getIndex() + (this.scrollOff * GRID_COLUMNS);
         this.menu.handleClientAction(this.selectedDealIndex, (hasShiftDown() ? C2SSellScreenPacket.RequestType.ONE_TRADE_REMOVE_EVERYTHING : C2SSellScreenPacket.RequestType.ONE_TRADE_REMOVE_ONE));
-        Ouat.COMMON.sendToServer(new C2SSellScreenPacket(this.selectedDealIndex, (hasShiftDown() ? C2SSellScreenPacket.RequestType.ONE_TRADE_REMOVE_EVERYTHING : C2SSellScreenPacket.RequestType.ONE_TRADE_REMOVE_ONE)));
+        Ouat.CLIENT.sendToServer(new C2SSellScreenPacket(this.selectedDealIndex, (hasShiftDown() ? C2SSellScreenPacket.RequestType.ONE_TRADE_REMOVE_EVERYTHING : C2SSellScreenPacket.RequestType.ONE_TRADE_REMOVE_ONE)));
     }
 
     private void onSellEverythingButtonClick() {
         this.menu.handleClientAction(this.selectedDealIndex, C2SSellScreenPacket.RequestType.ALL_TRADES_SELL_EVERYTHING);
-        Ouat.COMMON.sendToServer(new C2SSellScreenPacket(this.selectedDealIndex, C2SSellScreenPacket.RequestType.ALL_TRADES_SELL_EVERYTHING));
+        Ouat.CLIENT.sendToServer(new C2SSellScreenPacket(this.selectedDealIndex, C2SSellScreenPacket.RequestType.ALL_TRADES_SELL_EVERYTHING));
     }
 
     private int nbOfDeals() {

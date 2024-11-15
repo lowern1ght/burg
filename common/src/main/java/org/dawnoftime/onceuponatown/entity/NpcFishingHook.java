@@ -19,7 +19,6 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.entity.projectile.ThrowableProjectile;
 import net.minecraft.world.item.ItemStack;
@@ -32,7 +31,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.registry.OuatEntitiesRegistry;
+import org.dawnoftime.onceuponatown.registry.EntityRegistry;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
@@ -61,7 +60,7 @@ public class NpcFishingHook extends ThrowableProjectile {
     }
 
     public NpcFishingHook(Npc npc, Level level) {
-        this(OuatEntitiesRegistry.ENTITY_REGISTRY.NPC_FISHING_HOOK.get(),level);
+        this(EntityRegistry.REGISTRY.NPC_FISHING_HOOK.get(),level);
         this.setOwner(npc);
         float f = npc.getXRot();
         float f1 = npc.getYRot();

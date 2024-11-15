@@ -13,7 +13,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public class ForgeNetwork {
+public class PacketHandler {
     public static final SimpleChannel CHANNEL =  NetworkRegistry.newSimpleChannel(new ResourceLocation(Ouat.MOD_ID, "channel"), () -> "0", "0"::equals, "0"::equals);
 
     public static void init() {
@@ -25,7 +25,7 @@ public class ForgeNetwork {
         CHANNEL.registerMessage(i++, C2SChangeNpcTabPacket.class, C2SChangeNpcTabPacket::encode, C2SChangeNpcTabPacket::decode, makeC2SHandler(C2SChangeNpcTabPacket::handle));
 
         // Server to Client packets
-        CHANNEL.registerMessage(i++, S2COpenTownMapScreenPacket.class, S2COpenTownMapScreenPacket::encode, S2COpenTownMapScreenPacket::decode, makeS2CHandler(S2COpenTownMapScreenPacket::handle));
+        CHANNEL.registerMessage(i++, S2COpenTownMapScreenPacket.class, S2COpenTownMapScreenPacket::encode, S2COpenTownMapScreenPacket::decode, makeS2CHandler(S2COpenTownMapScreenPacket.Handler::handle));
     }
 
     private static <T> BiConsumer<T, Supplier<NetworkEvent.Context>> makeC2SHandler(TriConsumer<T, MinecraftServer, ServerPlayer> handler) {

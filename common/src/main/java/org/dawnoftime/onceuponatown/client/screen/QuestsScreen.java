@@ -89,7 +89,7 @@ public class QuestsScreen extends NpcBaseScreen<BuyMenu> {
     private void postButtonClick() {
         this.menu.setSelectedDeal(this.selectedDealIndex);
         this.menu.tryMoveItems(this.selectedDealIndex);
-        Ouat.COMMON.sendToServer(new C2SSelectBuyDealPacket(this.selectedDealIndex));
+        Ouat.CLIENT.sendToServer(new C2SSelectBuyDealPacket(this.selectedDealIndex));
     }
 
     private int nbOfDeals() {

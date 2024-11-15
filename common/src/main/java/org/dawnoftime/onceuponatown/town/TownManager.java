@@ -15,7 +15,7 @@ public class TownManager {
     public static int TOWN_TICK_RATE_SECONDS = 5;
 
     public static void createNewTownWorldGen(ServerLevel level, Culture culture, TownMap townMap) {
-        LevelTownsSavedData savedData = LevelTownsSavedData.get(level);
+        LevelTowns savedData = LevelTowns.get(level);
         if (savedData != null) {
             String name = "plains" + Mth.nextInt(RandomSource.create(), 0, 100);
             Town town = Town.createWorldGenOld(level, culture, name, townMap);
@@ -34,7 +34,7 @@ public class TownManager {
         if (town != null) {
             town.softDelete();
         }
-        LevelTownsSavedData savedData = LevelTownsSavedData.get(level);
+        LevelTowns savedData = LevelTowns.get(level);
         if (savedData != null) {
             savedData.removeTown(town);
         }
@@ -50,7 +50,7 @@ public class TownManager {
         if (town != null) {
             town.hardDelete();
         }
-        LevelTownsSavedData savedData = LevelTownsSavedData.get(level);
+        LevelTowns savedData = LevelTowns.get(level);
         if (savedData != null) {
             savedData.removeTown(town);
         }
@@ -84,7 +84,7 @@ public class TownManager {
     }
 
     public static List<Town> getTowns(ServerLevel level) {
-        LevelTownsSavedData savedData = LevelTownsSavedData.get(level);
+        LevelTowns savedData = LevelTowns.get(level);
         return savedData != null ? savedData.getTowns() : null;
     }
 

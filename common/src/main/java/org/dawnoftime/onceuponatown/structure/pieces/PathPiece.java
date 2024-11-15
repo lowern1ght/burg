@@ -1,6 +1,6 @@
 package org.dawnoftime.onceuponatown.structure.pieces;
 
-import org.dawnoftime.onceuponatown.registry.OuatStructurePiecesRegistry;
+import org.dawnoftime.onceuponatown.registry.StructurePieceRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -24,14 +24,14 @@ public class PathPiece extends StructurePiece {
     private int sizeZ;
 
     public PathPiece(BlockPos originPos, int sizeX, int sizeZ) {
-        super(OuatStructurePiecesRegistry.STRUCTURE_PIECE_REGISTRY.PATH_PIECE.get(), 0, makeBoundingBox(originPos.getX(), originPos.getY(), originPos.getZ(), Direction.NORTH, sizeX, 1, sizeZ));
+        super(StructurePieceRegistry.REGISTRY.PATH_PIECE.get(), 0, makeBoundingBox(originPos.getX(), originPos.getY(), originPos.getZ(), Direction.NORTH, sizeX, 1, sizeZ));
         this.originPos = originPos;
         this.sizeX = sizeX;
         this.sizeZ = sizeZ;
     }
 
     public PathPiece(CompoundTag tag) {
-        super(OuatStructurePiecesRegistry.STRUCTURE_PIECE_REGISTRY.PATH_PIECE.get(), tag);
+        super(StructurePieceRegistry.REGISTRY.PATH_PIECE.get(), tag);
         this.originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
         this.sizeX = tag.getInt("SizeX");
         this.sizeZ = tag.getInt("SizeZ");

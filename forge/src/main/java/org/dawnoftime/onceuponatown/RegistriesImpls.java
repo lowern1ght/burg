@@ -27,50 +27,52 @@ import java.util.function.Supplier;
 
 import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
 
-public class RegistryImpls {
+public class RegistriesImpls {
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TAB = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MOD_ID);
+
     public static void init(IEventBus modEventBus) {
         // Create the registries.
-        ForgeEntitiesRegistry.ENTITY_REGISTRY = new ForgeEntitiesRegistry();
-        ForgeItemsRegistry.ITEM_REGISTRY = new ForgeItemsRegistry();
-        ForgeMenusRegistry.MENU_REGISTRY = new ForgeMenusRegistry();
-        ForgeStructureTypesRegistry.STRUCTURE_TYPE_REGISTRY = new ForgeStructureTypesRegistry();
-        ForgeStructurePiecesRegistry.STRUCTURE_PIECE_REGISTRY = new ForgeStructurePiecesRegistry();
+        EntityRegistryImpl.REGISTRY = new EntityRegistryImpl();
+        ItemRegistryImpl.REGISTRY = new ItemRegistryImpl();
+        MenuRegistryImpl.REGISTRY = new MenuRegistryImpl();
+        StructureTypeRegistryImpl.REGISTRY = new StructureTypeRegistryImpl();
+        StructurePieceRegistryImpl.REGISTRY = new StructurePieceRegistryImpl();
 
         // Populates the registries and register their contents.
-        ForgeEntitiesRegistry.REGISTRY.register(modEventBus);
-        ForgeItemsRegistry.REGISTRY.register(modEventBus);
-        ForgeMenusRegistry.REGISTRY.register(modEventBus);
-        ForgeStructureTypesRegistry.REGISTRY.register(modEventBus);
-        ForgeStructurePiecesRegistry.REGISTRY.register(modEventBus);
+        EntityRegistryImpl.DEFERRED_REGISTER.register(modEventBus);
+        ItemRegistryImpl.DEFERRED_REGISTER.register(modEventBus);
+        MenuRegistryImpl.DEFERRED_REGISTER.register(modEventBus);
+        StructureTypeRegistryImpl.DEFERRED_REGISTER.register(modEventBus);
+        StructurePieceRegistryImpl.DEFERRED_REGISTER.register(modEventBus);
 
-        modEventBus.addListener((EntityAttributeCreationEvent event) -> event.put(OuatEntitiesRegistry.ENTITY_REGISTRY.NPC.get(), Npc.createAttributes().build()));
+        //modEventBus.addListener((EntityAttributeCreationEvent event) -> event.put(EntityRegistry.REGISTRY.NPC.get(), Npc.createAttributes().build()));
 
         // Creative inventory init
         CREATIVE_MODE_TAB.register(modEventBus);
         CREATIVE_MODE_TAB.register(MOD_ID, () -> CreativeModeTab.builder()
-                .title(Component.translatable("itemGroup." + MOD_ID))
+                .title(Component.literal(Ouat.MOD_NAME))
                 //.icon(() -> TAB_ICON.get().getDefaultInstance())
                 //.displayItems((params, output) -> output.acceptAll(ForgeItemsRegistry.ITEMS_REGISTRY.getEntries().stream().filter(holder -> holder != TAB_ICON).map((itemDeferredHolder) -> itemDeferredHolder.get().getDefaultInstance()).toList()))
                 .icon(() -> new ItemStack(Items.EMERALD))
-                .displayItems((params, output) -> output.acceptAll(ForgeItemsRegistry.REGISTRY.getEntries().stream().map((itemDeferredHolder) -> itemDeferredHolder.get().getDefaultInstance()).toList()))
+                .displayItems((params, output) -> output.acceptAll(ItemRegistryImpl.DEFERRED_REGISTER.getEntries().stream().map((itemDeferredHolder) -> itemDeferredHolder.get().getDefaultInstance()).toList()))
                 .build());
     }
 
-    public static class ForgeEntitiesRegistry extends OuatEntitiesRegistry {
-        public static final DeferredRegister<EntityType<?>> REGISTRY = DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, MOD_ID);
+    public static class EntityRegistryImpl extends EntityRegistry {
+        public static final DeferredRegister<EntityType<?>> DEFERRED_REGISTER = DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, MOD_ID);
+
         @Override
         public <T extends Entity> Supplier<EntityType<T>> register(String name, Supplier<EntityType.Builder<T>> builder) {
-            return REGISTRY.register(name, () -> builder.get().build(name));
+            return DEFERRED_REGISTER.register(name, () -> builder.get().build(name));
         }
     }
 
-    public static class ForgeItemsRegistry extends OuatItemsRegistry {
-        public static final DeferredRegister<Item> REGISTRY = DeferredRegister.create(ForgeRegistries.ITEMS, MOD_ID);
+    public static class ItemRegistryImpl extends ItemRegistry {
+        public static final DeferredRegister<Item> DEFERRED_REGISTER = DeferredRegister.create(ForgeRegistries.ITEMS, MOD_ID);
 
         @Override
         public <T extends Item> Supplier<Item> register(String name, Supplier<T> itemSupplier) {
-            return REGISTRY.register(name, itemSupplier);
+            return DEFERRED_REGISTER.register(name, itemSupplier);
         }
 
         @Override
@@ -79,30 +81,30 @@ public class RegistryImpls {
         }
     }
 
-    public static class ForgeMenusRegistry extends OuatMenusRegistry{
-        public static final DeferredRegister<MenuType<?>> REGISTRY = DeferredRegister.create(ForgeRegistries.MENU_TYPES, Ouat.MOD_ID);
+    public static class MenuRegistryImpl extends MenuRegistry {
+        public static final DeferredRegister<MenuType<?>> DEFERRED_REGISTER = DeferredRegister.create(ForgeRegistries.MENU_TYPES, Ouat.MOD_ID);
 
         @Override
         public <T extends AbstractContainerMenu> Supplier<MenuType<T>> register(String name, MenuTypeFactory<T> factory) {
-            return REGISTRY.register(name, () -> IForgeMenuType.create((i, inventory, friendlyByteBuf) -> (T) factory.create(i, inventory, friendlyByteBuf)));
+            return DEFERRED_REGISTER.register(name, () -> IForgeMenuType.create((i, inventory, friendlyByteBuf) -> (T) factory.create(i, inventory, friendlyByteBuf)));
         }
     }
 
-    public static class ForgeStructureTypesRegistry extends OuatStructureTypesRegistry {
-        public static final DeferredRegister<StructureType<?>> REGISTRY = DeferredRegister.create(Registries.STRUCTURE_TYPE, Ouat.MOD_ID);
+    public static class StructureTypeRegistryImpl extends StructureTypeRegistry {
+        public static final DeferredRegister<StructureType<?>> DEFERRED_REGISTER = DeferredRegister.create(Registries.STRUCTURE_TYPE, Ouat.MOD_ID);
 
         @Override
         public <T extends Structure> Supplier<StructureType<T>> register(String name, Supplier<StructureType<T>> structureTypeSupplier) {
-            return REGISTRY.register(name, structureTypeSupplier);
+            return DEFERRED_REGISTER.register(name, structureTypeSupplier);
         }
     }
 
-    public static class ForgeStructurePiecesRegistry extends OuatStructurePiecesRegistry{
-        public static final DeferredRegister<StructurePieceType> REGISTRY = DeferredRegister.create(Registries.STRUCTURE_PIECE, Ouat.MOD_ID);
+    public static class StructurePieceRegistryImpl extends StructurePieceRegistry {
+        public static final DeferredRegister<StructurePieceType> DEFERRED_REGISTER = DeferredRegister.create(Registries.STRUCTURE_PIECE, Ouat.MOD_ID);
 
         @Override
         public Supplier<StructurePieceType> register(String name, Supplier<StructurePieceType> structurePieceTypeSupplier) {
-            return REGISTRY.register(name, structurePieceTypeSupplier);
+            return DEFERRED_REGISTER.register(name, structurePieceTypeSupplier);
         }
     }
 }

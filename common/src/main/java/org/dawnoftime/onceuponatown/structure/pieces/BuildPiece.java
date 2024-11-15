@@ -1,7 +1,7 @@
 package org.dawnoftime.onceuponatown.structure.pieces;
 
 import org.dawnoftime.onceuponatown.building.type.BuildType;
-import org.dawnoftime.onceuponatown.registry.OuatStructurePiecesRegistry;
+import org.dawnoftime.onceuponatown.registry.StructurePieceRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -22,7 +22,7 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
 
 public class BuildPiece extends TemplateStructurePiece {
     public BuildPiece(StructureTemplateManager manager, ResourceLocation resourceLocation, BlockPos pos, Rotation rotation, BuildType buildingType) {
-        super(OuatStructurePiecesRegistry.STRUCTURE_PIECE_REGISTRY.BUILDING_PIECE.get(), 0, manager, resourceLocation, resourceLocation.toString(), new StructurePlaceSettings().setRotation(rotation), pos);
+        super(StructurePieceRegistry.REGISTRY.BUILDING_PIECE.get(), 0, manager, resourceLocation, resourceLocation.toString(), new StructurePlaceSettings().setRotation(rotation), pos);
     }
 
     protected BuildPiece(StructurePieceType type, StructureTemplateManager manager, ResourceLocation resourceLocation, BlockPos pos, Rotation rotation, BuildType buildingType) {
@@ -30,7 +30,7 @@ public class BuildPiece extends TemplateStructurePiece {
     }
 
     public BuildPiece(StructureTemplateManager manager, CompoundTag tag) {
-        super(OuatStructurePiecesRegistry.STRUCTURE_PIECE_REGISTRY.BUILDING_PIECE.get(), tag, manager, (rl) -> new StructurePlaceSettings().setRotation(Rotation.valueOf(tag.getString("Rot"))));
+        super(StructurePieceRegistry.REGISTRY.BUILDING_PIECE.get(), tag, manager, (rl) -> new StructurePlaceSettings().setRotation(Rotation.valueOf(tag.getString("Rot"))));
         //TODO: Read building type
     }
 

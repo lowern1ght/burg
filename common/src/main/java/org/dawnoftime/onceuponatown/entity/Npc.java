@@ -29,7 +29,6 @@ import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.entity.monster.hoglin.Hoglin;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.AbstractArrow;
-import net.minecraft.world.entity.projectile.Arrow;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.raid.Raider;
 import net.minecraft.world.item.*;
@@ -42,7 +41,7 @@ import org.dawnoftime.onceuponatown.entity.ai.goal.fight.SelfDefenseGoal;
 import org.dawnoftime.onceuponatown.entity.ai.goal.work.FishermanWorkGoal;
 import org.dawnoftime.onceuponatown.menu.BuyMenu;
 import org.dawnoftime.onceuponatown.menu.NpcInteraction;
-import org.dawnoftime.onceuponatown.registry.OuatEntitiesRegistry;
+import org.dawnoftime.onceuponatown.registry.EntityRegistry;
 import org.dawnoftime.onceuponatown.town.Town;
 import org.dawnoftime.onceuponatown.trade.BuyDeal;
 import org.dawnoftime.onceuponatown.trade.SellDeal;
@@ -379,7 +378,7 @@ public class Npc extends AgeableMob implements NpcInteraction, RangedAttackMob, 
     }
 
     public AgeableMob getBreedOffspring(@NotNull ServerLevel level, @NotNull AgeableMob otherParent) {
-        return OuatEntitiesRegistry.ENTITY_REGISTRY.NPC.get().create(level);
+        return EntityRegistry.REGISTRY.NPC.get().create(level);
     }
 
     public boolean canChangeDimensions() {

@@ -30,7 +30,12 @@ public record S2COpenTownMapScreenPacket(int[] map) implements IOuatPacket {
         return ID;
     }
 
-    public void handle() {
-        Minecraft.getInstance().setScreen(new TownMapItemScreen(map()));
+    public static class Handler {
+        public static void handle(S2COpenTownMapScreenPacket packet) {
+            int[] map = packet.map();
+            Minecraft.getInstance().execute(() -> {
+                Minecraft.getInstance().setScreen(new TownMapItemScreen(map));
+            });
+        }
     }
 }
