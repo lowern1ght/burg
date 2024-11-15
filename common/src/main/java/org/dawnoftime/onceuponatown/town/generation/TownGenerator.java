@@ -25,14 +25,17 @@ public class TownGenerator {
         StructureTemplateManager manager = context.structureTemplateManager();
         int townHeight = context.chunkGenerator().getFirstOccupiedHeight(context.chunkPos().getMinBlockX(), context.chunkPos().getMinBlockZ(), Heightmap.Types.WORLD_SURFACE_WG, context.heightAccessor(), context.randomState());
         BlockPos townCenterPos = new BlockPos(context.chunkPos().getMinBlockX(), townHeight, context.chunkPos().getMinBlockZ());
-        List<BuildType> starterPack = culture.getRandomStarterPack();
         RandomSource rand = context.random();
+        List<BuildType> starterPack = culture.getRandomStarterPack(rand);
 
         Ouat.info("Town at + " + townCenterPos.toShortString() + " : started generating pieces...");
-
     }
 
     public static boolean addBuilding(Town town, BuildType buildingType){
         return true;
+    }
+
+    private static void townStarterX(RandomSource rand, Culture culture, Town town){
+
     }
 }

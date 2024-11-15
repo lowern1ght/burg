@@ -16,10 +16,7 @@ import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.Building;
-import org.dawnoftime.onceuponatown.building.schematic.BuildSchematic;
-import org.dawnoftime.onceuponatown.building.placement.BuildingPlacementSettings;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
 

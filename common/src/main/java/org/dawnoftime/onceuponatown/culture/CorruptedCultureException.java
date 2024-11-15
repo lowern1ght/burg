@@ -19,14 +19,6 @@ public class CorruptedCultureException extends RuntimeException{
         this("Culture [" + culture + "]: This culture is corrupted. Affected file : " + file + ". Affected element in file : " + element + "." + ((message == null) ? "" : " " + message));
     }
 
-    public CorruptedCultureException(String culture, String file, String message) {
-        this("Culture [" + culture + "]: This culture is corrupted. Affected file : " + file + "." + ((message == null) ? "" : " " + message));
-    }
-
-    public CorruptedCultureException(String culture, String message) {
-        this("Culture [" + culture + "]: This culture is corrupted." + ((message == null) ? "" : " " + message));
-    }
-
     public static CorruptedCultureException missingField(String cultureName, String objectClassName, String fileName, String missingField, String missingFieldDescription, ResourceLocation rl){
         return new CorruptedCultureException("Culture [%s]: Failed to register a %s. '%s' is missing the field '%s'%s. Please check the file: %s".formatted(cultureName, objectClassName, fileName, missingField, missingFieldDescription, rl.getPath()));
     }

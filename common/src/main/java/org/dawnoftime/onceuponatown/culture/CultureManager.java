@@ -35,7 +35,7 @@ public class CultureManager implements PreparableReloadListener {
         detectedCultures.forEach((rl, res) -> {
             String path = rl.getPath();
             String cultureId = path.substring("cultures/".length(), path.length() - ("/" + CULTURE_FILE).length());
-            Culture culture = Culture.createCulture(cultureId, res, manager);
+            Culture culture = Culture.createCulture(cultureId, rl, res, manager);
             if(culture != null){
                 if (LOADED_CULTURES.containsKey(culture.getId())) { // Error : id duplicate
                     Ouat.error("Culture [%s]: Failed to register the culture. Another culture was already registered with the same id.".formatted(cultureId));

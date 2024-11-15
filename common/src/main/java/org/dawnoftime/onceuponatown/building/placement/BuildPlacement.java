@@ -2,6 +2,7 @@ package org.dawnoftime.onceuponatown.building.placement;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
 import org.dawnoftime.onceuponatown.town.generation.TownMap;
 import org.dawnoftime.onceuponatown.town.generation.TownMapUtils.Corner;
@@ -11,15 +12,14 @@ import javax.annotation.Nullable;
 import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.rectangularPosIterator;
 
 public abstract class BuildPlacement {
-    private final int sizeXNorth;
-    private int sizeZNorth;
+    private final BuildVariant variant;
     private BlockPos originPos;
     private int id;
     private Direction direction;
     private boolean built;
-    public BuildPlacement(int sizeXNorth, int sizeZNorth){
-        this.sizeXNorth = sizeXNorth;
-        this.sizeZNorth = sizeZNorth;
+
+    public BuildPlacement(BuildVariant variant){
+        this.variant = variant;
     }
 
     /**
@@ -87,9 +87,9 @@ public abstract class BuildPlacement {
      */
     public int getSizeX(@Nullable Direction dir){
         if(dir == null){
-            return this.sizeXNorth;
+            return this.variant.getSize().getX();
         }
-        return dir.getAxis() == Direction.Axis.Z ? this.sizeXNorth : this.sizeZNorth;
+        return dir.getAxis() == Direction.Axis.Z ? this.variant.getSize().getX() : this.variant.getSize().getZ();
     }
 
     /**
@@ -105,9 +105,9 @@ public abstract class BuildPlacement {
      */
     public int getSizeZ(@Nullable Direction dir) {
         if(dir == null){
-            return this.sizeZNorth;
+            return this.variant.getSize().getZ();
         }
-        return dir.getAxis() == Direction.Axis.Z ? this.sizeZNorth : this.sizeXNorth;
+        return dir.getAxis() == Direction.Axis.Z ? this.variant.getSize().getZ() : this.variant.getSize().getX();
     }
 
     /**
@@ -137,14 +137,6 @@ public abstract class BuildPlacement {
      */
     public void setOriginPos(BlockPos newOrigin){
         this.originPos = newOrigin;
-    }
-
-    /**
-     * Extends the Z size for North direction by the given extensionSizeZ.
-     * @param extensionSizeZ New size on Z axis.
-     */
-    protected void extendSizeZNorth(int extensionSizeZ){
-        this.sizeZNorth += extensionSizeZ;
     }
 
     /**

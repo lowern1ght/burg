@@ -1,13 +1,17 @@
 package org.dawnoftime.onceuponatown.culture;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.GsonHelper;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.Item;
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.building.schematic.BuildSchematic;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.building.type.BuildType;
 import org.jetbrains.annotations.NotNull;
@@ -24,106 +28,49 @@ import static org.dawnoftime.onceuponatown.culture.CultureManager.CULTURE_FILE;
 // TODO Gérer les cas où une map a été sauvegarder avec une version différente du datapack (par exemple un buildType qui a disparu).
 
 public class Culture {
-    public static final Culture FAKE_PLAINS = new Culture("fake_plains", 3, 14, null);
+    public static final Culture FAKE_PLAINS = new Culture("fake_plains", null);
     private final String id;
     private List<Orientation> orientations;
     private final HashMap<String, BuildType> buildTypeMap = new HashMap<>();
-    private final int starterPackMinSize;
-    private final int starterPackMaxSize;
-    // Starter pack candidate, building type id, min amount, max amount
-    private Triplet<BuildType, Integer, Integer> starterPack;
+    private final HashMap<String, Pair<Integer, Integer>> starterPack = new HashMap<>();
     private List<Item> foods;
     private final List<Era> eras;
 
-    Culture(String id, int starterPackMinSize, int starterPackMaxSize, List<Era> eras) {
+    Culture(String id, List<Era> eras) {
         this.id = id;
-        this.starterPackMinSize = starterPackMinSize;
-        this.starterPackMaxSize = starterPackMaxSize;
         this.eras = eras;
-    }
-
-    public List<BuildType> getRandomStarterPack() {
-        // TODO Replace this with datapack info later !
-        /*
-        List<TownGeneratorOld.BuildingInfo> availableBuildings = new LinkedList<>(Arrays.asList(TEST_BUILDINGS));
-        List<TownGeneratorOld.BuildingInfo> starterPack = new ArrayList<>();
-        for (int i = 0; i < STARTER_PACK_SIZE; ++i) {
-            TownGeneratorOld.BuildingInfo building = availableBuildings.remove(Mth.nextInt(random, 0, availableBuildings.size() - 1));
-            starterPack.add(building);
-            if (availableBuildings.isEmpty()) {
-                availableBuildings.addAll(Arrays.asList(TEST_BUILDINGS));
-            }
-        }
-        return starterPack;
-
-         */
-        return new ArrayList<>();
-    }
-
-    public void addOrientation(Orientation orientation) {
-        this.orientations.add(orientation);
     }
 
     public List<Era> getEras() {
         return this.eras;
     }
 
-    public void addEra(Era era) {
-        this.eras.add(era);
-    }
-
-    public void addBuildType(@NotNull BuildType type) {
-        this.buildTypeMap.put(type.getName(), type);
-    }
-
-    public void addBuildVariant(@NotNull String buildTypeName, @NotNull BuildVariant variant){
-        BuildType type = this.buildTypeMap.get(buildTypeName);
-        if(type != null){
-            type.addVariant(variant);
-        }else{
-            Ouat.error("Culture [%s]: Failed to register the build_variant '%s'. Its associated build_type '%s' is not defined for this culture.".formatted(this.id, variant.getName(), buildTypeName));
-        }
-    }
-
-    public void dropBuildTypeWithoutVariant(){
-        this.buildTypeMap.entrySet().removeIf(entry -> {
-            if(entry.getValue().getVariantNumber() == 0){
-                Ouat.error("Culture [%s]: Canceled the registration of the build_type '%s' as it doesn't have any build_variant.".formatted(this.id, entry.getValue().getName()));
-                return true;
-            }
-            return false;
-        });
-    }
-
     public String getId() {
         return this.id;
     }
 
-    public int getStarterPackMinSize() {
-        return this.starterPackMinSize;
+    /**
+     * Returns a list that contains all the BuildTypes that should be built in a random order.
+     * @param rand RandomSource used to roll the number of each BuildType.
+     * @return The list of BuildType to build.
+     */
+    public List<BuildType> getRandomStarterPack(RandomSource rand) {
+        List<BuildType> types = new ArrayList<>();
+        for (String buildTypeName: this.starterPack.keySet()){
+            Pair<Integer, Integer> range = this.starterPack.get(buildTypeName);
+            for (int n = range.getA(); n < rand.nextIntBetweenInclusive(range.getA(), range.getB()); n++){
+                types.add(this.buildTypeMap.get(buildTypeName));
+            }
+        }
+        Collections.shuffle(types);
+        return types;
     }
 
-    public int getStarterPackMaxSize() {
-        return this.starterPackMaxSize;
-    }
-
-    public static @Nullable Culture createCulture(String cultureId, Resource cultureJsonResource, ResourceManager resourceManager) {
+    public static @Nullable Culture createCulture(String cultureId, ResourceLocation fileLocation, Resource cultureJsonResource, ResourceManager resourceManager) {
         Ouat.info("Loading culture '" + cultureId + "'...");
         JsonObject cultureJsonObject;
         try (Reader reader = cultureJsonResource.openAsReader()){
             cultureJsonObject = GsonHelper.parse(reader);
-
-            // Minimum amount of initial buildings
-            int starterPackMinSize = cultureJsonObject.get("starter_pack_min_size").getAsInt();
-            if (starterPackMinSize <= 0) { // Error : less than 1 building in starter pack
-                throw new CorruptedCultureException(cultureId, CULTURE_FILE, "starter_pack_min_size", "Town starter_pack should have at least one building. Detected value is <= 0.");
-            }
-
-            // Maximum amount of initial buildings
-            int starterPackMaxSize = cultureJsonObject.get("starter_pack_max_size").getAsInt();
-            if (starterPackMaxSize < starterPackMinSize) {  // Error : starter pack min boundary is greater than max boundary
-                throw new CorruptedCultureException(cultureId, CULTURE_FILE, "starter_pack_max_size", "starter_pack_max_size has to be greater than starter_pack_min_size.");
-            }
 
             // Eras
             List<Culture.Era> eras = readEras(cultureJsonObject, cultureId);
@@ -131,7 +78,7 @@ public class Culture {
             // Orientations Ids
             List<String> orientationsIds = readOrientationsIds(cultureJsonObject, cultureId);
 
-            Culture culture = new Culture(cultureId, starterPackMinSize, starterPackMaxSize, eras);
+            Culture culture = new Culture(cultureId, eras);
 
             // BuildType
             var buildResources = resourceManager.listResources("cultures/" + cultureId + "/builds/build_type", (resourceLocation) -> resourceLocation.getPath().endsWith(".json")).keySet();
@@ -154,6 +101,22 @@ public class Culture {
             // Now we remove the BuildType that don't have any variant since they can't be built.
             culture.dropBuildTypeWithoutVariant();
 
+            // Load the starter pack
+            JsonElement elem = CultureManager.tryGet(cultureJsonObject, "starter_pack", CULTURE_FILE, cultureId, CULTURE_FILE, fileLocation);
+            JsonArray array = elem.getAsJsonArray();
+            for(JsonElement arrayElem : array){
+                JsonObject subObject = arrayElem.getAsJsonObject();
+                String name = CultureManager.tryGet(subObject, "build_type", " in an object in the section 'starter_pack'", CULTURE_FILE, cultureId, CULTURE_FILE, fileLocation).getAsString();
+                if(!culture.buildTypeMap.containsKey(name)){
+                    throw new CorruptedCultureException("Culture [%s]: Failed to load a culture. The build_type '%s' in the starter pack is unknown, please check this file: %s".formatted(culture, name, CULTURE_FILE));
+                }
+                int min = CultureManager.tryGet(subObject, "min", " in an object in the section 'starter_pack'", CULTURE_FILE, cultureId, CULTURE_FILE, fileLocation).getAsInt();
+                int max = CultureManager.tryGet(subObject, "max", " in an object in the section 'starter_pack'", CULTURE_FILE, cultureId, CULTURE_FILE, fileLocation).getAsInt();
+                if(min < 1 || max < min){
+                    throw new CorruptedCultureException("Culture [%s]: Failed to load a culture. Check the values of the minimum and maximum number of the build_ype '%s' in the starter pack in this file: %s".formatted(culture, name, CULTURE_FILE));
+                };
+                culture.addStarterPackBuild(name, min, max);
+            }
             return culture;
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -161,6 +124,41 @@ public class Culture {
             Ouat.error(e.getMessage());
             return null;
         }
+    }
+
+    private void addOrientation(Orientation orientation) {
+        this.orientations.add(orientation);
+    }
+
+    private void addEra(Era era) {
+        this.eras.add(era);
+    }
+
+    private void addBuildType(@NotNull BuildType type) {
+        this.buildTypeMap.put(type.getName(), type);
+    }
+
+    private void addBuildVariant(@NotNull String buildTypeName, @NotNull BuildVariant variant){
+        BuildType type = this.buildTypeMap.get(buildTypeName);
+        if(type != null){
+            type.addVariant(variant);
+        }else{
+            Ouat.error("Culture [%s]: Failed to register the build_variant '%s'. Its associated build_type '%s' is not defined for this culture.".formatted(this.id, variant.getName(), buildTypeName));
+        }
+    }
+
+    private void addStarterPackBuild(String buildTypeName, int min, int max){
+        this.starterPack.put(buildTypeName, new Pair<>(min, max));
+    }
+
+    private void dropBuildTypeWithoutVariant(){
+        this.buildTypeMap.entrySet().removeIf(entry -> {
+            if(entry.getValue().getVariantNumber() == 0){
+                Ouat.error("Culture [%s]: Canceled the registration of the build_type '%s' as it doesn't have any build_variant.".formatted(this.id, entry.getValue().getName()));
+                return true;
+            }
+            return false;
+        });
     }
 
     private static List<Culture.Era> readEras(JsonObject cultureJsonObject, String cultureId) throws CorruptedCultureException {

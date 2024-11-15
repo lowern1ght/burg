@@ -1,7 +1,6 @@
 package org.dawnoftime.onceuponatown.building;
 
 import org.dawnoftime.onceuponatown.building.placement.BuildPlacement;
-import org.dawnoftime.onceuponatown.building.placement.BuildingPlacementSettings;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.building.type.BuildType;
 import net.minecraft.core.BlockPos;
