@@ -1,9 +1,9 @@
 {
-    "build_type": "small_house",
-    "size": {"x": 13, "y": 13, "z": 13},
+    "build_type": "small_housee",
+    "size": {"x": 30, "y": 20, "z": 30},
     "levels": [
         {
-            "level": 1,
+            "level": 0,
             "schematic": "soldier_house",
             "waypoints": []
         }

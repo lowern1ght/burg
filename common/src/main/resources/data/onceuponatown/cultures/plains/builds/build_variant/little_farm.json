@@ -1,9 +1,9 @@
 {
     "build_type": "church",
-    "size": {"x": 10, "y": 30, "z": 29},
+    "size": {"x": 9, "y": 4, "z": 7},
     "levels": [
         {
-            "level": 0,
+            "level": 1,
             "schematic": "little_farm",
             "waypoints": []
         }
