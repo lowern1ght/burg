@@ -61,14 +61,13 @@ public class BuyScreen extends NpcBaseScreen<BuyMenu> {
         createDealButtons();
         String buyLabel = "Buy";
         String sellLabel = "Sell";
-        this.addRenderableWidget(new TradeTypeToggleButton(this.leftPos + 7, this.topPos + 21, this.font.width(buyLabel) + 10, 14, Component.literal(buyLabel), (button -> {
+        addRenderableWidget(new ReleaseFocusButton.Builder(Component.literal(buyLabel),(button -> {
             if (button.getMessage().getString().equals("Buy")) {
                 button.setMessage(Component.literal(sellLabel));
             } else {
                 button.setMessage(Component.literal(buyLabel));
-            }
-
-        }), Supplier::get));
+            }})).bounds(this.leftPos + 7, this.topPos + 21, this.font.width(buyLabel), 14)
+                .build());
     }
 
     private void createDealButtons() {
@@ -212,18 +211,6 @@ public class BuyScreen extends NpcBaseScreen<BuyMenu> {
             RenderSystem.enableDepthTest();
         }
         renderTooltip(graphics, mouseX, mouseY);
-    }
-
-
-
-    public static class TradeTypeToggleButton extends Button {
-        protected TradeTypeToggleButton(int x, int y, int width, int height, Component message, OnPress onPress, CreateNarration createNarration) {
-            super(x, y, width, height, message, onPress, createNarration);
-        }
-        @Override
-        public void onRelease(double pMouseX, double pMouseY) {
-            this.setFocused(false);
-        }
     }
 
     class DealButton extends Button {
