@@ -59,7 +59,7 @@ public class RoadPlacement extends BuildPlacement {
                     }
                 }
                 // Finally we change the sizes.
-                this.extendSizeZNorth(dirGrowth + oppositeDirGrowth);
+                //this.extendSizeZNorth(dirGrowth + oppositeDirGrowth);
             }
             // And lastly we will add the special Buds : bridge or stairs
             map.updateTownMap(this);

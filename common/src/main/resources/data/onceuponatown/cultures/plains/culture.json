@@ -1,8 +1,8 @@
 {
   "starter_pack": [
-    {"build_type": "farm", "min": 1, "max": 1},
-    {"build_type": "lumberjack", "min": 1, "max": 1},
-    {"build_type": "house", "min": 2, "max": 4}],
+    {"build_type": "church", "min": 1, "max": 1},
+    {"build_type": "big_house", "min": 1, "max": 2},
+    {"build_type": "small_house", "min": 2, "max": 4}],
   "foods": ["minecraft:bread", "minecraft:potato", "minecraft:carrot", "minecraft:beetroot"],
   "eras": [{"required_xp": 0, "buildings_weight": 80}, {"required_xp": 150, "buildings_weight": 160}, {"required_xp": 300, "buildings_weight": 210}],
   "orientations" : [

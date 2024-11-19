@@ -1,6 +1,6 @@
 package org.dawnoftime.onceuponatown.structure.pieces;
 
-import org.dawnoftime.onceuponatown.building.type.BuildType;
+import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.registry.StructurePieceRegistry;
 import org.dawnoftime.onceuponatown.town.TownManager;
@@ -23,7 +23,7 @@ public class TownDataBuildingPiece extends BuildPiece {
     public final TownMap townMap;
     public boolean townRegistered;
 
-    public TownDataBuildingPiece(StructureTemplateManager manager, ResourceLocation resourceLocation, BlockPos pos, Rotation rotation, BuildType buildingType, TownMap townMap) {
+    public TownDataBuildingPiece(StructureTemplateManager manager, ResourceLocation resourceLocation, BlockPos pos, Rotation rotation, BuildingType buildingType, TownMap townMap) {
         super(StructurePieceRegistry.REGISTRY.TOWN_DATA_BUILDING_PIECE.get(), manager, resourceLocation, pos, rotation, buildingType);
         this.townMap = townMap;
         this.townRegistered = false;

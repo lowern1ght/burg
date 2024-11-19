@@ -2,6 +2,8 @@ package org.dawnoftime.onceuponatown.building.placement;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.Rotation;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
 import org.dawnoftime.onceuponatown.town.generation.TownMap;
@@ -17,9 +19,46 @@ public abstract class BuildPlacement {
     private int id;
     private Direction direction;
     private boolean built;
+    private Mirror mirror = Mirror.NONE;
+    private Rotation rotation = Rotation.NONE;
+    private BlockPos rotationPivot = BlockPos.ZERO;
 
     public BuildPlacement(BuildVariant variant){
         this.variant = variant;
+    }
+
+    public BuildPlacement(int a, int b){
+        this.variant = null;
+    }
+
+    public BuildPlacement mirror(Mirror mirror) {
+        //TODO Is it correct ?
+        this.mirror = mirror;
+        return this;
+    }
+
+    public Mirror getMirror() {
+        return this.mirror;
+    }
+
+    public BuildPlacement rotation(Rotation rotation) {
+        //TODO Is it correct ?
+        this.rotation = rotation;
+        return this;
+    }
+
+    public Rotation getRotation() {
+        return this.rotation;
+    }
+
+    public BuildPlacement rotationPivot(BlockPos rotationPivot) {
+        //TODO Is it correct ?
+        this.rotationPivot = rotationPivot;
+        return this;
+    }
+
+    public BlockPos getRotationPivot() {
+        return this.rotationPivot;
     }
 
     /**

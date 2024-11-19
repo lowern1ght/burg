@@ -6,7 +6,7 @@ import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.culture.Orientation;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.building.Building;
-import org.dawnoftime.onceuponatown.building.type.BuildType;
+import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
@@ -109,22 +109,22 @@ public class Town {
 
     }
 
-    private void beginNewConstructionProject(BuildType buildingType) {
+    private void beginNewConstructionProject(BuildingType buildingType) {
         // ask town map for adding a building
         // town map add a MapBuilding to the map (marked not built) and return the MapBuilding
         // creates the ConstructionProject class using MapBuilding class
     }
 
-    private void finishConstructionProject(BuildType buildingType) {
+    private void finishConstructionProject(BuildingType buildingType) {
         // notifies town map, mark the associated MapBuilding built
         // creates the Building instance using ConstructionProject
         // deletes ConstructionProject
     }
 
-    private void abortConstructionProject(BuildType buildingType) {
+    private void abortConstructionProject(BuildingType buildingType) {
     }
 
-    private void addBuildingInstantConstruction(BuildType buildingType, int wantedLevel) {
+    private void addBuildingInstantConstruction(BuildingType buildingType, int wantedLevel) {
         // ask town map for adding a building
         // town map add a MapBuilding to the map (marked built) and return the MapBuilding
         // creates the Building instance using MapBuilding class

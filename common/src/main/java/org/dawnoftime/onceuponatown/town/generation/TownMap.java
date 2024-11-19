@@ -1,7 +1,7 @@
 package org.dawnoftime.onceuponatown.town.generation;
 
 import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
-import org.dawnoftime.onceuponatown.building.type.BuildType;
+import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import net.minecraft.core.BlockPos;
 
 import javax.annotation.Nullable;
@@ -56,7 +56,7 @@ public class TownMap {
         //TODO: Save other data
     }
 
-    public static TownMap createTownMapWorldGen(Structure.GenerationContext context, List<BuildType> starterPack) {
+    public static TownMap createTownMapWorldGen(Structure.GenerationContext context, List<BuildingType> starterPack) {
         //TODO: Scan the terrain and create the best town map.
         // Respect the starter pack. All buildings must be spawned.
         // If impossible (ex. due to bad terrain ), return null

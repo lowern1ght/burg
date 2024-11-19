@@ -3,7 +3,6 @@ package org.dawnoftime.onceuponatown.culture;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -11,9 +10,10 @@ import net.minecraft.util.GsonHelper;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.Item;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.building.schematic.BuildSchematic;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.building.type.BuildType;
+import org.dawnoftime.onceuponatown.building.type.BuildingType;
+import org.dawnoftime.onceuponatown.building.type.SliceBuildType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import oshi.util.tuples.Pair;
@@ -28,6 +28,10 @@ import static org.dawnoftime.onceuponatown.culture.CultureManager.CULTURE_FILE;
 // TODO Gérer les cas où une map a été sauvegarder avec une version différente du datapack (par exemple un buildType qui a disparu).
 
 public class Culture {
+    public static final String ROAD_TYPE_NAME = "road";
+    public static final String BRIDGE_TYPE_NAME = "bridge";
+    public static final String WALL_TYPE_NAME = "wall";
+
     public static final Culture FAKE_PLAINS = new Culture("fake_plains", null);
     private final String id;
     private List<Orientation> orientations;
@@ -80,10 +84,15 @@ public class Culture {
 
             Culture culture = new Culture(cultureId, eras);
 
+            // Mandatory BuildType
+            culture.addBuildType(new SliceBuildType(ROAD_TYPE_NAME));
+            //culture.addBuildType(new SliceBuildType(BRIDGE_TYPE_NAME));
+            //culture.addBuildType(new SliceBuildType(WALL_TYPE_NAME));
+
             // BuildType
             var buildResources = resourceManager.listResources("cultures/" + cultureId + "/builds/build_type", (resourceLocation) -> resourceLocation.getPath().endsWith(".json")).keySet();
             buildResources.forEach((buildResource) -> {
-                BuildType buildingType = BuildType.createFromJson(resourceManager, buildResource, cultureId);
+                BuildType buildingType = BuildingType.createFromJson(resourceManager, buildResource, cultureId);
                 if(buildingType != null){
                     culture.addBuildType(buildingType);
                 }
@@ -92,9 +101,9 @@ public class Culture {
             // BuildVariant
             buildResources = resourceManager.listResources("cultures/" + cultureId + "/builds/build_variant", (resourceLocation) -> resourceLocation.getPath().endsWith(".json")).keySet();
             buildResources.forEach((buildResource) -> {
-                Pair<String, BuildVariant> variant = BuildVariant.createFromJson(resourceManager, buildResource, cultureId);
+                Triplet<String, BuildVariant, String> variant = BuildVariant.createFromJson(resourceManager, buildResource, cultureId);
                 if(variant != null){
-                    culture.addBuildVariant(variant.getA(), variant.getB());
+                    culture.addBuildVariant(variant.getA(), variant.getB(), variant.getC());
                 }
             });
 
@@ -108,12 +117,12 @@ public class Culture {
                 JsonObject subObject = arrayElem.getAsJsonObject();
                 String name = CultureManager.tryGet(subObject, "build_type", " in an object in the section 'starter_pack'", CULTURE_FILE, cultureId, CULTURE_FILE, fileLocation).getAsString();
                 if(!culture.buildTypeMap.containsKey(name)){
-                    throw new CorruptedCultureException("Culture [%s]: Failed to load a culture. The build_type '%s' in the starter pack is unknown, please check this file: %s".formatted(culture, name, CULTURE_FILE));
+                    throw new CorruptedCultureException("Culture [%s]: Failed to load a culture. The build_type '%s' in the starter pack is unknown, please check this file: %s".formatted(cultureId, name, CULTURE_FILE));
                 }
                 int min = CultureManager.tryGet(subObject, "min", " in an object in the section 'starter_pack'", CULTURE_FILE, cultureId, CULTURE_FILE, fileLocation).getAsInt();
                 int max = CultureManager.tryGet(subObject, "max", " in an object in the section 'starter_pack'", CULTURE_FILE, cultureId, CULTURE_FILE, fileLocation).getAsInt();
                 if(min < 1 || max < min){
-                    throw new CorruptedCultureException("Culture [%s]: Failed to load a culture. Check the values of the minimum and maximum number of the build_ype '%s' in the starter pack in this file: %s".formatted(culture, name, CULTURE_FILE));
+                    throw new CorruptedCultureException("Culture [%s]: Failed to load a culture. Check the values of the minimum and maximum number of the build_type '%s' in the starter pack in this file: %s".formatted(cultureId, name, fileLocation));
                 };
                 culture.addStarterPackBuild(name, min, max);
             }
@@ -138,10 +147,10 @@ public class Culture {
         this.buildTypeMap.put(type.getName(), type);
     }
 
-    private void addBuildVariant(@NotNull String buildTypeName, @NotNull BuildVariant variant){
+    private void addBuildVariant(@NotNull String buildTypeName, @NotNull BuildVariant variant, @NotNull String shape){
         BuildType type = this.buildTypeMap.get(buildTypeName);
         if(type != null){
-            type.addVariant(variant);
+            type.addVariant(variant, shape, this.id);
         }else{
             Ouat.error("Culture [%s]: Failed to register the build_variant '%s'. Its associated build_type '%s' is not defined for this culture.".formatted(this.id, variant.getName(), buildTypeName));
         }
@@ -152,13 +161,7 @@ public class Culture {
     }
 
     private void dropBuildTypeWithoutVariant(){
-        this.buildTypeMap.entrySet().removeIf(entry -> {
-            if(entry.getValue().getVariantNumber() == 0){
-                Ouat.error("Culture [%s]: Canceled the registration of the build_type '%s' as it doesn't have any build_variant.".formatted(this.id, entry.getValue().getName()));
-                return true;
-            }
-            return false;
-        });
+        this.buildTypeMap.entrySet().removeIf(entry -> entry.getValue().isNotValid(this.id));
     }
 
     private static List<Culture.Era> readEras(JsonObject cultureJsonObject, String cultureId) throws CorruptedCultureException {

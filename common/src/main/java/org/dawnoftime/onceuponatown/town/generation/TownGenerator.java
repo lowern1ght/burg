@@ -7,9 +7,10 @@ import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.building.type.BuildType;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.town.Town;
-import org.dawnoftime.onceuponatown.building.type.BuildType;
+import org.dawnoftime.onceuponatown.building.type.BuildingType;
 
 import java.util.List;
 
@@ -31,7 +32,7 @@ public class TownGenerator {
         Ouat.info("Town at + " + townCenterPos.toShortString() + " : started generating pieces...");
     }
 
-    public static boolean addBuilding(Town town, BuildType buildingType){
+    public static boolean addBuilding(Town town, BuildingType buildingType){
         return true;
     }
 

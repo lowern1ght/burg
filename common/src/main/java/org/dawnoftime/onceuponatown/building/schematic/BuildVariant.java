@@ -14,6 +14,7 @@ import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 import org.dawnoftime.onceuponatown.culture.CultureManager;
 import org.jetbrains.annotations.Nullable;
 import oshi.util.tuples.Pair;
+import oshi.util.tuples.Triplet;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -45,7 +46,7 @@ public class BuildVariant {
      * @param cultureName The name of the culture that owns this build_variant. Only used to throw specific error description.
      * @return Either a Pair BuildType name / BuildSchematicPlan if all the files could be loaded, null otherwise.
      */
-    public static @Nullable Pair<String, BuildVariant> createFromJson(ResourceManager resourceManager, ResourceLocation buildResource, String cultureName){
+    public static @Nullable Triplet<String, BuildVariant, String> createFromJson(ResourceManager resourceManager, ResourceLocation buildResource, String cultureName){
         try {
             Resource resource = resourceManager.getResource(buildResource).orElseThrow();
             try (Reader reader = resource.openAsReader()) {
@@ -79,6 +80,10 @@ public class BuildVariant {
                     schematics.put(level, schematic);
                 }
 
+                // Read the bonus info : the shape.
+                elem = buildVariantJson.get("shape");
+                String shape = elem != null ? elem.getAsString() : null;
+
                 // Finally we check if the BuildSchematic exists for each list level, and have the correct size.
                 if (schematics.isEmpty()){
                     throw new CorruptedCultureException("Culture [%s]: Failed to register a build_variant. You need to define at least the first level. Please check the file: %s".formatted(cultureName, buildResource));
@@ -89,7 +94,7 @@ public class BuildVariant {
                 if (!IntStream.rangeClosed(1, schematics.lastKey()).allMatch(schematics::containsKey)) {
                     throw new CorruptedCultureException("Culture [%s]: Failed to register a build_variant. You need to define each level from 1 to the maximum level. Please check the file: %s".formatted(cultureName, buildResource));
                 }
-                return new Pair<>(buildTypeName, new BuildVariant(buildVariantName, size, schematics));
+                return new Triplet<>(buildTypeName, new BuildVariant(buildVariantName, size, schematics), shape);
             }
         } catch (IOException | JsonParseException e) {
             Ouat.error("Culture [%s]: Could not read a build_variant file. Maybe you made a typo in the file: %s".formatted(cultureName, buildResource));

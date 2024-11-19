@@ -1,0 +1,12 @@
+{
+    "build_type": "road",
+    "shape": "flat",
+    "size": {"x": 2, "y": 1, "z": 5},
+    "levels": [
+        {
+            "level": 1,
+            "schematic": "road_flat_a",
+            "waypoints": []
+        }
+    ]
+}

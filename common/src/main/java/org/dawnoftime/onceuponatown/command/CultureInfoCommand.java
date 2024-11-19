@@ -28,8 +28,6 @@ public class CultureInfoCommand {
                 erasComponent.append(Component.literal("\n" + era.order() + " - Required xp : " + era.requiredXp() + ", Max buildings weight : " + era.buildingsWeight()));
             }
             var cultureInfo = Component.literal("Culture ").append(Component.literal(culture.getId() + "\n").withStyle(ChatFormatting.YELLOW))
-                    .append(Component.literal("Starterpack min size : " + culture.getStarterPackMinSize() + "\n"))
-                    .append(Component.literal("Starterpack max size : " + culture.getStarterPackMaxSize() + "\n"))
                     .append(erasComponent);
 
             source.sendSuccess(() -> cultureInfo, false);
