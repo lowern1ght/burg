@@ -19,7 +19,7 @@ public class TownMapUtils {
     // Maximum vertical difference accepted between the door Y value, and any block Y value, on the border of the Building.
     public static final int MAXI_Y_DIFFERENCE = 10;
     // Maximum size of the side of a squared garden. If a Bud available space in one of the 2 directions is smaller, it creates a MapGarden.
-    public static final int SIDE_SIZE_MAX_GARDEN = 10;
+    public static final int BUD_MINIMAL_SPACE = 10;
     // Minimum spacing between paths when the central building is placed
     public static final int MINI_PATH_SPACE = 20;
     // Probability of placing a path when adding a bud

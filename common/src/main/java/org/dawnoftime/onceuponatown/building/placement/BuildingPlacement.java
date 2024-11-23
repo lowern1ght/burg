@@ -2,17 +2,47 @@ package org.dawnoftime.onceuponatown.building.placement;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
 import org.dawnoftime.onceuponatown.town.generation.TownMap;
 import org.dawnoftime.onceuponatown.town.generation.TownMapUtils.Corner;
 
+import java.util.HashSet;
+
 import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.MAXI_Y_DIFFERENCE;
 import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.rectangularPosIterator;
 
-public class BuildingPlacement extends PlotPlacement {
+public class BuildingPlacement extends BuildPlacement {
+    private final BuildVariant variant;
 
-    public BuildingPlacement(int sizeXNorth, int sizeZNorth) {
-        super(sizeXNorth, sizeZNorth);
+    public BuildingPlacement(BuildVariant variant) {
+        this.variant = variant;
+    }
+
+    @Override
+    public int getNorthSizeX() {
+        return this.variant.getSize().getX();
+    }
+
+    @Override
+    public int getNorthSizeZ() {
+        return this.variant.getSize().getZ();
+    }
+
+
+    @Override
+    protected void onAddedToMap(TownMap map) {
+        // We try to find all the adjacent MapPath to extend them and add the Buds.
+        // We will iterate on a one block bigger rectangle to find all the adjacent MapBuild.
+        HashSet<Integer> ids = new HashSet<>();
+        for(BlockPos.MutableBlockPos pos : rectangularPosIterator(this.getOriginPos().north().west(), this.getSizeX() + 2, this.getSizeZ() + 2)) {
+            ids.add(map.getIDInMapPos(pos));
+        }
+        for(int id : ids){
+            if(map.getBuild(id) instanceof RoadPlacement path){
+                path.update(map);
+            }
+        }
     }
 
     /**

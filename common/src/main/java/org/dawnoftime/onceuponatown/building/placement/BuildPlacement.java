@@ -14,25 +14,17 @@ import javax.annotation.Nullable;
 import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.rectangularPosIterator;
 
 public abstract class BuildPlacement {
-    private final BuildVariant variant;
     private BlockPos originPos;
     private int id;
     private Direction direction;
-    private boolean built;
     private Mirror mirror = Mirror.NONE;
     private Rotation rotation = Rotation.NONE;
     private BlockPos rotationPivot = BlockPos.ZERO;
 
-    public BuildPlacement(BuildVariant variant){
-        this.variant = variant;
-    }
-
-    public BuildPlacement(int a, int b){
-        this.variant = null;
-    }
+    public BuildPlacement(){}
 
     public BuildPlacement mirror(Mirror mirror) {
-        //TODO Is it correct ?
+        //TODO Is it useful ?
         this.mirror = mirror;
         return this;
     }
@@ -121,15 +113,25 @@ public abstract class BuildPlacement {
     }
 
     /**
+     * @return The X size of the Build when it is in the default direction North.
+     */
+    public abstract int getNorthSizeX();
+
+    /**
      * @param dir Direction of the MapBuild. If null, returns the size corresponding to the direction North.
      * @return the size of the side of this MapBuild on the X Axis.
      */
     public int getSizeX(@Nullable Direction dir){
         if(dir == null){
-            return this.variant.getSize().getX();
+            return this.getNorthSizeX();
         }
-        return dir.getAxis() == Direction.Axis.Z ? this.variant.getSize().getX() : this.variant.getSize().getZ();
+        return dir.getAxis() == Direction.Axis.Z ? this.getNorthSizeX() : this.getNorthSizeZ();
     }
+
+    /**
+     * @return The Z size of the Build when it is in the default direction North.
+     */
+    public abstract int getNorthSizeZ();
 
     /**
      * @return The current size of this MapBuild on the Axis X based on its direction.
@@ -144,9 +146,9 @@ public abstract class BuildPlacement {
      */
     public int getSizeZ(@Nullable Direction dir) {
         if(dir == null){
-            return this.variant.getSize().getZ();
+            return this.getNorthSizeZ();
         }
-        return dir.getAxis() == Direction.Axis.Z ? this.variant.getSize().getZ() : this.variant.getSize().getX();
+        return dir.getAxis() == Direction.Axis.Z ? this.getNorthSizeZ() : this.getNorthSizeX();
     }
 
     /**

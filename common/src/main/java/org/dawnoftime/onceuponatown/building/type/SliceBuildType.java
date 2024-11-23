@@ -10,19 +10,27 @@ public class SliceBuildType extends BuildType {
     private final HashMap<String, BuildVariant> slab_variants = new HashMap<>();
     private final HashMap<String, BuildVariant> stairs_variants = new HashMap<>();
     private int width;
-    private int pattern_length;
+    private int patternLength;
 
     public SliceBuildType(String buildTypeName) {
         super(buildTypeName, 0);
+    }
+
+    public int getPatternLength() {
+        return this.patternLength;
+    }
+
+    public int getWidth() {
+        return this.width;
     }
 
     @Override
     public void addVariant(BuildVariant variant, String shape, String cultureId) {
         if(this.width == 0){
             this.width = variant.getSize().getX();
-            this.pattern_length = variant.getSize().getZ();
+            this.patternLength = variant.getSize().getZ();
         }else{
-            if(this.width != variant.getSize().getX() || this.pattern_length != variant.getSize().getZ()){
+            if(this.width != variant.getSize().getX() || this.patternLength != variant.getSize().getZ()){
                 Ouat.error("Culture [%s]: Failed to register a build_variant. Every build_variant associated with '%s' must have the same width and length.".formatted(cultureId, this.getName()));
                 return;
             }

@@ -29,6 +29,7 @@ import static org.dawnoftime.onceuponatown.culture.CultureManager.CULTURE_FILE;
 
 public class Culture {
     public static final String ROAD_TYPE_NAME = "road";
+    public static final String WIDE_ROAD_TYPE_NAME = "wide_road";
     public static final String BRIDGE_TYPE_NAME = "bridge";
     public static final String WALL_TYPE_NAME = "wall";
 
@@ -158,6 +159,11 @@ public class Culture {
 
     private void addStarterPackBuild(String buildTypeName, int min, int max){
         this.starterPack.put(buildTypeName, new Pair<>(min, max));
+    }
+
+    public SliceBuildType getSliceBuild(String buildName){
+        BuildType type = this.buildTypeMap.get(buildName);
+        return type instanceof SliceBuildType ? (SliceBuildType) type : null;
     }
 
     private void dropBuildTypeWithoutVariant(){

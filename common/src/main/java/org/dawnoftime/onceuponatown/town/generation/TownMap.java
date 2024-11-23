@@ -39,7 +39,6 @@ public class TownMap {
         this.NWCorner = center.mutable();
         this.SECorner = center.mutable();
         this.mapGrid = new int[1][1];
-        this.init();
     }
 
     public TownMap(CompoundTag tag){
@@ -57,24 +56,10 @@ public class TownMap {
     }
 
     public static TownMap createTownMapWorldGen(Structure.GenerationContext context, List<BuildingType> starterPack) {
-        //TODO: Scan the terrain and create the best town map.
+        // TODO: Scan the terrain and create the best town map.
         // Respect the starter pack. All buildings must be spawned.
         // If impossible (ex. due to bad terrain ), return null
         return null;
-    }
-
-    /**
-     * Generate the basic architecture for a new town : 1+2 big paths forming a cross with 4 buds.
-     */
-    private void init(){
-        // First let's put the vertical big path, with length of 2 * mini_size + big_width
-        int halfBigPath = BIG_WIDTH / 2;
-        BuildBud firstBuildBud = BuildBud.createBud(this, this.center.offset(-halfBigPath, 0, -halfBigPath - DEFAULT_PATH_LENGTH), Corner.NORTH_WEST, new Direction[]{Direction.NORTH});
-        RoadPlacement mainPath = new RoadPlacement(2 * DEFAULT_PATH_LENGTH + BIG_WIDTH, true);
-        boolean success = this.tryBuild(mainPath, firstBuildBud);
-        success &= this.tryBuild(new RoadPlacement(DEFAULT_PATH_LENGTH, true), BuildBud.createBud(this, mainPath.getOriginPos().offset(-1, 0, DEFAULT_PATH_LENGTH), Corner.NORTH_EAST, new Direction[]{Direction.WEST}));
-        success &= this.tryBuild(new RoadPlacement(DEFAULT_PATH_LENGTH, true), BuildBud.createBud(this, mainPath.getOriginPos().offset(BIG_WIDTH, 0, DEFAULT_PATH_LENGTH), Corner.NORTH_WEST, new Direction[]{Direction.EAST}));
-        //TODO Add a check : if the real landscape is not flat enough, some path could possibly not be generated.
     }
 
     /**
@@ -114,21 +99,12 @@ public class TownMap {
                 // If it was not possible to build, we check if the Bud has enough free space to stay.
                 // Just in case, we check if the Map is still empty on this bud Pos.
                 if(this.isEmpty(buildBud.getRealPos())){
-                    // Now we check if the space is bigger than the minimum, and we put a MarGarden if not.
-                    GardenPlacement clockGarden = buildBud.createAdaptedGarden(this, true);
-                    if(clockGarden.getSizeX() < SIDE_SIZE_MAX_GARDEN || clockGarden.getSizeZ() < SIDE_SIZE_MAX_GARDEN){
-                        this.removeFromBuds(buildBud);
-                        GardenPlacement counterClockGarden = buildBud.createAdaptedGarden(this, false);
-                        // We create the smallest MapGarden.
-                        if(Math.min(clockGarden.getSizeX(), clockGarden.getSizeZ()) < Math.min(counterClockGarden.getSizeX(), counterClockGarden.getSizeZ())){
-                            clockGarden.addToMap(this, buildBud, Direction.NORTH);
-                        }else{
-                            counterClockGarden.addToMap(this, buildBud, Direction.NORTH);
-                        }
+                    // Now we check if the space is bigger than the minimum.
+                    if(buildBud.asEnoughSpace(this)){
+                        continue;
                     }
-                }else{
-                    this.removeFromBuds(buildBud);
                 }
+                this.removeFromBuds(buildBud);
             }
         }
     }
@@ -494,83 +470,5 @@ public class TownMap {
 
     public static String str(BlockPos pos){
         return "(" + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + ")";
-    }
-
-    public void print_map(){
-        int height = this.mapGrid.length;
-        int width = this.mapGrid[0].length;
-        int [][] displayMap = new int[height][];
-        // First we make a copy of the real townMap.
-        for(int i = 0; i < height; i++)
-            displayMap[i] = this.mapGrid[i].clone();
-        // Then we put the buds inside.
-        for(BuildBud buildBud : this.getBuds()){
-            BlockPos pos = buildBud.getRealPos();
-            displayMap[this.getMapZ(pos.getZ())][this.getMapX(pos.getX())] = -999;
-        }
-        // Finally we print each row of the map.
-        for(int z = 0; z < height; z++){
-            StringBuilder row = new StringBuilder();
-            int prevY = -999;
-            for(int x = 0; x < width; x++){
-                int id = displayMap[z][x];
-                int currY = 60; //TODO must be replace with world high this.getFloorHeight(x, z);
-                if(prevY == -999){
-                    prevY = currY;
-                }
-                if(id == -999){ // This is a bud !
-                    row.append(ColorMap.COLOR_BUD.getSquare(false));
-                }else{
-                    BuildPlacement build = this.getBuild(id);
-                    if(build instanceof BuildingPlacement building){
-                        currY = building.getOriginPos().getY();
-                        row.append(ColorMap.COLOR_BUILDING.getSquare(currY < prevY));
-                    } else if (build instanceof RoadPlacement) {
-                        row.append(ColorMap.COLOR_PATH.getSquare(currY < prevY));
-                    } else if (build instanceof GardenPlacement) {
-                        row.append(ColorMap.COLOR_GARDEN.getSquare(currY < prevY));
-                    } else if (id == -1) { // This is Water !
-                        row.append(ColorMap.COLOR_WATER.getSquare(currY < prevY));
-                    }else{ // This is the floor.
-                        row.append(ColorMap.COLOR_FLOOR.getSquare(currY < prevY));
-                    }
-                }
-                prevY = currY;
-            }
-            System.out.println(row);
-        }
-    }
-
-    public enum ColorMap{
-        COLOR_BUD("\033[0;105m", "\033[0;105m"), // PURPLE_BACKGROUND_BRIGHT & PURPLE_BACKGROUND_BRIGHT
-        COLOR_FLOOR("\033[0;102m", "\033[42m"), // GREEN_BACKGROUND_BRIGHT & GREEN_BACKGROUND
-        COLOR_WATER("\033[0;104m", "\033[44m"), // BLUE_BACKGROUND_BRIGHT & BLUE_BACKGROUND
-        COLOR_BUILDING("\033[0;103m", "\033[43m"), // YELLOW_BACKGROUND_BRIGHT & YELLOW_BACKGROUND
-        COLOR_PATH("\033[0;101m", "\033[41m"), // RED_BACKGROUND_BRIGHT & RED_BACKGROUND
-        COLOR_GARDEN("\033[0;106m", "\033[46m"); // CYAN_BACKGROUND_BRIGHT & CYAN_BACKGROUND
-
-        /*
-        Unused :
-        BLACK_BACKGROUND = "\033[40m"
-        BLACK_BACKGROUND_BRIGHT = "\033[0;100m"
-        WHITE_BACKGROUND = "\033[47m"
-        WHITE_BACKGROUND_BRIGHT = "\033[0;107m"
-        PURPLE_BACKGROUND = "\033[45m"
-         */
-
-        private static final String SQUARE = "   ";  // Square that we color to generate the Map.
-        private static final String RESET = "\033[0m";  // Text Reset
-
-        private final String lightSquare;
-        private final String darkSquare;
-
-        ColorMap(String lightColor, String darkColor){
-            this.lightSquare = lightColor + SQUARE + RESET;
-            this.darkSquare = darkColor + SQUARE + RESET;
-        }
-
-        public String getSquare(boolean isDark){
-            return isDark ? this.darkSquare : this.lightSquare;
-        }
     }
 }

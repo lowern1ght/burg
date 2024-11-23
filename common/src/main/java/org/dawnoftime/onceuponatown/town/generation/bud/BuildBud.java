@@ -3,13 +3,12 @@ package org.dawnoftime.onceuponatown.town.generation.bud;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import org.dawnoftime.onceuponatown.building.placement.BuildPlacement;
-import org.dawnoftime.onceuponatown.building.placement.GardenPlacement;
 import org.dawnoftime.onceuponatown.town.generation.TownMap;
 import org.dawnoftime.onceuponatown.town.generation.TownMapUtils.Corner;
 
 import javax.annotation.Nullable;
 
-import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.SIDE_SIZE_MAX_GARDEN;
+import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.BUD_MINIMAL_SPACE;
 
 /**
  * Each bud is a point at the intersection of two paths, or a path and a plot border.
@@ -23,7 +22,7 @@ public class BuildBud {
     private final Direction[] adjacentPaths;
     private final BudType type;
 
-    private BuildBud(TownMap map, BudType type, BlockPos realPos, Corner corner, Direction[] adjacentPaths){
+    private BuildBud(TownMap map, BudType type, BlockPos realPos, Corner corner, Direction[] adjacentPaths) {
         this.type = type;
         this.realPos = realPos;
         this.corner = corner;
@@ -34,17 +33,18 @@ public class BuildBud {
 
     /**
      * Create a new instance of a Bud and adds it to the TownMap. If a similar Bud exists, returns null.
-     * @param map TownMap of the bud.
-     * @param type Type of this bud, depending on the building it will be able to support.
-     * @param realPos BlockPos of the bud.
-     * @param corner Corner type of this bud.
+     *
+     * @param map           TownMap of the bud.
+     * @param type          Type of this bud, depending on the building it will be able to support.
+     * @param realPos       BlockPos of the bud.
+     * @param corner        Corner type of this bud.
      * @param adjacentPaths Direction where there is a MapPath from the realPos.
      * @return The new instance of Bud or null.
      */
     @Nullable
-    public static BuildBud createBud(TownMap map, BudType type, BlockPos realPos, Corner corner, Direction[] adjacentPaths){
-        for(BuildBud buildBud : map.getBuds()){
-            if(buildBud.realPos.getX() == realPos.getX() && buildBud.realPos.getZ() == realPos.getZ()){
+    public static BuildBud createBud(TownMap map, BudType type, BlockPos realPos, Corner corner, Direction[] adjacentPaths) {
+        for (BuildBud buildBud : map.getBuds()) {
+            if (buildBud.realPos.getX() == realPos.getX() && buildBud.realPos.getZ() == realPos.getZ()) {
                 return null;
             }
         }
@@ -54,14 +54,15 @@ public class BuildBud {
 
     /**
      * Create a new instance of a Bud of DEFAULT type, and adds it to the TownMap. If a similar Bud exists, returns null.
-     * @param map TownMap of the bud.
-     * @param realPos BlockPos of the bud.
-     * @param corner Corner type of this bud.
+     *
+     * @param map           TownMap of the bud.
+     * @param realPos       BlockPos of the bud.
+     * @param corner        Corner type of this bud.
      * @param adjacentPaths Direction where there is a MapPath from the realPos.
      * @return The new instance of Bud or null.
      */
     @Nullable
-    public static BuildBud createBud(TownMap map, BlockPos realPos, Corner corner, Direction[] adjacentPaths){
+    public static BuildBud createBud(TownMap map, BlockPos realPos, Corner corner, Direction[] adjacentPaths) {
         return createBud(map, BudType.DEFAULT, realPos, corner, adjacentPaths);
     }
 
@@ -74,9 +75,10 @@ public class BuildBud {
 
     /**
      * Function that updates the squared distance between this bud and the town center.
+     *
      * @param map TownMap of the bud.
      */
-    public void setSquaredDistToCenter(TownMap map){
+    public void setSquaredDistToCenter(TownMap map) {
         this.squaredDistToCenter = this.getSquaredDistTo(map.getCenter());
     }
 
@@ -84,7 +86,7 @@ public class BuildBud {
      * @param pos BlockPos to which we want to compute the horizontal distance.
      * @return The squared distance between the given pos and this Bud.
      */
-    public int getSquaredDistTo(BlockPos pos){
+    public int getSquaredDistTo(BlockPos pos) {
         int difX = this.realPos.getX() - pos.getX();
         int difZ = this.realPos.getZ() - pos.getZ();
         return difX * difX + difZ * difZ;
@@ -107,28 +109,41 @@ public class BuildBud {
     /**
      * @return The real BlockPos of this Bud.
      */
-    public BlockPos getRealPos(){
+    public BlockPos getRealPos() {
         return this.realPos;
     }
 
     /**
      * Function to get the NORTH_WEST real position of a given MapBuild placed on this Bud with the given rotation.
+     *
      * @param build MapBuild to place.
-     * @param dir Direction of the MapBuild, used to get the size on X and Z axis.
+     * @param dir   Direction of the MapBuild, used to get the size on X and Z axis.
      * @return The BlockPos of the origin of the MapBuild, at the correct Y.
      */
-    public BlockPos findOriginPos(BuildPlacement build, Direction dir){
+    public BlockPos findOriginPos(BuildPlacement build, Direction dir) {
         BlockPos origin = this.corner.getOrigin(this.realPos, build, dir);
         return origin.atY(build.findAdaptedY(origin, dir));
     }
 
     /**
-     * Creates a MapGarden instance adapted to this Bud generated with the given rotation.
+     * Check if this bud as enough free space around him to place a build in the future.
      * @param map The TownMap of this Bud.
-     * @param clockwise True if rotating clockwise, false for counterclockwise.
-     * @return A MapGarden object with the biggest sizes in X and Z that can fit.
+     * @return True if the available maximal rectangle is bigger than the minimal square defined in the configs.
      */
-    public GardenPlacement createAdaptedGarden(TownMap map, boolean clockwise) {
+    public boolean asEnoughSpace(TownMap map) {
+        if(this.asEnoughSpace(map, true)){
+            return true;
+        }
+        return this.asEnoughSpace(map, false);
+    }
+
+    /**
+     * Computes the bigger rectangle following empty blocks in clockwise or counter-clockwise rotation.
+     * @param map The TownMap of this Bud.
+     * @param clockwise True to rotate in clockwise rotation, false for counter-clockwise.
+     * @return True if the rectangle is bigger than the minimal square defined in the configs.
+     */
+    private boolean asEnoughSpace(TownMap map, boolean clockwise) {
         int[] sizes = new int[4];
         Direction dir = clockwise ? this.getCorner().getLeftDirection() : this.getCorner().getRightDirection();
         dir = dir.getOpposite();
@@ -136,7 +151,7 @@ public class BuildBud {
         int sideIndex = 0;
         // The last value of sizes will be different to 0 only if the loop was able to create a rectangle.
         while (sizes[3] == 0) {
-            int max = sideIndex < 2 ? SIDE_SIZE_MAX_GARDEN : sizes[sideIndex - 2];
+            int max = sideIndex < 2 ? BUD_MINIMAL_SPACE : sizes[sideIndex - 2];
             sizes[sideIndex] = map.getEmptyLength(cursor, dir, max);
             // If the opposite side has a different size, we come back 2 side before, and restart the process with a shorter size.
             if(sideIndex >= 2){
@@ -153,7 +168,7 @@ public class BuildBud {
             sideIndex++;
             dir = clockwise ? dir.getClockWise() : dir.getCounterClockWise();
         }
-        return dir.getAxis() == Direction.Axis.X ? new GardenPlacement(sizes[0], sizes[1]) : new GardenPlacement(sizes[1], sizes[0]);
+        return sizes[0] >= BUD_MINIMAL_SPACE && sizes[1] >= BUD_MINIMAL_SPACE;
     }
 
     /**
