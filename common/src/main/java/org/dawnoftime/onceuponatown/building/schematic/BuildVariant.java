@@ -86,13 +86,13 @@ public class BuildVariant {
 
                 // Finally we check if the BuildSchematic exists for each list level, and have the correct size.
                 if (schematics.isEmpty()){
-                    throw new CorruptedCultureException("Culture [%s]: Failed to register a build_variant. You need to define at least the first level. Please check the file: %s".formatted(cultureName, buildResource));
+                    throw new CorruptedCultureException(cultureName, "Failed to register a build_variant. You need to define at least the first level. Please check the file: %s".formatted(buildResource));
                 }
                 if (schematics.firstKey() < 1) {
-                    throw new CorruptedCultureException("Culture [%s]: Failed to register a build_variant. The lowest level must be 1. Please check the file: %s".formatted(cultureName, buildResource));
+                    throw new CorruptedCultureException(cultureName, "Failed to register a build_variant. The lowest level must be 1. Please check the file: %s".formatted(buildResource));
                 }
                 if (!IntStream.rangeClosed(1, schematics.lastKey()).allMatch(schematics::containsKey)) {
-                    throw new CorruptedCultureException("Culture [%s]: Failed to register a build_variant. You need to define each level from 1 to the maximum level. Please check the file: %s".formatted(cultureName, buildResource));
+                    throw new CorruptedCultureException(cultureName, "Failed to register a build_variant. You need to define each level from 1 to the maximum level. Please check the file: %s".formatted(buildResource));
                 }
                 return new Triplet<>(buildTypeName, new BuildVariant(buildVariantName, size, schematics), shape);
             }
@@ -108,6 +108,10 @@ public class BuildVariant {
 
     public HashMap<Vec3i, Waypoint> getWaypoints(int level){
         return this.buildSchematicArray[level - 1].getWaypoints();
+    }
+
+    public ResourceLocation getSchematicResource(int level){
+        return this.buildSchematicArray[level - 1].getSchematicResourceLocation();
     }
 
     public SchematicContent getSchematic(ResourceManager resourceManager, int level){

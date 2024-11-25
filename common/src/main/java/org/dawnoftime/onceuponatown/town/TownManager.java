@@ -1,25 +1,41 @@
 package org.dawnoftime.onceuponatown.town;
 
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
+import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.building.RoadBuild;
+import org.dawnoftime.onceuponatown.building.SliceBuild;
+import org.dawnoftime.onceuponatown.building.type.BuildType;
+import org.dawnoftime.onceuponatown.building.type.SliceBuildType;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import net.minecraft.SharedConstants;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
-import org.dawnoftime.onceuponatown.town.generation.TownMap;
+import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
+import org.dawnoftime.onceuponatown.town.generation.TownMapUtils;
+import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
 
 import java.util.List;
 import java.util.UUID;
 
+import static org.dawnoftime.onceuponatown.Config.DEFAULT_PATH_LENGTH;
+import static org.dawnoftime.onceuponatown.town.CorruptedTownException.str;
+
 public class TownManager {
     public static int TOWN_TICK_RATE_SECONDS = 5;
 
-    public static void createNewTownWorldGen(ServerLevel level, Culture culture, TownMap townMap) {
+    public static void initGeneratedTown(ServerLevel level, Culture culture, TownMap townMap) {
         LevelTowns savedData = LevelTowns.get(level);
         if (savedData != null) {
             String name = "plains" + Mth.nextInt(RandomSource.create(), 0, 100);
             Town town = Town.createWorldGenOld(level, culture, name, townMap);
-            level.getServer().getPlayerList().broadcastSystemMessage(Component.literal(town.getName() + " discovered at " + town.getCenterPosition().toShortString()), false);
+            level.getServer().getPlayerList().broadcastSystemMessage(Component.literal(town.getName() + " discovered at " + str(town.getCenter())), false);
             savedData.addTown(town);
         }
     }

@@ -6,6 +6,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.GsonHelper;
+import net.minecraft.util.RandomSource;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.culture.Orientation;
@@ -19,12 +20,16 @@ import java.util.HashMap;
 public class BuildingType extends BuildType{
 
     private final HashMap<Orientation, Integer> researchGain = new HashMap<>();
-    private final HashMap<ResourceLocation, Integer> production = new HashMap<>();
     private final HashMap<NpcJob, Integer> npcJobs = new HashMap<>();
 
     protected BuildingType(String buildTypeName) {
         super(buildTypeName, 0);
         // TODO Load the weight
+    }
+
+    public BuildVariant getRandomVariant(RandomSource rand){
+        BuildVariant[] vars = this.getVariants().values().toArray(new BuildVariant[0]);
+        return vars[rand.nextInt(vars.length)];
     }
 
     public static @Nullable BuildingType createFromJson(ResourceManager resourceManager, ResourceLocation buildResource, String cultureName){
@@ -41,9 +46,5 @@ public class BuildingType extends BuildType{
             Ouat.error("Could not read the Build Type json file : " + buildResource);
         }
         return null;
-    }
-
-    public HashMap<ResourceLocation, Integer> getProduction() {
-        return this.production;
     }
 }

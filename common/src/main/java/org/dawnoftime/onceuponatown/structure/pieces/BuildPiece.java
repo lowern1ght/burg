@@ -21,11 +21,11 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlac
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 
 public class BuildPiece extends TemplateStructurePiece {
-    public BuildPiece(StructureTemplateManager manager, ResourceLocation resourceLocation, BlockPos pos, Rotation rotation, BuildingType buildingType) {
-        super(StructurePieceRegistry.REGISTRY.BUILDING_PIECE.get(), 0, manager, resourceLocation, resourceLocation.toString(), new StructurePlaceSettings().setRotation(rotation), pos);
+    public BuildPiece(StructureTemplateManager manager, ResourceLocation resourceLocation, BlockPos pos, Rotation rotation) {
+        this(StructurePieceRegistry.REGISTRY.BUILDING_PIECE.get(), manager, resourceLocation, pos, rotation);
     }
 
-    protected BuildPiece(StructurePieceType type, StructureTemplateManager manager, ResourceLocation resourceLocation, BlockPos pos, Rotation rotation, BuildingType buildingType) {
+    protected BuildPiece(StructurePieceType type, StructureTemplateManager manager, ResourceLocation resourceLocation, BlockPos pos, Rotation rotation) {
         super(type, 0, manager, resourceLocation, resourceLocation.toString(), new StructurePlaceSettings().setRotation(rotation), pos);
     }
 

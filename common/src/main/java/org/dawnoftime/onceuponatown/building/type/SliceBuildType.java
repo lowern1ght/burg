@@ -45,13 +45,13 @@ public class SliceBuildType extends BuildType {
     @Override
     public boolean isNotValid(String cultureId) {
         if(this.getVariants().isEmpty()){
-            throw new CorruptedCultureException("Culture [%s]: Failed to load a culture. You need to define at least one build_variant for the build_type '%s' with 'shape': 'flat'.".formatted(cultureId, this.getName()));
+            throw new CorruptedCultureException(cultureId, "Failed to load a culture. You need to define at least one build_variant for the build_type '%s' with 'shape': 'flat'.".formatted(this.getName()));
         }
         if(this.slab_variants.isEmpty()){
-            throw new CorruptedCultureException("Culture [%s]: Failed to load a culture. You need to define at least one build_variant for the build_type '%s' with 'shape': 'slab'.".formatted(cultureId, this.getName()));
+            throw new CorruptedCultureException(cultureId, "Failed to load a culture. You need to define at least one build_variant for the build_type '%s' with 'shape': 'slab'.".formatted(this.getName()));
         }
         if(this.stairs_variants.isEmpty()) {
-            throw new CorruptedCultureException("Culture [%s]: Failed to load a culture. You need to define at least one build_variant for the build_type '%s' with 'shape': 'stairs'.".formatted(cultureId, this.getName()));
+            throw new CorruptedCultureException(cultureId, "Failed to load a culture. You need to define at least one build_variant for the build_type '%s' with 'shape': 'stairs'.".formatted(this.getName()));
         }
         return false;
     }

@@ -1,29 +1,35 @@
-package org.dawnoftime.onceuponatown.building.placement;
+package org.dawnoftime.onceuponatown.building;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
-import org.dawnoftime.onceuponatown.town.generation.TownMap;
+import org.dawnoftime.onceuponatown.building.type.SliceBuildType;
+import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
 import org.dawnoftime.onceuponatown.town.generation.TownMapUtils;
-import org.dawnoftime.onceuponatown.town.generation.TownMapUtils.Corner;
+import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
+
 import java.util.ArrayList;
+import java.util.Objects;
 
-import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.*;
+import static org.dawnoftime.onceuponatown.culture.Culture.WIDE_ROAD_TYPE_NAME;
+import static org.dawnoftime.onceuponatown.town.generation.ProtoTown.RANDOM_SOURCE;
+import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.DEFAULT_PATH_LENGTH;
+import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.PATH_STOP_RATE;
 
-public class RoadPlacement extends BuildPlacement {
-    private final boolean isBig;
+public class RoadBuild extends SliceBuild {
+    private final boolean isWide;
     private boolean canGrow = true;
-    private int[] yShape;
 
-    public RoadPlacement(int length, boolean isBig) {
-        super(getWidth(isBig), length);
-        this.isBig = isBig;
-        //TODO handle the Y shape
-        this.yShape = new int[length];
+    public RoadBuild(int length, SliceBuildType build) {
+        super(length, build);
+        this.isWide = Objects.equals(build.getName(), WIDE_ROAD_TYPE_NAME);
+    }
+
+    public boolean isWide() {
+        return this.isWide;
     }
 
     @Override
-    protected void onAddedToMap(TownMap map) {
+    protected void onAddedToTown(ProtoTown map) {
         this.update(map);
     }
 
@@ -31,16 +37,16 @@ public class RoadPlacement extends BuildPlacement {
      * Function that tries to grow this MapPath, and adds the associated Buds.
      * @param map TownMap of this MapPath.
      */
-    public void update(TownMap map){
+    public void update(ProtoTown map){
         this.tryGrowing(map);
         this.findAllBuds(map);
     }
 
-    private void tryGrowing(TownMap map) {
+    private void tryGrowing(ProtoTown map) {
         if(this.canGrow && this.getDirection() != null){
             // We decide if this Path will stop growing definitively after this growth.
-            if(!this.isBig){
-                if(map.randomSource.nextFloat() < PATH_STOP_RATE){
+            if(!this.isWide){
+                if(RANDOM_SOURCE.nextFloat() < PATH_STOP_RATE){
                     this.canGrow = false;
                 }
             }
@@ -62,7 +68,7 @@ public class RoadPlacement extends BuildPlacement {
                 //this.extendSizeZNorth(dirGrowth + oppositeDirGrowth);
             }
             // And lastly we will add the special Buds : bridge or stairs
-            map.updateTownMap(this);
+            map.updateMapGrid(this);
         }
     }
 
@@ -74,7 +80,7 @@ public class RoadPlacement extends BuildPlacement {
      * @return The total number of block this MapPath should grow in the given direction to reach the border of adjacent buildings
      * plus the DEFAULT_PATH_LENGTH. Returns 0 if this MapPath already stops at the correct position.
      */
-    private int getGrowthSize(TownMap map, Direction dir, int bonusSize){
+    private int getGrowthSize(ProtoTown map, Direction dir, int bonusSize){
         if(this.getDirection() != null){
             int growth = -bonusSize;
             int emptyAdjacentBlocks = 0;
@@ -86,7 +92,7 @@ public class RoadPlacement extends BuildPlacement {
             while(true){
                 // While the cursor is at an empty pos (or the pos contains this block), we can extend this MapPath.
                 //TODO Check if there is a Y difference to big : we stop and will make a stairs Bud.
-                if(map.isEmpty(pathLeftCursor, this.getId()) && map.isEmpty(pathRightCursor, this.getId())){
+                if(map.isEmpty(pathLeftCursor, this) && map.isEmpty(pathRightCursor, this)){
                     growth++;
                     emptyAdjacentBlocks++;
                     if(!map.isEmpty(adjLeftCursor) || !map.isEmpty(adjRightCursor)){
@@ -113,25 +119,25 @@ public class RoadPlacement extends BuildPlacement {
      * Create the Buds on the sides of this MapPath. Some Buds can be added at the top and bottom only if it can not grow.
      * @param map TownMap in which we want to add the Buds.
      */
-    private void findAllBuds(TownMap map){
+    private void findAllBuds(ProtoTown map){
         ArrayList<BuildBud> newBuildBuds = new ArrayList<>();
         if(this.getDirection() != null){
             if(this.getDirection().getAxis() == Direction.Axis.X){
-                newBuildBuds.addAll(this.findBudsOnSide(map, Corner.NORTH_WEST, this.getSizeX()));
-                newBuildBuds.addAll(this.findBudsOnSide(map, Corner.SOUTH_EAST, this.getSizeX()));
+                newBuildBuds.addAll(this.findBudsOnSide(map, TownMapUtils.Corner.NORTH_WEST, this.getSizeX()));
+                newBuildBuds.addAll(this.findBudsOnSide(map, TownMapUtils.Corner.SOUTH_EAST, this.getSizeX()));
                 if(!this.canGrow){
-                    newBuildBuds.addAll(this.findBudsOnSide(map, Corner.NORTH_EAST, this.getSizeZ()));
-                    newBuildBuds.addAll(this.findBudsOnSide(map, Corner.SOUTH_WEST, this.getSizeZ()));
+                    newBuildBuds.addAll(this.findBudsOnSide(map, TownMapUtils.Corner.NORTH_EAST, this.getSizeZ()));
+                    newBuildBuds.addAll(this.findBudsOnSide(map, TownMapUtils.Corner.SOUTH_WEST, this.getSizeZ()));
                 }
             }else{
-                newBuildBuds.addAll(this.findBudsOnSide(map, Corner.NORTH_EAST, this.getSizeZ()));
-                newBuildBuds.addAll(this.findBudsOnSide(map, Corner.SOUTH_WEST, this.getSizeZ()));
+                newBuildBuds.addAll(this.findBudsOnSide(map, TownMapUtils.Corner.NORTH_EAST, this.getSizeZ()));
+                newBuildBuds.addAll(this.findBudsOnSide(map, TownMapUtils.Corner.SOUTH_WEST, this.getSizeZ()));
                 if(!this.canGrow){
-                    newBuildBuds.addAll(this.findBudsOnSide(map, Corner.NORTH_WEST, this.getSizeX()));
-                    newBuildBuds.addAll(this.findBudsOnSide(map, Corner.SOUTH_EAST, this.getSizeX()));
+                    newBuildBuds.addAll(this.findBudsOnSide(map, TownMapUtils.Corner.NORTH_WEST, this.getSizeX()));
+                    newBuildBuds.addAll(this.findBudsOnSide(map, TownMapUtils.Corner.SOUTH_EAST, this.getSizeX()));
                 }
             }
-            newBuildBuds.forEach(map::tryCreatePath);
+            newBuildBuds.forEach(map::tryCreateRoad);
         }else{
             throw new IllegalStateException("Unexpected creation of Buds: It's impossible to create Buds before the source MapPath is placed on the TownMap.");
         }
@@ -145,7 +151,7 @@ public class RoadPlacement extends BuildPlacement {
      * @param sideLength Size of the size to study.
      * @return A list that contains the Buds created in this function.
      */
-    private ArrayList<BuildBud> findBudsOnSide(TownMap map, Corner corner, int sideLength) {
+    private ArrayList<BuildBud> findBudsOnSide(ProtoTown map, TownMapUtils.Corner corner, int sideLength) {
         // We move the start BlockPos one block out of the MapBuild in diagonal.
         BlockPos cornerPos = this.getCornerPos(corner).relative(corner.getRightDirection()).relative(corner.getLeftDirection());
         BlockPos.MutableBlockPos cursor = cornerPos.mutable();
@@ -181,45 +187,13 @@ public class RoadPlacement extends BuildPlacement {
      * @param budDir Direction oriented at the opposite of the MapPath, that corresponds to the RightDir of the Corner.
      * @return The created Bud instance.
      */
-    private BuildBud setupBud(TownMap map, BlockPos currentPos, boolean isCurrentPosEmpty, Direction budDir) {
+    private BuildBud setupBud(ProtoTown map, BlockPos currentPos, boolean isCurrentPosEmpty, Direction budDir) {
         BlockPos previousPos = currentPos.relative(budDir.getCounterClockWise());
-        Direction[] pathDirection = new Direction[map.getBuild(isCurrentPosEmpty ? previousPos : currentPos) instanceof RoadPlacement ? 2 : 1];
+        Direction[] pathDirection = new Direction[map.getBuild(isCurrentPosEmpty ? previousPos : currentPos) instanceof SliceBuild ? 2 : 1];
         pathDirection[0] = budDir.getOpposite();
         if(pathDirection.length > 1){
             pathDirection[1] = isCurrentPosEmpty ? budDir.getCounterClockWise() : budDir.getClockWise();
         }
-        return BuildBud.createBud(map, isCurrentPosEmpty ? currentPos : previousPos, Corner.getCornerNextToDir(budDir, isCurrentPosEmpty), pathDirection);
-    }
-
-    @Override
-    public boolean canBeBuiltOnBud(TownMap map, BuildBud buildBud, Direction dir) {
-        // In the case of MapPaths, we only checks the line of block. The Map size will be defined when it's placed on the Map.
-        BlockPos testedOriginPos = buildBud.findOriginPos(this, dir);
-        BlockPos cursor = testedOriginPos.mutable();
-        // We check all the position from the Bud to the width.
-        for(int offset = 0; offset < getWidth(this.isBig()); offset++){
-            //TODO Replace with the real Y Map query function.
-            if(!map.isEmpty(cursor)){// || (Math.abs(TownMapDisplay.getSurfaceY(cursor)) - this.getYOnPos(testedOriginPos, cursor)) > MAXI_Y_DIFFERENCE){
-                return false;
-            }
-            cursor.relative(dir);
-        }
-        return true;
-    }
-
-    /**
-     * @return True if this MapPath is big, false otherwise.
-     */
-    public boolean isBig() {
-        return this.isBig;
-    }
-
-    /**
-     * @param isBig True to get the width of big paths, false for small ones.
-     * @return The corresponding width of the path.
-     */
-    public static int getWidth(boolean isBig){
-        //TODO Make MapPath width culture specific.
-        return isBig ? BIG_WIDTH : SMALL_WIDTH;
+        return BuildBud.createBud(map, isCurrentPosEmpty ? currentPos : previousPos, TownMapUtils.Corner.getCornerNextToDir(budDir, isCurrentPosEmpty), pathDirection);
     }
 }

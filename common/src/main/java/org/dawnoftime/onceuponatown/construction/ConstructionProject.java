@@ -16,8 +16,7 @@ import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import org.dawnoftime.onceuponatown.building.Building;
-import org.dawnoftime.onceuponatown.building.placement.BuildPlacement;
+import org.dawnoftime.onceuponatown.building.Build;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
 
@@ -62,16 +61,16 @@ public class ConstructionProject {
         return createProject(level, name, ProjectType.NEW_BUILD, variant, buildingLevel, placement);
     }
 
-    public ConstructionProject upgradeProject(Level level, String name, Building building) {
-        return upgradeProject(level, name, building, building.getLevel() + 1);
+    public ConstructionProject upgradeProject(Level level, String name, Build build) {
+        return upgradeProject(level, name, build, build.getLevel() + 1);
     }
 
-    public ConstructionProject upgradeProject(Level level, String name, Building building, int wantedLevel) {
-        return createProject(level, name, ProjectType.UPGRADE, building.getVariant(), wantedLevel, building.getPlacement());
+    public ConstructionProject upgradeProject(Level level, String name, Build build, int wantedLevel) {
+        return createProject(level, name, ProjectType.UPGRADE, build.getVariant(), wantedLevel, build.getPlacement());
     }
 
-    public ConstructionProject repairProject(Level level, String name, Building building) {
-        return createProject(level, name, ProjectType.REPAIR, building.getVariant(), building.getLevel(), building.getPlacement());
+    public ConstructionProject repairProject(Level level, String name, Build build) {
+        return createProject(level, name, ProjectType.REPAIR, build.getVariant(), build.getLevel(), build.getPlacement());
     }
 
     private ConstructionProject createProject(Level level, String name, ProjectType projectType, BuildVariant buildVariant, int buildingLevel, BuildPlacement placement) {

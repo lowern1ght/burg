@@ -4,7 +4,6 @@ import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.registry.StructurePieceRegistry;
 import org.dawnoftime.onceuponatown.town.TownManager;
-import org.dawnoftime.onceuponatown.town.generation.TownMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -18,20 +17,21 @@ import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
+import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
 
 public class TownDataBuildingPiece extends BuildPiece {
-    public final TownMap townMap;
+    public final ProtoTown protoTown;
     public boolean townRegistered;
 
-    public TownDataBuildingPiece(StructureTemplateManager manager, ResourceLocation resourceLocation, BlockPos pos, Rotation rotation, BuildingType buildingType, TownMap townMap) {
+    public TownDataBuildingPiece(StructureTemplateManager manager, ResourceLocation resourceLocation, BlockPos pos, Rotation rotation, BuildingType buildingType, ProtoTown protoTown) {
         super(StructurePieceRegistry.REGISTRY.TOWN_DATA_BUILDING_PIECE.get(), manager, resourceLocation, pos, rotation, buildingType);
-        this.townMap = townMap;
+        this.protoTown = protoTown;
         this.townRegistered = false;
     }
 
     public TownDataBuildingPiece(StructureTemplateManager manager, CompoundTag tag) {
         super(StructurePieceRegistry.REGISTRY.TOWN_DATA_BUILDING_PIECE.get(), manager, tag);
-        this.townMap = new TownMap(tag.getCompound("TownMap"));
+        this.protoTown = new ProtoTown(tag.getCompound("TownMap"));
         this.townRegistered = tag.getBoolean("TownRegistered");
     }
 
@@ -39,7 +39,7 @@ public class TownDataBuildingPiece extends BuildPiece {
     protected void addAdditionalSaveData(StructurePieceSerializationContext context, CompoundTag tag) {
         super.addAdditionalSaveData(context, tag);
         CompoundTag townMapTag = new CompoundTag();
-        this.townMap.saveToNBT(townMapTag);
+        this.protoTown.saveToNBT(townMapTag);
         tag.put("TownMap", townMapTag);
         tag.putBoolean("TownRegistered", this.townRegistered);
     }
@@ -48,7 +48,7 @@ public class TownDataBuildingPiece extends BuildPiece {
     public void postProcess(WorldGenLevel worldGenLevel, StructureManager manager, ChunkGenerator chunkGenerator, RandomSource random, BoundingBox box, ChunkPos chunkPos, BlockPos pos) {
         super.postProcess(worldGenLevel, manager, chunkGenerator, random, box, chunkPos, pos);
         if (!this.townRegistered) {
-            TownManager.createNewTownWorldGen(worldGenLevel.getLevel(), Culture.FAKE_PLAINS, this.townMap);
+            TownManager.initGeneratedTown(worldGenLevel.getLevel(), Culture.FAKE_PLAINS, this.protoTown);
             this.townRegistered = true;
         }
     }

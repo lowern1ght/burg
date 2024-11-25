@@ -118,12 +118,12 @@ public class Culture {
                 JsonObject subObject = arrayElem.getAsJsonObject();
                 String name = CultureManager.tryGet(subObject, "build_type", " in an object in the section 'starter_pack'", CULTURE_FILE, cultureId, CULTURE_FILE, fileLocation).getAsString();
                 if(!culture.buildTypeMap.containsKey(name)){
-                    throw new CorruptedCultureException("Culture [%s]: Failed to load a culture. The build_type '%s' in the starter pack is unknown, please check this file: %s".formatted(cultureId, name, CULTURE_FILE));
+                    throw new CorruptedCultureException(cultureId, "Failed to load a culture. The build_type '%s' in the starter pack is unknown, please check this file: %s".formatted(name, CULTURE_FILE));
                 }
                 int min = CultureManager.tryGet(subObject, "min", " in an object in the section 'starter_pack'", CULTURE_FILE, cultureId, CULTURE_FILE, fileLocation).getAsInt();
                 int max = CultureManager.tryGet(subObject, "max", " in an object in the section 'starter_pack'", CULTURE_FILE, cultureId, CULTURE_FILE, fileLocation).getAsInt();
                 if(min < 1 || max < min){
-                    throw new CorruptedCultureException("Culture [%s]: Failed to load a culture. Check the values of the minimum and maximum number of the build_type '%s' in the starter pack in this file: %s".formatted(cultureId, name, fileLocation));
+                    throw new CorruptedCultureException(cultureId, "Failed to load a culture. Check the values of the minimum and maximum number of the build_type '%s' in the starter pack in this file: %s".formatted(name, fileLocation));
                 };
                 culture.addStarterPackBuild(name, min, max);
             }

@@ -1,75 +1,107 @@
 package org.dawnoftime.onceuponatown.town.generation;
 
-import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
-import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import net.minecraft.core.BlockPos;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-
-import org.dawnoftime.onceuponatown.building.placement.*;
-import org.dawnoftime.onceuponatown.town.generation.TownMapUtils.Corner;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.level.levelgen.structure.Structure;
+import org.dawnoftime.onceuponatown.building.Build;
+import org.dawnoftime.onceuponatown.building.Building;
+import org.dawnoftime.onceuponatown.building.RoadBuild;
+import org.dawnoftime.onceuponatown.building.SliceBuild;
+import org.dawnoftime.onceuponatown.building.type.BuildType;
+import org.dawnoftime.onceuponatown.building.type.BuildingType;
+import org.dawnoftime.onceuponatown.building.type.SliceBuildType;
+import org.dawnoftime.onceuponatown.culture.Culture;
+import org.dawnoftime.onceuponatown.culture.CultureManager;
+import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
 
+import javax.annotation.Nullable;
+import java.util.*;
+
+import static org.dawnoftime.onceuponatown.Config.DEFAULT_PATH_LENGTH;
+import static org.dawnoftime.onceuponatown.culture.Culture.ROAD_TYPE_NAME;
+import static org.dawnoftime.onceuponatown.culture.Culture.WIDE_ROAD_TYPE_NAME;
+import static org.dawnoftime.onceuponatown.town.CorruptedTownException.str;
 import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.*;
+import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.MINI_PATH_SPACE;
 
-public class TownMap {
+public class ProtoTown {
+    public static final RandomSource RANDOM_SOURCE = RandomSource.create();
+
+    protected final UUID uuid;
+    protected final Culture culture;
+    private final String name;
     private BlockPos center;
     private final BlockPos.MutableBlockPos NWCorner;
     private final BlockPos.MutableBlockPos SECorner;
-    private int[][] mapGrid;
-    // The Integer key must match the key in the Town's builds hashmap
-    private final HashMap<Integer, BuildPlacement> builds = new HashMap<>();
-    private final ArrayList<BuildBud> buildBuds = new ArrayList<>();
-    public static final RandomSource randomSource = RandomSource.create();
+    private MapBlock[][] townMap;
+    private final List<BuildBud> buildBuds = new ArrayList<>();
+    private final List<Build> builds = new ArrayList<>();
 
-    /**
-     * Create the new instance of TownMap, object use to position the building in Minecraft.
-     * @param center The BlockPos of the center of the town, used to prioritize positions to put new buildings.
-     */
-    public TownMap(BlockPos center){
+    private ProtoTown(UUID uuid, Culture culture, String name, BlockPos center, BlockPos.MutableBlockPos NWCorner, BlockPos.MutableBlockPos SECorner){
+        this.uuid = uuid;
+        this.culture = culture;
+        this.name = name;
         this.center = center;
-        this.NWCorner = center.mutable();
-        this.SECorner = center.mutable();
-        this.mapGrid = new int[1][1];
+        this.NWCorner = NWCorner;
+        this.SECorner = SECorner;
+        this.townMap = new MapBlock[1][1];
     }
 
-    public TownMap(CompoundTag tag){
-        this.center = NbtUtils.readBlockPos(tag.getCompound("Center"));
-        this.NWCorner = NbtUtils.readBlockPos(tag.getCompound("NWCorner")).mutable();
-        this.SECorner = NbtUtils.readBlockPos(tag.getCompound("SECorner")).mutable();
-        //TODO: Read other data
+    public ProtoTown(Culture culture, String name, BlockPos center){
+        this(Mth.createInsecureUUID(RANDOM_SOURCE), culture, name, center, center.mutable(), center.mutable());
+    }
+
+    public ProtoTown(CompoundTag tag){
+        //TODO Add a : throws an error if the culture could not be found.
+        this(
+            tag.getUUID("UUID"),
+            CultureManager.getCultureById(tag.getString("Culture")),
+            tag.getString("Name"),
+            NbtUtils.readBlockPos(tag.getCompound("Center")),
+            NbtUtils.readBlockPos(tag.getCompound("NWCorner")).mutable(),
+            NbtUtils.readBlockPos(tag.getCompound("SECorner")).mutable());
     }
 
     public void saveToNBT(CompoundTag tag) {
+        tag.putUUID("UUID", this.uuid);
+        tag.putString("Culture", this.culture.getId());
+        tag.putString("Name", this.name);
         tag.put("Center", NbtUtils.writeBlockPos(this.center));
         tag.put("NWCorner", NbtUtils.writeBlockPos(this.NWCorner.immutable()));
         tag.put("SECorner", NbtUtils.writeBlockPos(this.SECorner.immutable()));
-        //TODO: Save other data
     }
 
-    public static TownMap createTownMapWorldGen(Structure.GenerationContext context, List<BuildingType> starterPack) {
-        // TODO: Scan the terrain and create the best town map.
-        // Respect the starter pack. All buildings must be spawned.
-        // If impossible (ex. due to bad terrain ), return null
-        return null;
+    public String getName() {
+        return this.name;
     }
 
+    public List<Build> getBuilds() {
+        return this.builds;
+    }
+
+    public void buildStarterPack(){
+        List<BuildType> starterPack = culture.getRandomStarterPack(RANDOM_SOURCE);
+        SliceBuildType wideRoad = culture.getSliceBuild(Culture.WIDE_ROAD_TYPE_NAME); //TODO to replace with wide road.
+        boolean flipped = RANDOM_SOURCE.nextBoolean(); //TODO Will be used to decide the direction of the central road.
+        
+        // First let's put the vertical big path, with length of 2 * mini_size + big_width
+        int halfBigPath = wideRoad.getWidth() / 2;
+        BuildBud firstBuildBud = BuildBud.createBud(this, this.getCenter().offset(-halfBigPath, 0, -halfBigPath - DEFAULT_PATH_LENGTH), TownMapUtils.Corner.NORTH_WEST, new Direction[]{Direction.NORTH});
+        SliceBuild mainPath = new RoadBuild(2 * DEFAULT_PATH_LENGTH + wideRoad.getWidth(), wideRoad);
+        boolean success = this.tryBuild(mainPath, firstBuildBud);
+    }
+    
     /**
-     * Tries to place the given MapBuild on the Bud. For each adjacent MapPath to this bud, we try the corresponding rotation
-     * of the MapBuild. If the TownMap is empty, and the MC Level allows the placement, the MapBuild is added to the map.
-     * @param build MapBuild we want to try to build.
+     * Tries to place the given Build on the Bud. For each adjacent BuildRoad to this bud, we try the corresponding rotation
+     * of the Build. If the TownMap is empty, and the MC Level allows the placement, the Build is added to the map.
+     * @param build Build we want to try to build.
      * @param buildBud Bud on which we try to build.
-     * @return True if the MapBuild was successfully built, false otherwise.
+     * @return True if the Build was successfully built, false otherwise.
      */
-    public boolean tryBuild(BuildPlacement build, @Nullable BuildBud buildBud){
+    public boolean tryBuild(Build build, @Nullable BuildBud buildBud){
         if(buildBud == null){
             return false;
         }
@@ -85,15 +117,16 @@ public class TownMap {
 
     /**
      * Function used to add new buildings in the town !
-     * Tries to add the building in parameter.
-     * @param building Building to be added in the town.
+     * Tries to add the build in parameter.
+     * @param build Building to be added in the town.
      */
-    public void addBuilding(BuildingPlacement building){
+    public void addBuilding(BuildingType build){
         //TODO What if there is no Bud left ?
         this.getBuds().sort(Comparator.comparingInt(BuildBud::getSquaredDistToCenter));
         BuildBud[] buildBuds = this.getBuds().toArray(new BuildBud[0]);
+        Building placement = new Building(build.getRandomVariant(RANDOM_SOURCE));
         for(BuildBud buildBud : buildBuds){
-            if(this.tryBuild(building, buildBud)){
+            if(this.tryBuild(placement, buildBud)){
                 return;
             }else{
                 // If it was not possible to build, we check if the Bud has enough free space to stay.
@@ -114,22 +147,22 @@ public class TownMap {
      * This will change the center of the town and the position of the new buildings.
      * @param building Building to be added in the town.
      */
-    public void addTownCenter(BuildingPlacement building){
+    public void addTownCenter(Building building){
         ArrayList<BuildBud> monoPathBuildBuds = new ArrayList<>();
         for(BuildBud buildBud : this.getBuds()){
             if(buildBud.getType() == BuildBud.BudType.DEFAULT){
                 Direction[] dirs = buildBud.getAdjacentPaths();
                 if(dirs.length == 1){
-                    if(this.getBuild(buildBud.getRealPos().relative(dirs[0])) instanceof RoadPlacement path) {
-                        if(path.isBig()) {
+                    if(this.getBuild(buildBud.getRealPos().relative(dirs[0])) instanceof RoadBuild path) {
+                        if(path.isWide()) {
                             monoPathBuildBuds.add(buildBud);
                         }
                     }
                 }else{
                     boolean onlyBig = true;
                     for(Direction dir : dirs){
-                        if(this.getBuild(buildBud.getRealPos().relative(dir)) instanceof RoadPlacement path){
-                            if(!path.isBig()){
+                        if(this.getBuild(buildBud.getRealPos().relative(dir)) instanceof RoadBuild path){
+                            if(!path.isWide()){
                                 onlyBig = false;
                             }
                         }
@@ -158,53 +191,38 @@ public class TownMap {
     }
 
     /**
-     * @return This TownMap map of builds.
-     */
-    public HashMap<Integer, BuildPlacement> getBuilds() {
-        return this.builds;
-    }
-
-    /**
-     * @return A new ID for a building. This ID is the number of building in the town + 1, because the first ID is 1.
-     */
-    public int generateNewID() {
-        return this.builds.size() + 1;
-    }
-
-    /**
      * Put the given build in this TownMap builds dictionary and update the TownMap.
      * Called directly when a new Build is created.
-     * @param id ID of the build that we want to add.
      * @param build Build to be added.
      */
-    public void addNewBuilds(int id, BuildPlacement build){
-        this.builds.put(id, build);
+    public void addNewBuilds(Build build){
+        this.builds.add(build);
         this.updateTownMap(build);
     }
 
     /**
      * Update the VilleMap by resizing it so that the new build fits, and add its ids in the TownMap matrix.
-     * @param build MapBuild that must be added or updated on the TownMap.
+     * @param build Build that must be added or updated on the TownMap.
      */
-    public void updateTownMap(BuildPlacement build){
+    public void updateTownMap(Build build){
         this.resizeTownMap(build);
         int xStart = this.getMapX(build.getOriginPos().getX());
         int zStart = this.getMapZ(build.getOriginPos().getZ());
         for (int x = 0; x < build.getSizeX(); x++) {
             for (int z = 0; z < build.getSizeZ(); z++) {
-                this.setIDInMapPos(xStart + x, zStart + z, build.getId());
+                this.setMapBlockInTownMap(xStart + x, zStart + z, build);
             }
         }
     }
 
     /**
-     * Resize the VilleMap matrix so that the given MapBuild can fit inside.
-     * @param build MapBuild that must be added or updated on the TownMap.
+     * Resize the VilleMap matrix so that the given Build can fit inside.
+     * @param build Build that must be added or updated on the TownMap.
      */
-    private void resizeTownMap(BuildPlacement build){
+    private void resizeTownMap(Build build){
         int north = Math.max(0, this.NWCorner.getZ() - build.getOriginPos().getZ());
-        int east = Math.max(0, build.getCornerPos(Corner.SOUTH_EAST).getX() - this.SECorner.getX());
-        int south = Math.max(0, build.getCornerPos(Corner.SOUTH_EAST).getZ() - this.SECorner.getZ());
+        int east = Math.max(0, build.getCornerPos(TownMapUtils.Corner.SOUTH_EAST).getX() - this.SECorner.getX());
+        int south = Math.max(0, build.getCornerPos(TownMapUtils.Corner.SOUTH_EAST).getZ() - this.SECorner.getZ());
         int west = Math.max(0, this.NWCorner.getX() - build.getOriginPos().getX());
         if(north + east + south + west > 0){
             this.resizeTownMap(north, east, south, west);
@@ -221,15 +239,15 @@ public class TownMap {
     private void resizeTownMap(int north, int east, int south, int west){
         this.NWCorner.move(-west, 0, -north);
         this.SECorner.move(east, 0, south);
-        int rows = this.mapGrid.length;
-        int cols = this.mapGrid[0].length;
+        int rows = this.townMap.length;
+        int cols = this.townMap[0].length;
         // Create the new matrix, Java fills it with 0 by default.
-        int[][] newTownMap = new int[north + rows + south][west + cols + east];
+        MapBlock[][] newTownMap = new MapBlock[north + rows + south][west + cols + east];
         // Copy the townMap into the newTownMap
         for(int i = 0; i < rows; i++) {
-            System.arraycopy(this.mapGrid[i], 0, newTownMap[i + north], west, cols);
+            System.arraycopy(this.townMap[i], 0, newTownMap[i + north], west, cols);
         }
-        this.mapGrid = newTownMap;
+        this.townMap = newTownMap;
     }
 
     /**
@@ -242,32 +260,33 @@ public class TownMap {
     }
 
     /**
-     * Tries to create a MapPath on each Bud created when the adjacent MapPaths to a new building are updated.
+     * Tries to create a BuildRoad on each Bud created when the adjacent BuildRoads to a new building are updated.
      * @param buildBud Bud to be tested.
      */
-    public void tryCreatePath(BuildBud buildBud){
+    public void tryCreateRoad(BuildBud buildBud){
         if(buildBud != null){
             // If this bud has only one adjacent Path, we try
             //TODO Replace with Vanilla random.
-            if(buildBud.getAdjacentPaths().length == 1 && randomSource.nextFloat() < PATH_SPAWN_RATE){
-                boolean big = false;
+            if(buildBud.getAdjacentPaths().length == 1 && RANDOM_SOURCE.nextFloat() < PATH_SPAWN_RATE){
+                boolean wide = false;
                 Direction pathDir = buildBud.getAdjacentPaths()[0];
-                if(this.getBuild(buildBud.getRealPos().relative(pathDir)) instanceof RoadPlacement path){
-                    if(path.isBig()){
-                        big = randomSource.nextFloat() < BIG_PATH_SPAWN_RATE;
+                if(this.getBuild(buildBud.getRealPos().relative(pathDir)) instanceof RoadBuild path){
+                    if(path.isWide()){
+                        wide = RANDOM_SOURCE.nextFloat() < BIG_PATH_SPAWN_RATE;
                     }
                 }
+                SliceBuildType road = this.culture.getSliceBuild(wide ? WIDE_ROAD_TYPE_NAME : ROAD_TYPE_NAME);
                 // We check if there is already a path quite close to this one.
                 Direction secondDir = buildBud.getCorner().getLeftDirection() == pathDir ? buildBud.getCorner().getRightDirection() : buildBud.getCorner().getLeftDirection();
-                if(this.noPathToCloseInDir(buildBud.getRealPos().mutable().move(secondDir), secondDir) && this.noPathToCloseInDir(buildBud.getRealPos().mutable().move(secondDir, -RoadPlacement.getWidth(big)), secondDir.getOpposite())){
-                    this.tryBuild(new RoadPlacement(DEFAULT_PATH_LENGTH, big), buildBud);
+                if(this.roadTooCloseInDir(buildBud.getRealPos().mutable().move(secondDir), secondDir) && this.roadTooCloseInDir(buildBud.getRealPos().mutable().move(secondDir, -road.getWidth()), secondDir.getOpposite())){
+                    this.tryBuild(new RoadBuild(DEFAULT_PATH_LENGTH, road), buildBud);
                 }
             }
         }
     }
 
     /**
-     * Remove the given bud from this TownMap Buds list. Called when a Bud is used to place a MapBuild.
+     * Remove the given bud from this TownMap Buds list. Called when a Bud is used to place a Build.
      * @param buildBud Bud to be removed.
      */
     public void removeFromBuds(BuildBud buildBud){
@@ -298,14 +317,14 @@ public class TownMap {
     }
 
     /**
-     * Checks the given direction starting at the given cursor position to detect other MapPaths.
+     * Checks the given direction starting at the given cursor position to detect other BuildRoads.
      * @param cursor BlockPos mutable where we should start checking. The cursor is moved during the process.
      * @param dir Direction in which the cursor will move.
-     * @return False if a MapPath was detected at less than MINI_PATH_SPACE blocks, true otherwise.
+     * @return False if a BuildRoad was detected at less than MINI_PATH_SPACE blocks, true otherwise.
      */
-    public boolean noPathToCloseInDir(BlockPos.MutableBlockPos cursor, Direction dir){
+    public boolean roadTooCloseInDir(BlockPos.MutableBlockPos cursor, Direction dir){
         for(int length = 0; length < MINI_PATH_SPACE; length++){
-            if(this.getBuild(cursor) instanceof RoadPlacement){
+            if(this.getBuild(cursor) instanceof RoadBuild){
                 return false;
             }
             cursor.move(dir);
@@ -318,16 +337,16 @@ public class TownMap {
      * @return True if the corresponding position in the TownMap is empty.
      */
     public boolean isEmpty(BlockPos pos){
-        return this.isEmpty(pos, 0);
+        return this.isEmpty(pos, null);
     }
 
     /**
      * @param pos Real MC position we want to test.
-     * @param acceptedID ID of a MapBuild that we still accept as empty (often the ID of the MapBuild trying to be placed).
-     * @return True if the corresponding position in the TownMap is empty or contains the acceptedID.
+     * @param allowedMapBlock ID of a Build that we still accept as empty (often the ID of the Build trying to be placed).
+     * @return True if the corresponding position in the TownMap is empty or contains the allowedMapBlock.
      */
-    public boolean isEmpty(BlockPos pos, int acceptedID){
-        return this.isEmpty(this.getMapX(pos.getX()), this.getMapZ(pos.getZ()), acceptedID);
+    public boolean isEmpty(BlockPos pos, @Nullable MapBlock allowedMapBlock){
+        return this.isEmpty(this.getMapX(pos.getX()), this.getMapZ(pos.getZ()), allowedMapBlock);
     }
 
     /**
@@ -336,18 +355,18 @@ public class TownMap {
      * @return True if the corresponding position in the TownMap is empty.
      */
     private boolean isEmpty(int xMap, int zMap){
-        return this.isEmpty(xMap, zMap, 0);
+        return this.isEmpty(xMap, zMap, null);
     }
 
     /**
      * @param xMap The coordinate x of the block we want to test in map coordinate.
      * @param zMap The coordinate z of the block we want to test in map coordinate.
-     * @param acceptedID ID of a MapBuild that we still accept as empty (often the ID of the MapBuild trying to be placed).
+     * @param allowedMapBlock ID of a Build that we still accept as empty (often the ID of the Build trying to be placed).
      * @return True if the corresponding position in the TownMap is empty or contains the acceptedID.
      */
-    private boolean isEmpty(int xMap, int zMap, int acceptedID){
-        int id = this.getIDInMapPos(xMap, zMap);
-        return id == 0 || id == acceptedID;
+    private boolean isEmpty(int xMap, int zMap, @Nullable MapBlock allowedMapBlock){
+        MapBlock currentMapBlock = this.getMapBlockInMapPos(xMap, zMap);
+        return currentMapBlock == null || currentMapBlock == allowedMapBlock;
     }
 
     /**
@@ -355,8 +374,8 @@ public class TownMap {
      * @param pos The real BlockPos of the block we study.
      * @return The ID of the content or 0 if the block has no building or is out of the TownMap.
      */
-    public int getIDInMapPos(BlockPos pos){
-        return this.getIDInMapPos(this.getMapX(pos.getX()), this.getMapZ(pos.getZ()));
+    public MapBlock getMapBlockInMapPos(BlockPos pos){
+        return this.getMapBlockInMapPos(this.getMapX(pos.getX()), this.getMapZ(pos.getZ()));
     }
 
     /**
@@ -365,45 +384,37 @@ public class TownMap {
      * @param zMap The coordinate z of the block in map coordinate.
      * @return The ID of the content or 0 if the block has no building or is out of the TownMap.
      */
-    public int getIDInMapPos(int xMap, int zMap){
-        // Get the Map ID (0 if outside the map)
-        //TODO Maybe add a -1 value to check for obstacle, like underwater or lava.
-        return (xMap < 0 || zMap < 0 || zMap >= this.mapGrid.length || xMap >= this.mapGrid[0].length) ? 0 : this.mapGrid[zMap][xMap];
+    public @Nullable MapBlock getMapBlockInMapPos(int xMap, int zMap){
+        // Get the Map ID (null if outside the map)
+        return (xMap < 0 || zMap < 0 || zMap >= this.townMap.length || xMap >= this.townMap[0].length) ? null : this.townMap[zMap][xMap];
     }
 
     /**
      * Modify the TownMap matrix by replacing the ID stored at the given coordinate.
      * @param xMap The coordinate x of the block in map coordinate.
      * @param zMap The coordinate z of the block in map coordinate.
-     * @param id The ID of the MapBuild to set in the corresponding coordinates.
+     * @param mapBlock The ID of the Build to set in the corresponding coordinates.
      */
-    private void setIDInMapPos(int xMap, int zMap, int id){
-        this.mapGrid[zMap][xMap] = id;
-    }
-
-    /**
-     * @param id Unique ID of the MapBuild instance in the TownMap.
-     * @return The corresponding instance of MapBuild, or null if this ID does not exist.
-     */
-    public BuildPlacement getBuild(int id){
-        return this.builds.get(id);
+    private void setMapBlockInTownMap(int xMap, int zMap, MapBlock mapBlock){
+        this.townMap[zMap][xMap] = mapBlock;
     }
 
     /**
      * @param xMap The coordinate x of the block in map coordinate.
      * @param zMap The coordinate z of the block in map coordinate.
-     * @return The corresponding instance of MapBuild, or null if there is no building.
+     * @return The corresponding instance of Build, or null if there is no building.
      */
-    public BuildPlacement getBuild(int xMap, int zMap){
-        return this.getBuild(this.getIDInMapPos(xMap, zMap));
+    public @Nullable Build getBuild(int xMap, int zMap){
+        MapBlock mapBlock = this.getMapBlockInMapPos(xMap, zMap);
+        return mapBlock instanceof Build build ? build : null;
     }
 
     /**
      * @param pos The real BlockPos of the block we study.
-     * @return The corresponding instance of MapBuild, or null if there is no building.
+     * @return The corresponding instance of Build, or null if there is no building.
      */
-    public BuildPlacement getBuild(BlockPos pos){
-        return this.getBuild(this.getIDInMapPos(this.getMapX(pos.getX()), this.getMapZ(pos.getZ())));
+    public @Nullable Build getBuild(BlockPos pos){
+        return this.getBuild(this.getMapX(pos.getX()), this.getMapZ(pos.getZ()));
     }
 
     /**
@@ -416,14 +427,14 @@ public class TownMap {
     /**
      * @return The 2D array that describes the map of the town.
      */
-    public int[][] getMapGrid(){
-        return this.mapGrid;
+    public MapBlock[][] getTownMap(){
+        return this.townMap;
     }
 
     /**
      * @return The list of Buds currently available in the TownMap.
      */
-    public ArrayList<BuildBud> getBuds(){
+    public List<BuildBud> getBuds(){
         return this.buildBuds;
     }
 
@@ -451,24 +462,18 @@ public class TownMap {
     /**
      * Prints a description of the current Town, its size and builds.
      */
-    public void print_description(){
-        HashMap<Integer, BuildPlacement> builds = this.getBuilds();
-        System.out.println("//---------------------------------------------- Town Map [" + this.getBuilds().size() + "] ---------------------------------------------//");
+    public void printDescription(){
+        System.out.println("//---------------------------------------------- Town Map [" + this.builds.size() + "] ---------------------------------------------//");
         System.out.println("Town Center: " + str(this.getCenter()));
-        System.out.println("Size: " + this.getMapGrid()[0].length + "×" + this.getMapGrid().length);
+        System.out.println("Size: " + this.getTownMap()[0].length + "×" + this.getTownMap().length);
         System.out.println("Builds:");
-        for(int id : builds.keySet()){
-            BuildPlacement build = builds.get(id);
-            System.out.println("    - " + id + " : " + build.getClass().getSimpleName() + " [origin: " + str(build.getOriginPos()) + ", xSize: " + build.getSizeX() + ", zSize: " + build.getSizeZ() + "]");
+        for(Build build : this.builds){
+            System.out.println("    - " + build.getClass().getSimpleName() + " [origin: " + str(build.getOriginPos()) + ", xSize: " + build.getSizeX() + ", zSize: " + build.getSizeZ() + "]");
         }
         System.out.println("Buds:");
         for(BuildBud buildBud : this.getBuds()){
             System.out.println("    - Bud [origin: " + str(buildBud.getRealPos()) + ", distance: " + buildBud.getSquaredDistToCenter() + ", corner: " + buildBud.getCorner() + "]");
         }
         System.out.println("//-------------------------------------------------------------------------------------------------------------//");
-    }
-
-    public static String str(BlockPos pos){
-        return "(" + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + ")";
     }
 }

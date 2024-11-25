@@ -35,7 +35,7 @@ public class LevelTowns extends SavedData {
         ListTag townsTag = new ListTag();
         for (Town town : this.towns) {
             CompoundTag townTag = new CompoundTag();
-            town.save(townTag);
+            town.saveToNBT(townTag);
             townsTag.add(townTag);
         }
         tag.put("Towns", townsTag);

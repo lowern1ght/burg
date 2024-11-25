@@ -1,0 +1,236 @@
+package org.dawnoftime.onceuponatown.building;
+
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
+import org.dawnoftime.onceuponatown.building.type.BuildType;
+import org.dawnoftime.onceuponatown.building.type.BuildingType;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.Rotation;
+import org.dawnoftime.onceuponatown.structure.pieces.BuildPiece;
+import org.dawnoftime.onceuponatown.structure.pieces.TownDataBuildingPiece;
+import org.dawnoftime.onceuponatown.town.Town;
+import org.dawnoftime.onceuponatown.town.generation.MapBlock;
+import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
+import org.dawnoftime.onceuponatown.town.generation.TownMapUtils;
+import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.HashMap;
+
+import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.rectangularPosIterator;
+
+public abstract class Build implements MapBlock {
+    private final BuildType buildingType;
+
+    private BlockPos originPos;
+    private Direction direction;
+    private Mirror mirror = Mirror.NONE;
+    private Rotation rotation = Rotation.NONE;
+    private BlockPos rotationPivot = BlockPos.ZERO;
+    private int level = 1;
+
+    public Build(BuildType buildType) {
+        this.buildingType = buildType;
+    }
+
+    public void saveToNBT(CompoundTag tag) {}
+
+    public int getLevel() {
+        return this.level;
+    }
+
+    public Build mirror(Mirror mirror) {
+        //TODO Is it useful ?
+        this.mirror = mirror;
+        return this;
+    }
+
+    public Mirror getMirror() {
+        return this.mirror;
+    }
+
+    public Build rotation(Rotation rotation) {
+        //TODO Is it correct ?
+        this.rotation = rotation;
+        return this;
+    }
+
+    public Rotation getRotation() {
+        return this.rotation;
+    }
+
+    public Build rotationPivot(BlockPos rotationPivot) {
+        //TODO Is it correct ?
+        this.rotationPivot = rotationPivot;
+        return this;
+    }
+
+    public BlockPos getRotationPivot() {
+        return this.rotationPivot;
+    }
+
+    /**
+     * @return The BlockPos of the NORTH_WEST corner of this Build (its origin).
+     */
+    public BlockPos getOriginPos(){
+        return this.originPos;
+    }
+
+    /**
+     * @return The BlockPos of the given corner of this Build.
+     */
+    public BlockPos getCornerPos(TownMapUtils.Corner corner){
+        return TownMapUtils.Corner.NORTH_WEST.getCornerPos(this.originPos, this, this.direction, corner);
+    }
+
+    /**
+     * @return The Direction of the Build. Null if the Build is not on the TownMap yet.
+     */
+    @Nullable
+    public Direction getDirection(){
+        return this.direction;
+    }
+
+    /**
+     * @param originPos BlockPos that we want to test in order to find the correct Y coordinate.
+     * @param dir Direction of this Build we are testing.
+     * @return The Y coordinate adapted to this build and the given BlockPos.
+     */
+    public int findAdaptedY(BlockPos originPos, Direction dir){
+        return originPos.getY();
+    }
+
+    /**
+     * @param originPos North-West corner of the Build.
+     * @param testedPos BlockPos studied within this Build.
+     * @return Function used to get the Y value of this Build on a given position. By default, returns the Y value of
+     * the position being checked.
+     */
+    public int getYOnPos(@Nullable BlockPos originPos, BlockPos testedPos) {
+        return testedPos.getY();
+    }
+
+    /**
+     * @param dir Direction in which we want the size of this Build.
+     * @return The width of the side of this Build facing the given Direction.
+     */
+    public int getSize(@Nullable Direction dir){
+        if(dir == null){
+            dir = Direction.NORTH;
+        }
+        return dir.getAxis() == Direction.Axis.Z ? this.getSizeX() : this.getSizeZ();
+    }
+
+    /**
+     * @return The X size of the Build when it is in the default direction North.
+     */
+    public abstract int getNorthSizeX();
+
+    /**
+     * @param dir Direction of the Build. If null, returns the size corresponding to the direction North.
+     * @return the size of the side of this Build on the X Axis.
+     */
+    public int getSizeX(@Nullable Direction dir){
+        if(dir == null){
+            return this.getNorthSizeX();
+        }
+        return dir.getAxis() == Direction.Axis.Z ? this.getNorthSizeX() : this.getNorthSizeZ();
+    }
+
+    /**
+     * @return The Z size of the Build when it is in the default direction North.
+     */
+    public abstract int getNorthSizeZ();
+
+    /**
+     * @return The current size of this Build on the Axis X based on its direction.
+     */
+    public int getSizeX(){
+        return this.getSizeX(this.getDirection());
+    }
+
+    /**
+     * @param dir Direction of the Build. If null, returns the size corresponding to the direction North.
+     * @return the size of the side of this Build on the Z Axis.
+     */
+    public int getSizeZ(@Nullable Direction dir) {
+        if(dir == null){
+            return this.getNorthSizeZ();
+        }
+        return dir.getAxis() == Direction.Axis.Z ? this.getNorthSizeZ() : this.getNorthSizeX();
+    }
+
+    /**
+     * @return The current size of this Build on the Axis Z based on its direction.
+     */
+    public int getSizeZ() {
+        return this.getSizeZ(this.getDirection());
+    }
+
+    /**
+     * Function called to add this Build to the given TownMap, knowing that it can be added with the given parameters.
+     * @param map Town in which this Build will be added.
+     * @param buildBud Bud used to put set this Building on the TownMap.
+     * @param dir Direction corresponding to the orientation of this Build.
+     */
+    public void addToMap(ProtoTown map, BuildBud buildBud, Direction dir){
+        this.originPos = buildBud.findOriginPos(this, dir);
+        this.direction = dir;
+        map.addNewBuilds(this);
+        this.onAddedToTown(map);
+    }
+
+    /**
+     * Replace the NW Corner BlockPos with the given position. Used when the Build must be extended.
+     * @param newOrigin BlockPos from which this Build now starts.
+     */
+    public void setOriginPos(BlockPos newOrigin){
+        this.originPos = newOrigin;
+    }
+
+
+    /**
+     * Check whenever the given Build can be placed on the given Bud. I.e., we will test if the map is empty or if the
+     * terrain is flat enough.
+     * @param map Town where we are trying to build the Build.
+     * @param buildBud Bud that we are testing with the given direction.
+     * @param dir Direction of the MapPath to which the Build will be connected. The Y position of the Build will correspond
+     *            to the Y value of this MapPath at this Build's DoorPoint.
+     * @return True if the surface is indeed empty, false otherwise.
+     */
+    public boolean canBeBuiltOnBud(ProtoTown map, BuildBud buildBud, Direction dir){
+        BlockPos testedOriginPos = buildBud.findOriginPos(this, dir);
+        for(BlockPos.MutableBlockPos testedPos : rectangularPosIterator(testedOriginPos, this.getSizeX(dir), this.getSizeZ(dir))) {
+            if(!map.isEmpty(testedPos)){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public HashMap<ResourceLocation, Integer> getProduction() {
+        return this.buildingType.getProduction();
+    }
+
+    public BuildType getType() {
+        return this.buildingType;
+    }
+
+    @Override
+    public @Nullable Build getBuilding() {
+        return this;
+    }
+
+    public abstract void generatePieces(StructurePiecesBuilder builder, StructureTemplateManager manager, @Nullable ProtoTown town);
+
+    /**
+     * Function called just after this Build was added to the TownMap.
+     * Override it to add post placement steps, like Buds generation.
+     * @param map Town in which we add the Build.
+     */
+    protected void onAddedToTown(ProtoTown map){}
+}

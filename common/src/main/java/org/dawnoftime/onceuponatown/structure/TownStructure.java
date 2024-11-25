@@ -1,6 +1,9 @@
 package org.dawnoftime.onceuponatown.structure;
 
+import net.minecraft.core.BlockPos;
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.building.Build;
+import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.culture.CultureManager;
 import org.dawnoftime.onceuponatown.registry.StructureTypeRegistry;
@@ -10,7 +13,8 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureType;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
-import org.dawnoftime.onceuponatown.town.generation.TownGenerator;
+import org.dawnoftime.onceuponatown.town.CorruptedTownException;
+import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
@@ -30,10 +34,25 @@ public class TownStructure extends Structure {
 
     private void generatePieces(StructurePiecesBuilder builder, GenerationContext context) {
         Culture culture = CultureManager.getCultureById(this.cultureID);
-        if (culture == null) {
-            Ouat.error("Village generation failed, because the culture with ID [" + this.cultureID + "] could not be find.");
-        }else{
-            TownGenerator.tryGenerateTown(culture, builder, context);
+        try {
+            if (culture == null) {
+                throw new CorruptedCultureException(this.cultureID, "Failed to generate a village, because this culture does not exist !");
+            } else {
+                int townHeight = context.chunkGenerator().getFirstOccupiedHeight(context.chunkPos().getMinBlockX(), context.chunkPos().getMinBlockZ(), Heightmap.Types.WORLD_SURFACE_WG, context.heightAccessor(), context.randomState());
+                BlockPos townCenterPos = new BlockPos(context.chunkPos().getMinBlockX(), townHeight, context.chunkPos().getMinBlockZ());
+
+                Ouat.info("Town at + " + townCenterPos.toShortString() + " : started generating pieces...");
+                ProtoTown town = new ProtoTown(culture, "Saucisson", townCenterPos);
+                town.buildStarterPack();
+
+                // Generate the pieces for each Build.
+                for(int i = 0; i < town.getBuilds().size(); i++){
+                    Build build = town.getBuilds().get(i);
+                    build.generatePieces(builder, context.structureTemplateManager(), i == 0 ? town : null);
+                }
+            }
+        }catch(CorruptedCultureException | CorruptedTownException e){
+            Ouat.error(e.getMessage());
         }
     }
 

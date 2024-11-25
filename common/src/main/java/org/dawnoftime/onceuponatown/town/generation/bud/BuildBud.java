@@ -2,8 +2,8 @@ package org.dawnoftime.onceuponatown.town.generation.bud;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import org.dawnoftime.onceuponatown.building.placement.BuildPlacement;
-import org.dawnoftime.onceuponatown.town.generation.TownMap;
+import org.dawnoftime.onceuponatown.building.Build;
+import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
 import org.dawnoftime.onceuponatown.town.generation.TownMapUtils.Corner;
 
 import javax.annotation.Nullable;
@@ -22,7 +22,7 @@ public class BuildBud {
     private final Direction[] adjacentPaths;
     private final BudType type;
 
-    private BuildBud(TownMap map, BudType type, BlockPos realPos, Corner corner, Direction[] adjacentPaths) {
+    private BuildBud(ProtoTown map, BudType type, BlockPos realPos, Corner corner, Direction[] adjacentPaths) {
         this.type = type;
         this.realPos = realPos;
         this.corner = corner;
@@ -42,7 +42,7 @@ public class BuildBud {
      * @return The new instance of Bud or null.
      */
     @Nullable
-    public static BuildBud createBud(TownMap map, BudType type, BlockPos realPos, Corner corner, Direction[] adjacentPaths) {
+    public static BuildBud createBud(ProtoTown map, BudType type, BlockPos realPos, Corner corner, Direction[] adjacentPaths) {
         for (BuildBud buildBud : map.getBuds()) {
             if (buildBud.realPos.getX() == realPos.getX() && buildBud.realPos.getZ() == realPos.getZ()) {
                 return null;
@@ -62,7 +62,7 @@ public class BuildBud {
      * @return The new instance of Bud or null.
      */
     @Nullable
-    public static BuildBud createBud(TownMap map, BlockPos realPos, Corner corner, Direction[] adjacentPaths) {
+    public static BuildBud createBud(ProtoTown map, BlockPos realPos, Corner corner, Direction[] adjacentPaths) {
         return createBud(map, BudType.DEFAULT, realPos, corner, adjacentPaths);
     }
 
@@ -78,7 +78,7 @@ public class BuildBud {
      *
      * @param map TownMap of the bud.
      */
-    public void setSquaredDistToCenter(TownMap map) {
+    public void setSquaredDistToCenter(ProtoTown map) {
         this.squaredDistToCenter = this.getSquaredDistTo(map.getCenter());
     }
 
@@ -120,7 +120,7 @@ public class BuildBud {
      * @param dir   Direction of the MapBuild, used to get the size on X and Z axis.
      * @return The BlockPos of the origin of the MapBuild, at the correct Y.
      */
-    public BlockPos findOriginPos(BuildPlacement build, Direction dir) {
+    public BlockPos findOriginPos(Build build, Direction dir) {
         BlockPos origin = this.corner.getOrigin(this.realPos, build, dir);
         return origin.atY(build.findAdaptedY(origin, dir));
     }
@@ -130,7 +130,7 @@ public class BuildBud {
      * @param map The TownMap of this Bud.
      * @return True if the available maximal rectangle is bigger than the minimal square defined in the configs.
      */
-    public boolean asEnoughSpace(TownMap map) {
+    public boolean asEnoughSpace(ProtoTown map) {
         if(this.asEnoughSpace(map, true)){
             return true;
         }
@@ -143,7 +143,7 @@ public class BuildBud {
      * @param clockwise True to rotate in clockwise rotation, false for counter-clockwise.
      * @return True if the rectangle is bigger than the minimal square defined in the configs.
      */
-    private boolean asEnoughSpace(TownMap map, boolean clockwise) {
+    private boolean asEnoughSpace(ProtoTown map, boolean clockwise) {
         int[] sizes = new int[4];
         Direction dir = clockwise ? this.getCorner().getLeftDirection() : this.getCorner().getRightDirection();
         dir = dir.getOpposite();

@@ -2,9 +2,8 @@ package org.dawnoftime.onceuponatown.town.generation;
 
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
-import org.dawnoftime.onceuponatown.building.placement.BuildPlacement;
-import org.dawnoftime.onceuponatown.building.placement.BuildingPlacement;
-import org.dawnoftime.onceuponatown.building.placement.RoadPlacement;
+import org.dawnoftime.onceuponatown.building.Building;
+import org.dawnoftime.onceuponatown.building.SliceBuild;
 import org.dawnoftime.onceuponatown.structure.pieces.BuildPiece;
 import org.dawnoftime.onceuponatown.structure.pieces.PathPiece;
 import org.dawnoftime.onceuponatown.structure.pieces.TownDataBuildingPiece;
@@ -62,21 +61,21 @@ public class TownGeneratorOld {
         }
         TownMap townMap = createTownMap(townCenterPos, starterPack);
         Ouat.info("Town at + " + townCenterPos.toShortString() + " : created town map");
-        List<BuildingPlacement> mapBuildingList = new ArrayList<>();
-        List<RoadPlacement> mapRoadList = new ArrayList<>();
+        List<Building> mapBuildingList = new ArrayList<>();
+        List<SliceBuild> mapRoadList = new ArrayList<>();
 
         HashMap<Integer, BuildPlacement> mapBuilds = townMap.getBuilds();
         for (Integer key : mapBuilds.keySet()) {
             BuildPlacement build = mapBuilds.get(key);
-            if (build instanceof BuildingPlacement building) {
+            if (build instanceof Building building) {
                 mapBuildingList.add(building);
-            } else if (build instanceof RoadPlacement path) {
+            } else if (build instanceof SliceBuild path) {
                 mapRoadList.add(path);
             }
         }
         // Buildings
         for (int i = 0; i < starterPack.size(); ++i) {
-            BuildingPlacement building = mapBuildingList.get(i);
+            Building building = mapBuildingList.get(i);
             Rotation rotation = rotFromDir(building.getDirection() != null ? building.getDirection() : Direction.NORTH);
             TownMapUtils.Corner corner = cornerFromDir(building.getDirection() != null ? building.getDirection() : Direction.NORTH);
             ResourceLocation buildingName = starterPack.get(i).name;
@@ -99,7 +98,7 @@ public class TownGeneratorOld {
 
     private static TownMap createTownMap(BlockPos townCenterPos, List<BuildingInfo> starterPack) {
         TownMap townMap = new TownMap(townCenterPos);
-        starterPack.forEach((buildingInfo -> townMap.addBuilding(new BuildingPlacement(buildingInfo.sizeXNorth, buildingInfo.sizeZNorth))));
+        //starterPack.forEach((buildingInfo -> townMap.addBuilding(new BuildingPlacement(buildingInfo.sizeXNorth, buildingInfo.sizeZNorth))));
         return townMap;
     }
 

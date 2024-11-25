@@ -5,7 +5,7 @@ import org.dawnoftime.onceuponatown.construction.ConstructionProject;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.culture.Orientation;
 import org.dawnoftime.onceuponatown.entity.Npc;
-import org.dawnoftime.onceuponatown.building.Building;
+import org.dawnoftime.onceuponatown.building.Build;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.SharedConstants;
@@ -26,53 +26,43 @@ import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
-import org.dawnoftime.onceuponatown.town.generation.TownMap;
+import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
-public class Town {
+public class Town extends ProtoTown {
+    public static final int ACTIVE_AREA_RADIUS = 80;
     public static final int PRODUCTION_HARVEST_RATE = SharedConstants.TICKS_PER_GAME_DAY;
-    private final UUID uuid;
+
     public final Level level;
-    private final Culture culture;
-    private final String name;
-    private final BlockPos centerPosition;
-    public TownMap townMap;
     private HashMap<Integer, Orientation> developmentProgress;
     private int experience;
     private int buildingClutter;
     private final TownInventory inventory;
     private final List<UUID> npcs;
-    private final List<Building> buildings;
     private long lastProductionHarvest;
     private final List<ConstructionProject> constructionProjects;
     private CustomBossEvent townXpBar;
     private List<Player> visitors;
-    public static int ACTIVE_AREA_RADIUS = 80;
     private boolean active;
     private long lastActiveMoment;
     private List<NpcRecord> npcRecordList;
 
-    private Town(UUID uuid, Level level, Culture culture, String name, BlockPos townCenter, TownMap townMap, TownInventory townInventory, List<UUID> npcs, List<Building> buildings, List<ConstructionProject> constructionProjects) {
-        this.uuid = uuid;
+    private Town(UUID uuid, Level level, Culture culture, String name, BlockPos townCenter, TownInventory townInventory, List<UUID> npcs, List<ConstructionProject> constructionProjects) {
+        super(culture, name, townCenter);
         this.level = level;
-        this.culture = culture;
-        this.name = name;
-        this.centerPosition = townCenter;
-        this.townMap = townMap;
         this.inventory = townInventory;
         this.npcs = npcs;
-        this.buildings = buildings;
         this.constructionProjects = constructionProjects;
         createOrLoadXpBar();
     }
 
     public static Town createWorldGenOld(Level level, Culture culture, String name, TownMap townMap) {;
         TownInventory townInventory = new TownInventory();
-        Town town = new Town(Mth.createInsecureUUID(RandomSource.create()), level, culture, name, townMap.getCenter(), townMap, townInventory,  new ArrayList<>(),  new ArrayList<>(),  new ArrayList<>());
+        Town town = new Town(Mth.createInsecureUUID(RandomSource.create()), level, culture, name, townMap.getCenter(), townMap, townInventory,  new ArrayList<>(),  new ArrayList<>());
         town.createBuildingsWorldGen(townMap);
         town.updateConstructionProject();
         return town;
@@ -132,7 +122,7 @@ public class Town {
 
 
     static Town load(Level level, CompoundTag tag) {
-        List<Building> buildings = new ArrayList<>();
+        List<Build> builds = new ArrayList<>();
         List<ConstructionProject> constructionProjects = new ArrayList<>();
         List<UUID> npcs = new ArrayList<>();
 
@@ -169,11 +159,9 @@ public class Town {
         }
     }
 
-    public void save(CompoundTag tag) {
-        tag.putUUID("UUID", this.uuid);
-        tag.putString("Culture", this.culture.getId());
-        tag.putString("Name", this.name);
-        tag.put("Position", NbtUtils.writeBlockPos(this.centerPosition));
+    @Override
+    public void saveToNBT(CompoundTag tag) {
+        super.saveToNBT(tag);
         this.inventory.saveNBT(tag);
         ListTag npcsTag = new ListTag();
         for (UUID uuid : this.npcs) {
@@ -182,10 +170,6 @@ public class Town {
             npcsTag.add(npcTag);
         }
         tag.put("Npcs", npcsTag);
-    }
-
-    public void addBuilding(Building building) {
-        this.buildings.add(building);
     }
 
     private void updateAfterInactivity() {
@@ -217,8 +201,8 @@ public class Town {
     }
 
     private void collectProduction() {
-        for (Building building : this.buildings) {
-            HashMap<ResourceLocation, Integer> production = building.getProduction();
+        for (Build build : this.getBuilds()) {
+            HashMap<ResourceLocation, Integer> production = build.getProduction();
             //production.forEach(this.inventory::add);
         }
     }
@@ -264,7 +248,7 @@ public class Town {
 
     private void updateVisitors() {
         List<Player> oldPlayers = this.visitors;
-        List<Player> newPlayers = this.level.getNearbyPlayers(TargetingConditions.forNonCombat(), null, AABB.ofSize(centerPosition.getCenter(), 160, 160, 160));
+        List<Player> newPlayers = this.level.getNearbyPlayers(TargetingConditions.forNonCombat(), null, AABB.ofSize(this.getCenter().getCenter(), 160, 160, 160));
 
         List<Player> arrivingPlayers = new ArrayList<>();
         List<Player> leavingPlayers = new ArrayList<>();
@@ -334,10 +318,6 @@ public class Town {
 
     public String getName() {
         return this.name;
-    }
-
-    public BlockPos getCenterPosition() {
-        return this.centerPosition;
     }
 
     private enum NpcStatus {
