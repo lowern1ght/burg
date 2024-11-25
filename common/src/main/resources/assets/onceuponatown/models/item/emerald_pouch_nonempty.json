@@ -1,0 +1,6 @@
+{
+  "parent": "onceuponatown:item/emerald_pouch",
+  "textures": {
+    "layer0": "onceuponatown:item/emerald_pouch_nonempty"
+  }
+}
