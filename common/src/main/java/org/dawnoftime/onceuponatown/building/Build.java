@@ -1,18 +1,18 @@
 package org.dawnoftime.onceuponatown.building;
 
 import net.minecraft.core.Direction;
+import net.minecraft.nbt.NbtUtils;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import org.dawnoftime.onceuponatown.building.type.BuildType;
-import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Rotation;
-import org.dawnoftime.onceuponatown.structure.pieces.BuildPiece;
-import org.dawnoftime.onceuponatown.structure.pieces.TownDataBuildingPiece;
-import org.dawnoftime.onceuponatown.town.Town;
+import org.dawnoftime.onceuponatown.building.type.SliceBuildType;
+import org.dawnoftime.onceuponatown.culture.Culture;
+import org.dawnoftime.onceuponatown.town.CorruptedTownException;
 import org.dawnoftime.onceuponatown.town.generation.MapBlock;
 import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
 import org.dawnoftime.onceuponatown.town.generation.TownMapUtils;
@@ -23,8 +23,8 @@ import java.util.HashMap;
 
 import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.rectangularPosIterator;
 
-public abstract class Build implements MapBlock {
-    private final BuildType buildingType;
+public abstract class Build<T extends BuildType> implements MapBlock {
+    private final T buildType;
 
     private BlockPos originPos;
     private Direction direction;
@@ -33,17 +33,31 @@ public abstract class Build implements MapBlock {
     private BlockPos rotationPivot = BlockPos.ZERO;
     private int level = 1;
 
-    public Build(BuildType buildType) {
-        this.buildingType = buildType;
+    public Build(T buildType) {
+        this.buildType = buildType;
     }
 
-    public void saveToNBT(CompoundTag tag) {}
+    public Build(Culture culture, Class<T> clazz, CompoundTag tag){
+        this(culture.getBuildType(tag.getString("BuildType"), clazz));
+        this.originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
+        this.direction = Direction.byName(tag.getString("Direction"));
+        this.level = tag.getInt("Level");
+    }
+
+    public CompoundTag writeNBT() {
+        CompoundTag tag = new CompoundTag();
+        tag.putString("BuildType", this.buildType.getName());
+        tag.put("OriginPos", NbtUtils.writeBlockPos(this.originPos));
+        tag.putString("Direction", this.direction.getName());
+        tag.putInt("Level", this.level);
+        return tag;
+    }
 
     public int getLevel() {
         return this.level;
     }
 
-    public Build mirror(Mirror mirror) {
+    public Build<T> mirror(Mirror mirror) {
         //TODO Is it useful ?
         this.mirror = mirror;
         return this;
@@ -53,7 +67,7 @@ public abstract class Build implements MapBlock {
         return this.mirror;
     }
 
-    public Build rotation(Rotation rotation) {
+    public Build<T> rotation(Rotation rotation) {
         //TODO Is it correct ?
         this.rotation = rotation;
         return this;
@@ -63,10 +77,14 @@ public abstract class Build implements MapBlock {
         return this.rotation;
     }
 
-    public Build rotationPivot(BlockPos rotationPivot) {
+    public Build<T> rotationPivot(BlockPos rotationPivot) {
         //TODO Is it correct ?
         this.rotationPivot = rotationPivot;
         return this;
+    }
+
+    public T getBuildType() {
+        return this.buildType;
     }
 
     public BlockPos getRotationPivot() {
@@ -107,7 +125,7 @@ public abstract class Build implements MapBlock {
     /**
      * @param originPos North-West corner of the Build.
      * @param testedPos BlockPos studied within this Build.
-     * @return Function used to get the Y value of this Build on a given position. By default, returns the Y value of
+     * @return The Y position of this Build in the given testedPos when placed at the given originPos. By default, returns the Y value of
      * the position being checked.
      */
     public int getYOnPos(@Nullable BlockPos originPos, BlockPos testedPos) {
@@ -213,15 +231,15 @@ public abstract class Build implements MapBlock {
     }
 
     public HashMap<ResourceLocation, Integer> getProduction() {
-        return this.buildingType.getProduction();
+        return this.buildType.getProduction();
     }
 
     public BuildType getType() {
-        return this.buildingType;
+        return this.buildType;
     }
 
     @Override
-    public @Nullable Build getBuilding() {
+    public @Nullable Build<T> getBuild() {
         return this;
     }
 

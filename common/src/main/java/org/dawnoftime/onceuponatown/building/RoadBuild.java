@@ -15,12 +15,12 @@ import static org.dawnoftime.onceuponatown.town.generation.ProtoTown.RANDOM_SOUR
 import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.DEFAULT_PATH_LENGTH;
 import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.PATH_STOP_RATE;
 
-public class RoadBuild extends SliceBuild {
+public class RoadBuild<T extends SliceBuildType> extends SliceBuild<T> {
     private final boolean isWide;
     private boolean canGrow = true;
 
-    public RoadBuild(int length, SliceBuildType build) {
-        super(length, build);
+    public RoadBuild(T build, int length) {
+        super(build, length);
         this.isWide = Objects.equals(build.getName(), WIDE_ROAD_TYPE_NAME);
     }
 
@@ -68,7 +68,7 @@ public class RoadBuild extends SliceBuild {
                 //this.extendSizeZNorth(dirGrowth + oppositeDirGrowth);
             }
             // And lastly we will add the special Buds : bridge or stairs
-            map.updateMapGrid(this);
+            map.updateTownMap(this);
         }
     }
 
@@ -90,7 +90,7 @@ public class RoadBuild extends SliceBuild {
             BlockPos.MutableBlockPos pathRightCursor = initPos.relative(dir.getClockWise(), this.getSize(dir) - 1).mutable();
             BlockPos.MutableBlockPos adjRightCursor = initPos.relative(dir.getClockWise(), this.getSize(dir)).mutable();
             while(true){
-                // While the cursor is at an empty pos (or the pos contains this block), we can extend this MapPath.
+                // While the cursor is at an empty vec3 (or the vec3 contains this block), we can extend this MapPath.
                 //TODO Check if there is a Y difference to big : we stop and will make a stairs Bud.
                 if(map.isEmpty(pathLeftCursor, this) && map.isEmpty(pathRightCursor, this)){
                     growth++;

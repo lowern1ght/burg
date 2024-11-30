@@ -84,7 +84,7 @@ public class BuildBud {
 
     /**
      * @param pos BlockPos to which we want to compute the horizontal distance.
-     * @return The squared distance between the given pos and this Bud.
+     * @return The squared distance between the given vec3 and this Bud.
      */
     public int getSquaredDistTo(BlockPos pos) {
         int difX = this.realPos.getX() - pos.getX();

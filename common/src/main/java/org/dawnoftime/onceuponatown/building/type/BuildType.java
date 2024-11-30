@@ -1,7 +1,6 @@
 package org.dawnoftime.onceuponatown.building.type;
 
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.RandomSource;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 

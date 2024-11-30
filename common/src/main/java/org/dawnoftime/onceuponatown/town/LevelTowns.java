@@ -35,7 +35,7 @@ public class LevelTowns extends SavedData {
         ListTag townsTag = new ListTag();
         for (Town town : this.towns) {
             CompoundTag townTag = new CompoundTag();
-            town.saveToNBT(townTag);
+            town.writeNBT(townTag);
             townsTag.add(townTag);
         }
         tag.put("Towns", townsTag);
@@ -51,7 +51,7 @@ public class LevelTowns extends SavedData {
     }
 
     private void loadTown(CompoundTag tag) {
-        this.towns.add(Town.load(this.level, tag));
+        this.towns.add(Town.readNBT(this.level, tag));
     }
 
     public void addTown(Town town) {

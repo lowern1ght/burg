@@ -7,8 +7,8 @@ import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 import java.util.HashMap;
 
 public class SliceBuildType extends BuildType {
-    private final HashMap<String, BuildVariant> slab_variants = new HashMap<>();
-    private final HashMap<String, BuildVariant> stairs_variants = new HashMap<>();
+    private final HashMap<String, BuildVariant> slabVariants = new HashMap<>();
+    private final HashMap<String, BuildVariant> stairsVariants = new HashMap<>();
     private int width;
     private int patternLength;
 
@@ -26,20 +26,31 @@ public class SliceBuildType extends BuildType {
 
     @Override
     public void addVariant(BuildVariant variant, String shape, String cultureId) {
-        if(this.width == 0){
-            this.width = variant.getSize().getX();
-            this.patternLength = variant.getSize().getZ();
-        }else{
-            if(this.width != variant.getSize().getX() || this.patternLength != variant.getSize().getZ()){
-                Ouat.error("Culture [%s]: Failed to register a build_variant. Every build_variant associated with '%s' must have the same width and length.".formatted(cultureId, this.getName()));
-                return;
+        try {
+            if (this.width == 0) {
+                this.width = variant.getSize().getX();
+                this.patternLength = variant.getSize().getZ();
+            } else {
+                if (this.width != variant.getSize().getX() || this.patternLength != variant.getSize().getZ()) {
+                    throw new CorruptedCultureException(cultureId, "Failed to register a build_variant. Every build_variant associated with '%s' must have the same width and length.".formatted(this.getName()));
+                }
             }
+            switch (SliceBuildShape.fromString(cultureId, variant.getName(), shape)) {
+                case FLAT -> super.addVariant(variant, shape, cultureId);
+                case SLAB -> this.slabVariants.put(variant.getName(), variant);
+                case STAIRS -> this.stairsVariants.put(variant.getName(), variant);
+            }
+        }catch(CorruptedCultureException e){
+            Ouat.error(e.getMessage());
         }
-        switch (shape) {
-            case "flat" -> super.addVariant(variant, shape, cultureId);
-            case "slab" -> this.slab_variants.put(variant.getName(), variant);
-            case "stairs" ->  this.stairs_variants.put(variant.getName(), variant);
-        }
+    }
+
+    public BuildVariant getVariant(SliceBuildShape shape, String variantName){
+        return switch(shape){
+            case FLAT -> this.getVariants().get(variantName);
+            case SLAB -> this.slabVariants.get(variantName);
+            case STAIRS -> this.stairsVariants.get(variantName);
+        };
     }
 
     @Override
@@ -47,12 +58,51 @@ public class SliceBuildType extends BuildType {
         if(this.getVariants().isEmpty()){
             throw new CorruptedCultureException(cultureId, "Failed to load a culture. You need to define at least one build_variant for the build_type '%s' with 'shape': 'flat'.".formatted(this.getName()));
         }
-        if(this.slab_variants.isEmpty()){
+        if(this.slabVariants.isEmpty()){
             throw new CorruptedCultureException(cultureId, "Failed to load a culture. You need to define at least one build_variant for the build_type '%s' with 'shape': 'slab'.".formatted(this.getName()));
         }
-        if(this.stairs_variants.isEmpty()) {
+        if(this.stairsVariants.isEmpty()) {
             throw new CorruptedCultureException(cultureId, "Failed to load a culture. You need to define at least one build_variant for the build_type '%s' with 'shape': 'stairs'.".formatted(this.getName()));
         }
         return false;
+    }
+
+    public enum SliceBuildShape{
+        FLAT("flat", 0),
+        SLAB("slab", 0.5F),
+        STAIRS("stairs", 1.0F);
+
+        private final String shapeName;
+        private final float slope;
+
+        SliceBuildShape(String shapeName, float slope){
+            this.shapeName = shapeName;
+            this.slope = slope;
+        }
+
+        public String getShapeName() {
+            return this.shapeName;
+        }
+
+        public int getYSize(int patternLength, int totalSizeY){
+            return getMaxYForSliceSchematic(0, patternLength, totalSizeY) + 1;
+        }
+
+        public int getMinYForSliceSchematic(int patternPos){
+            return (int) Math.floor(patternPos * this.slope);
+        }
+
+        public int getMaxYForSliceSchematic(int patternPos, int patternLength, int totalSizeY){
+            return totalSizeY - (int) Math.floor((patternLength - 1 - patternPos) * this.slope) - 1;
+        }
+
+        public static SliceBuildShape fromString(String cultureId, String variantName, String shapeName) {
+            for (SliceBuildShape shape : values()) {
+                if (shape.shapeName.equals(shapeName)) {
+                    return shape;
+                }
+            }
+            throw new CorruptedCultureException(cultureId, "Failed to register a build_variant '%s'. The accepted shape are ['flat', 'slab' or 'stairs'], and not '%s'.".formatted(variantName, shapeName));
+        }
     }
 }

@@ -19,18 +19,18 @@ import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSeriali
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
 
-public class TownDataBuildingPiece extends BuildPiece {
+public class DataSliceBuildPiece extends BuildPiece {
     public final ProtoTown protoTown;
     public boolean townRegistered;
 
-    public TownDataBuildingPiece(StructureTemplateManager manager, ResourceLocation resourceLocation, BlockPos pos, Rotation rotation, BuildingType buildingType, ProtoTown protoTown) {
-        super(StructurePieceRegistry.REGISTRY.TOWN_DATA_BUILDING_PIECE.get(), manager, resourceLocation, pos, rotation, buildingType);
+    public DataSliceBuildPiece(StructureTemplateManager manager, ResourceLocation resourceLocation, BlockPos pos, Rotation rotation, BuildingType buildingType, ProtoTown protoTown) {
+        super(StructurePieceRegistry.REGISTRY.DATA_SLICE_BUILD_PIECE.get(), manager, resourceLocation, pos, rotation, buildingType);
         this.protoTown = protoTown;
         this.townRegistered = false;
     }
 
-    public TownDataBuildingPiece(StructureTemplateManager manager, CompoundTag tag) {
-        super(StructurePieceRegistry.REGISTRY.TOWN_DATA_BUILDING_PIECE.get(), manager, tag);
+    public DataSliceBuildPiece(StructureTemplateManager manager, CompoundTag tag) {
+        super(StructurePieceRegistry.REGISTRY.DATA_SLICE_BUILD_PIECE.get(), manager, tag);
         this.protoTown = new ProtoTown(tag.getCompound("TownMap"));
         this.townRegistered = tag.getBoolean("TownRegistered");
     }
@@ -39,7 +39,7 @@ public class TownDataBuildingPiece extends BuildPiece {
     protected void addAdditionalSaveData(StructurePieceSerializationContext context, CompoundTag tag) {
         super.addAdditionalSaveData(context, tag);
         CompoundTag townMapTag = new CompoundTag();
-        this.protoTown.saveToNBT(townMapTag);
+        this.protoTown.writeNBT(townMapTag);
         tag.put("TownMap", townMapTag);
         tag.putBoolean("TownRegistered", this.townRegistered);
     }

@@ -6,8 +6,9 @@ import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilde
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.building.type.BuildType;
+import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import org.dawnoftime.onceuponatown.structure.pieces.BuildPiece;
-import org.dawnoftime.onceuponatown.structure.pieces.TownDataBuildingPiece;
+import org.dawnoftime.onceuponatown.structure.pieces.DataSliceBuildPiece;
 import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
 import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
 import org.dawnoftime.onceuponatown.town.generation.TownMapUtils.Corner;
@@ -18,10 +19,10 @@ import java.util.HashSet;
 import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.MAXI_Y_DIFFERENCE;
 import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.rectangularPosIterator;
 
-public class Building extends Build {
+public class Building<T extends BuildingType> extends Build<T> {
     private final BuildVariant variant;
 
-    public Building(BuildType type, BuildVariant variant) {
+    public Building(T type, BuildVariant variant) {
         super(type);
         this.variant = variant;
     }
@@ -42,7 +43,7 @@ public class Building extends Build {
         if(town == null){
             piece = new BuildPiece(manager, this.variant.getSchematicResource(this.getLevel()), this.getCornerPos(corner), rotation);
         }else{
-            piece = new TownDataBuildingPiece(manager, buildingName, building.getCornerPos(corner), rotation, town);
+            piece = new DataSliceBuildPiece(manager, buildingName, building.getCornerPos(corner), rotation, town);
         }
         builder.addPiece(piece);
     }

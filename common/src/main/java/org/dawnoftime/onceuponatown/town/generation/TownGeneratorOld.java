@@ -5,8 +5,8 @@ import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import org.dawnoftime.onceuponatown.building.Building;
 import org.dawnoftime.onceuponatown.building.SliceBuild;
 import org.dawnoftime.onceuponatown.structure.pieces.BuildPiece;
-import org.dawnoftime.onceuponatown.structure.pieces.PathPiece;
-import org.dawnoftime.onceuponatown.structure.pieces.TownDataBuildingPiece;
+import org.dawnoftime.onceuponatown.structure.pieces.SliceBuildPiece;
+import org.dawnoftime.onceuponatown.structure.pieces.DataSliceBuildPiece;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
@@ -80,7 +80,7 @@ public class TownGeneratorOld {
             TownMapUtils.Corner corner = cornerFromDir(building.getDirection() != null ? building.getDirection() : Direction.NORTH);
             ResourceLocation buildingName = starterPack.get(i).name;
             if (i == 0) {
-                var piece = new TownDataBuildingPiece(manager, buildingName, building.getCornerPos(corner), rotation, null, townMap);
+                var piece = new DataSliceBuildPiece(manager, buildingName, building.getCornerPos(corner), rotation, null, townMap);
                 pieces.addPiece(piece);
             } else {
                 var piece = new BuildPiece(manager, buildingName, building.getCornerPos(corner), rotation, null);
@@ -89,8 +89,8 @@ public class TownGeneratorOld {
         }
         // Paths
         mapRoadList.forEach((mapRoad) -> {
-            PathPiece pathPiece = new PathPiece(mapRoad.getOriginPos(), mapRoad.getSizeX(), mapRoad.getSizeZ());
-            pieces.addPiece(pathPiece);
+            SliceBuildPiece sliceBuildPiece = new SliceBuildPiece(mapRoad.getOriginPos(), mapRoad.getSizeX(), mapRoad.getSizeZ());
+            pieces.addPiece(sliceBuildPiece);
         });
 
         Ouat.info("Town at + " + townCenterPos.toShortString() + " : finished generating pieces");

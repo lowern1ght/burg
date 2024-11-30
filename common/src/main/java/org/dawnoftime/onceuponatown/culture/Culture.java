@@ -10,6 +10,7 @@ import net.minecraft.util.GsonHelper;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.Item;
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.building.Build;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.building.type.BuildType;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
@@ -41,7 +42,7 @@ public class Culture {
     private List<Item> foods;
     private final List<Era> eras;
 
-    Culture(String id, List<Era> eras) {
+    private Culture(String id, List<Era> eras) {
         this.id = id;
         this.eras = eras;
     }
@@ -87,6 +88,7 @@ public class Culture {
 
             // Mandatory BuildType
             culture.addBuildType(new SliceBuildType(ROAD_TYPE_NAME));
+            culture.addBuildType(new SliceBuildType(WIDE_ROAD_TYPE_NAME));
             //culture.addBuildType(new SliceBuildType(BRIDGE_TYPE_NAME));
             //culture.addBuildType(new SliceBuildType(WALL_TYPE_NAME));
 
@@ -161,9 +163,8 @@ public class Culture {
         this.starterPack.put(buildTypeName, new Pair<>(min, max));
     }
 
-    public SliceBuildType getSliceBuild(String buildName){
-        BuildType type = this.buildTypeMap.get(buildName);
-        return type instanceof SliceBuildType ? (SliceBuildType) type : null;
+    public <T extends BuildType> T getBuildType(String buildName, Class<T> clazz){
+        return clazz.cast(this.buildTypeMap.get(buildName));
     }
 
     private void dropBuildTypeWithoutVariant(){

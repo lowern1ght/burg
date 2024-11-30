@@ -2,8 +2,8 @@ package org.dawnoftime.onceuponatown.registry;
 
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
 import org.dawnoftime.onceuponatown.structure.pieces.BuildPiece;
-import org.dawnoftime.onceuponatown.structure.pieces.PathPiece;
-import org.dawnoftime.onceuponatown.structure.pieces.TownDataBuildingPiece;
+import org.dawnoftime.onceuponatown.structure.pieces.SliceBuildPiece;
+import org.dawnoftime.onceuponatown.structure.pieces.DataSliceBuildPiece;
 
 import java.util.function.Supplier;
 
@@ -13,11 +13,11 @@ public abstract class StructurePieceRegistry {
     public final Supplier<StructurePieceType> BUILDING_PIECE = register("building_piece",
             () -> (StructurePieceType.StructureTemplateType) BuildPiece::new);
 
-    public final Supplier<StructurePieceType> TOWN_DATA_BUILDING_PIECE = register("town_data_building_piece",
-            () -> (StructurePieceType.StructureTemplateType) TownDataBuildingPiece::new);
+    public final Supplier<StructurePieceType> DATA_SLICE_BUILD_PIECE = register("data_slice_build_piece",
+            () -> (StructurePieceType.StructureTemplateType) DataSliceBuildPiece::new);
 
-    public final Supplier<StructurePieceType> PATH_PIECE = register("path_piece",
-            () -> (StructurePieceType.ContextlessType) PathPiece::new);
+    public final Supplier<StructurePieceType> SLICE_BUILD_PIECE = register("slice_build_piece",
+            () -> (StructurePieceType.ContextlessType) SliceBuildPiece::new);
 
     public abstract Supplier<StructurePieceType> register(final String name, final Supplier<StructurePieceType> itemSupplier);
 }

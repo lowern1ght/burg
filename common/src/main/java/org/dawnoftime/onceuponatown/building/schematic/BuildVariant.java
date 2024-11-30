@@ -74,7 +74,7 @@ public class BuildVariant {
                     subObject = arrayElem.getAsJsonObject();
                     int level = CultureManager.tryGet(subObject, "level", " in an object in the section 'levels'", "build_variant", cultureName, buildVariantName + ".json", buildResource).getAsInt();
                     String schematicName = CultureManager.tryGet(subObject, "schematic", " in an object in the section 'levels'", "build_variant", cultureName, buildVariantName + ".json", buildResource).getAsString();
-                    BuildSchematic schematic = BuildSchematic.create(resourceManager, Ouat.createOuatResource("cultures/%s/builds/schematic/%s.nbt".formatted(cultureName, schematicName)), size, cultureName, buildVariantName);
+                    BuildSchematic schematic = BuildSchematic.create(resourceManager, Ouat.createOuatResource("cultures/%s/builds/schematic/%s.entityNbt".formatted(cultureName, schematicName)), size, cultureName, buildVariantName);
                     // TODO Do the code that loads the waypoints.
                     // for each waypoints loaded : schematic.addWaypoint();
                     schematics.put(level, schematic);
@@ -106,16 +106,20 @@ public class BuildVariant {
         return null;
     }
 
+    public BuildSchematic getBuildSchematic(int level) {
+        return this.buildSchematicArray[level - 1];
+    }
+
     public HashMap<Vec3i, Waypoint> getWaypoints(int level){
-        return this.buildSchematicArray[level - 1].getWaypoints();
+        return this.getBuildSchematic(level).getWaypoints();
     }
 
     public ResourceLocation getSchematicResource(int level){
-        return this.buildSchematicArray[level - 1].getSchematicResourceLocation();
+        return this.getBuildSchematic(level).getSchematicResourceLocation();
     }
 
     public SchematicContent getSchematic(ResourceManager resourceManager, int level){
-        return this.buildSchematicArray[level - 1].load(resourceManager);
+        return this.getBuildSchematic(level).load(resourceManager);
     }
 
     public String getName() {

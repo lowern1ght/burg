@@ -1,6 +1,7 @@
 package org.dawnoftime.onceuponatown.town;
 
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.building.type.BuildType;
 import org.dawnoftime.onceuponatown.construction.ConstructionProject;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.culture.Orientation;
@@ -121,7 +122,7 @@ public class Town extends ProtoTown {
     }
 
 
-    static Town load(Level level, CompoundTag tag) {
+    static Town readNBT(Level level, CompoundTag tag) {
         List<Build> builds = new ArrayList<>();
         List<ConstructionProject> constructionProjects = new ArrayList<>();
         List<UUID> npcs = new ArrayList<>();
@@ -151,7 +152,7 @@ public class Town extends ProtoTown {
         CustomBossEvents customBossEvents = this.level.getServer().getCustomBossEvents();
         String barID = (getName() + "_bar").replaceAll("\\s","").toLowerCase();
         if (customBossEvents.get(Ouat.createOuatResource(barID)) == null) {
-            Component barText = Component.literal(this.name).withStyle(ChatFormatting.WHITE);
+            Component barText = Component.literal(this.getName()).withStyle(ChatFormatting.WHITE);
             this.townXpBar = customBossEvents.create(Ouat.createOuatResource(barID), barText);
             this.townXpBar.setColor(BossEvent.BossBarColor.WHITE);
         } else {
@@ -160,8 +161,8 @@ public class Town extends ProtoTown {
     }
 
     @Override
-    public void saveToNBT(CompoundTag tag) {
-        super.saveToNBT(tag);
+    public void writeNBT(CompoundTag tag) {
+        super.writeNBT(tag);
         this.inventory.saveNBT(tag);
         ListTag npcsTag = new ListTag();
         for (UUID uuid : this.npcs) {
@@ -201,7 +202,7 @@ public class Town extends ProtoTown {
     }
 
     private void collectProduction() {
-        for (Build build : this.getBuilds()) {
+        for (Build<BuildType> build : this.getBuilds()) {
             HashMap<ResourceLocation, Integer> production = build.getProduction();
             //production.forEach(this.inventory::add);
         }

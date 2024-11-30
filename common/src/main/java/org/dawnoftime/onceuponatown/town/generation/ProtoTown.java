@@ -38,7 +38,7 @@ public class ProtoTown {
     private final BlockPos.MutableBlockPos SECorner;
     private MapBlock[][] townMap;
     private final List<BuildBud> buildBuds = new ArrayList<>();
-    private final List<Build> builds = new ArrayList<>();
+    private final List<Build<BuildType>> builds = new ArrayList<>();
 
     private ProtoTown(UUID uuid, Culture culture, String name, BlockPos center, BlockPos.MutableBlockPos NWCorner, BlockPos.MutableBlockPos SECorner){
         this.uuid = uuid;
@@ -65,7 +65,7 @@ public class ProtoTown {
             NbtUtils.readBlockPos(tag.getCompound("SECorner")).mutable());
     }
 
-    public void saveToNBT(CompoundTag tag) {
+    public void writeNBT(CompoundTag tag) {
         tag.putUUID("UUID", this.uuid);
         tag.putString("Culture", this.culture.getId());
         tag.putString("Name", this.name);
@@ -78,19 +78,23 @@ public class ProtoTown {
         return this.name;
     }
 
-    public List<Build> getBuilds() {
+    public Culture getCulture() {
+        return this.culture;
+    }
+
+    public List<Build<BuildType>> getBuilds() {
         return this.builds;
     }
 
     public void buildStarterPack(){
-        List<BuildType> starterPack = culture.getRandomStarterPack(RANDOM_SOURCE);
-        SliceBuildType wideRoad = culture.getSliceBuild(Culture.WIDE_ROAD_TYPE_NAME); //TODO to replace with wide road.
+        List<BuildType> starterPack = this.culture.getRandomStarterPack(RANDOM_SOURCE);
+        SliceBuildType wideRoad = this.culture.getBuildType(Culture.WIDE_ROAD_TYPE_NAME, SliceBuildType.class);
         boolean flipped = RANDOM_SOURCE.nextBoolean(); //TODO Will be used to decide the direction of the central road.
         
         // First let's put the vertical big path, with length of 2 * mini_size + big_width
         int halfBigPath = wideRoad.getWidth() / 2;
         BuildBud firstBuildBud = BuildBud.createBud(this, this.getCenter().offset(-halfBigPath, 0, -halfBigPath - DEFAULT_PATH_LENGTH), TownMapUtils.Corner.NORTH_WEST, new Direction[]{Direction.NORTH});
-        SliceBuild mainPath = new RoadBuild(2 * DEFAULT_PATH_LENGTH + wideRoad.getWidth(), wideRoad);
+        SliceBuild<SliceBuildType> mainPath = new RoadBuild<>(wideRoad, 2 * DEFAULT_PATH_LENGTH + wideRoad.getWidth());
         boolean success = this.tryBuild(mainPath, firstBuildBud);
     }
     
@@ -101,7 +105,7 @@ public class ProtoTown {
      * @param buildBud Bud on which we try to build.
      * @return True if the Build was successfully built, false otherwise.
      */
-    public boolean tryBuild(Build build, @Nullable BuildBud buildBud){
+    public boolean tryBuild(Build<? extends BuildType> build, @Nullable BuildBud buildBud){
         if(buildBud == null){
             return false;
         }
@@ -118,13 +122,13 @@ public class ProtoTown {
     /**
      * Function used to add new buildings in the town !
      * Tries to add the build in parameter.
-     * @param build Building to be added in the town.
+     * @param type Building to be added in the town.
      */
-    public void addBuilding(BuildingType build){
+    public void addBuilding(BuildingType type){
         //TODO What if there is no Bud left ?
         this.getBuds().sort(Comparator.comparingInt(BuildBud::getSquaredDistToCenter));
         BuildBud[] buildBuds = this.getBuds().toArray(new BuildBud[0]);
-        Building placement = new Building(build.getRandomVariant(RANDOM_SOURCE));
+        Building<BuildingType> placement = new Building<>(type, type.getRandomVariant(RANDOM_SOURCE));
         for(BuildBud buildBud : buildBuds){
             if(this.tryBuild(placement, buildBud)){
                 return;
@@ -147,7 +151,7 @@ public class ProtoTown {
      * This will change the center of the town and the position of the new buildings.
      * @param building Building to be added in the town.
      */
-    public void addTownCenter(Building building){
+    public void addTownCenter(Building<BuildingType> building){
         ArrayList<BuildBud> monoPathBuildBuds = new ArrayList<>();
         for(BuildBud buildBud : this.getBuds()){
             if(buildBud.getType() == BuildBud.BudType.DEFAULT){
@@ -275,11 +279,11 @@ public class ProtoTown {
                         wide = RANDOM_SOURCE.nextFloat() < BIG_PATH_SPAWN_RATE;
                     }
                 }
-                SliceBuildType road = this.culture.getSliceBuild(wide ? WIDE_ROAD_TYPE_NAME : ROAD_TYPE_NAME);
+                SliceBuildType road = this.culture.getBuildType(wide ? WIDE_ROAD_TYPE_NAME : ROAD_TYPE_NAME);
                 // We check if there is already a path quite close to this one.
                 Direction secondDir = buildBud.getCorner().getLeftDirection() == pathDir ? buildBud.getCorner().getRightDirection() : buildBud.getCorner().getLeftDirection();
                 if(this.roadTooCloseInDir(buildBud.getRealPos().mutable().move(secondDir), secondDir) && this.roadTooCloseInDir(buildBud.getRealPos().mutable().move(secondDir, -road.getWidth()), secondDir.getOpposite())){
-                    this.tryBuild(new RoadBuild(DEFAULT_PATH_LENGTH, road), buildBud);
+                    this.tryBuild(new RoadBuild(road, DEFAULT_PATH_LENGTH), buildBud);
                 }
             }
         }
@@ -297,7 +301,7 @@ public class ProtoTown {
      * Checks the given direction starting at the given cursor position, and return the empty length (or maxLength).
      * @param cursor BlockPos mutable where we should start checking (i.e. for maxLength = 3, the code will check the starting
      *               position and move 2 times the cursor). The cursor is moved during the process, and will be at the last
-     *               empty position when this function stops (or the starting pos if it returns 0).
+     *               empty position when this function stops (or the starting vec3 if it returns 0).
      * @param dir Direction in which the cursor will move.
      * @param maxLength Maximum length of the loop. It includes the starting position of the cursor.
      * @return The integer corresponding to the number of empty positions. 0 if the cursor position is not empty.

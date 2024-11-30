@@ -3,6 +3,7 @@ package org.dawnoftime.onceuponatown.structure;
 import net.minecraft.core.BlockPos;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.Build;
+import org.dawnoftime.onceuponatown.building.type.BuildType;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.culture.CultureManager;
@@ -47,7 +48,7 @@ public class TownStructure extends Structure {
 
                 // Generate the pieces for each Build.
                 for(int i = 0; i < town.getBuilds().size(); i++){
-                    Build build = town.getBuilds().get(i);
+                    Build<BuildType> build = town.getBuilds().get(i);
                     build.generatePieces(builder, context.structureTemplateManager(), i == 0 ? town : null);
                 }
             }
