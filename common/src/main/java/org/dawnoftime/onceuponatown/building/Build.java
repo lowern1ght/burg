@@ -243,7 +243,7 @@ public abstract class Build<T extends BuildType> implements MapBlock {
         return this;
     }
 
-    public abstract void generatePieces(StructurePiecesBuilder builder, StructureTemplateManager manager, @Nullable ProtoTown town);
+    public abstract void generatePieces(StructurePiecesBuilder builder, StructureTemplateManager manager, Culture culture, @Nullable ProtoTown town);
 
     /**
      * Function called just after this Build was added to the TownMap.

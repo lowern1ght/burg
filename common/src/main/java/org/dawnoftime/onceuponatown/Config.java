@@ -33,6 +33,8 @@ public class Config {
     public static final float BIG_PATH_SPAWN_RATE = 0.3F;
     /** Probability that a path stops growing when a building is placed next to it.*/
     public static final float PATH_STOP_RATE = 0.15F;
+    /** Tick rate of the towns per second.*/
+    public static final int TOWN_TICK_RATE_SECONDS = 5;
 
     public record FakeConfig<T>(T configValue) {
         public T get() {

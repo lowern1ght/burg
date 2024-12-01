@@ -1,7 +1,7 @@
 package org.dawnoftime.onceuponatown.command;
 
 import org.dawnoftime.onceuponatown.town.Town;
-import org.dawnoftime.onceuponatown.town.TownManager;
+import org.dawnoftime.onceuponatown.town.TownLevelManager;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -20,7 +20,7 @@ public class TownDebugCommand {
 
     private static int listTowns(CommandSourceStack source) {
         Vec3 sourcePos = source.getPosition();
-        List<Town> towns = TownManager.getTowns(source.getLevel());
+        List<Town> towns = TownLevelManager.getTowns(source.getLevel());
         if (towns != null) {
             if (!towns.isEmpty()) {
                 Town closestTown = null;

@@ -34,23 +34,19 @@ public class TownStructure extends Structure {
     }
 
     private void generatePieces(StructurePiecesBuilder builder, GenerationContext context) {
-        Culture culture = CultureManager.getCultureById(this.cultureID);
         try {
-            if (culture == null) {
-                throw new CorruptedCultureException(this.cultureID, "Failed to generate a village, because this culture does not exist !");
-            } else {
-                int townHeight = context.chunkGenerator().getFirstOccupiedHeight(context.chunkPos().getMinBlockX(), context.chunkPos().getMinBlockZ(), Heightmap.Types.WORLD_SURFACE_WG, context.heightAccessor(), context.randomState());
-                BlockPos townCenterPos = new BlockPos(context.chunkPos().getMinBlockX(), townHeight, context.chunkPos().getMinBlockZ());
+            Culture culture = CultureManager.getCultureById(this.cultureID);
+            int townHeight = context.chunkGenerator().getFirstOccupiedHeight(context.chunkPos().getMinBlockX(), context.chunkPos().getMinBlockZ(), Heightmap.Types.WORLD_SURFACE_WG, context.heightAccessor(), context.randomState());
+            BlockPos townCenterPos = new BlockPos(context.chunkPos().getMinBlockX(), townHeight, context.chunkPos().getMinBlockZ());
 
-                Ouat.info("Town at + " + townCenterPos.toShortString() + " : started generating pieces...");
-                ProtoTown town = new ProtoTown(culture, "Saucisson", townCenterPos);
-                town.buildStarterPack();
+            Ouat.info("Town at + " + townCenterPos.toShortString() + " : started generating pieces...");
+            ProtoTown town = new ProtoTown(culture, "Saucisson", townCenterPos);
+            town.buildStarterPack();
 
-                // Generate the pieces for each Build.
-                for(int i = 0; i < town.getBuilds().size(); i++){
-                    Build<BuildType> build = town.getBuilds().get(i);
-                    build.generatePieces(builder, context.structureTemplateManager(), i == 0 ? town : null);
-                }
+            // Generate the pieces for each Build.
+            for(int i = 0; i < town.getBuilds().size(); i++){
+                Build<BuildType> build = town.getBuilds().get(i);
+                build.generatePieces(builder, context.structureTemplateManager(), i == 0 ? town : null);
             }
         }catch(CorruptedCultureException | CorruptedTownException e){
             Ouat.error(e.getMessage());

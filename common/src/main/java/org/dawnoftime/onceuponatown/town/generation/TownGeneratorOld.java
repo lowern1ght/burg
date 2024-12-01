@@ -4,9 +4,8 @@ import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import org.dawnoftime.onceuponatown.building.Building;
 import org.dawnoftime.onceuponatown.building.SliceBuild;
-import org.dawnoftime.onceuponatown.structure.pieces.BuildPiece;
+import org.dawnoftime.onceuponatown.structure.pieces.BuildingPiece;
 import org.dawnoftime.onceuponatown.structure.pieces.SliceBuildPiece;
-import org.dawnoftime.onceuponatown.structure.pieces.DataSliceBuildPiece;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
@@ -83,7 +82,7 @@ public class TownGeneratorOld {
                 var piece = new DataSliceBuildPiece(manager, buildingName, building.getCornerPos(corner), rotation, null, townMap);
                 pieces.addPiece(piece);
             } else {
-                var piece = new BuildPiece(manager, buildingName, building.getCornerPos(corner), rotation, null);
+                var piece = new BuildingPiece(manager, buildingName, building.getCornerPos(corner), rotation, null);
                 pieces.addPiece(piece);
             }
         }

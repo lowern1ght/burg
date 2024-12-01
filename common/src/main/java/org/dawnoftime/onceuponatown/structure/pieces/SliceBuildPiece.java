@@ -21,12 +21,16 @@ import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
+import org.dawnoftime.onceuponatown.town.TownLevelManager;
+import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class SliceBuildPiece extends StructurePiece {
     private final BlockPos originPos;
-    private final SliceBuild<SliceBuildType> sliceBuild;
+    private final SliceBuild<? extends SliceBuildType> sliceBuild;
     private final String cultureId;
+    private final @Nullable CompoundTag townTag;
 
     /**
      * Generate a Piece that will manage the world generation of the SliceBuilds.
@@ -34,13 +38,14 @@ public class SliceBuildPiece extends StructurePiece {
      * @param orientation Direction of the building.
      * @param build Instance of building that is placed.
      */
-    public SliceBuildPiece(BlockPos originPos, Direction orientation, SliceBuild<SliceBuildType> build, Culture culture) {
+    public SliceBuildPiece(BlockPos originPos, Direction orientation, SliceBuild<? extends SliceBuildType> build, Culture culture, @Nullable ProtoTown protoTown) {
         super(StructurePieceRegistry.REGISTRY.SLICE_BUILD_PIECE.get(), 0, makeBoundingBox(originPos.getX(), originPos.getY(), originPos.getZ(), orientation, build.getNorthSizeX(), build.getYSize(), build.getNorthSizeZ()));
         // We set the orientation to north, because the direction will try to rotate the BlockState and we already managed it.
         this.setOrientation(Direction.NORTH);
         this.originPos = originPos;
         this.sliceBuild = build;
         this.cultureId = culture.getId();
+        this.townTag = (protoTown == null) ? null : protoTown.writeNBT();
     }
 
     public SliceBuildPiece(CompoundTag tag) {
@@ -51,6 +56,7 @@ public class SliceBuildPiece extends StructurePiece {
         this.cultureId = tag.getString("CultureId");
         Culture culture = CultureManager.getCultureById(this.cultureId);
         this.sliceBuild = new SliceBuild<>(culture, SliceBuildType.class, tag.getCompound("Build"));
+        this.townTag = (tag.contains("Town")) ? tag.getCompound("Town") : null;
     }
 
     @Override
@@ -58,6 +64,9 @@ public class SliceBuildPiece extends StructurePiece {
         tag.put("OriginPos", NbtUtils.writeBlockPos(this.originPos));
         tag.putString("CultureId", this.cultureId);
         tag.put("Build", this.sliceBuild.writeNBT());
+        if(this.townTag != null){
+            tag.put("Town", this.townTag);
+        }
     }
 
     @Override
@@ -70,8 +79,11 @@ public class SliceBuildPiece extends StructurePiece {
                 this.placeBlock(level, block.state(), block.pos().getX(), block.pos().getY(), block.pos().getZ(), box);
             }
             //for(EntityInfo entity: schematicContent.getEntities()){} TODO Place the entities !
+            if(this.townTag != null){
+                TownLevelManager.initProtoTown(level.getLevel(), this.townTag);
+            }
         }else{
-            Ouat.debug("PAS DE SERVER ????"); //TODO fix this...
+            Ouat.debug("PAS DE SERVER ????"); //TODO Is it possible to have this bug ?
         }
     }
 }

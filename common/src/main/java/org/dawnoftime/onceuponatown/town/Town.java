@@ -3,7 +3,9 @@ package org.dawnoftime.onceuponatown.town;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.type.BuildType;
 import org.dawnoftime.onceuponatown.construction.ConstructionProject;
+import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 import org.dawnoftime.onceuponatown.culture.Culture;
+import org.dawnoftime.onceuponatown.culture.CultureManager;
 import org.dawnoftime.onceuponatown.culture.Orientation;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.building.Build;
@@ -59,6 +61,17 @@ public class Town extends ProtoTown {
         this.npcs = npcs;
         this.constructionProjects = constructionProjects;
         createOrLoadXpBar();
+    }
+
+    public Town(CompoundTag tag) throws CorruptedCultureException {
+        super(
+                tag.getUUID("UUID"),
+                CultureManager.getCultureById(tag.getString("Culture")),
+                tag.getString("Name"),
+                NbtUtils.readBlockPos(tag.getCompound("Center")),
+                NbtUtils.readBlockPos(tag.getCompound("NWCorner")).mutable(),
+                NbtUtils.readBlockPos(tag.getCompound("SECorner")).mutable());
+
     }
 
     public static Town createWorldGenOld(Level level, Culture culture, String name, TownMap townMap) {;

@@ -23,9 +23,9 @@ public class TownMapUtils {
     // Minimum spacing between paths when the central building is placed
     public static final int MINI_PATH_SPACE = 20;
     // Probability of placing a path when adding a bud
-    public static final float PATH_SPAWN_RATE = 0.25F;
+    public static final float ROAD_SPAWN_RATE = 0.25F;
     // Probability that a new path is a big path
-    public static final float BIG_PATH_SPAWN_RATE = 0.3F;
+    public static final float WIDE_ROAD_SPAWN_RATE = 0.3F;
     // Probability that a path stops growing when a building is placed next to it
     public static final float PATH_STOP_RATE = 0.15F;
 

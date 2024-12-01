@@ -5,10 +5,8 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
-import org.dawnoftime.onceuponatown.building.type.BuildType;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
-import org.dawnoftime.onceuponatown.structure.pieces.BuildPiece;
-import org.dawnoftime.onceuponatown.structure.pieces.DataSliceBuildPiece;
+import org.dawnoftime.onceuponatown.structure.pieces.BuildingPiece;
 import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
 import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
 import org.dawnoftime.onceuponatown.town.generation.TownMapUtils.Corner;
@@ -39,9 +37,9 @@ public class Building<T extends BuildingType> extends Build<T> {
 
     @Override
     public void generatePieces(StructurePiecesBuilder builder, StructureTemplateManager manager, @Nullable ProtoTown town) {
-        BuildPiece piece;
+        BuildingPiece piece;
         if(town == null){
-            piece = new BuildPiece(manager, this.variant.getSchematicResource(this.getLevel()), this.getCornerPos(corner), rotation);
+            piece = new BuildingPiece(manager, this.variant.getSchematicResource(this.getLevel()), this.getCornerPos(corner), rotation);
         }else{
             piece = new DataSliceBuildPiece(manager, buildingName, building.getCornerPos(corner), rotation, town);
         }

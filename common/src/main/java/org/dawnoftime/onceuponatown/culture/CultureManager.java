@@ -24,8 +24,12 @@ public class CultureManager implements PreparableReloadListener {
         return LOADED_CULTURES.values().stream().toList();
     }
 
-    public static Culture getCultureById(String cultureId) {
-        return LOADED_CULTURES.get(cultureId);
+    public static Culture getCultureById(String cultureId) throws CorruptedCultureException {
+        Culture culture = LOADED_CULTURES.get(cultureId);
+        if(culture == null){
+            throw new CorruptedCultureException(cultureId, "This culture could not be found in the list of loaded cultures.");
+        }
+        return culture;
     }
 
     public static void loadCultures(ResourceManager manager) {

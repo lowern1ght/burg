@@ -117,29 +117,29 @@ public class RoadBuild<T extends SliceBuildType> extends SliceBuild<T> {
 
     /**
      * Create the Buds on the sides of this MapPath. Some Buds can be added at the top and bottom only if it can not grow.
-     * @param map TownMap in which we want to add the Buds.
+     * @param town TownMap in which we want to add the Buds.
      */
-    private void findAllBuds(ProtoTown map){
+    private void findAllBuds(ProtoTown town){
         ArrayList<BuildBud> newBuildBuds = new ArrayList<>();
         if(this.getDirection() != null){
             if(this.getDirection().getAxis() == Direction.Axis.X){
-                newBuildBuds.addAll(this.findBudsOnSide(map, TownMapUtils.Corner.NORTH_WEST, this.getSizeX()));
-                newBuildBuds.addAll(this.findBudsOnSide(map, TownMapUtils.Corner.SOUTH_EAST, this.getSizeX()));
+                newBuildBuds.addAll(this.findBudsOnSide(town, TownMapUtils.Corner.NORTH_WEST, this.getSizeX()));
+                newBuildBuds.addAll(this.findBudsOnSide(town, TownMapUtils.Corner.SOUTH_EAST, this.getSizeX()));
                 if(!this.canGrow){
-                    newBuildBuds.addAll(this.findBudsOnSide(map, TownMapUtils.Corner.NORTH_EAST, this.getSizeZ()));
-                    newBuildBuds.addAll(this.findBudsOnSide(map, TownMapUtils.Corner.SOUTH_WEST, this.getSizeZ()));
+                    newBuildBuds.addAll(this.findBudsOnSide(town, TownMapUtils.Corner.NORTH_EAST, this.getSizeZ()));
+                    newBuildBuds.addAll(this.findBudsOnSide(town, TownMapUtils.Corner.SOUTH_WEST, this.getSizeZ()));
                 }
             }else{
-                newBuildBuds.addAll(this.findBudsOnSide(map, TownMapUtils.Corner.NORTH_EAST, this.getSizeZ()));
-                newBuildBuds.addAll(this.findBudsOnSide(map, TownMapUtils.Corner.SOUTH_WEST, this.getSizeZ()));
+                newBuildBuds.addAll(this.findBudsOnSide(town, TownMapUtils.Corner.NORTH_EAST, this.getSizeZ()));
+                newBuildBuds.addAll(this.findBudsOnSide(town, TownMapUtils.Corner.SOUTH_WEST, this.getSizeZ()));
                 if(!this.canGrow){
-                    newBuildBuds.addAll(this.findBudsOnSide(map, TownMapUtils.Corner.NORTH_WEST, this.getSizeX()));
-                    newBuildBuds.addAll(this.findBudsOnSide(map, TownMapUtils.Corner.SOUTH_EAST, this.getSizeX()));
+                    newBuildBuds.addAll(this.findBudsOnSide(town, TownMapUtils.Corner.NORTH_WEST, this.getSizeX()));
+                    newBuildBuds.addAll(this.findBudsOnSide(town, TownMapUtils.Corner.SOUTH_EAST, this.getSizeX()));
                 }
             }
-            newBuildBuds.forEach(map::tryCreateRoad);
+            newBuildBuds.stream().filter(Objects::nonNull).forEach(town::tryCreateRoad);
         }else{
-            throw new IllegalStateException("Unexpected creation of Buds: It's impossible to create Buds before the source MapPath is placed on the TownMap.");
+            throw new IllegalStateException("Unexpected creation of Buds: It's impossible to create Buds before the Road is placed in the Town.");
         }
     }
 

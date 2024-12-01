@@ -1,6 +1,5 @@
 package org.dawnoftime.onceuponatown.structure.pieces;
 
-import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import org.dawnoftime.onceuponatown.registry.StructurePieceRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -20,21 +19,21 @@ import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 
-public class BuildPiece extends TemplateStructurePiece {
-    public BuildPiece(StructureTemplateManager manager, ResourceLocation resourceLocation, BlockPos pos, Rotation rotation) {
+public class BuildingPiece extends TemplateStructurePiece {
+    public BuildingPiece(StructureTemplateManager manager, ResourceLocation resourceLocation, BlockPos pos, Rotation rotation) {
         this(StructurePieceRegistry.REGISTRY.BUILDING_PIECE.get(), manager, resourceLocation, pos, rotation);
     }
 
-    protected BuildPiece(StructurePieceType type, StructureTemplateManager manager, ResourceLocation resourceLocation, BlockPos pos, Rotation rotation) {
+    protected BuildingPiece(StructurePieceType type, StructureTemplateManager manager, ResourceLocation resourceLocation, BlockPos pos, Rotation rotation) {
         super(type, 0, manager, resourceLocation, resourceLocation.toString(), new StructurePlaceSettings().setRotation(rotation), pos);
     }
 
-    public BuildPiece(StructureTemplateManager manager, CompoundTag tag) {
+    public BuildingPiece(StructureTemplateManager manager, CompoundTag tag) {
         super(StructurePieceRegistry.REGISTRY.BUILDING_PIECE.get(), tag, manager, (rl) -> new StructurePlaceSettings().setRotation(Rotation.valueOf(tag.getString("Rot"))));
         //TODO: Read building type
     }
 
-    protected BuildPiece(StructurePieceType type, StructureTemplateManager manager, CompoundTag tag) {
+    protected BuildingPiece(StructurePieceType type, StructureTemplateManager manager, CompoundTag tag) {
         super(type, tag, manager, (p) -> new StructurePlaceSettings().setRotation(Rotation.valueOf(tag.getString("Rot"))));
         //TODO: Read building type
     }

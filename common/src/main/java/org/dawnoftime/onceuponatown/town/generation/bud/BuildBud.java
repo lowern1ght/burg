@@ -95,7 +95,7 @@ public class BuildBud {
     /**
      * @return Returns a list that contains the direction of the adjacent MapPaths.
      */
-    public Direction[] getAdjacentPaths() {
+    public Direction[] getAdjacentRoads() {
         return this.adjacentPaths;
     }
 

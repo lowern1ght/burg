@@ -88,7 +88,7 @@ public class SchematicContent {
         return sliceArray;
     }
 
-    public static SchematicContent reconstruct(SliceBuild<SliceBuildType> build, ResourceManager resourceManager){
+    public static SchematicContent reconstruct(SliceBuild<? extends SliceBuildType> build, ResourceManager resourceManager){
         // First, we load the needed schematics.
         HashMap<String, SchematicContent[]> sliceMap = new HashMap<>();
         build.getBuildVariantMap().forEach((variantName, pair) -> {
