@@ -1,7 +1,6 @@
 package org.dawnoftime.onceuponatown;
 
 import net.minecraft.core.Direction;
-import org.dawnoftime.onceuponatown.construction.BlockInfo;
 import org.dawnoftime.onceuponatown.construction.EntityInfo;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
@@ -99,5 +98,9 @@ public class Utils {
             LogUtils.getLogger().error("Error loading structure {}", resourceLocation, throwable);
             return null;
         }
+    }
+
+    public static String toString(BlockPos pos){
+        return "(" + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + ")";
     }
 }

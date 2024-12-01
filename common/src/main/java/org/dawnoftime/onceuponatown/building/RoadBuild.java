@@ -12,8 +12,8 @@ import java.util.Objects;
 
 import static org.dawnoftime.onceuponatown.culture.Culture.WIDE_ROAD_TYPE_NAME;
 import static org.dawnoftime.onceuponatown.town.generation.ProtoTown.RANDOM_SOURCE;
-import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.DEFAULT_PATH_LENGTH;
-import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.PATH_STOP_RATE;
+import static org.dawnoftime.onceuponatown.Config.DEFAULT_PATH_LENGTH;
+import static org.dawnoftime.onceuponatown.Config.PATH_STOP_RATE;
 
 public class RoadBuild<T extends SliceBuildType> extends SliceBuild<T> {
     private final boolean isWide;
@@ -35,11 +35,11 @@ public class RoadBuild<T extends SliceBuildType> extends SliceBuild<T> {
 
     /**
      * Function that tries to grow this MapPath, and adds the associated Buds.
-     * @param map TownMap of this MapPath.
+     * @param town TownMap of this MapPath.
      */
-    public void update(ProtoTown map){
-        this.tryGrowing(map);
-        this.findAllBuds(map);
+    public void update(ProtoTown town){
+        this.tryGrowing(town);
+        this.findAllBuds(town);
     }
 
     private void tryGrowing(ProtoTown map) {

@@ -4,6 +4,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
@@ -83,8 +84,8 @@ public class SliceBuild<T extends SliceBuildType> extends Build<T> {
 
 
     @Override
-    public void generatePieces(StructurePiecesBuilder builder, StructureTemplateManager manager, Culture culture, @Nullable ProtoTown town) {
-        builder.addPiece(new SliceBuildPiece(this.getOriginPos(), this.getDirection(), this, culture, town));
+    public StructurePiece generatePieces(StructureTemplateManager manager, Culture culture, @Nullable ProtoTown town) {
+        return new SliceBuildPiece(this.getOriginPos(), this.getDirection(), this, culture, town);
     }
 
     public SliceProperty[] getYShape() {

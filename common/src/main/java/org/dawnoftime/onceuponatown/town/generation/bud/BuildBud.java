@@ -8,7 +8,7 @@ import org.dawnoftime.onceuponatown.town.generation.TownMapUtils.Corner;
 
 import javax.annotation.Nullable;
 
-import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.BUD_MINIMAL_SPACE;
+import static org.dawnoftime.onceuponatown.Config.BUD_MINIMAL_SPACE;
 
 /**
  * Each bud is a point at the intersection of two paths, or a path and a plot border.

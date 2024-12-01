@@ -10,7 +10,6 @@ import net.minecraft.util.GsonHelper;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.Item;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.building.Build;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.building.type.BuildType;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
@@ -26,15 +25,13 @@ import java.util.*;
 
 import static org.dawnoftime.onceuponatown.culture.CultureManager.CULTURE_FILE;
 
-// TODO Gérer les cas où une map a été sauvegarder avec une version différente du datapack (par exemple un buildType qui a disparu).
-
+// TODO Add some code to manage when a map was saved with a different version of the culture datapack (ie. a BuildType was removed).
 public class Culture {
     public static final String ROAD_TYPE_NAME = "road";
     public static final String WIDE_ROAD_TYPE_NAME = "wide_road";
     public static final String BRIDGE_TYPE_NAME = "bridge";
     public static final String WALL_TYPE_NAME = "wall";
 
-    public static final Culture FAKE_PLAINS = new Culture("fake_plains", null);
     private final String id;
     private List<Orientation> orientations;
     private final HashMap<String, BuildType> buildTypeMap = new HashMap<>();

@@ -2,11 +2,13 @@ package org.dawnoftime.onceuponatown.building;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
+import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
+import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.structure.pieces.BuildingPiece;
+import org.dawnoftime.onceuponatown.town.generation.MapBlock;
 import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
 import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
 import org.dawnoftime.onceuponatown.town.generation.TownMapUtils.Corner;
@@ -14,7 +16,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.HashSet;
 
-import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.MAXI_Y_DIFFERENCE;
+import static org.dawnoftime.onceuponatown.Config.MAXI_Y_DIFFERENCE;
 import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.rectangularPosIterator;
 
 public class Building<T extends BuildingType> extends Build<T> {
@@ -36,27 +38,21 @@ public class Building<T extends BuildingType> extends Build<T> {
     }
 
     @Override
-    public void generatePieces(StructurePiecesBuilder builder, StructureTemplateManager manager, @Nullable ProtoTown town) {
-        BuildingPiece piece;
-        if(town == null){
-            piece = new BuildingPiece(manager, this.variant.getSchematicResource(this.getLevel()), this.getCornerPos(corner), rotation);
-        }else{
-            piece = new DataSliceBuildPiece(manager, buildingName, building.getCornerPos(corner), rotation, town);
-        }
-        builder.addPiece(piece);
+    public StructurePiece generatePieces(StructureTemplateManager manager, Culture culture, @Nullable ProtoTown town) {
+        return new BuildingPiece(manager, this.variant.getSchematicResource(this.getLevel()), this.getCornerPos(Corner.getCornerNextToDir(this.getDirection().getOpposite(), false)), this.getDirection(), town);
     }
 
     @Override
-    protected void onAddedToMap(ProtoTown town) {
+    protected void onAddedToTown(ProtoTown town) {
         // We try to find all the adjacent MapPath to extend them and add the Buds.
-        // We will iterate on a one block bigger rectangle to find all the adjacent MapBuild.
-        HashSet<Integer> ids = new HashSet<>();
+        // We will iterate on a "1 block bigger rectangle" to find all the adjacent MapBuild.
+        HashSet<MapBlock> mapBlocks = new HashSet<>();
         for(BlockPos.MutableBlockPos pos : rectangularPosIterator(this.getOriginPos().north().west(), this.getSizeX() + 2, this.getSizeZ() + 2)) {
-            ids.add(town.getMapBlockInMapPos(pos));
+            mapBlocks.add(town.getMapBlockInMapPos(pos));
         }
-        for(int id : ids){
-            if(town.getBuild(id) instanceof RoadBuild path){
-                path.update(town);
+        for(MapBlock mapBlock : mapBlocks){
+            if(mapBlock instanceof RoadBuild<?> road){
+                road.update(town);
             }
         }
     }
@@ -86,10 +82,10 @@ public class Building<T extends BuildingType> extends Build<T> {
     }
 
     @Override
-    public boolean canBeBuiltOnBud(TownMap map, BuildBud buildBud, Direction dir) {
+    public boolean canBeBuiltOnBud(ProtoTown town, BuildBud buildBud, Direction dir) {
         BlockPos testedOriginPos = buildBud.findOriginPos(this, dir);
         for(BlockPos.MutableBlockPos testedPos : rectangularPosIterator(testedOriginPos, this.getSizeX(dir), this.getSizeZ(dir))) {
-            if(!map.isEmpty(testedPos) || Math.abs(testedPos.getY() - this.getYOnPos(testedOriginPos, testedPos)) > MAXI_Y_DIFFERENCE){
+            if(!town.isEmpty(testedPos) || Math.abs(testedPos.getY() - this.getYOnPos(testedOriginPos, testedPos)) > MAXI_Y_DIFFERENCE){
                 return false;
             }
         }

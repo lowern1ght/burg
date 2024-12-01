@@ -88,6 +88,13 @@ public class SchematicContent {
         return sliceArray;
     }
 
+    /**
+     * Get the build slices of the build in parameter, and merge them to create a BuildSchematic.
+     * The slices are moved to the correct Y and rotated in the build's direction.
+     * @param build Slice build.
+     * @param resourceManager Used to load the schematics.
+     * @return The final SchematicContent rotated in the correct direction.
+     */
     public static SchematicContent reconstruct(SliceBuild<? extends SliceBuildType> build, ResourceManager resourceManager){
         // First, we load the needed schematics.
         HashMap<String, SchematicContent[]> sliceMap = new HashMap<>();

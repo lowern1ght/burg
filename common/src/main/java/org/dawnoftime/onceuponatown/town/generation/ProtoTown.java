@@ -6,6 +6,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
+import org.dawnoftime.onceuponatown.Config;
+import org.dawnoftime.onceuponatown.Utils;
 import org.dawnoftime.onceuponatown.building.Build;
 import org.dawnoftime.onceuponatown.building.Building;
 import org.dawnoftime.onceuponatown.building.RoadBuild;
@@ -23,9 +25,7 @@ import java.util.*;
 import static org.dawnoftime.onceuponatown.Config.DEFAULT_PATH_LENGTH;
 import static org.dawnoftime.onceuponatown.culture.Culture.ROAD_TYPE_NAME;
 import static org.dawnoftime.onceuponatown.culture.Culture.WIDE_ROAD_TYPE_NAME;
-import static org.dawnoftime.onceuponatown.town.CorruptedTownException.str;
-import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.*;
-import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.MINI_PATH_SPACE;
+import static org.dawnoftime.onceuponatown.Config.MINI_PATH_SPACE;
 
 public class ProtoTown {
     public static final RandomSource RANDOM_SOURCE = RandomSource.create();
@@ -70,14 +70,18 @@ public class ProtoTown {
     }
 
     public Culture getCulture() {
-        return this.culture;
+        return culture;
+    }
+
+    public UUID getUuid() {
+        return uuid;
     }
 
     public List<Build<? extends BuildType>> getBuilds() {
         return this.builds;
     }
 
-    public void buildStarterPack(){
+    public boolean buildStarterPack(){
         List<BuildType> starterPack = this.culture.getRandomStarterPack(RANDOM_SOURCE);
         SliceBuildType wideRoad = this.culture.getBuildType(Culture.WIDE_ROAD_TYPE_NAME, SliceBuildType.class);
         boolean flipped = RANDOM_SOURCE.nextBoolean(); //TODO Will be used to decide the direction of the central road.
@@ -87,6 +91,7 @@ public class ProtoTown {
         BuildBud firstBuildBud = BuildBud.createBud(this, this.getCenter().offset(-halfBigPath, 0, -halfBigPath - DEFAULT_PATH_LENGTH), TownMapUtils.Corner.NORTH_WEST, new Direction[]{Direction.NORTH});
         SliceBuild<SliceBuildType> mainPath = new RoadBuild<>(wideRoad, 2 * DEFAULT_PATH_LENGTH + wideRoad.getWidth());
         boolean success = this.tryBuild(mainPath, firstBuildBud);
+        return success;
     }
     
     /**
@@ -260,12 +265,12 @@ public class ProtoTown {
      */
     public void tryCreateRoad(@NotNull BuildBud buildBud){
         // If this bud has only one adjacent Path, we try
-        if(buildBud.getAdjacentRoads().length == 1 && RANDOM_SOURCE.nextFloat() < ROAD_SPAWN_RATE){
+        if(buildBud.getAdjacentRoads().length == 1 && RANDOM_SOURCE.nextFloat() < Config.ROAD_SPAWN_RATE){
             boolean mustBeWide = false;
             Direction pathDir = buildBud.getAdjacentRoads()[0];
             if(this.getBuild(buildBud.getRealPos().relative(pathDir)) instanceof RoadBuild<?> road){
                 if(road.isWide()){
-                    mustBeWide = RANDOM_SOURCE.nextFloat() < WIDE_ROAD_SPAWN_RATE;
+                    mustBeWide = RANDOM_SOURCE.nextFloat() < Config.WIDE_ROAD_SPAWN_RATE;
                 }
             }
             SliceBuildType road = this.culture.getBuildType(mustBeWide ? WIDE_ROAD_TYPE_NAME : ROAD_TYPE_NAME, SliceBuildType.class);
@@ -457,15 +462,15 @@ public class ProtoTown {
      */
     public void printDescription(){
         System.out.println("//---------------------------------------------- Town Map [" + this.builds.size() + "] ---------------------------------------------//");
-        System.out.println("Town Center: " + str(this.getCenter()));
+        System.out.println("Town Center: " + Utils.toString(this.getCenter()));
         System.out.println("Size: " + this.getTownMap()[0].length + "×" + this.getTownMap().length);
         System.out.println("Builds:");
         for(Build build : this.builds){
-            System.out.println("    - " + build.getClass().getSimpleName() + " [origin: " + str(build.getOriginPos()) + ", xSize: " + build.getSizeX() + ", zSize: " + build.getSizeZ() + "]");
+            System.out.println("    - " + build.getClass().getSimpleName() + " [origin: " + Utils.toString(build.getOriginPos()) + ", xSize: " + build.getSizeX() + ", zSize: " + build.getSizeZ() + "]");
         }
         System.out.println("Buds:");
         for(BuildBud buildBud : this.getBuds()){
-            System.out.println("    - Bud [origin: " + str(buildBud.getRealPos()) + ", distance: " + buildBud.getSquaredDistToCenter() + ", corner: " + buildBud.getCorner() + "]");
+            System.out.println("    - Bud [origin: " + Utils.toString(buildBud.getRealPos()) + ", distance: " + buildBud.getSquaredDistToCenter() + ", corner: " + buildBud.getCorner() + "]");
         }
         System.out.println("//-------------------------------------------------------------------------------------------------------------//");
     }

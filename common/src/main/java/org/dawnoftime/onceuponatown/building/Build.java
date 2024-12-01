@@ -3,6 +3,7 @@ package org.dawnoftime.onceuponatown.building;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import org.dawnoftime.onceuponatown.building.type.BuildType;
@@ -243,7 +244,7 @@ public abstract class Build<T extends BuildType> implements MapBlock {
         return this;
     }
 
-    public abstract void generatePieces(StructurePiecesBuilder builder, StructureTemplateManager manager, Culture culture, @Nullable ProtoTown town);
+    public abstract StructurePiece generatePieces(StructureTemplateManager manager, Culture culture, @Nullable ProtoTown town);
 
     /**
      * Function called just after this Build was added to the TownMap.

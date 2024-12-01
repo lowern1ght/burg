@@ -21,7 +21,7 @@ import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
-import org.dawnoftime.onceuponatown.town.TownLevelManager;
+import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -80,7 +80,8 @@ public class SliceBuildPiece extends StructurePiece {
             }
             //for(EntityInfo entity: schematicContent.getEntities()){} TODO Place the entities !
             if(this.townTag != null){
-                TownLevelManager.initProtoTown(level.getLevel(), this.townTag);
+                LevelTowns manager = LevelTowns.get(level.getLevel());
+                manager.initProtoTown(this.townTag);
             }
         }else{
             Ouat.debug("PAS DE SERVER ????"); //TODO Is it possible to have this bug ?
