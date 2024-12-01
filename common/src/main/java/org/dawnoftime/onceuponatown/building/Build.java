@@ -2,10 +2,12 @@ package org.dawnoftime.onceuponatown.building;
 
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.NbtUtils;
+import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
+import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
 import org.dawnoftime.onceuponatown.building.type.BuildType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -53,6 +55,8 @@ public abstract class Build<T extends BuildType> implements MapBlock {
         tag.putInt("Level", this.level);
         return tag;
     }
+
+    public abstract SchematicContent getSchematicContent(ResourceManager resourceManager);
 
     public int getLevel() {
         return this.level;

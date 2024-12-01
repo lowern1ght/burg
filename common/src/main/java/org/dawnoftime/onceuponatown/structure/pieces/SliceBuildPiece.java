@@ -74,7 +74,7 @@ public class SliceBuildPiece extends StructurePiece {
         MinecraftServer server = level.getServer();
         Direction dir = this.sliceBuild.getDirection();
         if(server != null && dir != null){
-            SchematicContent schematicContent = SchematicContent.reconstruct(this.sliceBuild, server.getResourceManager()).rotate(dir);
+            SchematicContent schematicContent = this.sliceBuild.getSchematicContent(server.getResourceManager());
             for(BlockInfo block: schematicContent.getBlocks()){
                 this.placeBlock(level, block.state(), block.pos().getX(), block.pos().getY(), block.pos().getZ(), box);
             }

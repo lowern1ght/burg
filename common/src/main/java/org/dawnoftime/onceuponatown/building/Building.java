@@ -2,9 +2,11 @@ package org.dawnoftime.onceuponatown.building;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
+import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.structure.pieces.BuildingPiece;
@@ -69,6 +71,11 @@ public class Building<T extends BuildingType> extends Build<T> {
         // I will assume the door is in the middle of the North side.
         int offset = dir.getAxis() == Direction.Axis.X ? this.getSizeZ(dir) : this.getSizeX(dir);
         return Corner.NORTH_WEST.getCornerPos(originPos, this, dir, Corner.getCornerNextToDir(dir.getOpposite(), false)).relative(dir.getClockWise(), offset / 2);
+    }
+
+    @Override
+    public SchematicContent getSchematicContent(ResourceManager resourceManager) {
+        return this.variant.getSchematic(resourceManager, this.getLevel());
     }
 
     @Override

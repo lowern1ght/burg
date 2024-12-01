@@ -1,7 +1,7 @@
 {
     "build_type": "wide_road",
     "shape": "flat",
-    "size": {"x": 2, "y": 1, "z": 5},
+    "size": {"x": 5, "y": 2, "z": 5},
     "levels": [
         {
             "level": 1,

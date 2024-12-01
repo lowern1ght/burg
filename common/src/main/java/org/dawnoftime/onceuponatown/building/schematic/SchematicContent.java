@@ -236,4 +236,8 @@ public class SchematicContent {
     public List<BlockInfo> getBlocks() {
         return this.blocks;
     }
+
+    public Vec3i getSize() {
+        return size;
+    }
 }

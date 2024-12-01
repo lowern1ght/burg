@@ -4,10 +4,12 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
+import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
 import org.dawnoftime.onceuponatown.building.type.SliceBuildType;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.structure.pieces.SliceBuildPiece;
@@ -54,6 +56,11 @@ public class SliceBuild<T extends SliceBuildType> extends Build<T> {
         }
         tag.put("Slices", tags);
         return tag;
+    }
+
+    @Override
+    public SchematicContent getSchematicContent(ResourceManager resourceManager) {
+        return SchematicContent.reconstruct(this, resourceManager).rotate(this.getDirection());
     }
 
     @Override

@@ -74,7 +74,7 @@ public class BuildVariant {
                     subObject = arrayElem.getAsJsonObject();
                     int level = CultureManager.tryGet(subObject, "level", " in an object in the section 'levels'", "build_variant", cultureName, buildVariantName + ".json", buildResource).getAsInt();
                     String schematicName = CultureManager.tryGet(subObject, "schematic", " in an object in the section 'levels'", "build_variant", cultureName, buildVariantName + ".json", buildResource).getAsString();
-                    BuildSchematic schematic = BuildSchematic.create(resourceManager, Ouat.createOuatResource("cultures/%s/builds/schematic/%s.entityNbt".formatted(cultureName, schematicName)), size, cultureName, buildVariantName);
+                    BuildSchematic schematic = BuildSchematic.create(resourceManager, Ouat.createOuatResource("cultures/%s/builds/schematic/%s.nbt".formatted(cultureName, schematicName)), size, cultureName, buildVariantName);
                     // TODO Do the code that loads the waypoints.
                     // for each waypoints loaded : schematic.addWaypoint();
                     schematics.put(level, schematic);
