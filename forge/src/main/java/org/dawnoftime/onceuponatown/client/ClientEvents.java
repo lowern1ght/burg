@@ -1,6 +1,7 @@
 package org.dawnoftime.onceuponatown.client;
 
 import net.minecraft.client.gui.screens.MenuScreens;
+import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
@@ -15,8 +16,11 @@ import org.dawnoftime.onceuponatown.client.renderer.NpcFishingHookRenderer;
 import org.dawnoftime.onceuponatown.client.renderer.NpcRenderer;
 import org.dawnoftime.onceuponatown.client.screen.BuyScreen;
 import org.dawnoftime.onceuponatown.client.screen.SellScreen;
+import org.dawnoftime.onceuponatown.client.screen.tooltip.ClientSingleItemTooltip;
 import org.dawnoftime.onceuponatown.client.screen.tooltip.ClientTradeItemTooltip;
+import org.dawnoftime.onceuponatown.client.screen.tooltip.SingleItemTooltip;
 import org.dawnoftime.onceuponatown.client.screen.tooltip.TradeItemTooltip;
+import org.dawnoftime.onceuponatown.item.EmeraldPouchItem;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
 import org.dawnoftime.onceuponatown.registry.ItemRegistry;
 import org.dawnoftime.onceuponatown.registry.MenuRegistry;
@@ -28,7 +32,10 @@ public class ClientEvents {
         public static void clientSetup(FMLClientSetupEvent event) {
             event.enqueueWork(() -> {
                 MenuScreens.register(MenuRegistry.REGISTRY.BUY_MENU.get(), BuyScreen::new);
-                MenuScreens.register(MenuRegistry.REGISTRY.SELL_MENU.get(), SellScreen::new);}
+                MenuScreens.register(MenuRegistry.REGISTRY.SELL_MENU.get(), SellScreen::new);
+                // Custom client item properties
+                ItemProperties.register(ItemRegistry.REGISTRY.EMERALD_POUCH.get(), Ouat.createOuatResource("nonempty_pouch"), (emeraldPouchStack, clientLevel, livingEntity, id) -> EmeraldPouchItem.isEmpty(emeraldPouchStack) ? 0.0F : 1.0F);
+            }
             );
         }
 
@@ -56,6 +63,7 @@ public class ClientEvents {
         @SubscribeEvent
         public static void registerClientTooltips(RegisterClientTooltipComponentFactoriesEvent event) {
             event.register(TradeItemTooltip.class, ClientTradeItemTooltip::new);
+            event.register(SingleItemTooltip.class, ClientSingleItemTooltip::new);
         }
     }
 

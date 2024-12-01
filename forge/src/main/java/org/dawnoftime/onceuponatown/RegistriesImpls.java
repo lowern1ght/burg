@@ -53,7 +53,7 @@ public class RegistriesImpls {
                 .title(Component.literal(Ouat.MOD_NAME))
                 //.icon(() -> TAB_ICON.get().getDefaultInstance())
                 //.displayItems((params, output) -> output.acceptAll(ForgeItemsRegistry.ITEMS_REGISTRY.getEntries().stream().filter(holder -> holder != TAB_ICON).map((itemDeferredHolder) -> itemDeferredHolder.get().getDefaultInstance()).toList()))
-                .icon(() -> new ItemStack(Items.EMERALD))
+                .icon(() -> new ItemStack(ItemRegistry.REGISTRY.TOWN_MAP.get()))
                 .displayItems((params, output) -> output.acceptAll(ItemRegistryImpl.DEFERRED_REGISTER.getEntries().stream().map((itemDeferredHolder) -> itemDeferredHolder.get().getDefaultInstance()).toList()))
                 .build());
     }
