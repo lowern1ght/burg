@@ -16,10 +16,9 @@ import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import org.dawnoftime.onceuponatown.building.Building;
-import org.dawnoftime.onceuponatown.building.placement.BuildPlacement;
-import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
+import org.dawnoftime.onceuponatown.building.Build;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
+import org.dawnoftime.onceuponatown.building.type.BuildType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,42 +38,40 @@ public class ConstructionProject {
     protected final Level level;
     protected final String name;
     private final ProjectType projectType;
-    protected final BuildVariant buildVariant;
-    private final BuildPlacement placement;
+    private final Build<? extends BuildType> build;
     private final List<ProjectStep> projectSteps;
     private int progress = 0;
     protected boolean completed;
 
-    private ConstructionProject(Level level, String name, ProjectType projectType, BuildVariant variant, BuildPlacement placement, List<ProjectStep> projectSteps) {
+    private ConstructionProject(Level level, String name, ProjectType projectType, Build<? extends BuildType> build, List<ProjectStep> projectSteps) {
         this.level = level;
         this.name = name;
         this.projectType = projectType;
-        this.buildVariant = variant;
-        this.placement = placement;
+        this.build = build;
         this.projectSteps = projectSteps;
     }
 
-    public ConstructionProject newBuildProject(Level level, String name, BuildVariant variant, BuildPlacement placement) {
-        return newBuildProject(level, name, variant, 1, placement);
+    public ConstructionProject newBuildProject(Level level, String name, Build<? extends BuildType> build) {
+        return newBuildProject(level, name, 1, build);
     }
 
-    public ConstructionProject newBuildProject(Level level, String name, BuildVariant variant, int buildingLevel, BuildPlacement placement) {
-        return createProject(level, name, ProjectType.NEW_BUILD, variant, buildingLevel, placement);
+    public ConstructionProject newBuildProject(Level level, String name, int buildingLevel, Build<? extends BuildType> build) {
+        return createProject(level, name, ProjectType.NEW_BUILD, buildingLevel, build);
     }
 
-    public ConstructionProject upgradeProject(Level level, String name, Building building) {
-        return upgradeProject(level, name, building, building.getLevel() + 1);
+    public ConstructionProject upgradeProject(Level level, String name, Build<? extends BuildType> build) {
+        return upgradeProject(level, name, build, build.getLevel() + 1);
     }
 
-    public ConstructionProject upgradeProject(Level level, String name, Building building, int wantedLevel) {
-        return createProject(level, name, ProjectType.UPGRADE, building.getVariant(), wantedLevel, building.getPlacement());
+    public ConstructionProject upgradeProject(Level level, String name, Build<? extends BuildType> build, int wantedLevel) {
+        return createProject(level, name, ProjectType.UPGRADE, wantedLevel, build);
     }
 
-    public ConstructionProject repairProject(Level level, String name, Building building) {
-        return createProject(level, name, ProjectType.REPAIR, building.getVariant(), building.getLevel(), building.getPlacement());
+    public ConstructionProject repairProject(Level level, String name, Build<? extends BuildType> build) {
+        return createProject(level, name, ProjectType.REPAIR, build.getLevel(), build);
     }
 
-    private ConstructionProject createProject(Level level, String name, ProjectType projectType, BuildVariant buildVariant, int buildingLevel, BuildPlacement placement) {
+    private ConstructionProject createProject(Level level, String name, ProjectType projectType, int buildingLevel, Build<? extends BuildType> build) {
 
         // 1. Create ConstructionPlan
         // 2. Scan plot. List blocks in variable existingBlocks, same with decoration entities (armor stands, paintings...)
@@ -85,9 +82,9 @@ public class ConstructionProject {
         List<ProjectStep> projectSteps = new ArrayList<>();
         if(!level.isClientSide()){
             if(level instanceof ServerLevel serverLevel){
-                SchematicContent schematic = buildVariant.getSchematic(serverLevel.getServer().getResourceManager(), buildingLevel);
-                Vec3i planDimensions = buildVariant.getSize();
-                BlockPos firstCorner = placement.getOriginPos();
+                SchematicContent schematic = build.getSchematicContent(serverLevel.getServer().getResourceManager());
+                Vec3i planDimensions = schematic.getSize();
+                BlockPos firstCorner = build.getOriginPos();
                 BlockPos secondCorner = firstCorner.offset(planDimensions.getX(), planDimensions.getY(), planDimensions.getZ());
                 List<BlockInfo> existingBlocks = new ArrayList<>();
                 for (int y = firstCorner.getY(); y <= secondCorner.getY(); ++y) {
@@ -129,7 +126,7 @@ public class ConstructionProject {
             }
         }
         // TODO The project list is empty on Client side. Do we need to send some packet or is it OK ?
-        return new ConstructionProject(level, name, projectType, buildVariant, placement, projectSteps);
+        return new ConstructionProject(level, name, projectType, build, projectSteps);
     }
 
     public void executeNSteps(int times) {
@@ -142,11 +139,13 @@ public class ConstructionProject {
         if (completed) {
             return false;
         }
+        // TODO fix the rotation pivot. Is it useful ?
+        BlockPos rotationPivot = BlockPos.ZERO;
         boolean success = false;
         ProjectStep nextStep = projectSteps.get(progress);
-        BlockPos nextStepPos = ConstructionUtils.transformBlockPos(nextStep.blockPos, this.placement.getMirror(), this.placement.getRotation(), this.placement.getRotationPivot()).offset(this.placement.getOriginPos());
-        BlockState nextStepState = ConstructionUtils.transformBlockState(nextStep.blockState, this.placement.getMirror(), this.placement.getRotation());
-        Vec3 nextStepEntityPos = ConstructionUtils.transformEntityPos(nextStep.entityPos, this.placement.getMirror(), this.placement.getRotation(), this.placement.getRotationPivot()).add(Vec3.atLowerCornerOf(this.placement.getOriginPos()));
+        BlockPos nextStepPos = ConstructionUtils.transformBlockPos(nextStep.blockPos, this.build.getMirror(), this.build.getRotation(), rotationPivot).offset(this.build.getOriginPos());
+        BlockState nextStepState = ConstructionUtils.transformBlockState(nextStep.blockState, this.build.getMirror(), this.build.getRotation());
+        Vec3 nextStepEntityPos = ConstructionUtils.transformEntityPos(nextStep.entityPos, this.build.getMirror(), this.build.getRotation(), rotationPivot).add(Vec3.atLowerCornerOf(this.build.getOriginPos()));
 
         switch (nextStep.type) {
             case REMOVE_BLOCK -> {
@@ -178,8 +177,8 @@ public class ConstructionProject {
                 var optional = createEntityIgnoreException((ServerLevelAccessor) level, newTag);
                 if (optional.isPresent()) {
                     Entity entity = optional.get();
-                    float f = entity.rotate(this.placement.getRotation());
-                    f += entity.mirror(this.placement.getMirror()) - entity.getYRot();
+                    float f = entity.rotate(this.build.getRotation());
+                    f += entity.mirror(this.build.getMirror()) - entity.getYRot();
                     entity.moveTo(nextStepEntityPos.x, nextStepEntityPos.y, nextStepEntityPos.z, f, entity.getXRot());
                     if (entity instanceof Mob mob) {
                         mob.finalizeSpawn((ServerLevelAccessor) level, level.getCurrentDifficultyAt(BlockPos.containing(nextStepEntityPos)), MobSpawnType.STRUCTURE,null, newTag);
@@ -205,16 +204,16 @@ public class ConstructionProject {
     public CompoundTag save(CompoundTag tag) {
         tag.putString("Name", this.name);
         tag.putInt("Type", this.projectType.ordinal());
-        tag.putInt("BuildX", this.placement.getOriginPos().getX());
-        tag.putInt("BuildY", this.placement.getOriginPos().getY());
-        tag.putInt("BuildZ", this.placement.getOriginPos().getZ());
-        tag.putString("Rotation", this.placement.getRotation().getSerializedName());
-        tag.putString("Mirror", this.placement.getMirror().getSerializedName());
+        tag.putInt("BuildX", this.build.getOriginPos().getX());
+        tag.putInt("BuildY", this.build.getOriginPos().getY());
+        tag.putInt("BuildZ", this.build.getOriginPos().getZ());
+        tag.putString("Rotation", this.build.getRotation().getSerializedName());
+        tag.putString("Mirror", this.build.getMirror().getSerializedName());
         return tag;
     }
 
     public BlockPos getPosition() {
-        return this.placement.getOriginPos();
+        return this.build.getOriginPos();
     }
 
     public String getName() {

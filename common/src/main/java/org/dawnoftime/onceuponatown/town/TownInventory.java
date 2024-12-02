@@ -5,21 +5,33 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
+import org.dawnoftime.onceuponatown.Config;
 
 import java.util.HashMap;
 
 public class TownInventory {
-    public static int MAX_SIZE = 1000;
-    private HashMap<Item, Integer> inventory = new HashMap<>();
+    private final HashMap<Item, Integer> inventory = new HashMap<>();
 
     public TownInventory() {
     }
 
-    public TownInventory(CompoundTag tag) {
-        read(tag);
+    /**
+     * Constructor used to create a TownInventory instance from the information stored in the NBT.
+     * @param inventoryTag ListTag that holds all the information.
+     */
+    public TownInventory(ListTag inventoryTag) {
+        for(int i = 0; i < inventoryTag.size(); ++i) {
+            CompoundTag entryTag = inventoryTag.getCompound(i);
+            Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(entryTag.getString("item")));
+            this.inventory.put(item, entryTag.getInt("amount"));
+        }
     }
 
-    public void saveNBT(CompoundTag tag) {
+    /**
+     * Function used to save the content of this Town's inventory.
+     * @return A Tag with all the information.
+     */
+    public ListTag writeNBT() {
         ListTag inventoryTag = new ListTag();
         this.inventory.forEach((key, value) -> {
             CompoundTag entryTag = new CompoundTag();
@@ -27,17 +39,9 @@ public class TownInventory {
             entryTag.putInt("amount", value);
             inventoryTag.add(entryTag);
         });
-        tag.put("townInventory", inventoryTag);
+        return inventoryTag;
     }
 
-    public void read(CompoundTag tag) {
-        ListTag inventoryTag = tag.getList("townInventory", 10);
-        for(int i = 0; i < inventoryTag.size(); ++i) {
-            CompoundTag entryTag = inventoryTag.getCompound(i);
-            Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(entryTag.getString("item")));
-            this.inventory.put(item, entryTag.getInt("amount"));
-        }
-    }
 
     public <T extends Item> boolean hasAny(T item) {
         return this.inventory.containsKey(item);
@@ -56,7 +60,7 @@ public class TownInventory {
     }
 
     public <T extends Item> boolean add(T item, int amount) {
-        if (amount <= 0 || amount > MAX_SIZE) {
+        if (amount <= 0 || amount > Config.MAX_TOWN_INVENTORY_STACK_SIZE) {
             return false;
         } else {
             if (hasAny(item)) {
@@ -69,7 +73,7 @@ public class TownInventory {
     }
 
     public <T extends Item> boolean remove(T item, int amount) {
-        if (amount <= 0 || amount > MAX_SIZE) {
+        if (amount <= 0 || amount > Config.MAX_TOWN_INVENTORY_STACK_SIZE) {
             return false;
         } else {
             if (hasAny(item)) {

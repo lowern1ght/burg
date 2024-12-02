@@ -1,5 +1,6 @@
 package org.dawnoftime.onceuponatown.building.type;
 
+import net.minecraft.resources.ResourceLocation;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 
@@ -10,6 +11,7 @@ public abstract class BuildType {
     private final String name;
     private final int weight;
     private final HashMap<String, BuildVariant> variants = new HashMap<>();
+    private final HashMap<ResourceLocation, Integer> production = new HashMap<>();
 
     protected BuildType(String buildTypeName, int weight) {
         this.name = buildTypeName;
@@ -34,5 +36,9 @@ public abstract class BuildType {
             return true;
         }
         return false;
+    }
+
+    public HashMap<ResourceLocation, Integer> getProduction() {
+        return this.production;
     }
 }

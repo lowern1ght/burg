@@ -1,7 +1,7 @@
 package org.dawnoftime.onceuponatown.command;
 
 import org.dawnoftime.onceuponatown.town.Town;
-import org.dawnoftime.onceuponatown.town.TownManager;
+import org.dawnoftime.onceuponatown.town.LevelTowns;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -11,7 +11,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.world.phys.Vec3;
 
-import java.util.List;
+import java.util.Collection;
 
 public class TownDebugCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> register() {
@@ -20,32 +20,28 @@ public class TownDebugCommand {
 
     private static int listTowns(CommandSourceStack source) {
         Vec3 sourcePos = source.getPosition();
-        List<Town> towns = TownManager.getTowns(source.getLevel());
-        if (towns != null) {
-            if (!towns.isEmpty()) {
-                Town closestTown = null;
-                double dist = -1;
-                for (Town town : towns){
-                    double newDist = town.getCenterPosition().distToCenterSqr(sourcePos);
-                    if(dist == -1 || newDist < dist){
-                        dist = newDist;
-                        closestTown = town;
-                    }
+        LevelTowns manager = LevelTowns.get(source.getLevel());
+        Collection<Town> towns = manager.getTowns();
+        if (!towns.isEmpty()) {
+            Town closestTown = null;
+            double dist = -1;
+            for (Town town : towns){
+                double newDist = town.getCenter().distToCenterSqr(sourcePos);
+                if(dist == -1 || newDist < dist){
+                    dist = newDist;
+                    closestTown = town;
                 }
-                Town finalClosestTown = closestTown;
-                var townInfo = Component.literal("Check in the logs the description of the closest town ")
-                        .append(Component.literal(closestTown.getName()).withStyle(ChatFormatting.YELLOW))
-                        .append(Component.literal(" found in "))
-                        .append((Component.literal(closestTown.getCenterPosition().toShortString())).withStyle((style -> style
-                                .withColor(ChatFormatting.AQUA)
-                                .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/tp @p " + finalClosestTown.getCenterPosition().getX() + " " + finalClosestTown.getCenterPosition().getY() + " " + finalClosestTown.getCenterPosition().getZ()))
-                                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("Teleport"))))));
-                source.sendSuccess(() -> townInfo, false);
-                closestTown.townMap.print_description();
-                closestTown.townMap.print_map();
-            } else {
-                source.sendSuccess(() -> Component.literal("No towns found"), false);
             }
+            Town finalClosestTown = closestTown;
+            var townInfo = Component.literal("Check in the logs the description of the closest town ")
+                    .append(Component.literal(closestTown.getName()).withStyle(ChatFormatting.YELLOW))
+                    .append(Component.literal(" found in "))
+                    .append((Component.literal(closestTown.getCenter().toShortString())).withStyle((style -> style
+                            .withColor(ChatFormatting.AQUA)
+                            .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/tp @p " + finalClosestTown.getCenter().getX() + " " + finalClosestTown.getCenter().getY() + " " + finalClosestTown.getCenter().getZ()))
+                            .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("Teleport"))))));
+            source.sendSuccess(() -> townInfo, false);
+            closestTown.printDescription();
         } else {
             source.sendSuccess(() -> Component.literal("No towns found"), false);
         }

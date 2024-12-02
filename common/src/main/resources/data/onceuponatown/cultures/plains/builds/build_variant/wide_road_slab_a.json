@@ -1,0 +1,22 @@
+{
+    "build_type": "wide_road",
+    "shape": "slab",
+    "size": {"x": 5, "y": 3, "z": 5},
+    "levels": [
+        {
+            "level": 1,
+            "schematic": "wide_road_slab_a1",
+            "waypoints": []
+        },
+        {
+            "level": 2,
+            "schematic": "wide_road_slab_a2",
+            "waypoints": []
+        },
+        {
+            "level": 3,
+            "schematic": "wide_road_slab_a3",
+            "waypoints": []
+        }
+    ]
+}

@@ -3,31 +3,13 @@ package org.dawnoftime.onceuponatown.town.generation;
 import com.google.common.collect.AbstractIterator;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import org.dawnoftime.onceuponatown.building.placement.BuildPlacement;
+import org.dawnoftime.onceuponatown.building.Build;
 
 import java.util.Collections;
 
 import static net.minecraft.core.Direction.*;
 
 public class TownMapUtils {
-    // Width of small paths
-    public static final int SMALL_WIDTH = 2;
-    // Width of large paths
-    public static final int BIG_WIDTH = 4;
-    // Default size of paths, as well as the minimum size below which an area is transformed into a garden
-    public static final int DEFAULT_PATH_LENGTH = 10;
-    // Maximum vertical difference accepted between the door Y value, and any block Y value, on the border of the Building.
-    public static final int MAXI_Y_DIFFERENCE = 10;
-    // Maximum size of the side of a squared garden. If a Bud available space in one of the 2 directions is smaller, it creates a MapGarden.
-    public static final int SIDE_SIZE_MAX_GARDEN = 10;
-    // Minimum spacing between paths when the central building is placed
-    public static final int MINI_PATH_SPACE = 20;
-    // Probability of placing a path when adding a bud
-    public static final float PATH_SPAWN_RATE = 0.25F;
-    // Probability that a new path is a big path
-    public static final float BIG_PATH_SPAWN_RATE = 0.3F;
-    // Probability that a path stops growing when a building is placed next to it
-    public static final float PATH_STOP_RATE = 0.15F;
 
     public static final Direction[] NW_DIR_CYCLE = new Direction[]{Direction.EAST, Direction.SOUTH, Direction.WEST, NORTH};
 
@@ -100,7 +82,7 @@ public class TownMapUtils {
          * @param buildDir Direction to which the Build will be oriented.
          * @return The position of the NORTH_WEST corner of the Build if it is placed on this corner.
          */
-        public BlockPos getOrigin(BlockPos pos, BuildPlacement build, Direction buildDir){
+        public BlockPos getOrigin(BlockPos pos, Build<?> build, Direction buildDir){
             return this.getCornerPos(pos, build, buildDir, NORTH_WEST);
         }
 
@@ -112,7 +94,7 @@ public class TownMapUtils {
          * @param targetCorner The corner we want to obtain.
          * @return The BlockPos of the targetCorner.
          */
-        public BlockPos getCornerPos(BlockPos pos, BuildPlacement build, Direction buildDir, Corner targetCorner){
+        public BlockPos getCornerPos(BlockPos pos, Build<?> build, Direction buildDir, Corner targetCorner){
             int signOffsetX = (targetCorner.getStepX() - this.getStepX()) / 2;
             int signOffsetZ = (targetCorner.getStepZ() - this.getStepZ()) / 2;
             return pos.offset(signOffsetX * (build.getSizeX(buildDir) - 1), 0, signOffsetZ * (build.getSizeZ(buildDir) - 1));
@@ -120,7 +102,7 @@ public class TownMapUtils {
 
         /**
          * @param dirVector Direction of the vector.
-         * @param cornerOnTheRight True to return the Corner on the right side of the vector direction, false
+         * @param cornerOnTheRight True to return the Corner on the right side of the direction vector, false
          *                         to get the Corner on the left side.
          * @return One of the 2 corners adjacent to a vector toward the given direction.
          */

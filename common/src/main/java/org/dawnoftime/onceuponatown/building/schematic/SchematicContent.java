@@ -1,7 +1,9 @@
 package org.dawnoftime.onceuponatown.building.schematic;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.HolderGetter;
+import net.minecraft.core.Vec3i;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -13,6 +15,8 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.building.SliceBuild;
+import org.dawnoftime.onceuponatown.building.type.SliceBuildType;
 import org.dawnoftime.onceuponatown.construction.BlockInfo;
 import org.dawnoftime.onceuponatown.construction.ConstructionUtils;
 import org.dawnoftime.onceuponatown.construction.EntityInfo;
@@ -21,12 +25,14 @@ import org.jetbrains.annotations.Nullable;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class SchematicContent {
 
     private final List<BlockInfo> blocks = new ArrayList<>();
     private final List<EntityInfo> entities = new ArrayList<>();
+    private Vec3i size = Vec3i.ZERO;
 
     private SchematicContent(){}
 
@@ -52,22 +58,98 @@ public class SchematicContent {
     }
 
     /**
+     * Create an array from this SchematicContent, that contains one Schematic for each slice on the Z axis.
+     * @param shape SliceBuildShape of the schematic, used to remove the useless top and bottom blocks.
+     * @return The array with the instance of SchematicContent corresponding to the slices.
+     */
+    public SchematicContent[] asSliceArray(SliceBuildType.SliceBuildShape shape){
+        SchematicContent[] sliceArray = new SchematicContent[this.size.getZ()];
+        int[] minY = new int[this.size.getZ()];
+        int[] maxY = new int[this.size.getZ()];
+        for (int z = 0; z < this.size.getZ(); z++) {
+            SchematicContent temp = new SchematicContent();
+            temp.size = new Vec3i(this.size.getX(), this.size.getY(), 1);
+            sliceArray[z] = temp;
+            minY[z] = shape.getMinYForSliceSchematic(z);
+            maxY[z] = shape.getMaxYForSliceSchematic(z, this.size.getZ(), this.size.getY());
+        }
+        for(BlockInfo info : this.blocks){
+            int patternIndex = info.pos().getZ();
+            if(info.pos().getY() >= minY[patternIndex] && info.pos().getY() <= maxY[patternIndex]){
+                sliceArray[patternIndex].blocks.add(info.move(0, -minY[patternIndex], -patternIndex));
+            }
+        }
+        for(EntityInfo info : this.entities){
+            int patternIndex = info.pos().getZ();
+            if(info.pos().getY() >= minY[patternIndex] && info.pos().getY() <= maxY[patternIndex]){
+                sliceArray[patternIndex].entities.add(info.move(0, -minY[patternIndex], -patternIndex));
+            }
+        }
+        return sliceArray;
+    }
+
+    /**
+     * Get the build slices of the build in parameter, and merge them to create a BuildSchematic.
+     * The slices are moved to the correct Y and rotated in the build's direction.
+     * @param build Slice build.
+     * @param resourceManager Used to load the schematics.
+     * @return The final SchematicContent rotated in the correct direction.
+     */
+    public static SchematicContent reconstruct(SliceBuild<? extends SliceBuildType> build, ResourceManager resourceManager){
+        // First, we load the needed schematics.
+        HashMap<String, SchematicContent[]> sliceMap = new HashMap<>();
+        build.getBuildVariantMap().forEach((variantName, pair) -> {
+            SchematicContent schematicContent = SchematicContent.create(pair.getA().getSchematicResource(build.getLevel()), resourceManager);
+            if(schematicContent != null){
+                sliceMap.put(variantName, schematicContent.asSliceArray(pair.getB()));
+            };
+        });
+        // Now we can build the schematic using the slices.
+        BlockPos originPos = build.getOriginPos();
+        int originY = originPos.getY();
+        int patternLength = build.getBuildType().getPatternLength();
+        SliceBuild.SliceProperty[] yShape = build.getYShape();
+        SchematicContent schematic = new SchematicContent();
+        for(int yIndex = 0; yIndex < yShape.length; yIndex++){
+            SliceBuild.SliceProperty slice = yShape[yIndex];
+            int offsetY = slice.y() - originY;
+            List<BlockInfo> blocks = sliceMap.get(slice.variantName())[yIndex % patternLength].getBlocks();
+            int finalYIndex = yIndex;
+            schematic.blocks.addAll(blocks.stream().map(blockInfo -> blockInfo.move(0, offsetY, finalYIndex)).toList());
+            List<EntityInfo> entities = sliceMap.get(slice.variantName())[yIndex % patternLength].getEntities();
+            schematic.entities.addAll(entities.stream().map(entityInfo -> entityInfo.move(0, offsetY, finalYIndex)).toList());
+        }
+        schematic.size = new Vec3i(build.getNorthSizeX(), build.getYSize(), yShape.length);
+        return schematic;
+    }
+
+    public SchematicContent rotate(Direction direction){
+        this.blocks.replaceAll(blockInfo -> blockInfo.rotate(direction, this.size.getX(), this.size.getZ()));
+        this.entities.replaceAll(entityInfo -> entityInfo.rotate(direction, this.size.getX(), this.size.getZ()));
+        if(direction.getAxis() == Direction.Axis.X){
+            this.size = new Vec3i(this.size.getZ(), this.size.getY(), this.size.getX());
+        }
+        return this;
+    }
+
+    /**
      * Read the structure NBT file, initialize building plan blocks and entities
      * @param structureTag The structure NBT tag
      */
     private void readSchematic(HolderGetter<Block> blockGetter, CompoundTag structureTag) {
         // Extracting dimensions
         ListTag sizeTag = structureTag.getList("size", 3);
+        this.size = new Vec3i(sizeTag.getInt(0), sizeTag.getInt(1), sizeTag.getInt(2));
         // Extracting entities
         ListTag entitiesTag = structureTag.getList("entities", 10);
         for(int i = 0; i < entitiesTag.size(); ++i) {
             CompoundTag entityTag = entitiesTag.getCompound(i);
-            ListTag posTag = entityTag.getList("pos", 6);
+            ListTag posTag = entityTag.getList("vec3", 6);
             Vec3 pos = new Vec3(posTag.getDouble(0), posTag.getDouble(1), posTag.getDouble(2));
-            ListTag blockPosTag = entityTag.getList("blockPos", 3);
+            ListTag blockPosTag = entityTag.getList("pos", 3);
             BlockPos blockPos = new BlockPos(blockPosTag.getInt(0), blockPosTag.getInt(1), blockPosTag.getInt(2));
-            if (entityTag.contains("nbt")) {
-                CompoundTag entityNBT = entityTag.getCompound("nbt");
+            if (entityTag.contains("entityNbt")) {
+                CompoundTag entityNBT = entityTag.getCompound("entityNbt");
                 this.entities.add(new EntityInfo(pos, blockPos, entityNBT));
             }
         }
@@ -81,7 +163,7 @@ public class SchematicContent {
         } else {
             paletteTag = structureTag.getList("palette", 10);
         }
-        buildBlocksList(blockGetter, paletteTag, blocksTag);
+        this.buildBlocksList(blockGetter, paletteTag, blocksTag);
     }
 
     /**
@@ -101,8 +183,8 @@ public class SchematicContent {
             BlockPos blockPos = new BlockPos(posTag.getInt(0), posTag.getInt(1), posTag.getInt(2));
             BlockState blockState = palette.stateFor(blockTag.getInt("state"));
             CompoundTag blockNBT;
-            if (blockTag.contains("nbt")) {
-                blockNBT = blockTag.getCompound("nbt");
+            if (blockTag.contains("entityNbt")) {
+                blockNBT = blockTag.getCompound("entityNbt");
             } else {
                 blockNBT = null;
             }
@@ -153,5 +235,9 @@ public class SchematicContent {
 
     public List<BlockInfo> getBlocks() {
         return this.blocks;
+    }
+
+    public Vec3i getSize() {
+        return size;
     }
 }

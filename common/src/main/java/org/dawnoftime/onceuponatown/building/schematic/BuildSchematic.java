@@ -44,22 +44,29 @@ public class BuildSchematic {
         this.schematicResourceLocation = schematicResourceLocation;
     }
 
+    public ResourceLocation getSchematicResourceLocation() {
+        return this.schematicResourceLocation;
+    }
+
     public static BuildSchematic create(ResourceManager resourceManager, ResourceLocation schematicResourceLocation, Vec3i requiredSize, String cultureName, String buildVariantName) throws CorruptedCultureException{
-        Vec3i size;
+        Vec3i size = getSchematicSize(resourceManager, schematicResourceLocation, cultureName, buildVariantName);
+        if(requiredSize.equals(size)){
+            return new BuildSchematic(schematicResourceLocation);
+        }else{
+            throw new CorruptedCultureException(cultureName, "A schematic loaded has a size of [%s], instead of the size [%s] defined in the build_variant '%s'. Check this file: %s".formatted(size.toShortString(), requiredSize.toShortString(), buildVariantName, schematicResourceLocation));
+        }
+    }
+
+    private static Vec3i getSchematicSize(ResourceManager resourceManager, ResourceLocation schematicResourceLocation, String cultureName, String buildVariantName){
         try (InputStream inputStream = resourceManager.open(schematicResourceLocation)) {
             CompoundTag tag = NbtIo.readCompressed(inputStream);
             ListTag sizeTag = tag.getList("size", 3);
-            size = new Vec3i(sizeTag.getInt(0), sizeTag.getInt(1), sizeTag.getInt(2));
+            return new Vec3i(sizeTag.getInt(0), sizeTag.getInt(1), sizeTag.getInt(2));
         } catch (FileNotFoundException fileNotFoundException) {
             String path = schematicResourceLocation.getPath();
             throw CorruptedCultureException.missingFile(cultureName, "schematic", path.substring(path.lastIndexOf('/') + 1, path.lastIndexOf('.')), schematicResourceLocation);
         } catch (Throwable throwable) {
-            throw new CorruptedCultureException("Culture [%s]: Error loading a schematic for the build_variant '%s'. Could not load the file: %s".formatted(cultureName, buildVariantName, schematicResourceLocation));
-        }
-        if(requiredSize.equals(size)){
-            return new BuildSchematic(schematicResourceLocation);
-        }else{
-            throw new CorruptedCultureException("Culture [%s]: A schematic loaded has a size of [%s], instead of the size [%s] defined in the build_variant '%s'. Check this file: %s".formatted(cultureName, size.toShortString(), requiredSize.toShortString(), buildVariantName, schematicResourceLocation));
+            throw new CorruptedCultureException(cultureName, "Error loading a schematic for the build_variant '%s'. Could not load the file: %s".formatted(buildVariantName, schematicResourceLocation));
         }
     }
 

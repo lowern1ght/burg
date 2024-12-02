@@ -25,14 +25,13 @@ import java.util.*;
 
 import static org.dawnoftime.onceuponatown.culture.CultureManager.CULTURE_FILE;
 
-// TODO Gérer les cas où une map a été sauvegarder avec une version différente du datapack (par exemple un buildType qui a disparu).
-
+// TODO Add some code to manage when a map was saved with a different version of the culture datapack (ie. a BuildType was removed).
 public class Culture {
     public static final String ROAD_TYPE_NAME = "road";
+    public static final String WIDE_ROAD_TYPE_NAME = "wide_road";
     public static final String BRIDGE_TYPE_NAME = "bridge";
     public static final String WALL_TYPE_NAME = "wall";
 
-    public static final Culture FAKE_PLAINS = new Culture("fake_plains", null);
     private final String id;
     private List<Orientation> orientations;
     private final HashMap<String, BuildType> buildTypeMap = new HashMap<>();
@@ -40,7 +39,7 @@ public class Culture {
     private List<Item> foods;
     private final List<Era> eras;
 
-    Culture(String id, List<Era> eras) {
+    private Culture(String id, List<Era> eras) {
         this.id = id;
         this.eras = eras;
     }
@@ -86,6 +85,7 @@ public class Culture {
 
             // Mandatory BuildType
             culture.addBuildType(new SliceBuildType(ROAD_TYPE_NAME));
+            culture.addBuildType(new SliceBuildType(WIDE_ROAD_TYPE_NAME));
             //culture.addBuildType(new SliceBuildType(BRIDGE_TYPE_NAME));
             //culture.addBuildType(new SliceBuildType(WALL_TYPE_NAME));
 
@@ -117,12 +117,12 @@ public class Culture {
                 JsonObject subObject = arrayElem.getAsJsonObject();
                 String name = CultureManager.tryGet(subObject, "build_type", " in an object in the section 'starter_pack'", CULTURE_FILE, cultureId, CULTURE_FILE, fileLocation).getAsString();
                 if(!culture.buildTypeMap.containsKey(name)){
-                    throw new CorruptedCultureException("Culture [%s]: Failed to load a culture. The build_type '%s' in the starter pack is unknown, please check this file: %s".formatted(cultureId, name, CULTURE_FILE));
+                    throw new CorruptedCultureException(cultureId, "Failed to load a culture. The build_type '%s' in the starter pack is unknown, please check this file: %s".formatted(name, CULTURE_FILE));
                 }
                 int min = CultureManager.tryGet(subObject, "min", " in an object in the section 'starter_pack'", CULTURE_FILE, cultureId, CULTURE_FILE, fileLocation).getAsInt();
                 int max = CultureManager.tryGet(subObject, "max", " in an object in the section 'starter_pack'", CULTURE_FILE, cultureId, CULTURE_FILE, fileLocation).getAsInt();
                 if(min < 1 || max < min){
-                    throw new CorruptedCultureException("Culture [%s]: Failed to load a culture. Check the values of the minimum and maximum number of the build_type '%s' in the starter pack in this file: %s".formatted(cultureId, name, fileLocation));
+                    throw new CorruptedCultureException(cultureId, "Failed to load a culture. Check the values of the minimum and maximum number of the build_type '%s' in the starter pack in this file: %s".formatted(name, fileLocation));
                 };
                 culture.addStarterPackBuild(name, min, max);
             }
@@ -158,6 +158,10 @@ public class Culture {
 
     private void addStarterPackBuild(String buildTypeName, int min, int max){
         this.starterPack.put(buildTypeName, new Pair<>(min, max));
+    }
+
+    public <T extends BuildType> T getBuildType(String buildName, Class<T> clazz){
+        return clazz.cast(this.buildTypeMap.get(buildName));
     }
 
     private void dropBuildTypeWithoutVariant(){

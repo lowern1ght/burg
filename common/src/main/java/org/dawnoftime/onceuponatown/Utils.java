@@ -1,5 +1,6 @@
 package org.dawnoftime.onceuponatown;
 
+import net.minecraft.core.Direction;
 import org.dawnoftime.onceuponatown.construction.EntityInfo;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
@@ -19,8 +20,43 @@ import java.util.List;
 
 public class Utils {
 
+    /**
+     * Rotate the given BlockPos as part of a building oriented to North.
+     * @param pos BlockPos to rotate.
+     * @param dir Direction the building is rotating into.
+     * @param xSize Size X of the building when oriented North.
+     * @param zSize Size Z of the building when oriented North.
+     * @return A new instance of BlockPos at the correct position within the building size.
+     */
+    public static BlockPos rotateInBuild(BlockPos pos, Direction dir, int xSize, int zSize){
+        return switch (dir){
+            case WEST -> new BlockPos(zSize - pos.getZ(), pos.getY(), pos.getX());
+            case SOUTH -> new BlockPos(xSize - pos.getX(), pos.getY(), zSize - pos.getZ());
+            case EAST -> new BlockPos(pos.getZ(), pos.getY(), xSize - pos.getX());
+            default -> pos;
+        };
+    }
+
+    /**
+     * Rotate the given BlockPos as part of a building oriented to North.
+     * @param vec3 BlockPos to rotate.
+     * @param dir Direction the building is rotating into.
+     * @param xSize Size X of the building when oriented North.
+     * @param zSize Size Z of the building when oriented North.
+     * @return A new instance of BlockPos at the correct position within the building size.
+     */
+    public static Vec3 rotateInBuild(Vec3 vec3, Direction dir, int xSize, int zSize){
+        return switch (dir){
+            case WEST -> new Vec3(zSize - vec3.z(), vec3.y(), vec3.x());
+            case SOUTH -> new Vec3(xSize - vec3.x(), vec3.y(), zSize - vec3.z());
+            case EAST -> new Vec3(vec3.z(), vec3.y(), xSize - vec3.x());
+            default -> vec3;
+        };
+    }
+
+    // TODO Useful or to be deleted ?
     public static Vec3i getStructureDimensions(ResourceLocation path, ResourceManager resourceManager) {
-        FileToIdConverter converter = new FileToIdConverter("structures", ".nbt");
+        FileToIdConverter converter = new FileToIdConverter("structures", ".entityNbt");
         ResourceLocation resourceLocation = converter.idToFile(path);
         try (InputStream inputStream = resourceManager.open(resourceLocation)) {
             CompoundTag tag = NbtIo.readCompressed(inputStream);
@@ -35,8 +71,9 @@ public class Utils {
         }
     }
 
+    // TODO Useful or to be deleted ?
     public static List<EntityInfo> getStructureEntities(ResourceLocation path, ResourceManager resourceManager) {
-        FileToIdConverter converter = new FileToIdConverter("structures", ".nbt");
+        FileToIdConverter converter = new FileToIdConverter("structures", ".entityNbt");
         ResourceLocation resourceLocation = converter.idToFile(path);
         try (InputStream inputStream = resourceManager.open(resourceLocation)) {
             CompoundTag tag = NbtIo.readCompressed(inputStream);
@@ -44,12 +81,12 @@ public class Utils {
             List<EntityInfo> entityInfoList = new ArrayList<>();
             for(int i = 0; i < entitiesTag.size(); ++i) {
                 CompoundTag entityTag = entitiesTag.getCompound(i);
-                ListTag posTag = entityTag.getList("pos", 6);
+                ListTag posTag = entityTag.getList("vec3", 6);
                 Vec3 pos = new Vec3(posTag.getDouble(0), posTag.getDouble(1), posTag.getDouble(2));
-                ListTag blockPosTag = entityTag.getList("blockPos", 3);
+                ListTag blockPosTag = entityTag.getList("pos", 3);
                 BlockPos blockPos = new BlockPos(blockPosTag.getInt(0), blockPosTag.getInt(1), blockPosTag.getInt(2));
-                if (entityTag.contains("nbt")) {
-                    CompoundTag entityNBT = entityTag.getCompound("nbt");
+                if (entityTag.contains("entityNbt")) {
+                    CompoundTag entityNBT = entityTag.getCompound("entityNbt");
                     entityInfoList.add(new EntityInfo(pos, blockPos, entityNBT));
                 }
             }
@@ -61,5 +98,9 @@ public class Utils {
             LogUtils.getLogger().error("Error loading structure {}", resourceLocation, throwable);
             return null;
         }
+    }
+
+    public static String blockPosToString(BlockPos pos){
+        return "(" + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + ")";
     }
 }

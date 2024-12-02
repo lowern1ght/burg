@@ -1,69 +1,108 @@
 package org.dawnoftime.onceuponatown.building;
 
-import org.dawnoftime.onceuponatown.building.placement.BuildPlacement;
-import org.dawnoftime.onceuponatown.building.placement.BuildingPlacement;
-import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
-import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.block.Rotation;
+import net.minecraft.core.Direction;
+import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.world.level.levelgen.structure.StructurePiece;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
+import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
+import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
+import org.dawnoftime.onceuponatown.building.type.BuildingType;
+import org.dawnoftime.onceuponatown.culture.Culture;
+import org.dawnoftime.onceuponatown.structure.pieces.BuildingPiece;
+import org.dawnoftime.onceuponatown.town.generation.MapBlock;
+import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
+import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
+import org.dawnoftime.onceuponatown.town.generation.TownMapUtils.Corner;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Random;
 
-public class Building {
-    private final BuildingType buildingType;
+import static org.dawnoftime.onceuponatown.Config.MAXI_Y_DIFFERENCE;
+import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.rectangularPosIterator;
+
+public class Building<T extends BuildingType> extends Build<T> {
     private final BuildVariant variant;
-    private final BuildPlacement placement;
-    private ResourceLocation structurePath;
-    private BuildingPlacement placementSettings;
-    private BlockPos position;
-    private Rotation rotation;
-    private final List<BlockPos> sleepPositions = new ArrayList<>();
-    private final List<BlockPos> workPositions = new ArrayList<>();
-    private int level;
 
-    private Building(BuildingType buildingType, BuildVariant variant, BuildPlacement placement) {
-        this.buildingType = buildingType;
+    public Building(T type, BuildVariant variant) {
+        super(type);
         this.variant = variant;
-        this.placement = placement;
     }
 
-    public BuildVariant getVariant() {
-        return this.variant;
+    @Override
+    public int getNorthSizeX() {
+        return this.variant.getSize().getX();
     }
 
-    public static Building loadBuilding() {
-        return null;
+    @Override
+    public int getNorthSizeZ() {
+        return this.variant.getSize().getZ();
     }
 
-    public void saveNBT(CompoundTag tag) {
-
+    @Override
+    public StructurePiece generatePieces(StructureTemplateManager manager, Culture culture, @Nullable ProtoTown town) {
+        return new BuildingPiece(manager, this.variant.getSchematicResource(this.getLevel()), this.getCornerPos(Corner.getCornerNextToDir(this.getDirection().getOpposite(), false)), this.getDirection(), town);
     }
 
-    public BlockPos getPosition() {
-        return position;
+    @Override
+    protected void onAddedToTown(ProtoTown town) {
+        // We try to find all the adjacent MapPath to extend them and add the Buds.
+        // We will iterate on a "1 block bigger rectangle" to find all the adjacent MapBuild.
+        HashSet<MapBlock> mapBlocks = new HashSet<>();
+        for(BlockPos.MutableBlockPos pos : rectangularPosIterator(this.getOriginPos().north().west(), this.getSizeX() + 2, this.getSizeZ() + 2)) {
+            mapBlocks.add(town.getMapBlockInMapPos(pos));
+            // TODO lock the shape on the corresponding pos.
+        }
+        for(MapBlock mapBlock : mapBlocks){
+            if(mapBlock instanceof RoadBuild<?> road){
+                road.updateRoad(town);
+            }
+        }
     }
 
-    public ResourceLocation getStructurePath() {
-        return structurePath;
+    /**
+     * @param originPos North-West BlockPos of the building.
+     * @param dir Direction of the building.
+     * @return The BlockPos of the door of this MapBuilding, with the given parameters.
+     */
+    private BlockPos getEntranceYPos(BlockPos originPos, Direction dir){
+        //TODO Replace this function with the real position of the Door.
+
+        //TODO Fix this function, it doesn't seem to work properly
+        // I will assume the door is in the middle of the North side.
+        int offset = dir.getAxis() == Direction.Axis.X ? this.getSizeZ(dir) : this.getSizeX(dir);
+        return Corner.NORTH_WEST.getCornerPos(originPos, this, dir, Corner.getCornerNextToDir(dir.getOpposite(), false)).relative(dir.getClockWise(), offset / 2);
     }
 
-    public HashMap<ResourceLocation, Integer> getProduction() {
-        return this.buildingType.getProduction();
+    @Override
+    public SchematicContent getSchematicContent(ResourceManager resourceManager) {
+        return this.variant.getSchematic(resourceManager, this.getLevel());
     }
 
-    public int getLevel() {
-        return level;
+    @Override
+    public int findAdaptedY(BlockPos originPos, Direction dir) {
+        return this.getEntranceYPos(originPos, dir).getY();
     }
 
-    public BuildingType getType() {
-        return buildingType;
+    @Override
+    public int getYOnPosForTestedOrigin(BlockPos originPos, BlockPos testedPos) {
+        return originPos != null ? originPos.getY() : super.getYOnPosForTestedOrigin(null, testedPos);
     }
 
-    public BuildPlacement getPlacement() {
-        return this.placement;
+    @Override
+    public boolean canBeBuiltOnBud(ProtoTown town, BuildBud buildBud, Direction dir) {
+        BlockPos testedOriginPos = buildBud.findOriginPos(this, dir);
+        for(BlockPos.MutableBlockPos testedPos : rectangularPosIterator(testedOriginPos, this.getSizeX(dir), this.getSizeZ(dir))) {
+            if(!town.isEmpty(testedPos) || Math.abs(testedPos.getY() - this.getYOnPosForTestedOrigin(testedOriginPos, testedPos)) > MAXI_Y_DIFFERENCE){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public float getMapFloat() {
+        return 1 + this.hashCode() * 0.0001F;
     }
 }
