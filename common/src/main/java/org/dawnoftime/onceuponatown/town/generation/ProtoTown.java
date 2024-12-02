@@ -467,6 +467,21 @@ public class ProtoTown {
     }
 
     /**
+     * @return Return a 2D array that contains float. The integer part is based on the class :
+     * [0 if empty, 1 if it's a build, 2 if it's a road]. The decimal part is unique for each build instance.
+     */
+    public float[][] getTownMapAsFloat(){
+        float[][] map = new float[townMap.length][townMap[0].length];
+        for(int x = 0; x < townMap.length; x++){
+            for(int z = 0; z < townMap[x].length; z++){
+                MapBlock mb = townMap[x][z];
+                map[x][z] = (mb == null) ? 0 : mb.getMapFloat();
+            }
+        }
+        return map;
+    }
+
+    /**
      * Prints a description of the current Town, its size and builds.
      */
     public void printDescription(){

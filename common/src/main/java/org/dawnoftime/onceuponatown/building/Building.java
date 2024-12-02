@@ -17,6 +17,7 @@ import org.dawnoftime.onceuponatown.town.generation.TownMapUtils.Corner;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashSet;
+import java.util.Random;
 
 import static org.dawnoftime.onceuponatown.Config.MAXI_Y_DIFFERENCE;
 import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.rectangularPosIterator;
@@ -98,5 +99,10 @@ public class Building<T extends BuildingType> extends Build<T> {
             }
         }
         return true;
+    }
+
+    @Override
+    public float getMapFloat() {
+        return 1 + this.hashCode() * 0.0001F;
     }
 }

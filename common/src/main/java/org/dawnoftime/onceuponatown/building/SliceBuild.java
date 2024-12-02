@@ -169,6 +169,11 @@ public class SliceBuild<T extends SliceBuildType> extends Build<T> {
         return maxY - minY;
     }
 
+    @Override
+    public float getMapFloat() {
+        return 0;
+    }
+
     public record SliceProperty(int y, SliceBuildType.SliceBuildShape shape, String variantName, boolean locked){
         public static SliceProperty readNBT(CompoundTag tag){
             String variantName = tag.getString("VariantName");

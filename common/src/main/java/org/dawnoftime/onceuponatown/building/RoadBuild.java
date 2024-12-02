@@ -204,4 +204,9 @@ public class RoadBuild<T extends SliceBuildType> extends SliceBuild<T> {
         }
         return BuildBud.createBud(map, isCurrentPosEmpty ? currentPos : previousPos, TownMapUtils.Corner.getCornerNextToDir(budDir, isCurrentPosEmpty), pathDirection);
     }
+
+    @Override
+    public float getMapFloat() {
+        return 2 + this.hashCode() * 0.0001F;
+    }
 }
