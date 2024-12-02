@@ -13,11 +13,7 @@ public record EntityInfo(Vec3 vec3, BlockPos pos, CompoundTag entityNbt) {
         return String.format(Locale.ROOT, "<EntityInfo | %s | %s | %s>", this.vec3, this.pos, this.entityNbt);
     }
 
-    public EntityInfo below(int y){
-        return new EntityInfo(this.vec3.subtract(0, y, 0), this.pos.below(y), this.entityNbt);
-    }
-
-    public EntityInfo moveAndRotateAround(int x, int y, int z){
+    public EntityInfo move(int x, int y, int z){
         return new EntityInfo(this.vec3.add(x, y, z), this.pos.offset(x, y, z), this.entityNbt);
     }
 

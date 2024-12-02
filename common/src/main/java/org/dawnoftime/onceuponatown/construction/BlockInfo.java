@@ -14,10 +14,6 @@ public record BlockInfo(BlockPos pos, BlockState state, CompoundTag nbt) {
         return String.format(Locale.ROOT, "<BlockInfo | %s | %s | %s>", this.pos, this.state, this.nbt);
     }
 
-    public BlockInfo below(int y){
-        return new BlockInfo(this.pos.below(y), this.state, this.nbt);
-    }
-
     public BlockInfo move(int x, int y, int z){
         return new BlockInfo(this.pos.offset(x, y, z), this.state, this.nbt);
     }

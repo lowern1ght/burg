@@ -72,8 +72,7 @@ public class SliceBuildPiece extends StructurePiece {
     @Override
     public void postProcess(@NotNull WorldGenLevel level, @NotNull StructureManager structureManager, @NotNull ChunkGenerator generator, @NotNull RandomSource random, @NotNull BoundingBox box, @NotNull ChunkPos chunkPos, @NotNull BlockPos pos) {
         MinecraftServer server = level.getServer();
-        Direction dir = this.sliceBuild.getDirection();
-        if(server != null && dir != null){
+        if(server != null){
             SchematicContent schematicContent = this.sliceBuild.getSchematicContent(server.getResourceManager());
             for(BlockInfo block: schematicContent.getBlocks()){
                 this.placeBlock(level, block.state(), block.pos().getX(), block.pos().getY(), block.pos().getZ(), box);
@@ -84,7 +83,7 @@ public class SliceBuildPiece extends StructurePiece {
                 manager.initProtoTown(this.townTag);
             }
         }else{
-            Ouat.debug("PAS DE SERVER ????"); //TODO Is it possible to have this bug ?
+            Ouat.debug("PAS DE SERVER ????"); //TODO Is it even possible to have this bug ?
         }
     }
 }

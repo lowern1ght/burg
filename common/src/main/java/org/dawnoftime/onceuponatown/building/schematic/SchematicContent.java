@@ -76,13 +76,13 @@ public class SchematicContent {
         for(BlockInfo info : this.blocks){
             int patternIndex = info.pos().getZ();
             if(info.pos().getY() >= minY[patternIndex] && info.pos().getY() <= maxY[patternIndex]){
-                sliceArray[patternIndex].blocks.add(info.below(minY[patternIndex]));
+                sliceArray[patternIndex].blocks.add(info.move(0, -minY[patternIndex], -patternIndex));
             }
         }
         for(EntityInfo info : this.entities){
             int patternIndex = info.pos().getZ();
             if(info.pos().getY() >= minY[patternIndex] && info.pos().getY() <= maxY[patternIndex]){
-                sliceArray[patternIndex].entities.add(info.below(minY[patternIndex]));
+                sliceArray[patternIndex].entities.add(info.move(0, -minY[patternIndex], -patternIndex));
             }
         }
         return sliceArray;
@@ -117,7 +117,7 @@ public class SchematicContent {
             int finalYIndex = yIndex;
             schematic.blocks.addAll(blocks.stream().map(blockInfo -> blockInfo.move(0, offsetY, finalYIndex)).toList());
             List<EntityInfo> entities = sliceMap.get(slice.variantName())[yIndex % patternLength].getEntities();
-            schematic.entities.addAll(entities.stream().map(entityInfo -> entityInfo.moveAndRotateAround(0, offsetY, finalYIndex)).toList());
+            schematic.entities.addAll(entities.stream().map(entityInfo -> entityInfo.move(0, offsetY, finalYIndex)).toList());
         }
         schematic.size = new Vec3i(build.getNorthSizeX(), build.getYSize(), yShape.length);
         return schematic;
@@ -163,7 +163,7 @@ public class SchematicContent {
         } else {
             paletteTag = structureTag.getList("palette", 10);
         }
-        buildBlocksList(blockGetter, paletteTag, blocksTag);
+        this.buildBlocksList(blockGetter, paletteTag, blocksTag);
     }
 
     /**
@@ -179,7 +179,7 @@ public class SchematicContent {
         List<BlockInfo> blockInfoList = new ArrayList<>();
         for(int i = 0; i < blocksTag.size(); ++i) {
             CompoundTag blockTag = blocksTag.getCompound(i);
-            ListTag posTag = blockTag.getList("vec3", 3);
+            ListTag posTag = blockTag.getList("pos", 3);
             BlockPos blockPos = new BlockPos(posTag.getInt(0), posTag.getInt(1), posTag.getInt(2));
             BlockState blockState = palette.stateFor(blockTag.getInt("state"));
             CompoundTag blockNBT;
