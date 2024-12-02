@@ -53,6 +53,24 @@ public class TradeUtils {
         });
     }
 
+    public static void writeMerchantDealsToStream(List<MerchantDeal> deals, FriendlyByteBuf friendlyByteBuf) {
+        friendlyByteBuf.writeCollection(deals, (buf, deal) -> {
+            buf.writeItem(deal.getRequiredA());
+            buf.writeItem(deal.getRequiredB());
+            buf.writeItem(deal.getResult());
+            buf.writeEnum(deal.getTradeType());
+        });
+    }
+    public static List<MerchantDeal> createMerchantDealsFromStream(FriendlyByteBuf friendlyByteBuf) {
+        return friendlyByteBuf.readCollection(ArrayList::new, (buf) -> {
+            ItemStack requiredA = buf.readItem();
+            ItemStack requiredB = buf.readItem();
+            ItemStack result = buf.readItem();
+            MerchantDeal.TradeType tradeType = buf.readEnum(MerchantDeal.TradeType.class);
+            return new MerchantDeal.Builder(tradeType, requiredA, result).requiredB(requiredB).build();
+        });
+    }
+
     public static void writeSellDealsToStream(List<SellDeal> deals, FriendlyByteBuf friendlyByteBuf) {
         friendlyByteBuf.writeCollection(deals, (buffer, deal) -> {
             buffer.writeItem(deal.getGood());

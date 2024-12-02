@@ -23,6 +23,7 @@ public class PacketHandler {
         CHANNEL.registerMessage(i++, C2SSelectBuyDealPacket.class, C2SSelectBuyDealPacket::encode, C2SSelectBuyDealPacket::decode, makeC2SHandler(C2SSelectBuyDealPacket::handle));
         CHANNEL.registerMessage(i++, C2SSellScreenPacket.class, C2SSellScreenPacket::encode, C2SSellScreenPacket::decode, makeC2SHandler(C2SSellScreenPacket::handle));
         CHANNEL.registerMessage(i++, C2SChangeNpcTabPacket.class, C2SChangeNpcTabPacket::encode, C2SChangeNpcTabPacket::decode, makeC2SHandler(C2SChangeNpcTabPacket::handle));
+        CHANNEL.registerMessage(i++, C2SSelectTradePacket.class, C2SSelectTradePacket::encode, C2SSelectTradePacket::decode, makeC2SHandler(C2SSelectTradePacket::handle));
 
         // Server to Client packets
         CHANNEL.registerMessage(i++, S2COpenTownMapScreenPacket.class, S2COpenTownMapScreenPacket::encode, S2COpenTownMapScreenPacket::decode, makeS2CHandler(S2COpenTownMapScreenPacket.Handler::handle));

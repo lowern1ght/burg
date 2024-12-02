@@ -16,11 +16,13 @@ import org.dawnoftime.onceuponatown.client.renderer.NpcFishingHookRenderer;
 import org.dawnoftime.onceuponatown.client.renderer.NpcRenderer;
 import org.dawnoftime.onceuponatown.client.screen.BuyScreen;
 import org.dawnoftime.onceuponatown.client.screen.SellScreen;
+import org.dawnoftime.onceuponatown.client.screen.TradeScreen;
 import org.dawnoftime.onceuponatown.client.screen.tooltip.ClientSingleItemTooltip;
 import org.dawnoftime.onceuponatown.client.screen.tooltip.ClientTradeItemTooltip;
 import org.dawnoftime.onceuponatown.client.screen.tooltip.SingleItemTooltip;
 import org.dawnoftime.onceuponatown.client.screen.tooltip.TradeItemTooltip;
 import org.dawnoftime.onceuponatown.item.EmeraldPouchItem;
+import org.dawnoftime.onceuponatown.menu.TradeMenu;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
 import org.dawnoftime.onceuponatown.registry.ItemRegistry;
 import org.dawnoftime.onceuponatown.registry.MenuRegistry;
@@ -33,6 +35,7 @@ public class ClientEvents {
             event.enqueueWork(() -> {
                 MenuScreens.register(MenuRegistry.REGISTRY.BUY_MENU.get(), BuyScreen::new);
                 MenuScreens.register(MenuRegistry.REGISTRY.SELL_MENU.get(), SellScreen::new);
+                MenuScreens.register(MenuRegistry.REGISTRY.TRADE_MENU.get(), TradeScreen::new);
                 // Custom client item properties
                 ItemProperties.register(ItemRegistry.REGISTRY.EMERALD_POUCH.get(), Ouat.createOuatResource("nonempty_pouch"), (emeraldPouchStack, clientLevel, livingEntity, id) -> EmeraldPouchItem.isEmpty(emeraldPouchStack) ? 0.0F : 1.0F);
             }
