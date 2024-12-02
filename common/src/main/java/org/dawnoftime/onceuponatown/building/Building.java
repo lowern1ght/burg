@@ -51,10 +51,11 @@ public class Building<T extends BuildingType> extends Build<T> {
         HashSet<MapBlock> mapBlocks = new HashSet<>();
         for(BlockPos.MutableBlockPos pos : rectangularPosIterator(this.getOriginPos().north().west(), this.getSizeX() + 2, this.getSizeZ() + 2)) {
             mapBlocks.add(town.getMapBlockInMapPos(pos));
+            // TODO lock the shape on the corresponding pos.
         }
         for(MapBlock mapBlock : mapBlocks){
             if(mapBlock instanceof RoadBuild<?> road){
-                road.update(town);
+                road.updateRoad(town);
             }
         }
     }
@@ -64,7 +65,7 @@ public class Building<T extends BuildingType> extends Build<T> {
      * @param dir Direction of the building.
      * @return The BlockPos of the door of this MapBuilding, with the given parameters.
      */
-    private BlockPos getDoorYPos(BlockPos originPos, Direction dir){
+    private BlockPos getEntranceYPos(BlockPos originPos, Direction dir){
         //TODO Replace this function with the real position of the Door.
 
         //TODO Fix this function, it doesn't seem to work properly
@@ -80,19 +81,19 @@ public class Building<T extends BuildingType> extends Build<T> {
 
     @Override
     public int findAdaptedY(BlockPos originPos, Direction dir) {
-        return this.getDoorYPos(originPos, dir).getY();
+        return this.getEntranceYPos(originPos, dir).getY();
     }
 
     @Override
-    public int getYOnPos(BlockPos originPos, BlockPos testedPos) {
-        return originPos != null ? originPos.getY() : super.getYOnPos(null, testedPos);
+    public int getYOnPosForTestedOrigin(BlockPos originPos, BlockPos testedPos) {
+        return originPos != null ? originPos.getY() : super.getYOnPosForTestedOrigin(null, testedPos);
     }
 
     @Override
     public boolean canBeBuiltOnBud(ProtoTown town, BuildBud buildBud, Direction dir) {
         BlockPos testedOriginPos = buildBud.findOriginPos(this, dir);
         for(BlockPos.MutableBlockPos testedPos : rectangularPosIterator(testedOriginPos, this.getSizeX(dir), this.getSizeZ(dir))) {
-            if(!town.isEmpty(testedPos) || Math.abs(testedPos.getY() - this.getYOnPos(testedOriginPos, testedPos)) > MAXI_Y_DIFFERENCE){
+            if(!town.isEmpty(testedPos) || Math.abs(testedPos.getY() - this.getYOnPosForTestedOrigin(testedOriginPos, testedPos)) > MAXI_Y_DIFFERENCE){
                 return false;
             }
         }

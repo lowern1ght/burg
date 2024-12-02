@@ -21,6 +21,7 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.BiFunction;
 
 import static org.dawnoftime.onceuponatown.Config.DEFAULT_PATH_LENGTH;
 import static org.dawnoftime.onceuponatown.culture.Culture.ROAD_TYPE_NAME;
@@ -36,11 +37,12 @@ public class ProtoTown {
     private BlockPos center;
     private final BlockPos.MutableBlockPos NWCorner;
     private final BlockPos.MutableBlockPos SECorner;
+    private final BiFunction<Integer, Integer, Integer> getSurfaceY;
     private MapBlock[][] townMap;
     private final List<BuildBud> buildBuds = new ArrayList<>();
     private final List<Build<? extends BuildType>> builds = new ArrayList<>();
 
-    public ProtoTown(UUID uuid, Culture culture, String name, BlockPos center, BlockPos.MutableBlockPos NWCorner, BlockPos.MutableBlockPos SECorner){
+    public ProtoTown(UUID uuid, Culture culture, String name, BlockPos center, BlockPos.MutableBlockPos NWCorner, BlockPos.MutableBlockPos SECorner, BiFunction<Integer, Integer, Integer> getSurfaceY){
         this.uuid = uuid;
         this.culture = culture;
         this.name = name;
@@ -48,10 +50,11 @@ public class ProtoTown {
         this.NWCorner = NWCorner;
         this.SECorner = SECorner;
         this.townMap = new MapBlock[1][1];
+        this.getSurfaceY = getSurfaceY;
     }
 
-    public ProtoTown(Culture culture, String name, BlockPos center){
-        this(Mth.createInsecureUUID(RANDOM_SOURCE), culture, name, center, center.mutable(), center.mutable());
+    public ProtoTown(Culture culture, String name, BlockPos center, BiFunction<Integer, Integer, Integer> getSurfaceY){
+        this(Mth.createInsecureUUID(RANDOM_SOURCE), culture, name, center, center.mutable(), center.mutable(), getSurfaceY);
     }
 
     public CompoundTag writeNBT() {
@@ -81,6 +84,11 @@ public class ProtoTown {
         return this.builds;
     }
 
+    /**
+     * Function that generate the town started pack and roads.
+     * If one of the building could not be placed, the function will return false.
+     * @return True if the town creation was successful.
+     */
     public boolean buildStarterPack(){
         List<BuildType> starterPack = this.culture.getRandomStarterPack(RANDOM_SOURCE);
         SliceBuildType wideRoad = this.culture.getBuildType(Culture.WIDE_ROAD_TYPE_NAME, SliceBuildType.class);
@@ -108,7 +116,7 @@ public class ProtoTown {
         for(Direction dir : buildBud.getAdjacentRoads()){
             if(build.canBeBuiltOnBud(this, buildBud, dir)){
                 this.removeFromBuds(buildBud);
-                build.addToMap(this, buildBud, dir);
+                build.addToTownMap(this, buildBud, dir);
                 return true;
             }
         }
@@ -350,15 +358,6 @@ public class ProtoTown {
     /**
      * @param xMap The coordinate x of the block we want to test in map coordinate.
      * @param zMap The coordinate z of the block we want to test in map coordinate.
-     * @return True if the corresponding position in the TownMap is empty.
-     */
-    private boolean isEmpty(int xMap, int zMap){
-        return this.isEmpty(xMap, zMap, null);
-    }
-
-    /**
-     * @param xMap The coordinate x of the block we want to test in map coordinate.
-     * @param zMap The coordinate z of the block we want to test in map coordinate.
      * @param allowedMapBlock ID of a Build that we still accept as empty (often the ID of the Build trying to be placed).
      * @return True if the corresponding position in the TownMap is empty or contains the acceptedID.
      */
@@ -416,6 +415,16 @@ public class ProtoTown {
     }
 
     /**
+     * Computes the surface of the world.
+     * @param x X coordinate.
+     * @param z Z coordinate.
+     * @return The Y value based on the BiFunction associated to this town.
+     */
+    public int getSurfaceY(int x, int z){
+        return this.getSurfaceY.apply(x, z);
+    }
+
+    /**
      * @return The BlockPos of the center of the town.
      */
     public BlockPos getCenter(){
@@ -462,15 +471,15 @@ public class ProtoTown {
      */
     public void printDescription(){
         System.out.println("//---------------------------------------------- Town Map [" + this.builds.size() + "] ---------------------------------------------//");
-        System.out.println("Town Center: " + Utils.toString(this.getCenter()));
+        System.out.println("Town Center: " + Utils.blockPosToString(this.getCenter()));
         System.out.println("Size: " + this.getTownMap()[0].length + "×" + this.getTownMap().length);
         System.out.println("Builds:");
-        for(Build build : this.builds){
-            System.out.println("    - " + build.getClass().getSimpleName() + " [origin: " + Utils.toString(build.getOriginPos()) + ", xSize: " + build.getSizeX() + ", zSize: " + build.getSizeZ() + "]");
+        for(Build<?> build : this.builds){
+            System.out.println("    - " + build.getClass().getSimpleName() + " [origin: " + Utils.blockPosToString(build.getOriginPos()) + ", xSize: " + build.getSizeX() + ", zSize: " + build.getSizeZ() + "]");
         }
         System.out.println("Buds:");
         for(BuildBud buildBud : this.getBuds()){
-            System.out.println("    - Bud [origin: " + Utils.toString(buildBud.getRealPos()) + ", distance: " + buildBud.getSquaredDistToCenter() + ", corner: " + buildBud.getCorner() + "]");
+            System.out.println("    - Bud [origin: " + Utils.blockPosToString(buildBud.getRealPos()) + ", distance: " + buildBud.getSquaredDistToCenter() + ", corner: " + buildBud.getCorner() + "]");
         }
         System.out.println("//-------------------------------------------------------------------------------------------------------------//");
     }

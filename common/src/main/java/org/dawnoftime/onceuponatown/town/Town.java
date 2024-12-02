@@ -1,6 +1,7 @@
 package org.dawnoftime.onceuponatown.town;
 
 import net.minecraft.nbt.Tag;
+import net.minecraft.world.level.levelgen.Heightmap;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.type.BuildType;
 import org.dawnoftime.onceuponatown.construction.ConstructionProject;
@@ -53,15 +54,6 @@ public class Town extends ProtoTown {
     private long lastActiveMoment;
     private List<NpcRecord> npcRecordList;
 
-    private Town(UUID uuid, Level level, Culture culture, String name, BlockPos townCenter, TownInventory townInventory, List<UUID> npcs, List<ConstructionProject> constructionProjects) {
-        super(culture, name, townCenter);
-        this.level = level;
-        this.inventory = townInventory;
-        this.npcs = npcs;
-        this.constructionProjects = constructionProjects;
-        this.init();
-    }
-
     /**
      * This constructor is used to create a Town instance from the Tag stored in NBT.
      * @param level Level where the Town is located.
@@ -75,7 +67,9 @@ public class Town extends ProtoTown {
                 tag.getString("Name"),
                 NbtUtils.readBlockPos(tag.getCompound("Center")),
                 NbtUtils.readBlockPos(tag.getCompound("NWCorner")).mutable(),
-                NbtUtils.readBlockPos(tag.getCompound("SECorner")).mutable());
+                NbtUtils.readBlockPos(tag.getCompound("SECorner")).mutable(),
+                (x, z) -> level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z)
+        );
         this.level = level;
         this.inventory = (tag.contains("Inventory")) ? new TownInventory(tag.getList("Inventory", Tag.TAG_COMPOUND)) : new TownInventory();
         this.npcs = new ArrayList<>();

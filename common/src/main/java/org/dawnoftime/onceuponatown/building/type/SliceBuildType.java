@@ -4,7 +4,12 @@ import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
+
+import static org.dawnoftime.onceuponatown.town.generation.ProtoTown.RANDOM_SOURCE;
 
 public class SliceBuildType extends BuildType {
     private final HashMap<String, BuildVariant> slabVariants = new HashMap<>();
@@ -51,6 +56,15 @@ public class SliceBuildType extends BuildType {
             case SLAB -> this.slabVariants.get(variantName);
             case STAIRS -> this.stairsVariants.get(variantName);
         };
+    }
+
+    public String getRandomVariantName(SliceBuildShape shape){
+        Set<String> keys = switch(shape){
+            case FLAT -> this.getVariants().keySet();
+            case SLAB -> this.slabVariants.keySet();
+            case STAIRS -> this.stairsVariants.keySet();
+        };
+        return new ArrayList<>(keys).get(RANDOM_SOURCE.nextInt(keys.size()));
     }
 
     @Override

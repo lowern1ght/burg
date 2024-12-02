@@ -139,11 +139,13 @@ public class ConstructionProject {
         if (completed) {
             return false;
         }
+        // TODO fix the rotation pivot. Is it useful ?
+        BlockPos rotationPivot = BlockPos.ZERO;
         boolean success = false;
         ProjectStep nextStep = projectSteps.get(progress);
-        BlockPos nextStepPos = ConstructionUtils.transformBlockPos(nextStep.blockPos, this.build.getMirror(), this.build.getRotation(), this.build.getRotationPivot()).offset(this.build.getOriginPos());
+        BlockPos nextStepPos = ConstructionUtils.transformBlockPos(nextStep.blockPos, this.build.getMirror(), this.build.getRotation(), rotationPivot).offset(this.build.getOriginPos());
         BlockState nextStepState = ConstructionUtils.transformBlockState(nextStep.blockState, this.build.getMirror(), this.build.getRotation());
-        Vec3 nextStepEntityPos = ConstructionUtils.transformEntityPos(nextStep.entityPos, this.build.getMirror(), this.build.getRotation(), this.build.getRotationPivot()).add(Vec3.atLowerCornerOf(this.build.getOriginPos()));
+        Vec3 nextStepEntityPos = ConstructionUtils.transformEntityPos(nextStep.entityPos, this.build.getMirror(), this.build.getRotation(), rotationPivot).add(Vec3.atLowerCornerOf(this.build.getOriginPos()));
 
         switch (nextStep.type) {
             case REMOVE_BLOCK -> {

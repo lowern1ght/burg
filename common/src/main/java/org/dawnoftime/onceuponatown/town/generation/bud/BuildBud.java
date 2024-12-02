@@ -120,7 +120,7 @@ public class BuildBud {
      * @param dir   Direction of the MapBuild, used to get the size on X and Z axis.
      * @return The BlockPos of the origin of the MapBuild, at the correct Y.
      */
-    public BlockPos findOriginPos(Build build, Direction dir) {
+    public BlockPos findOriginPos(Build<?> build, Direction dir) {
         BlockPos origin = this.corner.getOrigin(this.realPos, build, dir);
         return origin.atY(build.findAdaptedY(origin, dir));
     }

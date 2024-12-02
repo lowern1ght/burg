@@ -30,29 +30,31 @@ public class RoadBuild<T extends SliceBuildType> extends SliceBuild<T> {
 
     @Override
     protected void onAddedToTown(ProtoTown map) {
-        this.update(map);
+        this.updateRoad(map);
     }
 
     /**
      * Function that tries to grow this MapPath, and adds the associated Buds.
      * @param town TownMap of this MapPath.
      */
-    public void update(ProtoTown town){
+    public void updateRoad(ProtoTown town){
         this.tryGrowing(town);
         this.findAllBuds(town);
+        this.computeShape(town);
     }
 
-    private void tryGrowing(ProtoTown map) {
-        if(this.canGrow && this.getDirection() != null){
+    private void tryGrowing(ProtoTown town) {
+        if(this.canGrow){
             // We decide if this Path will stop growing definitively after this growth.
             if(!this.isWide){
                 if(RANDOM_SOURCE.nextFloat() < PATH_STOP_RATE){
                     this.canGrow = false;
                 }
             }
+            // If the road will stop growing, it should stop directly at the end of the adjacent Build.
             int bonusSize = this.canGrow ? DEFAULT_PATH_LENGTH : 0;
-            int dirGrowth = this.getGrowthSize(map, this.getDirection(), bonusSize);
-            int oppositeDirGrowth = this.getGrowthSize(map, this.getDirection().getOpposite(), bonusSize);
+            int dirGrowth = this.getGrowthSize(town, this.getDirection(), bonusSize);
+            int oppositeDirGrowth = this.getGrowthSize(town, this.getDirection().getOpposite(), bonusSize);
             if(dirGrowth + oppositeDirGrowth > 0){
                 // We move the origin depending on the growth.
                 if(this.getDirection() == Direction.NORTH || this.getDirection() == Direction.WEST){
@@ -64,12 +66,25 @@ public class RoadBuild<T extends SliceBuildType> extends SliceBuild<T> {
                         this.setOriginPos(this.getOriginPos().relative(this.getDirection(), -oppositeDirGrowth));
                     }
                 }
-                // Finally we change the sizes.
-                //this.extendSizeZNorth(dirGrowth + oppositeDirGrowth);
+                // Finally we change the size which will also update the shape.
+                this.extendLength(dirGrowth, oppositeDirGrowth);
             }
             // And lastly we will add the special Buds : bridge or stairs
-            map.updateTownMap(this);
+            town.updateTownMap(this);
         }
+    }
+
+    /**
+     * Extends the length of this road. The yShape needs to be updated afterward !
+     * @param extendInDir Number of blocks extended in this build's direction.
+     * @param extendInOppositeDir Number of blocks extended in this build's opposite direction.
+     */
+    protected void extendLength(int extendInDir, int extendInOppositeDir){
+        this.length += extendInDir + extendInOppositeDir;
+        // We move the YShape so that the locked shapes stay at the same position.
+        SliceProperty[] newYShape = new SliceProperty[this.length];
+        System.arraycopy(this.yShape, 0, newYShape, extendInOppositeDir, this.yShape.length);
+        this.yShape = newYShape;
     }
 
     /**
@@ -81,38 +96,35 @@ public class RoadBuild<T extends SliceBuildType> extends SliceBuild<T> {
      * plus the DEFAULT_PATH_LENGTH. Returns 0 if this MapPath already stops at the correct position.
      */
     private int getGrowthSize(ProtoTown map, Direction dir, int bonusSize){
-        if(this.getDirection() != null){
-            int growth = -bonusSize;
-            int emptyAdjacentBlocks = 0;
-            BlockPos initPos = this.getCornerPos(TownMapUtils.Corner.getCornerNextToDir(dir.getOpposite(), false)).relative(dir, 1 - bonusSize);
-            BlockPos.MutableBlockPos adjLeftCursor = initPos.relative(dir.getClockWise(), -1).mutable();
-            BlockPos.MutableBlockPos pathLeftCursor = initPos.mutable();
-            BlockPos.MutableBlockPos pathRightCursor = initPos.relative(dir.getClockWise(), this.getSize(dir) - 1).mutable();
-            BlockPos.MutableBlockPos adjRightCursor = initPos.relative(dir.getClockWise(), this.getSize(dir)).mutable();
-            while(true){
-                // While the cursor is at an empty vec3 (or the vec3 contains this block), we can extend this MapPath.
-                //TODO Check if there is a Y difference to big : we stop and will make a stairs Bud.
-                if(map.isEmpty(pathLeftCursor, this) && map.isEmpty(pathRightCursor, this)){
-                    growth++;
-                    emptyAdjacentBlocks++;
-                    if(!map.isEmpty(adjLeftCursor) || !map.isEmpty(adjRightCursor)){
-                        // If on of the 2 current adjacent blocks are not empty, we reset the number of empty adjacent blocks.
-                        emptyAdjacentBlocks = 0;
-                    }
-                    if(emptyAdjacentBlocks >= bonusSize){
-                        // If the number of empty adjacent blocks has reached the minimal bonusSize, then the MapPath can stop growing.
-                        return growth;
-                    }
-                    adjLeftCursor.move(dir);
-                    pathLeftCursor.move(dir);
-                    pathRightCursor.move(dir);
-                    adjRightCursor.move(dir);
-                }else{
+        int growth = -bonusSize;
+        int emptyAdjacentBlocks = 0;
+        BlockPos initPos = this.getCornerPos(TownMapUtils.Corner.getCornerNextToDir(dir.getOpposite(), false)).relative(dir, 1 - bonusSize);
+        BlockPos.MutableBlockPos adjLeftCursor = initPos.relative(dir.getClockWise(), -1).mutable();
+        BlockPos.MutableBlockPos pathLeftCursor = initPos.mutable();
+        BlockPos.MutableBlockPos pathRightCursor = initPos.relative(dir.getClockWise(), this.getSize(dir) - 1).mutable();
+        BlockPos.MutableBlockPos adjRightCursor = initPos.relative(dir.getClockWise(), this.getSize(dir)).mutable();
+        while(true){
+            // While the cursor is at an empty vec3 (or the vec3 contains this block), we can extend this MapPath.
+            //TODO Check if there is a Y difference to big : we stop and will make a tower Bud.
+            if(map.isEmpty(pathLeftCursor, this) && map.isEmpty(pathRightCursor, this)){
+                growth++;
+                emptyAdjacentBlocks++;
+                if(!map.isEmpty(adjLeftCursor) || !map.isEmpty(adjRightCursor)){
+                    // If one of the 2 current adjacent blocks are not empty, we reset the number of empty adjacent blocks.
+                    emptyAdjacentBlocks = 0;
+                }
+                if(emptyAdjacentBlocks >= bonusSize){
+                    // If the number of empty adjacent blocks has reached the minimal bonusSize, then the road stops growing.
                     return growth;
                 }
+                adjLeftCursor.move(dir);
+                pathLeftCursor.move(dir);
+                pathRightCursor.move(dir);
+                adjRightCursor.move(dir);
+            }else{
+                return growth;
             }
         }
-        return 0;
     }
 
     /**
@@ -121,26 +133,22 @@ public class RoadBuild<T extends SliceBuildType> extends SliceBuild<T> {
      */
     private void findAllBuds(ProtoTown town){
         ArrayList<BuildBud> newBuildBuds = new ArrayList<>();
-        if(this.getDirection() != null){
-            if(this.getDirection().getAxis() == Direction.Axis.X){
-                newBuildBuds.addAll(this.findBudsOnSide(town, TownMapUtils.Corner.NORTH_WEST, this.getSizeX()));
-                newBuildBuds.addAll(this.findBudsOnSide(town, TownMapUtils.Corner.SOUTH_EAST, this.getSizeX()));
-                if(!this.canGrow){
-                    newBuildBuds.addAll(this.findBudsOnSide(town, TownMapUtils.Corner.NORTH_EAST, this.getSizeZ()));
-                    newBuildBuds.addAll(this.findBudsOnSide(town, TownMapUtils.Corner.SOUTH_WEST, this.getSizeZ()));
-                }
-            }else{
+        if(this.getDirection().getAxis() == Direction.Axis.X){
+            newBuildBuds.addAll(this.findBudsOnSide(town, TownMapUtils.Corner.NORTH_WEST, this.getSizeX()));
+            newBuildBuds.addAll(this.findBudsOnSide(town, TownMapUtils.Corner.SOUTH_EAST, this.getSizeX()));
+            if(!this.canGrow){
                 newBuildBuds.addAll(this.findBudsOnSide(town, TownMapUtils.Corner.NORTH_EAST, this.getSizeZ()));
                 newBuildBuds.addAll(this.findBudsOnSide(town, TownMapUtils.Corner.SOUTH_WEST, this.getSizeZ()));
-                if(!this.canGrow){
-                    newBuildBuds.addAll(this.findBudsOnSide(town, TownMapUtils.Corner.NORTH_WEST, this.getSizeX()));
-                    newBuildBuds.addAll(this.findBudsOnSide(town, TownMapUtils.Corner.SOUTH_EAST, this.getSizeX()));
-                }
             }
-            newBuildBuds.stream().filter(Objects::nonNull).forEach(town::tryCreateRoad);
         }else{
-            throw new IllegalStateException("Unexpected creation of Buds: It's impossible to create Buds before the Road is placed in the Town.");
+            newBuildBuds.addAll(this.findBudsOnSide(town, TownMapUtils.Corner.NORTH_EAST, this.getSizeZ()));
+            newBuildBuds.addAll(this.findBudsOnSide(town, TownMapUtils.Corner.SOUTH_WEST, this.getSizeZ()));
+            if(!this.canGrow){
+                newBuildBuds.addAll(this.findBudsOnSide(town, TownMapUtils.Corner.NORTH_WEST, this.getSizeX()));
+                newBuildBuds.addAll(this.findBudsOnSide(town, TownMapUtils.Corner.SOUTH_EAST, this.getSizeX()));
+            }
         }
+        newBuildBuds.stream().filter(Objects::nonNull).forEach(town::tryCreateRoad);
     }
 
     /**

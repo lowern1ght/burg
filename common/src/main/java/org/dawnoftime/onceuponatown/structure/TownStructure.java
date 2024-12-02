@@ -3,6 +3,7 @@ package org.dawnoftime.onceuponatown.structure;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.chunk.ChunkGenerator;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.Utils;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
@@ -21,6 +22,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
 
+import static org.dawnoftime.onceuponatown.Utils.blockPosToString;
+
 public class TownStructure extends Structure {
     public final String cultureID;
     public static final Codec<TownStructure> CODEC = RecordCodecBuilder.create((p) -> p.group(settingsCodec(p), Codec.STRING.fieldOf("culture").forGetter((town) -> town.cultureID)).apply(p, TownStructure::new));
@@ -37,20 +40,21 @@ public class TownStructure extends Structure {
     private void generatePieces(StructurePiecesBuilder builder, GenerationContext context) {
         try {
             Culture culture = CultureManager.getCultureById(this.cultureID);
-            int townHeight = context.chunkGenerator().getFirstOccupiedHeight(context.chunkPos().getMinBlockX(), context.chunkPos().getMinBlockZ(), Heightmap.Types.WORLD_SURFACE_WG, context.heightAccessor(), context.randomState());
+            ChunkGenerator chunk = context.chunkGenerator();
+            int townHeight = chunk.getFirstOccupiedHeight(context.chunkPos().getMinBlockX(), context.chunkPos().getMinBlockZ(), Heightmap.Types.WORLD_SURFACE_WG, context.heightAccessor(), context.randomState());
             BlockPos townCenterPos = new BlockPos(context.chunkPos().getMinBlockX(), townHeight, context.chunkPos().getMinBlockZ());
 
-            Ouat.info("Town at + " + townCenterPos.toShortString() + " : started generating pieces...");
+            Ouat.info("Town at " + blockPosToString(townCenterPos) + " : started generating pieces...");
             // TODO Improve the code to give names to new Towns.
-            String name = "plains" + Mth.nextInt(RandomSource.create(), 0, 100);
-            ProtoTown town = new ProtoTown(culture, name, townCenterPos);
+            String name = "Town " + Mth.nextInt(RandomSource.create(), 0, 100);
+            ProtoTown town = new ProtoTown(culture, name, townCenterPos, (x, z) -> chunk.getFirstOccupiedHeight(x, z, Heightmap.Types.WORLD_SURFACE_WG, context.heightAccessor(), context.randomState()));
             if(town.buildStarterPack()){
                 // Generate the pieces for each Build. The first one contains the data to create the Town.
                 for(int i = 0; i < town.getBuilds().size(); i++){
                     builder.addPiece((town.getBuilds().get(i).generatePieces(context.structureTemplateManager(), culture, i == 0 ? town : null)));
                 }
             }else{
-                Ouat.info("Could not generate a %s Town in %s.".formatted(this.cultureID, Utils.toString(townCenterPos)));
+                Ouat.info("Could not generate a %s Town in %s.".formatted(this.cultureID, blockPosToString(townCenterPos)));
             }
         }catch(CorruptedCultureException | CorruptedTownException e){
             Ouat.error(e.getMessage());

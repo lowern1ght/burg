@@ -102,7 +102,7 @@ public class TownMapUtils {
 
         /**
          * @param dirVector Direction of the vector.
-         * @param cornerOnTheRight True to return the Corner on the right side of the vector direction, false
+         * @param cornerOnTheRight True to return the Corner on the right side of the direction vector, false
          *                         to get the Corner on the left side.
          * @return One of the 2 corners adjacent to a vector toward the given direction.
          */

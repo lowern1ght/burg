@@ -5,7 +5,6 @@ import net.minecraft.nbt.NbtUtils;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
-import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
 import org.dawnoftime.onceuponatown.building.type.BuildType;
@@ -13,27 +12,23 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Rotation;
-import org.dawnoftime.onceuponatown.building.type.SliceBuildType;
 import org.dawnoftime.onceuponatown.culture.Culture;
-import org.dawnoftime.onceuponatown.town.CorruptedTownException;
 import org.dawnoftime.onceuponatown.town.generation.MapBlock;
 import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
 import org.dawnoftime.onceuponatown.town.generation.TownMapUtils;
 import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
-
-import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.rectangularPosIterator;
 
 public abstract class Build<T extends BuildType> implements MapBlock {
     private final T buildType;
 
     private BlockPos originPos;
-    private Direction direction;
+    private Direction direction = Direction.NORTH;
     private Mirror mirror = Mirror.NONE;
     private Rotation rotation = Rotation.NONE;
-    private BlockPos rotationPivot = BlockPos.ZERO;
     private int level = 1;
 
     public Build(T buildType) {
@@ -82,18 +77,8 @@ public abstract class Build<T extends BuildType> implements MapBlock {
         return this.rotation;
     }
 
-    public Build<T> rotationPivot(BlockPos rotationPivot) {
-        //TODO Is it correct ?
-        this.rotationPivot = rotationPivot;
-        return this;
-    }
-
     public T getBuildType() {
         return this.buildType;
-    }
-
-    public BlockPos getRotationPivot() {
-        return this.rotationPivot;
     }
 
     /**
@@ -111,10 +96,9 @@ public abstract class Build<T extends BuildType> implements MapBlock {
     }
 
     /**
-     * @return The Direction of the Build. Null if the Build is not on the TownMap yet.
+     * @return The Direction of the Build. Returns NORTH if the Build is not on the TownMap yet.
      */
-    @Nullable
-    public Direction getDirection(){
+    public @NotNull Direction getDirection(){
         return this.direction;
     }
 
@@ -133,7 +117,7 @@ public abstract class Build<T extends BuildType> implements MapBlock {
      * @return The Y position of this Build in the given testedPos when placed at the given originPos. By default, returns the Y value of
      * the position being checked.
      */
-    public int getYOnPos(@Nullable BlockPos originPos, BlockPos testedPos) {
+    public int getYOnPosForTestedOrigin(@Nullable BlockPos originPos, BlockPos testedPos) {
         return testedPos.getY();
     }
 
@@ -195,16 +179,18 @@ public abstract class Build<T extends BuildType> implements MapBlock {
     }
 
     /**
-     * Function called to add this Build to the given TownMap, knowing that it can be added with the given parameters.
-     * @param map Town in which this Build will be added.
+     * Function called to add this Build in the Town. This function assume all the condition to place it are met.
+     * This function will set the origin BlockPos and the direction of the Build, and call the post placement effects
+     * associated to this build.
+     * @param town Town in which this Build will be added.
      * @param buildBud Bud used to put set this Building on the TownMap.
      * @param dir Direction corresponding to the orientation of this Build.
      */
-    public void addToMap(ProtoTown map, BuildBud buildBud, Direction dir){
+    public void addToTownMap(ProtoTown town, BuildBud buildBud, Direction dir){
         this.originPos = buildBud.findOriginPos(this, dir);
         this.direction = dir;
-        map.addNewBuilds(this);
-        this.onAddedToTown(map);
+        town.addNewBuilds(this);
+        this.onAddedToTown(town);
     }
 
     /**
@@ -225,15 +211,7 @@ public abstract class Build<T extends BuildType> implements MapBlock {
      *            to the Y value of this MapPath at this Build's DoorPoint.
      * @return True if the surface is indeed empty, false otherwise.
      */
-    public boolean canBeBuiltOnBud(ProtoTown map, BuildBud buildBud, Direction dir){
-        BlockPos testedOriginPos = buildBud.findOriginPos(this, dir);
-        for(BlockPos.MutableBlockPos testedPos : rectangularPosIterator(testedOriginPos, this.getSizeX(dir), this.getSizeZ(dir))) {
-            if(!map.isEmpty(testedPos)){
-                return false;
-            }
-        }
-        return true;
-    }
+    public abstract boolean canBeBuiltOnBud(ProtoTown map, BuildBud buildBud, Direction dir);
 
     public HashMap<ResourceLocation, Integer> getProduction() {
         return this.buildType.getProduction();

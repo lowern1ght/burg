@@ -100,7 +100,7 @@ public class Utils {
         }
     }
 
-    public static String toString(BlockPos pos){
+    public static String blockPosToString(BlockPos pos){
         return "(" + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + ")";
     }
 }

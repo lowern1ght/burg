@@ -79,7 +79,7 @@ public class LevelTowns extends SavedData {
         // Avoid creating the same town several times when loading the same BuildPiece in different chunks.
         if(!this.towns.containsKey(townUUID)){
             Town town = new Town(this.level, townTag);
-            this.level.getServer().getPlayerList().broadcastSystemMessage(Component.literal(town.getName() + " discovered at " + Utils.toString(town.getCenter())), false);
+            this.level.getServer().getPlayerList().broadcastSystemMessage(Component.literal(town.getName() + " discovered at " + Utils.blockPosToString(town.getCenter())), false);
             this.addTown(town);
         }
     }
