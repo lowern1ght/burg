@@ -6,6 +6,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import org.dawnoftime.onceuponatown.menu.BuyMenu;
 import org.dawnoftime.onceuponatown.menu.SellMenu;
 import net.minecraft.world.inventory.MenuType;
+import org.dawnoftime.onceuponatown.menu.TradeMenu;
 
 import java.util.function.Supplier;
 
@@ -15,6 +16,8 @@ public abstract class MenuRegistry {
     public final Supplier<MenuType<BuyMenu>> BUY_MENU = register("buy_menu", BuyMenu::new);
 
     public final Supplier<MenuType<SellMenu>> SELL_MENU = register("sell_menu", SellMenu::new);
+
+    public final Supplier<MenuType<TradeMenu>> TRADE_MENU = register("trade_menu", TradeMenu::new);
 
     public abstract <T extends AbstractContainerMenu> Supplier<MenuType<T>> register(final String name, MenuTypeFactory<T> factory);
 

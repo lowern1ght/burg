@@ -1,30 +1,30 @@
 package org.dawnoftime.onceuponatown.menu;
 
-import org.dawnoftime.onceuponatown.trade.BuyDeal;
-import org.dawnoftime.onceuponatown.trade.TradeUtils;
 import net.minecraft.core.NonNullList;
 import net.minecraft.world.Container;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import org.apache.commons.lang3.ObjectUtils;
+import org.dawnoftime.onceuponatown.trade.BuyDeal;
+import org.dawnoftime.onceuponatown.trade.MerchantDeal;
+import org.dawnoftime.onceuponatown.trade.TradeUtils;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class BuyContainer implements Container {
-    private final InteractingNpc npc;
-    private final NonNullList<ItemStack> itemStacks = NonNullList.withSize(4, ItemStack.EMPTY);
+public class TradeContainer implements Container {
+    private final InteractingNpc interactingNpc;
+    private final NonNullList<ItemStack> itemStacks = NonNullList.withSize(3, ItemStack.EMPTY);
     @Nullable
-    private BuyDeal activeDeal;
+    private MerchantDeal activeDeal;
     private int selectedDealIndex;
     private static final int INPUT_A = 0;
     private static final int INPUT_B = 1;
-    private static final int INPUT_C = 2;
-    private static final int RESULT = 3;
+    private static final int RESULT = 2;
 
-    public BuyContainer(InteractingNpc npc) {
-        this.npc = npc;
+    public TradeContainer(InteractingNpc interactingNpc) {
+        this.interactingNpc = interactingNpc;
     }
 
     public int getContainerSize() {
@@ -37,7 +37,6 @@ public class BuyContainer implements Container {
                 return false;
             }
         }
-
         return true;
     }
 
@@ -60,7 +59,7 @@ public class BuyContainer implements Container {
     }
 
     private boolean isPaymentSlot(int slot) {
-        return slot == INPUT_A || slot == INPUT_B || slot == INPUT_C;
+        return slot == INPUT_A || slot == INPUT_B;
     }
 
     public ItemStack removeItemNoUpdate(int index) {
@@ -72,7 +71,6 @@ public class BuyContainer implements Container {
         if (!stack.isEmpty() && stack.getCount() > this.getMaxStackSize()) {
             stack.setCount(this.getMaxStackSize());
         }
-
         if (this.isPaymentSlot(index)) {
             this.updateResultItem();
         }
@@ -80,7 +78,7 @@ public class BuyContainer implements Container {
     }
 
     public boolean stillValid(Player pPlayer) {
-        return this.npc.getInteractingPlayer() == pPlayer;
+        return this.interactingNpc.getInteractingPlayer() == pPlayer;
     }
 
     public void setChanged() {
@@ -91,25 +89,27 @@ public class BuyContainer implements Container {
         this.activeDeal = null;
         ItemStack stackInSlotA = this.itemStacks.get(INPUT_A);
         ItemStack stackInSlotB = this.itemStacks.get(INPUT_B);
-        ItemStack stackInSlotC = this.itemStacks.get(INPUT_C);
 
-        if (stackInSlotA.isEmpty() && stackInSlotB.isEmpty() && stackInSlotC.isEmpty()) {
+        if (stackInSlotA.isEmpty() && stackInSlotB.isEmpty()) {
             this.setItem(RESULT, ItemStack.EMPTY);
         } else {
-            List<BuyDeal> deals = this.npc.getBuyDeals();
+            List<MerchantDeal> deals = this.interactingNpc.getMerchantDeals();
             if (!deals.isEmpty()) {
-                BuyDeal deal1 = TradeUtils.getBuyDealFor(deals, stackInSlotA, stackInSlotB, stackInSlotC, this.selectedDealIndex);
-                BuyDeal deal2 = TradeUtils.getBuyDealFor(deals, stackInSlotA, stackInSlotC, stackInSlotB, this.selectedDealIndex);
-                BuyDeal deal3 = TradeUtils.getBuyDealFor(deals, stackInSlotB, stackInSlotA, stackInSlotC, this.selectedDealIndex);
-                BuyDeal deal4 = TradeUtils.getBuyDealFor(deals, stackInSlotB, stackInSlotC, stackInSlotA, this.selectedDealIndex);
-                BuyDeal deal5 = TradeUtils.getBuyDealFor(deals, stackInSlotC, stackInSlotA, stackInSlotB, this.selectedDealIndex);
-                BuyDeal deal6 = TradeUtils.getBuyDealFor(deals, stackInSlotC, stackInSlotB, stackInSlotA, this.selectedDealIndex);
-
-                BuyDeal deal = ObjectUtils.firstNonNull(deal1, deal2, deal3, deal4, deal5, deal6);
-
-                if (deal != null) {
-                    this.activeDeal = deal;
-                    this.setItem(RESULT, deal.assemble());
+                MerchantDeal d = null;
+                if (selectedDealIndex > 0 && selectedDealIndex < deals.size()) {
+                    MerchantDeal deal = deals.get(selectedDealIndex);
+                    d = deal.isSatisfiedBy(stackInSlotA, stackInSlotB) || deal.isSatisfiedBy(stackInSlotB, stackInSlotA) ? deal : null;
+                } else {
+                    for (MerchantDeal deal : deals) {
+                        if (deal.isSatisfiedBy(stackInSlotA, stackInSlotB) || deal.isSatisfiedBy(stackInSlotB, stackInSlotA)) {
+                            d = deal;
+                            break;
+                        }
+                    }
+                }
+                if (d != null) {
+                    this.activeDeal = d;
+                    this.setItem(RESULT, d.assemble());
                 } else {
                     this.setItem(RESULT, ItemStack.EMPTY);
                 }
@@ -119,7 +119,7 @@ public class BuyContainer implements Container {
     }
 
     @Nullable
-    public BuyDeal getActiveDeal() {
+    public MerchantDeal getActiveDeal() {
         return this.activeDeal;
     }
 

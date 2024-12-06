@@ -1,11 +1,6 @@
 package org.dawnoftime.onceuponatown.client.screen;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.client.screen.tooltip.TradeItemTooltip;
-import org.dawnoftime.onceuponatown.menu.BuyMenu;
-import org.dawnoftime.onceuponatown.network.C2SSelectBuyDealPacket;
-import org.dawnoftime.onceuponatown.trade.BuyDeal;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -15,17 +10,21 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.client.screen.tooltip.TradeItemTooltip;
+import org.dawnoftime.onceuponatown.menu.TradeMenu;
+import org.dawnoftime.onceuponatown.network.C2SSelectTradePacket;
+import org.dawnoftime.onceuponatown.trade.MerchantDeal;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.function.Supplier;
 
 import static org.dawnoftime.onceuponatown.client.screen.BuyScreen.DealButton.HEIGHT;
 import static org.dawnoftime.onceuponatown.client.screen.BuyScreen.DealButton.WIDTH;
 
 
-public class BuyScreen extends NpcBaseScreen<BuyMenu> {
-    private static final ResourceLocation TEXTURE = Ouat.createOuatResource("textures/gui/buy_screen.png");
+public class TradeScreenOld extends NpcBaseScreen<TradeMenu> {
+    private static final ResourceLocation TEXTURE = Ouat.createOuatResource("textures/gui/trade_screen.png");
     private static final int MAIN_BLIT_WIDTH = 281;
     private static final int MAIN_BLIT_HEIGHT = 166;
     private static final int SCROLLER_HEIGHT = 27;
@@ -47,8 +46,9 @@ public class BuyScreen extends NpcBaseScreen<BuyMenu> {
     private int selectedDealIndex = -1;
     private int scrollOff;
     private boolean isDragging;
+    private boolean isSelling;
 
-    public BuyScreen(BuyMenu menu, Inventory inventory, Component title) {
+    public TradeScreenOld(TradeMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, Component.literal("Trade"), NpcTab.BUY);
         this.imageWidth = 281;
         this.imageHeight = 193  ;
@@ -59,15 +59,11 @@ public class BuyScreen extends NpcBaseScreen<BuyMenu> {
         this.leftPos = ((this.width - MAIN_BLIT_WIDTH) / 2) + 8; // Replaces super.init();
         this.topPos = ((this.height - MAIN_BLIT_HEIGHT) / 2); // Replaces super.init();
         createDealButtons();
-        String buyLabel = "Buy";
-        String sellLabel = "Sell";
-        addRenderableWidget(new ReleaseFocusButton.Builder(Component.literal(buyLabel),(button -> {
-            if (button.getMessage().getString().equals("Buy")) {
-                button.setMessage(Component.literal(sellLabel));
-            } else {
-                button.setMessage(Component.literal(buyLabel));
-            }})).bounds(this.leftPos + 7, this.topPos + 17, 92, 16)
-                .build());
+        addRenderableWidget(new ReleaseFocusButton.Builder(Component.literal("Buy"),(button -> {
+            isSelling = !isSelling;
+            button.setMessage(Component.literal(isSelling ? "Sell" : "Buy"));
+
+        })).bounds(this.leftPos + 7, this.topPos + 17, 92, 16).build());
     }
 
     private void createDealButtons() {
@@ -91,9 +87,9 @@ public class BuyScreen extends NpcBaseScreen<BuyMenu> {
     }
 
     private void onDealButtonClicked() {
-        this.menu.setSelectedDeal(this.selectedDealIndex);
-        this.menu.tryMoveItems(this.selectedDealIndex);
-        Ouat.CLIENT.sendToServer(new C2SSelectBuyDealPacket(this.selectedDealIndex));
+        this.menu.selectDeal(this.selectedDealIndex);
+        this.menu.trySuggestPayment(this.selectedDealIndex);
+        Ouat.CLIENT.sendToServer(new C2SSelectTradePacket(this.selectedDealIndex));
     }
 
     private int dealsAmount() {
@@ -185,14 +181,14 @@ public class BuyScreen extends NpcBaseScreen<BuyMenu> {
         for (DealButton button : dealButtons) {
             button.visible = (button.index + this.scrollOff * OFFERS_GRID_COLUMNS) < dealsAmount();
         }
-        List<BuyDeal> deals = this.menu.getDeals();
+        List<MerchantDeal> deals = this.menu.getDeals();
         if (!deals.isEmpty()) {
             int startX  = leftPos + OFFERS_GRID_X + 1;
             int x = startX;
             int y = topPos + OFFERS_GRID_Y + 2;
 
             int index = 0;
-            for(BuyDeal deal : deals) {
+            for(MerchantDeal deal : deals) {
                 if (!this.canScroll() || index >= (this.scrollOff * OFFERS_GRID_COLUMNS) && index < OFFERS_GRID_CAPACITY + (this.scrollOff * OFFERS_GRID_COLUMNS)) {
                     ItemStack result = deal.getResult();
                     graphics.pose().pushPose();
@@ -239,10 +235,10 @@ public class BuyScreen extends NpcBaseScreen<BuyMenu> {
                 this.isHovered = mouseX >= this.getX() && mouseY >= this.getY() && mouseX < this.getX() + this.width && mouseY < this.getY() + this.height;
                 int offsetX;
                 int offsetY;
-                if (this.isHovered && (this.index + BuyScreen.this.scrollOff * OFFERS_GRID_COLUMNS) != BuyScreen.this.selectedDealIndex) {
+                if (this.isHovered && (this.index + TradeScreenOld.this.scrollOff * OFFERS_GRID_COLUMNS) != TradeScreenOld.this.selectedDealIndex) {
                     offsetX = HOVERED_OFFSET_X;
                     offsetY = HOVERED_OFFSET_Y;
-                } else if ((this.index + BuyScreen.this.scrollOff * OFFERS_GRID_COLUMNS) == BuyScreen.this.selectedDealIndex) {
+                } else if ((this.index + TradeScreenOld.this.scrollOff * OFFERS_GRID_COLUMNS) == TradeScreenOld.this.selectedDealIndex) {
                     offsetX = SEL_OFFSET_X;
                     offsetY = SEL_OFFSET_Y;
 
@@ -250,7 +246,7 @@ public class BuyScreen extends NpcBaseScreen<BuyMenu> {
                     offsetX = UNSEL_OFFSET_X;
                     offsetY = UNSEL_OFFSET_Y;
                 }
-                graphics.blit(TEXTURE, getX(), getY(), offsetX, offsetY, this.width, this.height, BuyScreen.this.imageWidth, BuyScreen.this.imageHeight);
+                graphics.blit(TEXTURE, getX(), getY(), offsetX, offsetY, this.width, this.height, TradeScreenOld.this.imageWidth, TradeScreenOld.this.imageHeight);
                 if (isHoveredOrFocused()) {
                     renderToolTip(graphics,mouseX,mouseY);
                 }
@@ -258,13 +254,12 @@ public class BuyScreen extends NpcBaseScreen<BuyMenu> {
         }
 
         public void renderToolTip(GuiGraphics graphics, int mouseX, int mouseY) {
-            if (this.isHovered && BuyScreen.this.menu.getDeals().size() > this.index + (BuyScreen.this.scrollOff * OFFERS_GRID_COLUMNS)) {
-                ItemStack result = BuyScreen.this.menu.getDeals().get(this.index + (BuyScreen.this.scrollOff * OFFERS_GRID_COLUMNS)).getResult();
-                ItemStack stackA = BuyScreen.this.menu.getDeals().get(this.index + (BuyScreen.this.scrollOff * OFFERS_GRID_COLUMNS)).getInputA();
-                ItemStack stackB = BuyScreen.this.menu.getDeals().get(this.index + (BuyScreen.this.scrollOff * OFFERS_GRID_COLUMNS)).getInputB();
-                ItemStack stackC = BuyScreen.this.menu.getDeals().get(this.index + (BuyScreen.this.scrollOff * OFFERS_GRID_COLUMNS)).getInputC();
-                List<Component> text = getTooltipFromItem(BuyScreen.this.minecraft, result);
-                Ouat.COMMON.renderTooltip(graphics, BuyScreen.this.font, text, new TradeItemTooltip(stackA, stackB, stackC), result, mouseX, mouseY);
+            if (this.isHovered && TradeScreenOld.this.menu.getDeals().size() > this.index + (TradeScreenOld.this.scrollOff * OFFERS_GRID_COLUMNS)) {
+                ItemStack result = TradeScreenOld.this.menu.getDeals().get(this.index + (TradeScreenOld.this.scrollOff * OFFERS_GRID_COLUMNS)).getResult();
+                ItemStack stackA = TradeScreenOld.this.menu.getDeals().get(this.index + (TradeScreenOld.this.scrollOff * OFFERS_GRID_COLUMNS)).getRequiredA();
+                ItemStack stackB = TradeScreenOld.this.menu.getDeals().get(this.index + (TradeScreenOld.this.scrollOff * OFFERS_GRID_COLUMNS)).getRequiredB();
+                List<Component> text = getTooltipFromItem(TradeScreenOld.this.minecraft, result);
+                Ouat.COMMON.renderTooltip(graphics, TradeScreenOld.this.font, text, new TradeItemTooltip(stackA, stackB, ItemStack.EMPTY), result, mouseX, mouseY);
             }
         }
     }

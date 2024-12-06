@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SellContainer implements Container {
-    private final NpcInteraction npc;
+    private final InteractingNpc npc;
     private final NonNullList<ItemStack> itemStacks = NonNullList.withSize(11, ItemStack.EMPTY);
     @Nullable
     private SellDeal activeDeal;
@@ -35,7 +35,7 @@ public class SellContainer implements Container {
     List<ItemStack> futureStacks = new ArrayList<>();
     public boolean hasConcludedTrade;
 
-    public SellContainer(NpcInteraction npc) {
+    public SellContainer(InteractingNpc npc) {
         this.npc = npc;
     }
 

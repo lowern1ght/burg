@@ -7,11 +7,11 @@ import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class NpcBaseMenu extends AbstractContainerMenu {
-    protected NpcInteraction npc;
+    protected InteractingNpc interactingNpc;
 
-    protected NpcBaseMenu(@Nullable MenuType<?> menuType, int containerId, NpcInteraction npc) {
+    protected NpcBaseMenu(@Nullable MenuType<?> menuType, int containerId, InteractingNpc interactingNpc) {
         super(menuType, containerId);
-        this.npc = npc;
+        this.interactingNpc = interactingNpc;
     }
 
     @Override
@@ -21,10 +21,10 @@ public abstract class NpcBaseMenu extends AbstractContainerMenu {
 
     @Override
     public boolean stillValid(Player player) {
-        return this.npc.getInteractingPlayer() == player;
+        return this.interactingNpc.getInteractingPlayer() == player;
     }
 
-    public NpcInteraction getNpcInteraction() {
-        return npc;
+    public InteractingNpc getNpcInteraction() {
+        return interactingNpc;
     }
 }

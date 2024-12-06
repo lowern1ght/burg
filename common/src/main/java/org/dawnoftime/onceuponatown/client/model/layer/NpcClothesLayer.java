@@ -23,21 +23,21 @@ public class NpcClothesLayer<T extends Npc, M extends NpcModel<T>> extends Rende
     public void render(@NotNull PoseStack poseStack, @NotNull MultiBufferSource buffer, int packedLight, T npc, float limbSwing, float limbSwingAmount, float partialTick, float ageInTicks, float netHeadYaw, float headPitch) {
         if (!npc.isInvisible()) {
             M model = getParentModel();
-            renderCultureClothes(model, poseStack, buffer, packedLight, npc);
+            renderCultureCommonClothes(model, poseStack, buffer, packedLight, npc);
             renderProfessionClothes(model, poseStack, buffer, packedLight, npc);
         }
     }
 
-    private void renderCultureClothes(M model, PoseStack poseStack, MultiBufferSource buffer, int packedLight, T npc) {
+    private void renderCultureCommonClothes(M model, PoseStack poseStack, MultiBufferSource buffer, int packedLight, T npc) {
         //NpcCulture culture = npc.getCulture();
-        String path = "textures/entity/npc/culture_clothes/savanna.png";
+        String path = "cultures/plains/skins/common_clothes.png";
         ResourceLocation resourceLocation = Ouat.createOuatResource(path);
         renderColoredCutoutModel(model, resourceLocation, poseStack, buffer, packedLight, npc, 1.0F, 1.0F, 1.0F);
     }
 
     private void renderProfessionClothes(M model, PoseStack poseStack, MultiBufferSource buffer, int packedLight, T npc) {
         //NpcProfession profession = npc.getProfession();
-        String path = "textures/entity/npc/profession_clothes/" + "nitwit" + ".png";
+        String path = "cultures/plains/skins/professions/" + "fisherman" + ".png";
         ResourceLocation resourceLocation = Ouat.createOuatResource(path);
         renderColoredCutoutModel(model, resourceLocation, poseStack, buffer, packedLight, npc, 1.0F, 1.0F, 1.0F);
     }

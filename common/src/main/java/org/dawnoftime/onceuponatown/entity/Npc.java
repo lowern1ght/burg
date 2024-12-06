@@ -40,10 +40,12 @@ import org.dawnoftime.onceuponatown.entity.ai.goal.core.NpcPanicGoal;
 import org.dawnoftime.onceuponatown.entity.ai.goal.fight.SelfDefenseGoal;
 import org.dawnoftime.onceuponatown.entity.ai.goal.work.FishermanWorkGoal;
 import org.dawnoftime.onceuponatown.menu.BuyMenu;
-import org.dawnoftime.onceuponatown.menu.NpcInteraction;
+import org.dawnoftime.onceuponatown.menu.InteractingNpc;
+import org.dawnoftime.onceuponatown.menu.TradeMenu;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
 import org.dawnoftime.onceuponatown.town.Town;
 import org.dawnoftime.onceuponatown.trade.BuyDeal;
+import org.dawnoftime.onceuponatown.trade.MerchantDeal;
 import org.dawnoftime.onceuponatown.trade.SellDeal;
 import org.dawnoftime.onceuponatown.trade.TradeUtils;
 import org.jetbrains.annotations.NotNull;
@@ -54,7 +56,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
-public class Npc extends AgeableMob implements NpcInteraction, RangedAttackMob, CrossbowAttackMob {
+public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, CrossbowAttackMob {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final EntityDataAccessor<Byte> DATA_CULTURE = SynchedEntityData.defineId(Npc.class, EntityDataSerializers.BYTE);
     private static final EntityDataAccessor<Byte> DATA_PROFESSION = SynchedEntityData.defineId(Npc.class, EntityDataSerializers.BYTE);
@@ -215,10 +217,18 @@ public class Npc extends AgeableMob implements NpcInteraction, RangedAttackMob, 
         if (!level().isClientSide() && (hand == InteractionHand.MAIN_HAND)) {
             this.interactingPlayer = player;
             if (player instanceof ServerPlayer serverPlayer) {
+                /*
                 Ouat.COMMON.openMenu(serverPlayer, new SimpleMenuProvider((containerID, playerInventory, p) -> new BuyMenu(containerID, playerInventory, this), Component.literal("Buy")), buffer -> {
                     buffer.writeInt(this.getId());
                     TradeUtils.writeBuyDealsToStream(getBuyDeals(), buffer);
                 });
+
+                 */
+                Ouat.COMMON.openMenu(serverPlayer, new SimpleMenuProvider((containerID, playerInventory, p) -> new TradeMenu(containerID, playerInventory, this), Component.literal("Buy")), buffer -> {
+                    buffer.writeInt(this.getId());
+                    TradeUtils.writeMerchantDealsToStream(getMerchantDeals(), buffer);
+                });
+
             }
 
         }
@@ -316,6 +326,24 @@ public class Npc extends AgeableMob implements NpcInteraction, RangedAttackMob, 
         deals.add(TradeUtils.sellDeal(Items.EGG, 5));
         deals.add(TradeUtils.sellDeal(Items.STICK, 5));
         deals.add(TradeUtils.sellDeal(Items.WHITE_WOOL, 2));
+        return deals;
+    }
+
+    @Override
+    public List<MerchantDeal> getMerchantDeals() {
+        List<MerchantDeal> deals = new ArrayList<>();
+        // Buy deals
+        deals.add(MerchantDeal.Builder.buyDeal(new ItemStack(Items.EMERALD, 2), new ItemStack(Items.BROWN_MUSHROOM, 1)).requiredB(new ItemStack(Items.OAK_PLANKS, 7)).build());
+        deals.add(MerchantDeal.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.RED_MUSHROOM, 1)).build());
+        deals.add(MerchantDeal.Builder.buyDeal(new ItemStack(Items.EMERALD, 6), new ItemStack(Items.MANGROVE_PROPAGULE, 1)).build());
+        deals.add(MerchantDeal.Builder.buyDeal(new ItemStack(Items.EMERALD, 3), new ItemStack(Items.CHERRY_SAPLING, 1)).build());
+        deals.add(MerchantDeal.Builder.buyDeal(new ItemStack(Items.EMERALD, 3), new ItemStack(Items.AZALEA, 1)).build());
+        deals.add(MerchantDeal.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.FEATHER, 1)).build());
+        // Sell deals
+        deals.add(MerchantDeal.Builder.sellDeal(new ItemStack(Items.WHITE_WOOL, 1), new ItemStack(Items.EMERALD, 2)).build());
+        deals.add(MerchantDeal.Builder.sellDeal(new ItemStack(Items.COAL, 16), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(MerchantDeal.Builder.sellDeal(new ItemStack(Items.RABBIT, 4), new ItemStack(Items.EMERALD, 3)).build());
+        deals.add(MerchantDeal.Builder.sellDeal(new ItemStack(Items.WATER_BUCKET, 1), new ItemStack(Items.EMERALD, 1)).build());
         return deals;
     }
 

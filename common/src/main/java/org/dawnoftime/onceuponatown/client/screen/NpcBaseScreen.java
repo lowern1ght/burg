@@ -2,6 +2,9 @@ package org.dawnoftime.onceuponatown.client.screen;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.TabButton;
+import net.minecraft.client.gui.components.tabs.Tab;
+import net.minecraft.client.gui.components.tabs.TabManager;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -50,11 +53,9 @@ public abstract class NpcBaseScreen<T extends AbstractContainerMenu> extends Abs
         this.inventoryLabelY = 72;
         this.activeTab = activeTab;
         List<NpcTab> tabs = new ArrayList<>();
-        tabs.add(NpcTab.INFO);
+        tabs.add(NpcTab.TRADE);
         tabs.add(NpcTab.BUY);
-        tabs.add(NpcTab.SELL);
         tabs.add(NpcTab.QUESTS);
-
         for (int i = 0; i < tabs.size(); ++i) {
             if (i >= MAX_TABS) {
                 break;
@@ -143,7 +144,8 @@ public abstract class NpcBaseScreen<T extends AbstractContainerMenu> extends Abs
         BUY(Ouat.createOuatResource("textures/gui/tabs/buy_icon.png"), 14, 21, 11, 3),
         SELL(Ouat.createOuatResource("textures/gui/tabs/sell_icon.png"), 14, 21, 11, 3),
         QUESTS(Ouat.createOuatResource("textures/gui/tabs/quests_icon.png"),15 ,12 ,10 ,7),
-        INFO(new ResourceLocation("textures/item/oak_sign.png"), 16, 16, 10, 5);
+        INFO(new ResourceLocation("textures/item/oak_sign.png"), 16, 16, 10, 5),
+        TRADE(Ouat.createOuatResource("textures/item/emerald_pouch_nonempty.png"), 16, 16, 10, 6);
 
         public final ResourceLocation iconTexture;
         public final int iconWidth;

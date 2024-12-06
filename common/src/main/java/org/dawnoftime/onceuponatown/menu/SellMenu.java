@@ -43,9 +43,9 @@ public class SellMenu extends NpcBaseMenu {
                         .build());
     }
 
-    public SellMenu(int containerId, Inventory playerInventory, NpcInteraction npc) {
+    public SellMenu(int containerId, Inventory playerInventory, InteractingNpc npc) {
         super(MenuRegistry.REGISTRY.SELL_MENU.get(), containerId, npc);
-        this.npc = npc;
+        this.interactingNpc = npc;
         npc.setInteractingPlayer(playerInventory.player);
         this.sellContainer = new SellContainer(npc);
         int slotWidth = 18;
@@ -129,8 +129,8 @@ public class SellMenu extends NpcBaseMenu {
     }
 
     private void playThankYouSound() {
-        if (this.npc instanceof Npc) {
-            Npc entity = npc.getNpc();
+        if (this.interactingNpc instanceof Npc) {
+            Npc entity = interactingNpc.getNpc();
             entity.playSound(SoundEvents.VILLAGER_YES, 1.0F,1.0F);
         }
     }
@@ -141,8 +141,8 @@ public class SellMenu extends NpcBaseMenu {
 
     public void removed(@NotNull Player player) {
         super.removed(player);
-        this.npc.setInteractingPlayer(null);
-        if (this.npc.isClientSide()) return;;
+        this.interactingNpc.setInteractingPlayer(null);
+        if (this.interactingNpc.isClientSide()) return;;
         if (!player.isAlive() || player instanceof ServerPlayer serverPlayer && serverPlayer.hasDisconnected()) {
             for (int i = GOOD_SLOT_START; i <= GOOD_SLOT_END; ++i) {
                 ItemStack stack = this.sellContainer.removeItemNoUpdate(i);
@@ -278,7 +278,7 @@ public class SellMenu extends NpcBaseMenu {
     }
 
     public List<SellDeal> getDeals() {
-        return this.npc.getSellDeals();
+        return this.interactingNpc.getSellDeals();
     }
 
     public static class GoodsGridSlot extends Slot {
@@ -303,11 +303,11 @@ public class SellMenu extends NpcBaseMenu {
         private final SellContainer sellContainer;
         private final Player player;
         private int removeCount;
-        private final NpcInteraction npc;
+        private final InteractingNpc npc;
         private final int index;
         private boolean requestQuickCraft;
 
-        public SellResultSlot(Player player, NpcInteraction npc, SellContainer buyContainer, int slot, int posX, int posY, int index) {
+        public SellResultSlot(Player player, InteractingNpc npc, SellContainer buyContainer, int slot, int posX, int posY, int index) {
             super(buyContainer, slot, posX, posY);
             this.player = player;
             this.npc = npc;
