@@ -18,7 +18,7 @@ public class LevelTowns extends SavedData {
     private final ServerLevel level;
     private final HashMap<UUID, Town> towns = new HashMap<>();
 
-    public static @NotNull LevelTowns get(ServerLevel level) {
+    public static @NotNull LevelTowns of(ServerLevel level) {
         return level.getDataStorage().computeIfAbsent(
                 (tag) -> new LevelTowns(level, tag),
                 () -> new LevelTowns(level),
@@ -70,7 +70,7 @@ public class LevelTowns extends SavedData {
         this.towns.remove(town.getUuid());
     }
 
-    public @NotNull Collection<Town> getTowns() {
+    public @NotNull Collection<Town> getAllTowns() {
         return this.towns.values();
     }
 
@@ -88,7 +88,7 @@ public class LevelTowns extends SavedData {
      * Delete town instance, keep structures, convert npcs to wanderers
      * @param townUUID UUID of the town to delete
      */
-    public void softDeleteTown(UUID townUUID) {
+    public void deleteTown(UUID townUUID) {
         Town town = this.towns.get(townUUID);
         if (town != null) {
             town.softDelete();
@@ -100,7 +100,7 @@ public class LevelTowns extends SavedData {
      * Delete town instance, destroy structures, kill npcs
      * @param townUUID UUID of the town to delete
      */
-    public void hardDeleteTown(UUID townUUID) {
+    public void deleteAndDemolishTown(UUID townUUID) {
         Town town = this.towns.get(townUUID);
         if (town != null) {
             town.hardDelete();
@@ -112,7 +112,7 @@ public class LevelTowns extends SavedData {
         long dayTime = this.level.getDayTime();
         if (dayTime == 0 || dayTime == 6000 || dayTime == 13000) {
             if (!this.towns.isEmpty()) {
-                for (Town town : this.getTowns()) {
+                for (Town town : this.getAllTowns()) {
                     if(dayTime == 0) {
                         town.ringTownBell(Town.TownBellRingType.DAWN);
                     } else if (dayTime == 6000) {
@@ -125,7 +125,7 @@ public class LevelTowns extends SavedData {
         }
         if ((level.getServer().getTickCount() % Config.TOWN_TICK_RATE_SECONDS * SharedConstants.TICKS_PER_SECOND) == 0) {
             if (!this.towns.isEmpty()) {
-                this.getTowns().forEach(Town::tick);
+                this.getAllTowns().forEach(Town::tick);
             }
         }
     }

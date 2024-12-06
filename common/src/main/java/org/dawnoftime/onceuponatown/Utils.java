@@ -1,6 +1,9 @@
 package org.dawnoftime.onceuponatown;
 
 import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.player.Player;
 import org.dawnoftime.onceuponatown.construction.EntityInfo;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
@@ -12,13 +15,40 @@ import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.phys.Vec3;
+import org.dawnoftime.onceuponatown.town.LevelTowns;
+import org.dawnoftime.onceuponatown.town.Town;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 
 public class Utils {
+    public static Town getNearestTown(ServerLevel level, BlockPos pos) {
+        return getNearestTown(level, pos, Integer.MAX_VALUE);
+    }
+
+    public static Town getNearestTown(ServerLevel level, BlockPos pos, int maxDist) {
+        if (maxDist <= 0) {
+            return null;
+        }
+        Collection<Town> towns = LevelTowns.of(level).getAllTowns();
+        if (towns.isEmpty()) {
+            return null;
+        }
+        Town town = null;
+        int dist;
+        for (Town next : towns) {
+            dist = (int)Math.sqrt(pos.distSqr(next.getCenter()));
+            if (dist < maxDist) {
+                town = next;
+                maxDist = dist;
+            }
+        }
+        return town;
+    }
 
     /**
      * Rotate the given BlockPos as part of a building oriented to North.

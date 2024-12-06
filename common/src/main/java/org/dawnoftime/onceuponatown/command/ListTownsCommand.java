@@ -18,8 +18,8 @@ public class ListTownsCommand {
     }
 
     private static int listTowns(CommandSourceStack source) {
-        LevelTowns manager = LevelTowns.get(source.getLevel());
-        Collection<Town> towns = manager.getTowns();
+        LevelTowns manager = LevelTowns.of(source.getLevel());
+        Collection<Town> towns = manager.getAllTowns();
         if (!towns.isEmpty()) {
             source.sendSuccess(() -> Component.literal("Following towns found (" + towns.size() + ") :"), false);
             for (Town town : towns) {

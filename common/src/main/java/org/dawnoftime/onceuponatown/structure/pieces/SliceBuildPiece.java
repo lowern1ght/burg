@@ -79,7 +79,7 @@ public class SliceBuildPiece extends StructurePiece {
             }
             //for(EntityInfo entity: schematicContent.getEntities()){} TODO Place the entities !
             if(this.townTag != null){
-                LevelTowns manager = LevelTowns.get(level.getLevel());
+                LevelTowns manager = LevelTowns.of(level.getLevel());
                 manager.initProtoTown(this.townTag);
             }
         }else{
