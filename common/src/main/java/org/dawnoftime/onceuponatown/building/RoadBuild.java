@@ -2,7 +2,9 @@ package org.dawnoftime.onceuponatown.building;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
 import org.dawnoftime.onceuponatown.building.type.SliceBuildType;
+import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
 import org.dawnoftime.onceuponatown.town.generation.TownMapUtils;
 import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
@@ -15,13 +17,27 @@ import static org.dawnoftime.onceuponatown.town.generation.ProtoTown.RANDOM_SOUR
 import static org.dawnoftime.onceuponatown.Config.DEFAULT_PATH_LENGTH;
 import static org.dawnoftime.onceuponatown.Config.PATH_STOP_RATE;
 
-public class RoadBuild<T extends SliceBuildType> extends SliceBuild<T> {
+public class RoadBuild extends SliceBuild {
     private final boolean isWide;
     private boolean canGrow = true;
 
-    public RoadBuild(T build, int length) {
+    public RoadBuild(SliceBuildType build, int length) {
         super(build, length);
         this.isWide = Objects.equals(build.getName(), WIDE_ROAD_TYPE_NAME);
+    }
+
+    public RoadBuild(Culture culture, CompoundTag tag) {
+        super(culture, tag);
+        this.isWide = tag.getBoolean("IsWide");
+        this.canGrow = tag.getBoolean("CanGrow");
+    }
+
+    @Override
+    public CompoundTag writeNBT() {
+        CompoundTag tag = super.writeNBT();
+        tag.putBoolean("IsWide", this.isWide);
+        tag.putBoolean("CanGrow", this.canGrow);
+        return tag;
     }
 
     public boolean isWide() {
@@ -148,28 +164,28 @@ public class RoadBuild<T extends SliceBuildType> extends SliceBuild<T> {
                 newBuildBuds.addAll(this.findBudsOnSide(town, TownMapUtils.Corner.SOUTH_EAST, this.getSizeX()));
             }
         }
-        newBuildBuds.stream().filter(Objects::nonNull).forEach(town::tryCreateRoad);
+        newBuildBuds.forEach(town::tryCreateRoad);
     }
 
     /**
      * Create Buds based on adjacent content in the TownMap, on a line starting clockwise from the cornerPos.
-     * @param map TownMap in which we create the Buds.
+     * @param town TownMap in which we create the Buds.
      * @param corner Corner to start the exploration. The side studied is always the rightDirection from this corner (i.e.
      *              for NORTH_WEST, we will study the NORTH side of this MapPath).
      * @param sideLength Size of the size to study.
      * @return A list that contains the Buds created in this function.
      */
-    private ArrayList<BuildBud> findBudsOnSide(ProtoTown map, TownMapUtils.Corner corner, int sideLength) {
+    private ArrayList<BuildBud> findBudsOnSide(ProtoTown town, TownMapUtils.Corner corner, int sideLength) {
         // We move the start BlockPos one block out of the MapBuild in diagonal.
         BlockPos cornerPos = this.getCornerPos(corner).relative(corner.getRightDirection()).relative(corner.getLeftDirection());
         BlockPos.MutableBlockPos cursor = cornerPos.mutable();
-        boolean isPreviousPosEmpty = map.isEmpty(cursor);
+        boolean isPreviousPosEmpty = town.isEmpty(cursor);
         cursor.move(corner.getLeftDirection(), -1);
         boolean isCurrentPosEmpty;
         ArrayList<BuildBud> buildBuds = new ArrayList<>();
         // We create an array that contains whenever each BlockPos is empty or not.
         for(int i = 1; i < sideLength + 2; i++){
-            isCurrentPosEmpty = map.isEmpty(cursor);
+            isCurrentPosEmpty = town.isEmpty(cursor);
             // We modify the value for the start and the end of the loop.
             if(i == 1) {
                 isPreviousPosEmpty &= isCurrentPosEmpty;
@@ -179,7 +195,7 @@ public class RoadBuild<T extends SliceBuildType> extends SliceBuild<T> {
             }
             // Finally we create the Bud if needed.
             if(isCurrentPosEmpty != isPreviousPosEmpty){
-                buildBuds.add(this.setupBud(map, cursor.immutable(), isCurrentPosEmpty, corner.getRightDirection()));
+                buildBuds.add(town.addToBuds(this.setupBud(town, cursor.immutable(), isCurrentPosEmpty, corner.getRightDirection())));
             }
             isPreviousPosEmpty = isCurrentPosEmpty;
             cursor.move(corner.getLeftDirection(), -1);
@@ -189,24 +205,24 @@ public class RoadBuild<T extends SliceBuildType> extends SliceBuild<T> {
 
     /**
      * Creates a Bud at the currentPos or position before depending on which one is empty.
-     * @param map TownMap is which we want to create a Bud.
+     * @param town TownMap is which we want to create a Bud.
      * @param currentPos Current position of the cursor.
      * @param isCurrentPosEmpty True if the current position of the cursor is empty, false otherwise.
      * @param budDir Direction oriented at the opposite of the MapPath, that corresponds to the RightDir of the Corner.
      * @return The created Bud instance.
      */
-    private BuildBud setupBud(ProtoTown map, BlockPos currentPos, boolean isCurrentPosEmpty, Direction budDir) {
+    private BuildBud setupBud(ProtoTown town, BlockPos currentPos, boolean isCurrentPosEmpty, Direction budDir) {
         BlockPos previousPos = currentPos.relative(budDir.getCounterClockWise());
-        Direction[] pathDirection = new Direction[map.getBuild(isCurrentPosEmpty ? previousPos : currentPos) instanceof SliceBuild ? 2 : 1];
+        Direction[] pathDirection = new Direction[town.getBuild(isCurrentPosEmpty ? previousPos : currentPos) instanceof SliceBuild ? 2 : 1];
         pathDirection[0] = budDir.getOpposite();
         if(pathDirection.length > 1){
             pathDirection[1] = isCurrentPosEmpty ? budDir.getCounterClockWise() : budDir.getClockWise();
         }
-        return BuildBud.createBud(map, isCurrentPosEmpty ? currentPos : previousPos, TownMapUtils.Corner.getCornerNextToDir(budDir, isCurrentPosEmpty), pathDirection);
+        return new BuildBud(BuildBud.BudType.DEFAULT, isCurrentPosEmpty ? currentPos : previousPos, TownMapUtils.Corner.getCornerNextToDir(budDir, isCurrentPosEmpty), pathDirection);
     }
 
     @Override
-    public float getMapFloat() {
-        return 2 + this.hashCode() * 0.0001F;
+    protected BuildCategory getBuildTypeCategory() {
+        return BuildCategory.ROAD;
     }
 }

@@ -2,9 +2,9 @@ package org.dawnoftime.onceuponatown.structure.pieces;
 
 import net.minecraft.server.MinecraftServer;
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.building.Build;
 import org.dawnoftime.onceuponatown.building.SliceBuild;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
-import org.dawnoftime.onceuponatown.building.type.SliceBuildType;
 import org.dawnoftime.onceuponatown.construction.BlockInfo;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.culture.CultureManager;
@@ -28,7 +28,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class SliceBuildPiece extends StructurePiece {
     private final BlockPos originPos;
-    private final SliceBuild<? extends SliceBuildType> sliceBuild;
+    private final SliceBuild sliceBuild;
     private final String cultureId;
     private final @Nullable CompoundTag townTag;
 
@@ -38,7 +38,7 @@ public class SliceBuildPiece extends StructurePiece {
      * @param orientation Direction of the building.
      * @param build Instance of building that is placed.
      */
-    public SliceBuildPiece(BlockPos originPos, Direction orientation, SliceBuild<? extends SliceBuildType> build, Culture culture, @Nullable ProtoTown protoTown) {
+    public SliceBuildPiece(BlockPos originPos, Direction orientation, SliceBuild build, Culture culture, @Nullable ProtoTown protoTown) {
         super(StructurePieceRegistry.REGISTRY.SLICE_BUILD_PIECE.get(), 0, makeBoundingBox(originPos.getX(), originPos.getY(), originPos.getZ(), orientation, build.getNorthSizeX(), build.getYSize(), build.getNorthSizeZ()));
         // We set the orientation to north, because the direction will try to rotate the BlockState and we already managed it.
         this.setOrientation(Direction.NORTH);
@@ -55,7 +55,7 @@ public class SliceBuildPiece extends StructurePiece {
         this.originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
         this.cultureId = tag.getString("CultureId");
         Culture culture = CultureManager.getCultureById(this.cultureId);
-        this.sliceBuild = new SliceBuild<>(culture, SliceBuildType.class, tag.getCompound("Build"));
+        this.sliceBuild = (SliceBuild) Build.readNBT(culture, tag.getCompound("Build"));
         this.townTag = (tag.contains("Town")) ? tag.getCompound("Town") : null;
     }
 

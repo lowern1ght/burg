@@ -160,8 +160,8 @@ public class Culture {
         this.starterPack.put(buildTypeName, new Pair<>(min, max));
     }
 
-    public <T extends BuildType> T getBuildType(String buildName, Class<T> clazz){
-        return clazz.cast(this.buildTypeMap.get(buildName));
+    public BuildType getBuildType(String buildName){
+        return this.buildTypeMap.get(buildName);
     }
 
     private void dropBuildTypeWithoutVariant(){

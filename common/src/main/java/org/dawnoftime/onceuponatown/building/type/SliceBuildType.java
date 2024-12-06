@@ -6,7 +6,6 @@ import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Set;
 
 import static org.dawnoftime.onceuponatown.town.generation.ProtoTown.RANDOM_SOURCE;
