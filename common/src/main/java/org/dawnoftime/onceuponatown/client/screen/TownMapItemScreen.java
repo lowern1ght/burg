@@ -6,7 +6,10 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FastColor;
+import org.apache.commons.lang3.ArrayUtils;
 import org.dawnoftime.onceuponatown.Ouat;
+
+import java.util.Arrays;
 
 public class TownMapItemScreen extends Screen {
     private static final ResourceLocation TEXTURE = Ouat.createOuatResource("textures/gui/town_map_item_screen.png");
@@ -24,9 +27,11 @@ public class TownMapItemScreen extends Screen {
     private int xDrag;
     private int yDrag;
     private int[][] map;
+    private float[][] floatMap;
 
-    public TownMapItemScreen(int[] map) {
-        super(Component.literal("Town map"));
+    public TownMapItemScreen(Component townName, float[][] map) {
+        super(townName);
+        //floatMap = map;
     }
 
     @Override
@@ -37,7 +42,11 @@ public class TownMapItemScreen extends Screen {
         mapMinY = topPos + MAP_MARGIN;
         mapMaxX = leftPos + TEXTURE_WIDTH - MAP_MARGIN;
         mapMaxY = topPos + TEXTURE_HEIGHT - MAP_MARGIN;
-        map = getExampleMap();
+        //map = getExampleMap();
+
+        floatMap = getExampleFloatMap();
+        Ouat.info("Map :\n" + Arrays.deepToString(floatMap));
+
         mapZoom = getMapBestScale();
         // Reset view button
         int buttonWidth = 12;
@@ -56,12 +65,48 @@ public class TownMapItemScreen extends Screen {
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(graphics);
         graphics.blit(TEXTURE,leftPos, topPos, 0, 0, TEXTURE_WIDTH, TEXTURE_HEIGHT, TEXTURE_WIDTH, TEXTURE_HEIGHT);
-        drawCenteredMap(graphics, map, mapMinX, mapMinY, mapMaxX, mapMaxY, mapZoom, xDrag, yDrag);
-        graphics.drawString(this.font, Component.literal("Town map"), leftPos + 42, topPos + 11,4210752, false);
+        //drawCenteredSquareMap(graphics, map, mapMinX, mapMinY, mapMaxX, mapMaxY, mapZoom, xDrag, yDrag);
+        drawCenteredFloatMap(graphics, floatMap, mapMinX, mapMinY, mapMaxX, mapMaxY, mapZoom, xDrag, yDrag);
+        graphics.drawString(this.font, Component.literal("Map of ").append(title).append(" | zoom " + mapZoom), leftPos + 42, topPos + 11,4210752, false);
         super.render(graphics, mouseX, mouseY, partialTick);
     }
 
-    private void drawCenteredMap(GuiGraphics graphics, int[][] map, int mapMinX, int mapMinY, int mapMaxX, int mapMaxY, int scale, int offsetX, int offsetY) {
+    private void drawCenteredFloatMap(GuiGraphics graphics, float[][] map, int mapMinX, int mapMinY, int mapMaxX, int mapMaxY, int scale, int offsetX, int offsetY) {
+        int mapWidth = getMapWidth(map) * scale;
+        int mapX = mapMinX + ((mapMaxX - mapMinX - mapWidth) / 2) + offsetX;
+        int mapHeight = map.length * scale;
+        int mapY = mapMinY + ((mapMaxY - mapMinY - mapHeight) / 2) + offsetY;
+        Ouat.info("X : " + mapX + " Width : " + mapWidth + " Y : " + mapY + " Height : " + mapHeight);
+
+        for (int i = 0; i < map.length; ++i) {
+            for (int j = 0; j < map[i].length; ++j) {
+                int squareMinX = mapX + (j * scale);
+                int squareMaxX = squareMinX + scale;
+
+                int squareMinY = mapY + (i * scale);
+                int squareMaxY = squareMinY + scale;
+
+                float block = map[i][j];
+                int blockType = (int)block;
+                float fAlpha = 255.0F * (block - blockType) / Float.MAX_VALUE;
+                int color = 0;
+                if (blockType == 1) {
+                    color = FastColor.ARGB32.color((int)fAlpha, 136, 109, 42);
+                } else if (blockType == 2) {
+                    color = FastColor.ARGB32.color((int)fAlpha, 100, 100, 100);
+                }
+
+                boolean noBuild = (blockType == 0);
+                boolean squareInsideBoundaries = squareMinX > mapMinX && squareMaxX < mapMaxX && squareMinY > mapMinY && squareMaxY < mapMaxY;
+                if (!noBuild && squareInsideBoundaries) {
+
+                }
+                graphics.fill(squareMinX, squareMinY, squareMaxX, squareMaxY, FastColor.ARGB32.color((int)255, 136, 109, 42));
+            }
+        }
+    }
+
+    private void drawCenteredSquareMap(GuiGraphics graphics, int[][] map, int mapMinX, int mapMinY, int mapMaxX, int mapMaxY, int scale, int offsetX, int offsetY) {
         int mapWidth = map.length * scale;
         int mapHeight = map.length * scale;
         int mapX = mapMinX + ((mapMaxX - mapMinX - mapWidth) / 2) + offsetX;
@@ -84,7 +129,26 @@ public class TownMapItemScreen extends Screen {
     }
 
     private int getMapBestScale() {
-        return Math.max(1, (mapMaxX - mapMinX) / map.length);
+        if (floatMap.length == 0) {
+            return 1;
+        }
+        int mapMaxSizeX = getMapWidth(floatMap);
+        return Math.max(1, Math.max(((mapMaxX - mapMinX) / mapMaxSizeX), (mapMaxY - mapMinY) / floatMap.length));
+        //return Math.max(1, (mapMaxX - mapMinX) / map.length);
+    }
+
+    private int getMapWidth(float[][] map) {
+        if (map == null || map.length == 0) {
+            return 0;
+        }
+        int width = map[0].length;
+        for (int i = 1; i < map.length; ++i) {
+            int l = map[i].length;
+            if (l > width) {
+                width = l;
+            }
+        }
+        return width;
     }
 
     @Override
@@ -133,6 +197,20 @@ public class TownMapItemScreen extends Screen {
     @Override
     public boolean isPauseScreen() {
         return false;
+    }
+
+    private float[][] getExampleFloatMap() {
+        return new float[][] {
+                {0.0F, 0.0F, 2.0F, 1.6525F, 1.6525F, 1.6525F, 0.0F, 0.0F, 0.0F, 0.0F},
+                {0.0F, 0.0F, 2.0F, 1.6525F, 1.6525F, 1.6525F, 0.0F, 0.0F, 0.0F},
+                {0.0F, 0.0F, 2.0F, 1.6525F, 1.6525F, 1.6525F, 0.0F, 0.0F},
+                {2.0F, 2.0F, 2.0F, 2.0F, 0.0F, 0.0F, 0.0F},
+                {1.153F, 1.153F, 2.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
+                {1.153F, 1.153F, 2.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
+                {1.153F, 1.153F, 2.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F},
+                {0.0F, 0.0F, 2.0F, 0.0F, 0.0F},
+                {0.0F, 0.0F, 2.0F, 0.0F, 0.0F}
+        };
     }
 
     private int[][] getExampleMap() {

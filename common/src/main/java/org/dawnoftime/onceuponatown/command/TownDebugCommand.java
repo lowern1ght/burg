@@ -20,8 +20,8 @@ public class TownDebugCommand {
 
     private static int listTowns(CommandSourceStack source) {
         Vec3 sourcePos = source.getPosition();
-        LevelTowns manager = LevelTowns.get(source.getLevel());
-        Collection<Town> towns = manager.getTowns();
+        LevelTowns manager = LevelTowns.of(source.getLevel());
+        Collection<Town> towns = manager.getAllTowns();
         if (!towns.isEmpty()) {
             Town closestTown = null;
             double dist = -1;

@@ -49,7 +49,7 @@ public class BuildingPiece extends TemplateStructurePiece {
         this.templatePosition = new BlockPos(this.templatePosition.getX(), i - 1, this.templatePosition.getZ());
         super.postProcess(level, manager, chunkGenerator, random, box, chunkPos, pos);
         if(this.townTag != null){
-            LevelTowns levelTowns = LevelTowns.get(level.getLevel());
+            LevelTowns levelTowns = LevelTowns.of(level.getLevel());
             levelTowns.initProtoTown(this.townTag);
         }
     }
