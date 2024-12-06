@@ -5,6 +5,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
+import net.minecraft.nbt.Tag;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import org.dawnoftime.onceuponatown.Config;
@@ -54,7 +55,7 @@ public class ProtoTown {
         this.buildBuds = buildBuds;
         this.builds = builds;
         this.getSurfaceY = getSurfaceY;
-        this.townMap = new MapBlock[1][1];
+        this.townMap = this.createTownMap();
     }
 
     public ProtoTown(Culture culture, String name, BlockPos center, BiFunction<Integer, Integer, Integer> getSurfaceY){
@@ -76,6 +77,23 @@ public class ProtoTown {
         this.builds.forEach((build) -> bds.add(build.writeNBT()));
         tag.put("Builds", bds);
         return tag;
+    }
+
+    /**
+     * @return An array that contains the MapBlock instance based on the builds in this Town. Used when a Town is loaded from NBT.
+     */
+    public MapBlock[][] createTownMap(){
+        MapBlock[][] map = new MapBlock[this.SECorner.getX() - this.NWCorner.getX() + 1][this.SECorner.getZ() - this.NWCorner.getZ() + 1];
+        for(Build build: this.builds){
+            int xStart = this.getMapX(build.getOriginPos().getX());
+            int zStart = this.getMapZ(build.getOriginPos().getZ());
+            for (int x = 0; x < build.getSizeX(); x++) {
+                for (int z = 0; z < build.getSizeZ(); z++) {
+                    this.setMapBlockInTownMap(xStart + x, zStart + z, build);
+                }
+            }
+        }
+        return map;
     }
 
     public String getName() {
@@ -104,11 +122,33 @@ public class ProtoTown {
         SliceBuildType wideRoad = (SliceBuildType) this.culture.getBuildType(Culture.WIDE_ROAD_TYPE_NAME);
         boolean flipped = RANDOM_SOURCE.nextBoolean(); //TODO Will be used to decide the direction of the central road.
         
-        // First let's put the vertical big path, with length of 2 * mini_size + big_width
+        // First let's put the main vertical wide road, with length of 2 * mini_size + big_width
         int halfBigPath = wideRoad.getWidth() / 2;
-        BuildBud firstBuildBud = this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, this.getCenter().offset(-halfBigPath, 0, -halfBigPath - DEFAULT_PATH_LENGTH), TownMapUtils.Corner.NORTH_WEST, new Direction[]{Direction.NORTH}));
-        SliceBuild mainPath = new RoadBuild(wideRoad, 2 * DEFAULT_PATH_LENGTH + wideRoad.getWidth());
-        boolean success = this.tryBuild(mainPath, firstBuildBud);
+        BuildBud firstBud = this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, this.getCenter().offset(-halfBigPath, 0, -halfBigPath - DEFAULT_PATH_LENGTH), TownMapUtils.Corner.NORTH_WEST, new Direction[]{Direction.NORTH}));
+        SliceBuild mainRoad = new RoadBuild(wideRoad, 2 * DEFAULT_PATH_LENGTH + wideRoad.getWidth());
+        boolean success = this.tryBuild(mainRoad, firstBud);
+        if(success){
+            // Working on the west side of the road.
+            if(RANDOM_SOURCE.nextBoolean()){
+                // We put a perpendicular road.
+                BuildBud bud = this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, mainRoad.getOriginPos().offset(- 1, 0, DEFAULT_PATH_LENGTH), TownMapUtils.Corner.NORTH_EAST, new Direction[]{Direction.EAST}));
+                SliceBuild road = new RoadBuild(wideRoad, DEFAULT_PATH_LENGTH);
+                success = this.tryBuild(road, bud);
+            }else{
+                // We just add a bud.
+                this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, mainRoad.getOriginPos().offset(- 1, 0, RANDOM_SOURCE.nextInt(3) * DEFAULT_PATH_LENGTH), TownMapUtils.Corner.NORTH_EAST, new Direction[]{Direction.EAST}));
+            }
+            // And now on the east side.
+            if(RANDOM_SOURCE.nextBoolean()){
+                // We put a perpendicular road.
+                BuildBud bud = this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, mainRoad.getOriginPos().offset(wideRoad.getWidth(), 0, RANDOM_SOURCE.nextInt(3) * DEFAULT_PATH_LENGTH), TownMapUtils.Corner.NORTH_WEST, new Direction[]{Direction.WEST}));
+                SliceBuild road = new RoadBuild(wideRoad, DEFAULT_PATH_LENGTH);
+                success &= this.tryBuild(road, bud);
+            }else{
+                // We just add a bud.
+                this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, mainRoad.getOriginPos().offset(wideRoad.getWidth(), 0, DEFAULT_PATH_LENGTH + halfBigPath - 5 + RANDOM_SOURCE.nextInt(3) * 5), TownMapUtils.Corner.NORTH_WEST, new Direction[]{Direction.WEST}));
+            }
+        }
         return success;
     }
     
