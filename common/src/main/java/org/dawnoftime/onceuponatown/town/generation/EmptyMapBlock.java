@@ -1,6 +1,6 @@
 package org.dawnoftime.onceuponatown.town.generation;
 
-public enum EmptyMapBlock {
+public enum EmptyMapBlock implements MapBlock {
     WATER,
     LAVA;
 

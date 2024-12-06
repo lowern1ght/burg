@@ -22,8 +22,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 
-public abstract class Build<T extends BuildType> implements MapBlock {
-    private final T buildType;
+public abstract class Build implements MapBlock {
+    private final BuildType buildType;
 
     private BlockPos originPos;
     private Direction direction = Direction.NORTH;
@@ -31,12 +31,12 @@ public abstract class Build<T extends BuildType> implements MapBlock {
     private Rotation rotation = Rotation.NONE;
     private int level = 1;
 
-    public Build(T buildType) {
+    public Build(BuildType buildType) {
         this.buildType = buildType;
     }
 
-    public Build(Culture culture, Class<T> clazz, CompoundTag tag){
-        this(culture.getBuildType(tag.getString("BuildType"), clazz));
+    public Build(Culture culture, CompoundTag tag){
+        this(culture.getBuildType(tag.getString("BuildType")));
         this.originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
         this.direction = Direction.byName(tag.getString("Direction"));
         this.level = tag.getInt("Level");
@@ -44,6 +44,7 @@ public abstract class Build<T extends BuildType> implements MapBlock {
 
     public CompoundTag writeNBT() {
         CompoundTag tag = new CompoundTag();
+        tag.putString("BuildCategory", this.getBuildTypeCategory().toString());
         tag.putString("BuildType", this.buildType.getName());
         tag.put("OriginPos", NbtUtils.writeBlockPos(this.originPos));
         tag.putString("Direction", this.direction.getName());
@@ -57,7 +58,7 @@ public abstract class Build<T extends BuildType> implements MapBlock {
         return this.level;
     }
 
-    public Build<T> mirror(Mirror mirror) {
+    public Build mirror(Mirror mirror) {
         //TODO Is it useful ?
         this.mirror = mirror;
         return this;
@@ -67,7 +68,7 @@ public abstract class Build<T extends BuildType> implements MapBlock {
         return this.mirror;
     }
 
-    public Build<T> rotation(Rotation rotation) {
+    public Build rotation(Rotation rotation) {
         //TODO Is it correct ?
         this.rotation = rotation;
         return this;
@@ -77,7 +78,7 @@ public abstract class Build<T extends BuildType> implements MapBlock {
         return this.rotation;
     }
 
-    public T getBuildType() {
+    public BuildType getBuildType() {
         return this.buildType;
     }
 
@@ -222,7 +223,7 @@ public abstract class Build<T extends BuildType> implements MapBlock {
     }
 
     @Override
-    public @Nullable Build<T> getBuild() {
+    public @Nullable Build getBuild() {
         return this;
     }
 
@@ -234,4 +235,19 @@ public abstract class Build<T extends BuildType> implements MapBlock {
      * @param map Town in which we add the Build.
      */
     protected void onAddedToTown(ProtoTown map){}
+
+    protected abstract BuildCategory getBuildTypeCategory();
+
+    public static Build readNBT(Culture culture, CompoundTag tag){
+        BuildCategory category = BuildCategory.valueOf(tag.getString("BuildCategory"));
+        return switch(category){
+            case BUILDING -> new Building(culture, tag);
+            case ROAD -> new RoadBuild(culture, tag);
+        };
+    }
+
+    public enum BuildCategory {
+        BUILDING,
+        ROAD
+    }
 }

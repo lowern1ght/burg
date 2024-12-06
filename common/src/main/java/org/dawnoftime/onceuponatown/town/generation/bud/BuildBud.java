@@ -2,11 +2,15 @@ package org.dawnoftime.onceuponatown.town.generation.bud;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.nbt.StringTag;
 import org.dawnoftime.onceuponatown.building.Build;
 import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
 import org.dawnoftime.onceuponatown.town.generation.TownMapUtils.Corner;
 
-import javax.annotation.Nullable;
+import java.util.Objects;
 
 import static org.dawnoftime.onceuponatown.Config.BUD_MINIMAL_SPACE;
 
@@ -22,48 +26,46 @@ public class BuildBud {
     private final Direction[] adjacentPaths;
     private final BudType type;
 
-    private BuildBud(ProtoTown map, BudType type, BlockPos realPos, Corner corner, Direction[] adjacentPaths) {
+
+    /**
+     * Create a new instance of Bud.
+     * @param type          Type of this bud, depending on the building it will be able to support.
+     * @param realPos       BlockPos of the bud. The Y value doesn't matter : it will be recalculated on placement.
+     * @param corner        Corner type of this bud.
+     * @param adjacentPaths Direction where there is a MapPath from the realPos.
+     */
+    public BuildBud(BudType type, BlockPos realPos, Corner corner, Direction[] adjacentPaths) {
         this.type = type;
         this.realPos = realPos;
         this.corner = corner;
-        this.setSquaredDistToCenter(map);
         this.adjacentPaths = adjacentPaths;
-        map.addToBuds(this);
     }
 
     /**
-     * Create a new instance of a Bud and adds it to the TownMap. If a similar Bud exists, returns null.
-     *
-     * @param map           TownMap of the bud.
-     * @param type          Type of this bud, depending on the building it will be able to support.
-     * @param realPos       BlockPos of the bud.
-     * @param corner        Corner type of this bud.
-     * @param adjacentPaths Direction where there is a MapPath from the realPos.
-     * @return The new instance of Bud or null.
+     * Creates an instance of Bud from the NBT tag.
+     * @param tag CompoundTag that contains all the information needed to create the bud.
      */
-    @Nullable
-    public static BuildBud createBud(ProtoTown map, BudType type, BlockPos realPos, Corner corner, Direction[] adjacentPaths) {
-        for (BuildBud buildBud : map.getBuds()) {
-            if (buildBud.realPos.getX() == realPos.getX() && buildBud.realPos.getZ() == realPos.getZ()) {
-                return null;
-            }
+    public BuildBud(CompoundTag tag){
+        this.type = BudType.valueOf(tag.getString("Type"));
+        this.realPos = NbtUtils.readBlockPos(tag.getCompound("RealPos"));
+        this.corner = Corner.valueOf(tag.getString("Corner"));
+        ListTag tags = tag.getList("AdjacentPaths", ListTag.TAG_STRING);
+        this.adjacentPaths = tags.stream()
+                .map(tagElement -> Direction.byName(tagElement.getAsString()))
+                .toArray(Direction[]::new);
+    }
+
+    public CompoundTag writeNBT(){
+        CompoundTag tag = new CompoundTag();
+        tag.putString("Type", this.type.toString());
+        tag.put("RealPos", NbtUtils.writeBlockPos(this.realPos));
+        tag.putString("Corner", this.corner.toString());
+        ListTag tags = new ListTag();
+        for(Direction dir: this.adjacentPaths){
+            tags.add(StringTag.valueOf(dir.toString()));
         }
-        //TODO Replace the Y with the Y value of the adjacent Path. Is it useful or do I just recalculate the correct Y when a build is set at the given position ?
-        return new BuildBud(map, type, realPos, corner, adjacentPaths);
-    }
-
-    /**
-     * Create a new instance of a Bud of DEFAULT type, and adds it to the TownMap. If a similar Bud exists, returns null.
-     *
-     * @param map           TownMap of the bud.
-     * @param realPos       BlockPos of the bud.
-     * @param corner        Corner type of this bud.
-     * @param adjacentPaths Direction where there is a MapPath from the realPos.
-     * @return The new instance of Bud or null.
-     */
-    @Nullable
-    public static BuildBud createBud(ProtoTown map, BlockPos realPos, Corner corner, Direction[] adjacentPaths) {
-        return createBud(map, BudType.DEFAULT, realPos, corner, adjacentPaths);
+        tag.put("AdjacentPaths", tags);
+        return tag;
     }
 
     /**
@@ -75,21 +77,12 @@ public class BuildBud {
 
     /**
      * Function that updates the squared distance between this bud and the town center.
-     *
-     * @param map TownMap of the bud.
+     * @param townCenterPos TownMap of the bud.
      */
-    public void setSquaredDistToCenter(ProtoTown map) {
-        this.squaredDistToCenter = this.getSquaredDistTo(map.getCenter());
-    }
-
-    /**
-     * @param pos BlockPos to which we want to compute the horizontal distance.
-     * @return The squared distance between the given vec3 and this Bud.
-     */
-    public int getSquaredDistTo(BlockPos pos) {
-        int difX = this.realPos.getX() - pos.getX();
-        int difZ = this.realPos.getZ() - pos.getZ();
-        return difX * difX + difZ * difZ;
+    public void setSquaredDistToCenter(BlockPos townCenterPos) {
+        int difX = this.realPos.getX() - townCenterPos.getX();
+        int difZ = this.realPos.getZ() - townCenterPos.getZ();
+        this.squaredDistToCenter = difX * difX + difZ * difZ;
     }
 
     /**
@@ -120,7 +113,7 @@ public class BuildBud {
      * @param dir   Direction of the MapBuild, used to get the size on X and Z axis.
      * @return The BlockPos of the origin of the MapBuild, at the correct Y.
      */
-    public BlockPos findOriginPos(Build<?> build, Direction dir) {
+    public BlockPos findOriginPos(Build build, Direction dir) {
         BlockPos origin = this.corner.getOrigin(this.realPos, build, dir);
         return origin.atY(build.findAdaptedY(origin, dir));
     }
@@ -176,6 +169,25 @@ public class BuildBud {
      */
     public BudType getType() {
         return this.type;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj){
+            return true;
+        }
+        if(obj instanceof BuildBud bud){
+            return (bud.realPos.getX() == this.realPos.getX()
+                    && bud.realPos.getZ() == this.realPos.getZ()
+                    && bud.corner == this.corner
+                    && bud.type == this.type);
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(realPos.getX(), realPos.getZ(), corner, type);
     }
 
     public enum BudType{

@@ -3,7 +3,6 @@ package org.dawnoftime.onceuponatown.town;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.levelgen.Heightmap;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.building.type.BuildType;
 import org.dawnoftime.onceuponatown.construction.ConstructionProject;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 import org.dawnoftime.onceuponatown.culture.Culture;
@@ -30,24 +29,27 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
+import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class Town extends ProtoTown {
     public static final int ACTIVE_AREA_RADIUS = 80;
     public static final int PRODUCTION_HARVEST_RATE = SharedConstants.TICKS_PER_GAME_DAY;
 
     public final Level level;
+    private final TownInventory inventory;
+    private final List<UUID> npcs;
+    private final List<ConstructionProject> constructionProjects;
+    // The variables bellow are not saved.
+    private long lastProductionHarvest;
     private HashMap<Integer, Orientation> developmentProgress;
     private int experience;
     private int buildingClutter;
-    private final TownInventory inventory;
-    private final List<UUID> npcs;
-    private long lastProductionHarvest;
-    private final List<ConstructionProject> constructionProjects;
     private CustomBossEvent townXpBar;
     private List<Player> visitors;
     private boolean active;
@@ -61,13 +63,19 @@ public class Town extends ProtoTown {
      * @throws CorruptedCultureException if the corresponding culture could not be found.
      */
     public Town(Level level, CompoundTag tag) throws CorruptedCultureException {
+        this(level, CultureManager.getCultureById(tag.getString("Culture")), tag);
+    }
+
+    private Town(Level level, Culture culture, CompoundTag tag) throws CorruptedCultureException {
         super(
                 tag.getUUID("UUID"),
-                CultureManager.getCultureById(tag.getString("Culture")),
+                culture,
                 tag.getString("Name"),
                 NbtUtils.readBlockPos(tag.getCompound("Center")),
                 NbtUtils.readBlockPos(tag.getCompound("NWCorner")).mutable(),
                 NbtUtils.readBlockPos(tag.getCompound("SECorner")).mutable(),
+                tag.getList("BuildBuds", Tag.TAG_COMPOUND).stream().map(budTag -> new BuildBud((CompoundTag) budTag)).collect(Collectors.toList()),
+                tag.getList("Builds", Tag.TAG_COMPOUND).stream().map(buildTag -> Build.readNBT(culture, (CompoundTag) buildTag)).collect(Collectors.toList()),
                 (x, z) -> level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z)
         );
         this.level = level;
@@ -85,6 +93,10 @@ public class Town extends ProtoTown {
         this.init();
     }
 
+    public static Town createFromCommand(Level level, Culture culture, String name) {
+        return null;
+    }
+
     /**
      * Function to run after Town instance creation or loading to create the associated Builds, NPCs, etc.
      */
@@ -94,9 +106,6 @@ public class Town extends ProtoTown {
         this.updateConstructionProject();
     }
 
-    public static Town createFromCommand(Level level, Culture culture, String name) {
-        return null;
-    }
 
     @Override
     public CompoundTag writeNBT() {
@@ -185,7 +194,7 @@ public class Town extends ProtoTown {
     }
 
     private void collectProduction() {
-        for (Build<? extends BuildType> build : this.getBuilds()) {
+        for (Build build : this.getBuilds()) {
             HashMap<ResourceLocation, Integer> production = build.getProduction();
             //production.forEach(this.inventory::add);
         }

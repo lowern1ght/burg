@@ -95,7 +95,7 @@ public class SchematicContent {
      * @param resourceManager Used to load the schematics.
      * @return The final SchematicContent rotated in the correct direction.
      */
-    public static SchematicContent reconstruct(SliceBuild<? extends SliceBuildType> build, ResourceManager resourceManager){
+    public static SchematicContent reconstruct(SliceBuild build, ResourceManager resourceManager){
         // First, we load the needed schematics.
         HashMap<String, SchematicContent[]> sliceMap = new HashMap<>();
         build.getBuildVariantMap().forEach((variantName, pair) -> {
@@ -107,7 +107,7 @@ public class SchematicContent {
         // Now we can build the schematic using the slices.
         BlockPos originPos = build.getOriginPos();
         int originY = originPos.getY();
-        int patternLength = build.getBuildType().getPatternLength();
+        int patternLength = ((SliceBuildType) build.getBuildType()).getPatternLength();
         SliceBuild.SliceProperty[] yShape = build.getYShape();
         SchematicContent schematic = new SchematicContent();
         for(int yIndex = 0; yIndex < yShape.length; yIndex++){

@@ -18,25 +18,25 @@ import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
 import org.jetbrains.annotations.Nullable;
 import oshi.util.tuples.Pair;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-import java.util.function.BiFunction;
 
-public class SliceBuild<T extends SliceBuildType> extends Build<T> {
+import static org.dawnoftime.onceuponatown.building.type.SliceBuildType.SliceBuildShape.FLAT;
+import static org.dawnoftime.onceuponatown.building.type.SliceBuildType.SliceBuildShape.SLAB;
+
+public abstract class SliceBuild extends Build {
     private final int width;
     protected int length;
     protected SliceProperty[] yShape;
 
-    public SliceBuild(T build, int length) {
+    public SliceBuild(SliceBuildType build, int length) {
         super(build);
         this.width = build.getWidth();
         this.length = length;
         this.yShape = new SliceProperty[length];
     }
 
-    public SliceBuild(Culture culture, Class<T> clazz, CompoundTag tag){
-        super(culture, clazz, tag);
+    public SliceBuild(Culture culture, CompoundTag tag){
+        super(culture, tag);
         this.width = tag.getInt("Width");
         this.length = tag.getInt("Length");
         ListTag tags = tag.getList("Slices", ListTag.TAG_COMPOUND);
@@ -97,41 +97,82 @@ public class SliceBuild<T extends SliceBuildType> extends Build<T> {
 
     public void computeShape(ProtoTown town){
         Direction dir = this.getDirection();
-        // We set the cursors on both side of the road at its start.
-        BlockPos.MutableBlockPos roadLeftCursor = this.getCornerPos(TownMapUtils.Corner.getCornerNextToDir(dir.getOpposite(), false)).mutable();
-        BlockPos.MutableBlockPos roadRightCursor = roadLeftCursor.relative(dir.getClockWise(), this.getSize(dir) - 1).mutable();
-        List<HashMap<Integer, Integer>> slicesSectionsList = new ArrayList<>();
-        HashMap<Integer, Integer> ySection = new HashMap<>();
-        for(int i = 0; i < this.length; i++){
-            // The slices are divided in section without locked slices (fixed shapes and Y that we don't want to edit).
-            if(this.yShape[i] != null && this.yShape[i].locked){
-                // If this section of slice is not empty, then we move it to the list of section and start with a new one.
-                if(!ySection.isEmpty()){
-                    slicesSectionsList.add(ySection);
-                    ySection = new HashMap<>();
-                }
-            }else{
-                ySection.put(i, town.getSurfaceY(
-                        (roadLeftCursor.getX() + roadRightCursor.getX()) / 2,
-                        (roadLeftCursor.getZ() + roadRightCursor.getZ()) / 2));
-            }
+        // We set the cursors on both side of the road at its start, on block before to smooth the curve.
+        BlockPos.MutableBlockPos roadLeftCursor = this.getCornerPos(TownMapUtils.Corner.getCornerNextToDir(dir.getOpposite(), false)).mutable().move(dir.getOpposite());
+        BlockPos.MutableBlockPos roadRightCursor = roadLeftCursor.relative(dir.getClockWise(), this.getSize(dir) - 1).mutable().move(dir.getOpposite());
+        // The array has 2 more values on both sides to allow smoothing.
+        int[] yArray = new int[this.length + 4];
+        for(int i = 0; i < this.length + 2; i++){
+            yArray[i + 1] = town.getSurfaceY((roadLeftCursor.getX() + roadRightCursor.getX()) / 2, (roadLeftCursor.getZ() + roadRightCursor.getZ()) / 2);
             roadLeftCursor.move(dir);
             roadRightCursor.move(dir);
         }
-        slicesSectionsList.add(ySection);
-        for(HashMap<Integer, Integer> ySec : slicesSectionsList){
-            this.smoothSliceSection(ySec).forEach((i, slice) -> this.yShape[i] = slice);
+        // We fill the first and last y with the adjacent one. These values will be used to smooth the shape later.
+        yArray[0] = yArray[1];
+        yArray[yArray.length - 1] = yArray[yArray.length - 2];
+        // Finally we create the new shape. To do that, we iterate on the Y and smooth section by section (delimited by locked slices).
+        SliceBuild.SliceProperty[] newYShape = new SliceProperty[this.length];
+        int start = 0;
+        for(int z = 0; z < this.length; z++){
+            if(this.yShape[z] != null && this.yShape[z].locked()){
+                newYShape[z] = this.yShape[z];
+                if(start < z){
+                    SliceBuild.SliceProperty[] smoothShape = this.smoothSliceSection(start + 2, z + 2, yArray);
+                    System.arraycopy(smoothShape, 0, newYShape, start, smoothShape.length);
+                }
+                start = z + 1;
+            }
         }
+        if(start < this.length){
+            SliceBuild.SliceProperty[] smoothShape = this.smoothSliceSection(start + 2, this.length + 2, yArray);
+            System.arraycopy(smoothShape, 0, newYShape, start, smoothShape.length);
+        }
+        this.yShape = newYShape;
     }
 
-    private HashMap<Integer, SliceProperty> smoothSliceSection(HashMap<Integer, Integer> sliceSection){
-        HashMap<Integer, SliceProperty> slices = new HashMap<>();
-        // TODO Do the smooth function for paths !
-        sliceSection.forEach((keyY, y) -> slices.put(keyY, new SliceProperty(
-                y,
-                SliceBuildType.SliceBuildShape.FLAT,
-                this.getBuildType().getRandomVariantName(SliceBuildType.SliceBuildShape.FLAT),
-                false)));
+    /**
+     * Function that compute the shapes of the roads.
+     * @param start First slice we want to evaluate.
+     * @param end Last excluded slice that bound the studied slices.
+     * @param yArray The array that contains all the Y values.
+     * @return An array that contains the state of each slice.
+     */
+    private SliceProperty[] smoothSliceSection(int start, int end, int[] yArray){
+        int finalY = yArray[end];
+        for(int i = start; i < end; i++){
+            // Make sure that the adjacent slice have max 1 Y of difference.
+            if(yArray[i] < yArray[i - 1]){
+                yArray[i] = yArray[i - 1] - 1;
+            }else if(yArray[i] > yArray[i - 1]) {
+                yArray[i] = yArray[i - 1] + 1;
+            }
+            // Make sure the angle is not going further than 45 degrees.
+            if(yArray[i] < finalY - (end - i)){
+                yArray[i] = yArray[i - 1] + 1;
+            }else if(yArray[i] > finalY + (end - i)){
+                yArray[i] = yArray[i - 1] - 1;
+            }
+        }
+        // Smoothing.
+        float[] yFloats = new float[end - start + 2];
+        yFloats[0] = yArray[start - 1];
+        yFloats[yFloats.length - 1] = yArray[end];
+        for(int i = start; i < end; i++){
+            yFloats[i - start + 1] = (yArray[i - 2] + yArray[i - 1] + yArray[i] + yArray[i + 1] + yArray[i + 2]) / 5.0F;
+        }
+        // Finally we build the slice array.
+        SliceProperty[] slices = new SliceProperty[end - start];
+        for(int i = 0; i < slices.length; i++){
+            float decimal = yFloats[i] - (float) Math.floor(yFloats[i]);
+            int newY = (int) Math.ceil(yFloats[i]);
+            if(decimal > 0.5F || decimal == 0.0F){
+                // TODO Ajouter le code pour les stairs
+                SliceBuildType.SliceBuildShape shape = FLAT;
+                slices[i] = new SliceProperty(newY, shape, ((SliceBuildType) this.getBuildType()).getRandomVariantName(shape), false);
+            }else{
+                slices[i] = new SliceProperty(newY, SLAB, ((SliceBuildType) this.getBuildType()).getRandomVariantName(SLAB), false);
+            }
+        }
         return slices;
     }
 
@@ -145,14 +186,14 @@ public class SliceBuild<T extends SliceBuildType> extends Build<T> {
         for (SliceProperty sliceProperty : this.yShape) {
             String variantName = sliceProperty.variantName();
             if (!map.containsKey(variantName)) {
-                map.put(variantName, new Pair<>(this.getBuildType().getVariant(sliceProperty.shape(), variantName), sliceProperty.shape()));
+                map.put(variantName, new Pair<>(((SliceBuildType) this.getBuildType()).getVariant(sliceProperty.shape(), variantName), sliceProperty.shape()));
             }
         }
         return map;
     }
 
     public int getYSize(){
-        int pattern = this.getBuildType().getPatternLength();
+        int pattern = ((SliceBuildType) this.getBuildType()).getPatternLength();
         HashMap<String, Pair<BuildVariant, SliceBuildType.SliceBuildShape>> map = this.getBuildVariantMap();
         int minY = this.yShape[0].y();
         int maxY = minY;
@@ -167,11 +208,6 @@ public class SliceBuild<T extends SliceBuildType> extends Build<T> {
             }
         }
         return maxY - minY;
-    }
-
-    @Override
-    public float getMapFloat() {
-        return 0;
     }
 
     public record SliceProperty(int y, SliceBuildType.SliceBuildShape shape, String variantName, boolean locked){

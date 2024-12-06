@@ -2,12 +2,13 @@ package org.dawnoftime.onceuponatown.building;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
-import org.dawnoftime.onceuponatown.building.type.BuildingType;
+import org.dawnoftime.onceuponatown.building.type.BuildType;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.structure.pieces.BuildingPiece;
 import org.dawnoftime.onceuponatown.town.generation.MapBlock;
@@ -17,17 +18,28 @@ import org.dawnoftime.onceuponatown.town.generation.TownMapUtils.Corner;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashSet;
-import java.util.Random;
 
 import static org.dawnoftime.onceuponatown.Config.MAXI_Y_DIFFERENCE;
 import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.rectangularPosIterator;
 
-public class Building<T extends BuildingType> extends Build<T> {
+public class Building extends Build {
     private final BuildVariant variant;
 
-    public Building(T type, BuildVariant variant) {
+    public Building(BuildType type, BuildVariant variant) {
         super(type);
         this.variant = variant;
+    }
+
+    public Building(Culture culture, CompoundTag tag) {
+        super(culture, tag);
+        this.variant = this.getBuildType().getVariants().get(tag.getString("BuildVariant"));
+    }
+
+    @Override
+    public CompoundTag writeNBT() {
+        CompoundTag tag = super.writeNBT();
+        tag.putString("BuildVariant", this.variant.getName());
+        return tag;
     }
 
     @Override
@@ -55,7 +67,7 @@ public class Building<T extends BuildingType> extends Build<T> {
             // TODO lock the shape on the corresponding pos.
         }
         for(MapBlock mapBlock : mapBlocks){
-            if(mapBlock instanceof RoadBuild<?> road){
+            if(mapBlock instanceof RoadBuild road){
                 road.updateRoad(town);
             }
         }
@@ -102,7 +114,7 @@ public class Building<T extends BuildingType> extends Build<T> {
     }
 
     @Override
-    public float getMapFloat() {
-        return 1 + this.hashCode() * 0.0001F;
+    protected BuildCategory getBuildTypeCategory() {
+        return BuildCategory.BUILDING;
     }
 }

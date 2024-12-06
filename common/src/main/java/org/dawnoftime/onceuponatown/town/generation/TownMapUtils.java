@@ -82,7 +82,7 @@ public class TownMapUtils {
          * @param buildDir Direction to which the Build will be oriented.
          * @return The position of the NORTH_WEST corner of the Build if it is placed on this corner.
          */
-        public BlockPos getOrigin(BlockPos pos, Build<?> build, Direction buildDir){
+        public BlockPos getOrigin(BlockPos pos, Build build, Direction buildDir){
             return this.getCornerPos(pos, build, buildDir, NORTH_WEST);
         }
 
@@ -94,7 +94,7 @@ public class TownMapUtils {
          * @param targetCorner The corner we want to obtain.
          * @return The BlockPos of the targetCorner.
          */
-        public BlockPos getCornerPos(BlockPos pos, Build<?> build, Direction buildDir, Corner targetCorner){
+        public BlockPos getCornerPos(BlockPos pos, Build build, Direction buildDir, Corner targetCorner){
             int signOffsetX = (targetCorner.getStepX() - this.getStepX()) / 2;
             int signOffsetZ = (targetCorner.getStepZ() - this.getStepZ()) / 2;
             return pos.offset(signOffsetX * (build.getSizeX(buildDir) - 1), 0, signOffsetZ * (build.getSizeZ(buildDir) - 1));
