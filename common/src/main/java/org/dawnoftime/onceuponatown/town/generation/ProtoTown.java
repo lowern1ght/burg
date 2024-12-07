@@ -56,7 +56,7 @@ public class ProtoTown {
         this.buildBuds = buildBuds;
         this.builds = builds;
         this.getSurfaceY = getSurfaceY;
-        this.townMap = this.createTownMap();
+        this.createTownMap();
     }
 
     public ProtoTown(Culture culture, String name, BlockPos center, BiFunction<Integer, Integer, Integer> getSurfaceY){
@@ -83,8 +83,8 @@ public class ProtoTown {
     /**
      * @return An array that contains the MapBlock instance based on the builds in this Town. Used when a Town is loaded from NBT.
      */
-    public MapBlock[][] createTownMap(){
-        MapBlock[][] map = new MapBlock[this.SECorner.getX() - this.NWCorner.getX() + 1][this.SECorner.getZ() - this.NWCorner.getZ() + 1];
+    public void createTownMap(){
+        this.townMap = new MapBlock[this.SECorner.getZ() - this.NWCorner.getZ() + 1][this.SECorner.getX() - this.NWCorner.getX() + 1];
         for(Build build: this.builds){
             int xStart = this.getMapX(build.getOriginPos().getX());
             int zStart = this.getMapZ(build.getOriginPos().getZ());
@@ -94,7 +94,6 @@ public class ProtoTown {
                 }
             }
         }
-        return map;
     }
 
     public String getName() {
@@ -136,7 +135,7 @@ public class ProtoTown {
             // Working on the west side of the road.
             if(RANDOM_SOURCE.nextBoolean()){
                 // We put a perpendicular road.
-                BuildBud bud = this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, mainRoad.getOriginPos().offset(- 1, 0, DEFAULT_PATH_LENGTH), TownMapUtils.Corner.NORTH_EAST, new Direction[]{Direction.EAST}));
+                BuildBud bud = this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, mainRoad.getOriginPos().offset(- 1, 0, RANDOM_SOURCE.nextInt(3) * DEFAULT_PATH_LENGTH), TownMapUtils.Corner.NORTH_EAST, new Direction[]{Direction.EAST}));
                 SliceBuild road = new RoadBuild(wideRoad, DEFAULT_PATH_LENGTH);
                 success = this.tryBuild(road, bud);
             }else{
@@ -151,7 +150,7 @@ public class ProtoTown {
                 success &= this.tryBuild(road, bud);
             }else{
                 // We just add a bud.
-                this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, mainRoad.getOriginPos().offset(wideRoad.getWidth(), 0, DEFAULT_PATH_LENGTH + halfBigPath - 5 + RANDOM_SOURCE.nextInt(3) * 5), TownMapUtils.Corner.NORTH_WEST, new Direction[]{Direction.WEST}));
+                this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, mainRoad.getOriginPos().offset(wideRoad.getWidth(), 0, RANDOM_SOURCE.nextInt(3) * DEFAULT_PATH_LENGTH), TownMapUtils.Corner.NORTH_WEST, new Direction[]{Direction.WEST}));
             }
         }
         return success;
@@ -561,17 +560,21 @@ public class ProtoTown {
      * Prints a description of the current Town, its size and builds.
      */
     public void printDescription(){
-        System.out.println("//---------------------------------------------- Town Map [" + this.builds.size() + "] ---------------------------------------------//");
+        System.out.println("//---------------------------------------------- " + this.getName() + " [" + this.builds.size() + " Builds ] ---------------------------------------------//");
         System.out.println("Town Center: " + Utils.blockPosToString(this.getCenter()));
         System.out.println("Size: " + this.getTownMap()[0].length + "×" + this.getTownMap().length);
         System.out.println("Builds:");
         for(Build build : this.builds){
-            System.out.println("    - " + build.getClass().getSimpleName() + " [origin: " + Utils.blockPosToString(build.getOriginPos()) + ", xSize: " + build.getSizeX() + ", zSize: " + build.getSizeZ() + "]");
+            System.out.println("    - " + build.getClass().getSimpleName()
+                    + " [type: " + build.getBuildType().getName()
+                    + ", direction: " + build.getDirection().getName()
+                    + ", origin: " + Utils.blockPosToString(build.getOriginPos())
+                    + ", size: " + build.getSizeX() + "×" + build.getSizeZ() + "]");
         }
         System.out.println("Buds:");
         for(BuildBud buildBud : this.getBuds()){
             System.out.println("    - Bud [origin: " + Utils.blockPosToString(buildBud.getRealPos()) + ", distance: " + buildBud.getSquaredDistToCenter() + ", corner: " + buildBud.getCorner() + "]");
         }
-        System.out.println("//-------------------------------------------------------------------------------------------------------------//");
+        System.out.println("//------------------------------------------------------------------------------------------------------------------//");
     }
 }

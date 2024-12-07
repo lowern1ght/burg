@@ -1,10 +1,7 @@
 package org.dawnoftime.onceuponatown.registry;
 
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.command.CultureInfoCommand;
-import org.dawnoftime.onceuponatown.command.ListCulturesCommand;
-import org.dawnoftime.onceuponatown.command.ListTownsCommand;
-import org.dawnoftime.onceuponatown.command.TownDebugCommand;
+import org.dawnoftime.onceuponatown.command.*;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.tree.LiteralCommandNode;
@@ -17,7 +14,8 @@ public class CommandRegistry {
                 .then(CultureInfoCommand.register())
                 .then(ListCulturesCommand.register())
                 .then(ListTownsCommand.register())
-                .then(TownDebugCommand.register());
+                .then(TownDebugCommand.register())
+                .then(SpawnTownCommand.register());
         LiteralCommandNode<CommandSourceStack> node = dispatcher.register(builder);
         dispatcher.register(Commands.literal("ouat").redirect(node));
     }

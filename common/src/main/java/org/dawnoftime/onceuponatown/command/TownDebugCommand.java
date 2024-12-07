@@ -1,5 +1,6 @@
 package org.dawnoftime.onceuponatown.command;
 
+import net.minecraft.world.level.block.Blocks;
 import org.dawnoftime.onceuponatown.town.Town;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -15,7 +16,7 @@ import java.util.Collection;
 
 public class TownDebugCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> register() {
-        return Commands.literal("towndebug").executes(context -> listTowns(context.getSource()));
+        return Commands.literal("town_debug").executes(context -> listTowns(context.getSource()));
     }
 
     private static int listTowns(CommandSourceStack source) {
@@ -42,6 +43,8 @@ public class TownDebugCommand {
                             .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("Teleport"))))));
             source.sendSuccess(() -> townInfo, false);
             closestTown.printDescription();
+            closestTown.getBuilds().forEach((build -> source.getLevel().setBlock(build.getOriginPos(), Blocks.ORANGE_WOOL.defaultBlockState(), 2)));
+            closestTown.getBuds().forEach((bud -> source.getLevel().setBlock(bud.getRealPos(), Blocks.PURPLE_WOOL.defaultBlockState(), 2)));
         } else {
             source.sendSuccess(() -> Component.literal("No towns found"), false);
         }

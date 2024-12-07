@@ -1,6 +1,7 @@
 package org.dawnoftime.onceuponatown.town;
 
 import net.minecraft.nbt.Tag;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.levelgen.Heightmap;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.construction.ConstructionProject;
@@ -35,6 +36,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 public class Town extends ProtoTown {
@@ -76,7 +78,7 @@ public class Town extends ProtoTown {
                 NbtUtils.readBlockPos(tag.getCompound("SECorner")).mutable(),
                 tag.getList("BuildBuds", Tag.TAG_COMPOUND).stream().map(budTag -> new BuildBud((CompoundTag) budTag)).collect(Collectors.toList()),
                 tag.getList("Builds", Tag.TAG_COMPOUND).stream().map(buildTag -> Build.readNBT(culture, (CompoundTag) buildTag)).collect(Collectors.toList()),
-                (x, z) -> level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z)
+                (x, z) -> level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) - 1
         );
         this.level = level;
         this.inventory = (tag.contains("Inventory")) ? new TownInventory(tag.getList("Inventory", Tag.TAG_COMPOUND)) : new TownInventory();
@@ -93,8 +95,20 @@ public class Town extends ProtoTown {
         this.init();
     }
 
-    public static Town createFromCommand(Level level, Culture culture, String name) {
-        return null;
+    /**
+     * Constructor used to create a Town directly in game, thought command for example.
+     * @param level Level where the Town is located.
+     * @param culture
+     * @param name
+     * @param center
+     */
+    public Town(Level level, Culture culture, String name, BlockPos center) {
+        super(culture, name, center, (x, z) -> level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) - 1);
+        this.level = level;
+        this.inventory = new TownInventory();
+        this.npcs = new ArrayList<>();
+        this.constructionProjects = new ArrayList<>();
+        this.init();
     }
 
     /**

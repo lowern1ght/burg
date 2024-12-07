@@ -60,9 +60,9 @@ public class Utils {
      */
     public static BlockPos rotateInBuild(BlockPos pos, Direction dir, int xSize, int zSize){
         return switch (dir){
-            case WEST -> new BlockPos(zSize - pos.getZ(), pos.getY(), pos.getX());
-            case SOUTH -> new BlockPos(xSize - pos.getX(), pos.getY(), zSize - pos.getZ());
-            case EAST -> new BlockPos(pos.getZ(), pos.getY(), xSize - pos.getX());
+            case WEST -> new BlockPos(zSize - 1 - pos.getZ(), pos.getY(), pos.getX());
+            case SOUTH -> new BlockPos(xSize - 1 - pos.getX(), pos.getY(), zSize - 1 - pos.getZ());
+            case EAST -> new BlockPos(pos.getZ(), pos.getY(), xSize - 1 - pos.getX());
             default -> pos;
         };
     }
