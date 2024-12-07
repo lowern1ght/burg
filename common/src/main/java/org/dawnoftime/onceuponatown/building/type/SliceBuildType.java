@@ -39,7 +39,7 @@ public class SliceBuildType extends BuildType {
                     throw new CorruptedCultureException(cultureId, "Failed to register a build_variant. Every build_variant associated with '%s' must have the same width and length.".formatted(this.getName()));
                 }
             }
-            switch (SliceBuildShape.fromString(cultureId, variant.getName(), shape)) {
+            switch (SliceBuildShape.fromStringToRegister(cultureId, variant.getName(), shape)) {
                 case FLAT -> super.addVariant(variant, shape, cultureId);
                 case SLAB -> this.slabVariants.put(variant.getName(), variant);
                 case STAIRS -> this.stairsVariants.put(variant.getName(), variant);
@@ -51,17 +51,17 @@ public class SliceBuildType extends BuildType {
 
     public BuildVariant getVariant(SliceBuildShape shape, String variantName){
         return switch(shape){
-            case FLAT -> this.getVariants().get(variantName);
             case SLAB -> this.slabVariants.get(variantName);
-            case STAIRS -> this.stairsVariants.get(variantName);
+            case STAIRS, STAIRS_INVERTED -> this.stairsVariants.get(variantName);
+            default -> this.getVariants().get(variantName);
         };
     }
 
     public String getRandomVariantName(SliceBuildShape shape){
         Set<String> keys = switch(shape){
-            case FLAT -> this.getVariants().keySet();
             case SLAB -> this.slabVariants.keySet();
-            case STAIRS -> this.stairsVariants.keySet();
+            case STAIRS, STAIRS_INVERTED -> this.stairsVariants.keySet();
+            default -> this.getVariants().keySet();
         };
         return new ArrayList<>(keys).get(RANDOM_SOURCE.nextInt(keys.size()));
     }
@@ -81,20 +81,26 @@ public class SliceBuildType extends BuildType {
     }
 
     public enum SliceBuildShape{
-        FLAT("flat", 0),
-        SLAB("slab", 0.5F),
-        STAIRS("stairs", 1.0F);
+        FLAT("flat", 0, false),
+        SLAB("slab", 0, false),
+        STAIRS("stairs", 1.0F, false),
+        STAIRS_INVERTED("stairs_inverted", 1.0F, false),
+        CROSSROAD_RIGHT("crossroad_right", 0, true),
+        CROSSROAD_LEFT("crossroad_left", 0, true),
+        CROSSROAD_DOUBLE("crossroad_double", 0, true);
 
         private final String shapeName;
         private final float slope;
+        private final boolean locked;
 
-        SliceBuildShape(String shapeName, float slope){
+        SliceBuildShape(String shapeName, float slope, boolean locked){
             this.shapeName = shapeName;
             this.slope = slope;
+            this.locked = locked;
         }
 
-        public String getShapeName() {
-            return this.shapeName;
+        public boolean isLocked() {
+            return locked;
         }
 
         public int getYSize(int patternLength, int totalSizeY){
@@ -109,13 +115,14 @@ public class SliceBuildType extends BuildType {
             return totalSizeY - (int) Math.floor((patternLength - 1 - patternPos) * this.slope) - 1;
         }
 
-        public static SliceBuildShape fromString(String cultureId, String variantName, String shapeName) {
-            for (SliceBuildShape shape : values()) {
+        public static SliceBuildShape fromStringToRegister(String cultureId, String variantName, String shapeName) {
+            SliceBuildShape[] accepted = new SliceBuildShape[]{FLAT, SLAB, STAIRS, CROSSROAD_RIGHT, CROSSROAD_DOUBLE};
+            for (SliceBuildShape shape : accepted) {
                 if (shape.shapeName.equals(shapeName)) {
                     return shape;
                 }
             }
-            throw new CorruptedCultureException(cultureId, "Failed to register a build_variant '%s'. The accepted shape are ['flat', 'slab' or 'stairs'], and not '%s'.".formatted(variantName, shapeName));
+            throw new CorruptedCultureException(cultureId, "Failed to register a build_variant '%s'. The accepted shapes are %s, and not '%s'.".formatted(variantName, accepted, shapeName));
         }
     }
 }

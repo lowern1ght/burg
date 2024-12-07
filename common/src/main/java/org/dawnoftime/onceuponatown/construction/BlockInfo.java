@@ -27,9 +27,9 @@ public record BlockInfo(BlockPos pos, BlockState state, CompoundTag nbt) {
      */
     public BlockInfo rotate(Direction dir, int xSize, int zSize){
         Rotation rotation = switch (dir){
-            case WEST -> Rotation.CLOCKWISE_90;
+            case WEST -> Rotation.COUNTERCLOCKWISE_90;
             case SOUTH -> Rotation.CLOCKWISE_180;
-            case EAST -> Rotation.COUNTERCLOCKWISE_90;
+            case EAST -> Rotation.CLOCKWISE_90;
             default -> Rotation.NONE;
         };
         BlockState rotatedState = state.rotate(rotation);

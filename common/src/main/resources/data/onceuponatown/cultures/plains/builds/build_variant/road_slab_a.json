@@ -1,11 +1,21 @@
 {
     "build_type": "road",
     "shape": "slab",
-    "size": {"x": 2, "y": 3, "z": 5},
+    "size": {"x": 2, "y": 1, "z": 5},
     "levels": [
         {
             "level": 1,
-            "schematic": "road_slab_a",
+            "schematic": "road_slab_a1",
+            "waypoints": []
+        },
+        {
+            "level": 2,
+            "schematic": "road_slab_a2",
+            "waypoints": []
+        },
+        {
+            "level": 3,
+            "schematic": "road_slab_a3",
             "waypoints": []
         }
     ]

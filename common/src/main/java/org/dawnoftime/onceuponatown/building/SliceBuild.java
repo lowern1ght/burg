@@ -98,14 +98,14 @@ public abstract class SliceBuild extends Build {
     public void computeShape(ProtoTown town){
         Direction dir = this.getDirection();
         // We set the cursors on both side of the road at its start, on block before to smooth the curve.
-        BlockPos.MutableBlockPos roadLeftCursor = this.getCornerPos(TownMapUtils.Corner.getCornerNextToDir(dir.getOpposite(), false)).mutable().move(dir.getOpposite());
-        BlockPos.MutableBlockPos roadRightCursor = roadLeftCursor.relative(dir.getClockWise(), this.getSize(dir) - 1).mutable().move(dir.getOpposite());
+        BlockPos.MutableBlockPos roadRightCursor = this.getCornerPos(TownMapUtils.Corner.getCornerNextToDir(dir.getOpposite(), false)).mutable().move(dir);
+        BlockPos.MutableBlockPos roadLeftCursor = roadRightCursor.relative(dir.getClockWise(), this.getSize(dir) - 1).mutable();
         // The array has 2 more values on both sides to allow smoothing.
         int[] yArray = new int[this.length + 4];
         for(int i = 0; i < this.length + 2; i++){
-            yArray[i + 1] = town.getSurfaceY((roadLeftCursor.getX() + roadRightCursor.getX()) / 2, (roadLeftCursor.getZ() + roadRightCursor.getZ()) / 2);
-            roadLeftCursor.move(dir);
-            roadRightCursor.move(dir);
+            yArray[i + 1] = (town.getSurfaceY(roadRightCursor.getX(), roadLeftCursor.getZ()) + town.getSurfaceY(roadRightCursor.getX(), roadLeftCursor.getZ())) / 2;
+            roadRightCursor.move(dir.getOpposite());
+            roadLeftCursor.move(dir.getOpposite());
         }
         // We fill the first and last y with the adjacent one. These values will be used to smooth the shape later.
         yArray[0] = yArray[1];
@@ -215,7 +215,7 @@ public abstract class SliceBuild extends Build {
             String variantName = tag.getString("VariantName");
             return new SliceProperty(
                     tag.getInt("Y"),
-                    SliceBuildType.SliceBuildShape.fromString("???", variantName, tag.getString("Shape")),
+                    SliceBuildType.SliceBuildShape.valueOf(tag.getString("Shape")),
                     variantName,
                     tag.getBoolean("Locked")
             );
@@ -224,7 +224,7 @@ public abstract class SliceBuild extends Build {
         public CompoundTag writeNBT(){
             CompoundTag sliceTag = new CompoundTag();
             sliceTag.putInt("Y", this.y);
-            sliceTag.putString("Shape", this.shape.getShapeName());
+            sliceTag.putString("Shape", this.shape.toString());
             sliceTag.putString("VariantName", this.variantName);
             sliceTag.putBoolean("Locked", this.locked);
             return sliceTag;

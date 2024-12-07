@@ -5,7 +5,17 @@
     "levels": [
         {
             "level": 1,
-            "schematic": "road_stairs_a",
+            "schematic": "road_stairs_a1",
+            "waypoints": []
+        },
+        {
+            "level": 2,
+            "schematic": "road_stairs_a2",
+            "waypoints": []
+        },
+        {
+            "level": 3,
+            "schematic": "road_stairs_a3",
             "waypoints": []
         }
     ]
