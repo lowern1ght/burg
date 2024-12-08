@@ -57,12 +57,17 @@ public class Culture {
      * @param rand RandomSource used to roll the number of each BuildType.
      * @return The list of BuildType to build.
      */
-    public List<BuildType> getRandomStarterPack(RandomSource rand) {
-        List<BuildType> types = new ArrayList<>();
+    public List<BuildingType> getRandomStarterPack(RandomSource rand) {
+        List<BuildingType> types = new ArrayList<>();
         for (String buildTypeName: this.starterPack.keySet()){
             Pair<Integer, Integer> range = this.starterPack.get(buildTypeName);
             for (int n = range.getA(); n < rand.nextIntBetweenInclusive(range.getA(), range.getB()); n++){
-                types.add(this.buildTypeMap.get(buildTypeName));
+                BuildType type = this.buildTypeMap.get(buildTypeName);
+                if(type instanceof BuildingType buildingType){
+                    types.add(buildingType);
+                }else{
+                    Ouat.error(new CorruptedCultureException(this.id, "A build '%s' listed in the starter pack is not a building from this culture's datapack.".formatted(buildTypeName)).getMessage());
+                }
             }
         }
         Collections.shuffle(types);

@@ -122,7 +122,7 @@ public class ProtoTown {
      * @return True if the town creation was successful.
      */
     public boolean buildStarterPack(){
-        List<BuildType> starterPack = this.culture.getRandomStarterPack(RANDOM_SOURCE);
+        List<BuildingType> starterPack = this.culture.getRandomStarterPack(RANDOM_SOURCE);
         SliceBuildType wideRoad = (SliceBuildType) this.culture.getBuildType(Culture.WIDE_ROAD_TYPE_NAME);
         boolean flipped = RANDOM_SOURCE.nextBoolean(); //TODO Will be used to decide the direction of the central road.
         
@@ -153,6 +153,9 @@ public class ProtoTown {
                 this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, mainRoad.getOriginPos().offset(wideRoad.getWidth(), 0, RANDOM_SOURCE.nextInt(3) * DEFAULT_PATH_LENGTH), TownMapUtils.Corner.NORTH_WEST, new Direction[]{Direction.WEST}));
             }
         }
+        for(BuildingType type: starterPack){
+            this.addBuilding(type);
+        }
         return success;
     }
     
@@ -182,14 +185,14 @@ public class ProtoTown {
      * Tries to add the build in parameter.
      * @param type Building to be added in the town.
      */
-    public void addBuilding(BuildingType type){
+    public @Nullable Building addBuilding(BuildingType type){
         //TODO What if there is no Bud left ?
         this.getBuds().sort(Comparator.comparingInt(BuildBud::getSquaredDistToCenter));
         BuildBud[] buildBuds = this.getBuds().toArray(new BuildBud[0]);
-        Building placement = new Building(type, type.getRandomVariant(RANDOM_SOURCE));
+        Building building = new Building(type, type.getRandomVariant(RANDOM_SOURCE));
         for(BuildBud buildBud : buildBuds){
-            if(this.tryBuild(placement, buildBud)){
-                return;
+            if(this.tryBuild(building, buildBud)){
+                return building;
             }else{
                 // If it was not possible to build, we check if the Bud has enough free space to stay.
                 // Just in case, we check if the Map is still empty on this bud Pos.
@@ -202,6 +205,7 @@ public class ProtoTown {
                 this.removeFromBuds(buildBud);
             }
         }
+        return null;
     }
 
     /**

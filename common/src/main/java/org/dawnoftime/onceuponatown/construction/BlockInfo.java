@@ -25,14 +25,17 @@ public record BlockInfo(BlockPos pos, BlockState state, CompoundTag nbt) {
      * @param zSize Total size z of the build.
      * @return A new instance of BlockInfo the direction is not North, with the pos and state correctly rotated.
      */
-    public BlockInfo rotate(Direction dir, int xSize, int zSize){
+    public BlockInfo rotateInBuild(Direction dir, int xSize, int zSize){
         Rotation rotation = switch (dir){
             case WEST -> Rotation.COUNTERCLOCKWISE_90;
             case SOUTH -> Rotation.CLOCKWISE_180;
             case EAST -> Rotation.CLOCKWISE_90;
             default -> Rotation.NONE;
         };
-        BlockState rotatedState = state.rotate(rotation);
-        return dir == Direction.NORTH ? this : new BlockInfo(Utils.rotateInBuild(this.pos, dir, xSize, zSize), rotatedState, this.nbt);
+        return dir == Direction.NORTH ? this : new BlockInfo(Utils.rotateInBuild(this.pos, dir, xSize, zSize), state.rotate(rotation), this.nbt);
+    }
+
+    public BlockInfo inverse(){
+        return new BlockInfo(this.pos, state.rotate(Rotation.CLOCKWISE_180), this.nbt);
     }
 }

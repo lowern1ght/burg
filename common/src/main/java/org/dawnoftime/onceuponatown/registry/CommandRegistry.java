@@ -15,7 +15,8 @@ public class CommandRegistry {
                 .then(ListCulturesCommand.register())
                 .then(ListTownsCommand.register())
                 .then(TownDebugCommand.register())
-                .then(SpawnTownCommand.register());
+                .then(TownSpawnCommand.register())
+                .then(TownAddBuildingCommand.register());
         LiteralCommandNode<CommandSourceStack> node = dispatcher.register(builder);
         dispatcher.register(Commands.literal("ouat").redirect(node));
     }

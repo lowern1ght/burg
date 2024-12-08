@@ -20,8 +20,7 @@ import oshi.util.tuples.Pair;
 
 import java.util.HashMap;
 
-import static org.dawnoftime.onceuponatown.building.type.SliceBuildType.SliceBuildShape.FLAT;
-import static org.dawnoftime.onceuponatown.building.type.SliceBuildType.SliceBuildShape.SLAB;
+import static org.dawnoftime.onceuponatown.building.type.SliceBuildType.SliceBuildShape.*;
 
 public abstract class SliceBuild extends Build {
     private final int width;
@@ -114,7 +113,7 @@ public abstract class SliceBuild extends Build {
         SliceBuild.SliceProperty[] newYShape = new SliceProperty[this.length];
         int start = 0;
         for(int z = 0; z < this.length; z++){
-            if(this.yShape[z] != null && this.yShape[z].locked()){
+            if(this.yShape[z] != null && this.yShape[z].shape().isLocked()){
                 newYShape[z] = this.yShape[z];
                 if(start < z){
                     SliceBuild.SliceProperty[] smoothShape = this.smoothSliceSection(start + 2, z + 2, yArray);
@@ -163,14 +162,16 @@ public abstract class SliceBuild extends Build {
         // Finally we build the slice array.
         SliceProperty[] slices = new SliceProperty[end - start];
         for(int i = 0; i < slices.length; i++){
-            float decimal = yFloats[i] - (float) Math.floor(yFloats[i]);
-            int newY = (int) Math.ceil(yFloats[i]);
-            if(decimal > 0.5F || decimal == 0.0F){
-                // TODO Ajouter le code pour les stairs
-                SliceBuildType.SliceBuildShape shape = FLAT;
-                slices[i] = new SliceProperty(newY, shape, ((SliceBuildType) this.getBuildType()).getRandomVariantName(shape), false);
+            float decimal = yFloats[i + 1] - (float) Math.floor(yFloats[i + 1]);
+            int newY = (int) Math.ceil(yFloats[i + 1]);
+            if((int) Math.ceil(yFloats[i]) < newY && newY < (int) Math.ceil(yFloats[i + 2])){
+                slices[i] = new SliceProperty(newY, STAIRS, ((SliceBuildType) this.getBuildType()).getRandomVariantName(STAIRS));
+            }else if((int) Math.ceil(yFloats[i]) > newY && newY > (int) Math.ceil(yFloats[i + 2])){
+                slices[i] = new SliceProperty(newY, STAIRS_INVERTED, ((SliceBuildType) this.getBuildType()).getRandomVariantName(STAIRS));
+            }else if(decimal > 0.5F || decimal == 0.0F){
+                slices[i] = new SliceProperty(newY, FLAT, ((SliceBuildType) this.getBuildType()).getRandomVariantName(FLAT));
             }else{
-                slices[i] = new SliceProperty(newY, SLAB, ((SliceBuildType) this.getBuildType()).getRandomVariantName(SLAB), false);
+                slices[i] = new SliceProperty(newY, SLAB, ((SliceBuildType) this.getBuildType()).getRandomVariantName(SLAB));
             }
         }
         return slices;
@@ -210,14 +211,13 @@ public abstract class SliceBuild extends Build {
         return maxY - minY;
     }
 
-    public record SliceProperty(int y, SliceBuildType.SliceBuildShape shape, String variantName, boolean locked){
+    public record SliceProperty(int y, SliceBuildType.SliceBuildShape shape, String variantName){
         public static SliceProperty readNBT(CompoundTag tag){
             String variantName = tag.getString("VariantName");
             return new SliceProperty(
                     tag.getInt("Y"),
                     SliceBuildType.SliceBuildShape.valueOf(tag.getString("Shape")),
-                    variantName,
-                    tag.getBoolean("Locked")
+                    variantName
             );
         }
 
@@ -226,7 +226,6 @@ public abstract class SliceBuild extends Build {
             sliceTag.putInt("Y", this.y);
             sliceTag.putString("Shape", this.shape.toString());
             sliceTag.putString("VariantName", this.variantName);
-            sliceTag.putBoolean("Locked", this.locked);
             return sliceTag;
         }
     }

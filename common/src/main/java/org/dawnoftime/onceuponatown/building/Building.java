@@ -89,7 +89,7 @@ public class Building extends Build {
 
     @Override
     public SchematicContent getSchematicContent(ResourceManager resourceManager) {
-        return this.variant.getSchematic(resourceManager, this.getLevel());
+        return this.variant.getSchematic(resourceManager, this.getLevel()).rotate(this.getDirection());
     }
 
     @Override

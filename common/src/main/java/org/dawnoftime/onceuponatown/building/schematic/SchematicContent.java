@@ -114,6 +114,9 @@ public class SchematicContent {
             SliceBuild.SliceProperty slice = yShape[yIndex];
             int offsetY = slice.y() - originY;
             List<BlockInfo> blocks = sliceMap.get(slice.variantName())[yIndex % patternLength].getBlocks();
+            if(slice.shape() == SliceBuildType.SliceBuildShape.STAIRS_INVERTED){
+                blocks.replaceAll(BlockInfo::inverse);
+            }
             int finalYIndex = yIndex;
             schematic.blocks.addAll(blocks.stream().map(blockInfo -> blockInfo.move(0, offsetY, finalYIndex)).toList());
             List<EntityInfo> entities = sliceMap.get(slice.variantName())[yIndex % patternLength].getEntities();
@@ -124,7 +127,7 @@ public class SchematicContent {
     }
 
     public SchematicContent rotate(Direction direction){
-        this.blocks.replaceAll(blockInfo -> blockInfo.rotate(direction, this.size.getX(), this.size.getZ()));
+        this.blocks.replaceAll(blockInfo -> blockInfo.rotateInBuild(direction, this.size.getX(), this.size.getZ()));
         this.entities.replaceAll(entityInfo -> entityInfo.rotate(direction, this.size.getX(), this.size.getZ()));
         if(direction.getAxis() == Direction.Axis.X){
             this.size = new Vec3i(this.size.getZ(), this.size.getY(), this.size.getX());
