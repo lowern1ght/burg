@@ -5,7 +5,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
@@ -15,7 +14,6 @@ import org.dawnoftime.onceuponatown.building.Build;
 import org.dawnoftime.onceuponatown.building.Building;
 import org.dawnoftime.onceuponatown.building.RoadBuild;
 import org.dawnoftime.onceuponatown.building.SliceBuild;
-import org.dawnoftime.onceuponatown.building.type.BuildType;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import org.dawnoftime.onceuponatown.building.type.SliceBuildType;
 import org.dawnoftime.onceuponatown.culture.Culture;
@@ -531,33 +529,21 @@ public class ProtoTown {
         return this.NWCorner.immutable();
     }
 
-    public CompoundTag getTownMapDataForScreen(){
-        int[][] intTownMap = new int[this.townMap.length][];
+    public BlockPos getSECorner(){
+        return this.SECorner.immutable();
+    }
 
-        HashMap<Build, Integer> hashMap = new HashMap<>();
-        int id = 0;
-
-        for(int i = 0; i < this.townMap.length; i++){
-            for(int j = 0; j < this.townMap[i].length; j++){
-                MapBlock mb = this.townMap[i][j];
-                if (mb instanceof Build build) {
-                    if (!hashMap.containsKey(build)) {
-                        hashMap.put(build, ++id);
-                        intTownMap[i][j] = id;
-                    } else {
-                        intTownMap[i][j] = hashMap.get(build);
-                    }
-                } else {
-                    //TODO : 0 empty, -1 hole, -2 peak, -3 water, -4 lava ...
-                    intTownMap[i][j] = 0;
-                }
-            }
+    public CompoundTag getTownMapDataForGui(){
+        CompoundTag mapData = new CompoundTag();
+        mapData.putString("TownName", getName());
+        mapData.put("NWCorner", NbtUtils.writeBlockPos(getNWCorner()));
+        mapData.put("SECorner", NbtUtils.writeBlockPos(getSECorner()));
+        ListTag builds = new ListTag();
+        for (Build build : getBuilds()) {
+            builds.add(build.getDataForGui());
         }
-        CompoundTag tag = new CompoundTag();
-        //TODO : write int map
-        //TODO : for each Build : create tag which contains display info
-        //TODO : write Hashmap<Int, CompoundTag>
-        return tag;
+        mapData.put("Builds", builds);
+        return mapData;
     }
 
     /**

@@ -4,5 +4,15 @@
   "item.onceuponatown.emerald_shard": "Emerald shard",
   "item.onceuponatown.emerald_pouch": "Emerald pouch",
   "item.onceuponatown.town_map": "Town map",
-  "creative_mode_tab.onceuponatown.main_tab": "Once upon a town"
+  "creative_mode_tab.onceuponatown.main_tab": "Once upon a town",
+  "road": "Small road",
+  "wide_road": "Road",
+  "small_house": "Small house",
+  "big_house": "Big house",
+  "church": "Church",
+  "coordinates" : "Coordinates",
+  "plot_size" : "Plot size",
+  "map_of" : "Map of",
+  "center_map" : "Center map",
+  "debug_view" : "Debug view"
 }

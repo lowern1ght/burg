@@ -10,6 +10,10 @@ public class ReleaseFocusButton extends Button {
         super(x, y, width, height, message, onPress, createNarration);
     }
 
+    protected ReleaseFocusButton(int x, int y, int width, int height, Component message, OnPress onPress) {
+        this(x, y, width, height, message, onPress, Button.DEFAULT_NARRATION);
+    }
+
     @Override
     public void onRelease(double mouseX, double mouseY) {
         this.setFocused(false);

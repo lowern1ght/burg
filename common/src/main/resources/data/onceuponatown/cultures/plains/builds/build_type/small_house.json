@@ -1,5 +1,6 @@
 {
-    "id": "builders_house",
+    "id": "small_house",
+    "icon": "minecraft:white_bed",
     "min_amount_in_starter_pack": 0,
     "max_amount_in_starter_pack": 1,
     "weight": 20,

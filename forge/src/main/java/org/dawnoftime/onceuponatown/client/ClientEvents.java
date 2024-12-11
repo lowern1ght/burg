@@ -17,10 +17,7 @@ import org.dawnoftime.onceuponatown.client.renderer.NpcRenderer;
 import org.dawnoftime.onceuponatown.client.screen.BuyScreen;
 import org.dawnoftime.onceuponatown.client.screen.SellScreen;
 import org.dawnoftime.onceuponatown.client.screen.TradeScreen;
-import org.dawnoftime.onceuponatown.client.screen.tooltip.ClientSingleItemTooltip;
-import org.dawnoftime.onceuponatown.client.screen.tooltip.ClientTradeItemTooltip;
-import org.dawnoftime.onceuponatown.client.screen.tooltip.SingleItemTooltip;
-import org.dawnoftime.onceuponatown.client.screen.tooltip.TradeItemTooltip;
+import org.dawnoftime.onceuponatown.client.screen.tooltip.*;
 import org.dawnoftime.onceuponatown.item.EmeraldPouchItem;
 import org.dawnoftime.onceuponatown.menu.TradeMenu;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
@@ -67,6 +64,7 @@ public class ClientEvents {
         public static void registerClientTooltips(RegisterClientTooltipComponentFactoriesEvent event) {
             event.register(TradeItemTooltip.class, ClientTradeItemTooltip::new);
             event.register(SingleItemTooltip.class, ClientSingleItemTooltip::new);
+            event.register(ItemAndTitleTooltip.class, ClientItemAndTitleTooltip::new);
         }
     }
 

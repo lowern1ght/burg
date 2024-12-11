@@ -13,8 +13,6 @@ import org.dawnoftime.onceuponatown.Utils;
 import org.dawnoftime.onceuponatown.network.S2COpenTownMapScreenPacket;
 import org.dawnoftime.onceuponatown.town.Town;
 
-import java.util.Arrays;
-
 public class TownMapItem extends Item {
     public static final int TOWN_VIEW_MAX_DIST = 100;
 
@@ -27,13 +25,7 @@ public class TownMapItem extends Item {
         if (!level.isClientSide && level instanceof ServerLevel serverLevel) {
             Town town = Utils.getNearestTown(serverLevel, player.blockPosition(), TOWN_VIEW_MAX_DIST);
             if (town != null) {
-                /*
-                float[][] map = town.getTownMapAsFloat();
-                if (map != null) {
-                    Ouat.info("Sending town map packet :\n" + Arrays.deepToString(map));
-                    Ouat.COMMON.sendToClient(player, new S2COpenTownMapScreenPacket(town.getDisplayName(), map));
-                }
-                 */
+                Ouat.COMMON.sendToClient(player, new S2COpenTownMapScreenPacket(town.getTownMapDataForGui()));
             } else {
                 player.displayClientMessage(Component.literal("There is no towns nearby"), true);
             }
