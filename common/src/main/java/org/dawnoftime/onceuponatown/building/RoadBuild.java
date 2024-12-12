@@ -45,8 +45,8 @@ public class RoadBuild extends SliceBuild {
     @Override
     public CompoundTag getDataForGui() {
         CompoundTag displayData = new CompoundTag();
+        displayData.putByte("Category", Build.ROAD);
         displayData.putString("BuildType", getBuildType().getName());
-        displayData.putString("BuildCategory", getBuildTypeCategory().toString());
         displayData.put("OriginPos", NbtUtils.writeBlockPos(getOriginPos()));
         displayData.putInt("SizeX", getSizeX());
         displayData.putInt("SizeZ", getSizeZ());

@@ -4,12 +4,15 @@ import com.ibm.icu.impl.duration.impl.Utils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
+import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
 import org.dawnoftime.onceuponatown.building.type.BuildType;
@@ -50,14 +53,14 @@ public class Building extends Build {
     @Override
     public CompoundTag getDataForGui() {
         CompoundTag displayData = new CompoundTag();
+        displayData.putByte("Category", Build.BUILDING);
         displayData.putString("BuildType", getBuildType().getName());
-        displayData.putString("BuildCategory", getBuildTypeCategory().toString());
         displayData.put("OriginPos", NbtUtils.writeBlockPos(getOriginPos()));
         displayData.putInt("SizeX", getSizeX());
         displayData.putInt("SizeZ", getSizeZ());
         displayData.putInt("Level", getLevel());
         if (getBuildType() instanceof BuildingType type) {
-            displayData.putString("IconItem", BuiltInRegistries.ITEM.getKey(type.getIconItem()).toString());
+            displayData.putString("IconItem", Ouat.COMMON.getResourceLocation(type.getIconItem()).toString());
         }
         return displayData;
     }

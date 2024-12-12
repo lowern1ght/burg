@@ -3,8 +3,10 @@ package org.dawnoftime.onceuponatown;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.model.HumanoidModel;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.MenuProvider;
@@ -15,7 +17,9 @@ import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.entity.projectile.Arrow;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.BowItem;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.client.extensions.common.IClientItemExtensions;
 import net.minecraftforge.common.ForgeHooks;
@@ -24,6 +28,7 @@ import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.network.PacketDistributor;
+import net.minecraftforge.registries.ForgeRegistries;
 import org.dawnoftime.onceuponatown.network.PacketHandler;
 import org.dawnoftime.onceuponatown.network.IOuatPacket;
 
@@ -83,6 +88,18 @@ public class CommonAbstractionsImpl implements CommonAbstractions {
             return bowItem.customArrow(arrow);
         }
         return arrow;
+    }
+
+    @Override
+    public Item getItem(ResourceLocation resourceLocation) {
+        Item item = ForgeRegistries.ITEMS.getValue(resourceLocation);
+        return item == null ? Items.AIR : item;
+    }
+
+    @Override
+    public ResourceLocation getResourceLocation(Item item) {
+        ResourceLocation resourceLocation = ForgeRegistries.ITEMS.getKey(item);
+        return resourceLocation == null ? BuiltInRegistries.ITEM.getKey(Items.AIR) : resourceLocation;
     }
 
     @Override

@@ -14,5 +14,10 @@
   "plot_size" : "Plot size",
   "map_of" : "Map of",
   "center_map" : "Center map",
-  "debug_view" : "Debug view"
+  "debug_view" : "Debug view",
+  "north_west_corner" : "North-west corner",
+  "size" : "Size",
+  "width" : "Width",
+  "length" : "Length",
+  "bud" : "Building bud"
 }

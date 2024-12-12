@@ -23,6 +23,11 @@ import org.jetbrains.annotations.Nullable;
 import java.util.HashMap;
 
 public abstract class Build implements MapBlock {
+    public static final byte BUD = 0;
+    public static final byte ROAD = 1;
+    public static final byte BUILDING = 2;
+    public static final byte BRIDGE = 3;
+
     private final BuildType buildType;
 
     private BlockPos originPos;

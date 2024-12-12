@@ -14,5 +14,10 @@
   "plot_size" : "Taille de la parcelle",
   "map_of" : "Carte de",
   "center_map" : "Centrer la carte",
-  "debug_view" : "Vue de débogage"
+  "debug_view" : "Vue de débogage",
+  "north_west_corner" : "Coin nord-ouest",
+  "size" : "Taille",
+  "width" : "Largeur",
+  "length" : "Longueur",
+  "bud" : "Bourgeon de bâtiment"
 }
