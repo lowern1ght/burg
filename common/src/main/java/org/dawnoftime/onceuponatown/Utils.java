@@ -2,8 +2,6 @@ package org.dawnoftime.onceuponatown;
 
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.util.Mth;
-import net.minecraft.world.entity.player.Player;
 import org.dawnoftime.onceuponatown.construction.EntityInfo;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
@@ -20,12 +18,33 @@ import org.dawnoftime.onceuponatown.town.Town;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 public class Utils {
+    private static final TreeMap<Integer, String> ROMAN_NB = new TreeMap<>();
+    static {
+        ROMAN_NB.put(1000, "M");
+        ROMAN_NB.put(900, "CM");
+        ROMAN_NB.put(500, "D");
+        ROMAN_NB.put(400, "CD");
+        ROMAN_NB.put(100, "C");
+        ROMAN_NB.put(90, "XC");
+        ROMAN_NB.put(50, "L");
+        ROMAN_NB.put(40, "XL");
+        ROMAN_NB.put(10, "X");
+        ROMAN_NB.put(9, "IX");
+        ROMAN_NB.put(5, "V");
+        ROMAN_NB.put(4, "IV");
+        ROMAN_NB.put(1, "I");}
+
+    public static String intToRoman(int i) {
+        int l = ROMAN_NB.floorKey(i);
+        if (i == l) {
+            return ROMAN_NB.get(i);
+        }
+        return ROMAN_NB.get(l) + intToRoman(i - l);
+    }
+
     public static Town getNearestTown(ServerLevel level, BlockPos pos) {
         return getNearestTown(level, pos, Integer.MAX_VALUE);
     }

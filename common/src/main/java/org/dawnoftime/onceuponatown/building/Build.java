@@ -52,6 +52,8 @@ public abstract class Build implements MapBlock {
         return tag;
     }
 
+    public abstract CompoundTag getDataForGui();
+
     public abstract SchematicContent getSchematicContent(ResourceManager resourceManager);
 
     public int getLevel() {

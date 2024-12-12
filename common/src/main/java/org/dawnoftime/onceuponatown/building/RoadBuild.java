@@ -3,6 +3,8 @@ package org.dawnoftime.onceuponatown.building;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.network.chat.Component;
 import org.dawnoftime.onceuponatown.building.type.SliceBuildType;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
@@ -38,6 +40,20 @@ public class RoadBuild extends SliceBuild {
         tag.putBoolean("IsWide", this.isWide);
         tag.putBoolean("CanGrow", this.canGrow);
         return tag;
+    }
+
+    @Override
+    public CompoundTag getDataForGui() {
+        CompoundTag displayData = new CompoundTag();
+        displayData.putString("BuildType", getBuildType().getName());
+        displayData.putString("BuildCategory", getBuildTypeCategory().toString());
+        displayData.put("OriginPos", NbtUtils.writeBlockPos(getOriginPos()));
+        displayData.putInt("SizeX", getSizeX());
+        displayData.putInt("SizeZ", getSizeZ());
+        displayData.putInt("Level", getLevel());
+        displayData.putBoolean("IsWide", isWide);
+        displayData.putBoolean("CanGrow", canGrow);
+        return displayData;
     }
 
     public boolean isWide() {
