@@ -8,6 +8,7 @@ import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 import org.dawnoftime.onceuponatown.building.Build;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
@@ -31,7 +32,8 @@ public class TownSpawnCommand {
             Vec3 pos = source.getPosition();
             Culture culture = CultureManager.getCultureById(cultureId);
             ServerLevel level = source.getLevel();
-            Town town = new Town(level, culture, townName, new BlockPos(new BlockPos((int) pos.x, (int) pos.y, (int) pos.z)));
+            BlockPos posTown = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, new BlockPos((int) pos.x, (int) pos.y, (int) pos.z));
+            Town town = new Town(level, culture, townName, posTown);
             if(town.buildStarterPack()){
                 LevelTowns.of(level).addTown(town);
                 // Now we place the blocks.

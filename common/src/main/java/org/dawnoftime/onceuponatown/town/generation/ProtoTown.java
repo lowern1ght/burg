@@ -39,7 +39,7 @@ public class ProtoTown {
     private final BlockPos.MutableBlockPos NWCorner;
     private final BlockPos.MutableBlockPos SECorner;
     private final List<BuildBud> buildBuds;
-    private final List<Build> builds;// TODO Must be saved / loaded
+    private final List<Build> builds;
     // The variables below are not saved.
     private final BiFunction<Integer, Integer, Integer> getSurfaceY;
     private MapBlock[][] townMap;
@@ -126,29 +126,29 @@ public class ProtoTown {
         
         // First let's put the main vertical wide road, with length of 2 * mini_size + big_width
         int halfBigPath = wideRoad.getWidth() / 2;
-        BuildBud firstBud = this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, this.getCenter().offset(-halfBigPath, 0, -halfBigPath - DEFAULT_PATH_LENGTH), TownMapUtils.Corner.NORTH_WEST, new Direction[]{Direction.NORTH}));
+        BuildBud firstBud = this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, this, this.getCenter().getX() - halfBigPath, this.getCenter().getZ() - halfBigPath - DEFAULT_PATH_LENGTH, TownMapUtils.Corner.NORTH_WEST, new Direction[]{Direction.NORTH}));
         SliceBuild mainRoad = new RoadBuild(wideRoad, 2 * DEFAULT_PATH_LENGTH + wideRoad.getWidth());
         boolean success = this.tryBuild(mainRoad, firstBud);
         if(success){
             // Working on the west side of the road.
             if(RANDOM_SOURCE.nextBoolean()){
                 // We put a perpendicular road.
-                BuildBud bud = this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, mainRoad.getOriginPos().offset(- 1, 0, RANDOM_SOURCE.nextInt(3) * DEFAULT_PATH_LENGTH), TownMapUtils.Corner.NORTH_EAST, new Direction[]{Direction.EAST}));
+                BuildBud bud = this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, this, mainRoad.getOriginPos().getX() - 1, mainRoad.getOriginPos().getZ() + RANDOM_SOURCE.nextInt(3) * DEFAULT_PATH_LENGTH, TownMapUtils.Corner.NORTH_EAST, new Direction[]{Direction.EAST}));
                 SliceBuild road = new RoadBuild(wideRoad, DEFAULT_PATH_LENGTH);
                 success = this.tryBuild(road, bud);
             }else{
                 // We just add a bud.
-                this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, mainRoad.getOriginPos().offset(- 1, 0, RANDOM_SOURCE.nextInt(3) * DEFAULT_PATH_LENGTH), TownMapUtils.Corner.NORTH_EAST, new Direction[]{Direction.EAST}));
+                this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, this, mainRoad.getOriginPos().getX() - 1, mainRoad.getOriginPos().getZ() + RANDOM_SOURCE.nextInt(3) * DEFAULT_PATH_LENGTH, TownMapUtils.Corner.NORTH_EAST, new Direction[]{Direction.EAST}));
             }
             // And now on the east side.
             if(RANDOM_SOURCE.nextBoolean()){
                 // We put a perpendicular road.
-                BuildBud bud = this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, mainRoad.getOriginPos().offset(wideRoad.getWidth(), 0, RANDOM_SOURCE.nextInt(3) * DEFAULT_PATH_LENGTH), TownMapUtils.Corner.NORTH_WEST, new Direction[]{Direction.WEST}));
+                BuildBud bud = this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, this, mainRoad.getOriginPos().getX() + wideRoad.getWidth(), mainRoad.getOriginPos().getZ() + RANDOM_SOURCE.nextInt(3) * DEFAULT_PATH_LENGTH, TownMapUtils.Corner.NORTH_WEST, new Direction[]{Direction.WEST}));
                 SliceBuild road = new RoadBuild(wideRoad, DEFAULT_PATH_LENGTH);
                 success &= this.tryBuild(road, bud);
             }else{
                 // We just add a bud.
-                this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, mainRoad.getOriginPos().offset(wideRoad.getWidth(), 0, RANDOM_SOURCE.nextInt(3) * DEFAULT_PATH_LENGTH), TownMapUtils.Corner.NORTH_WEST, new Direction[]{Direction.WEST}));
+                this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, this, mainRoad.getOriginPos().getX() + wideRoad.getWidth(), mainRoad.getOriginPos().getZ() + RANDOM_SOURCE.nextInt(3) * DEFAULT_PATH_LENGTH, TownMapUtils.Corner.NORTH_WEST, new Direction[]{Direction.WEST}));
             }
         }
         for(BuildingType type: starterPack){

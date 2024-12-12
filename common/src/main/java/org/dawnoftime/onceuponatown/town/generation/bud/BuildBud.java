@@ -32,13 +32,14 @@ public class BuildBud {
     /**
      * Create a new instance of Bud.
      * @param type          Type of this bud, depending on the building it will be able to support.
-     * @param realPos       BlockPos of the bud. The Y value doesn't matter : it will be recalculated on placement.
+     * @param xPos       BlockPos of the bud. The Y value doesn't matter : it will be recalculated on placement.
+     * @param zPos       BlockPos of the bud. The Y value doesn't matter : it will be recalculated on placement.
      * @param corner        Corner type of this bud.
      * @param adjacentPaths Direction where there is a MapPath from the realPos.
      */
-    public BuildBud(BudType type, BlockPos realPos, Corner corner, Direction[] adjacentPaths) {
+    public BuildBud(BudType type, ProtoTown town, int xPos, int zPos, Corner corner, Direction[] adjacentPaths) {
         this.type = type;
-        this.realPos = realPos;
+        this.realPos = new BlockPos(xPos, town.getSurfaceY(xPos, zPos), zPos);
         this.corner = corner;
         this.adjacentPaths = adjacentPaths;
     }

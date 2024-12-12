@@ -234,7 +234,7 @@ public class RoadBuild extends SliceBuild {
         if(pathDirection.length > 1){
             pathDirection[1] = isCurrentPosEmpty ? budDir.getCounterClockWise() : budDir.getClockWise();
         }
-        return new BuildBud(BuildBud.BudType.DEFAULT, isCurrentPosEmpty ? currentPos : previousPos, TownMapUtils.Corner.getCornerNextToDir(budDir, isCurrentPosEmpty), pathDirection);
+        return new BuildBud(BuildBud.BudType.DEFAULT, town, isCurrentPosEmpty ? currentPos.getX() : previousPos.getX(), isCurrentPosEmpty ? currentPos.getZ() : previousPos.getZ(), TownMapUtils.Corner.getCornerNextToDir(budDir, isCurrentPosEmpty), pathDirection);
     }
 
     @Override
