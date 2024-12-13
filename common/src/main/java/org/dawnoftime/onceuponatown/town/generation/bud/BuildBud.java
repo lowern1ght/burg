@@ -6,7 +6,9 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.StringTag;
+import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.Build;
+import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
 import org.dawnoftime.onceuponatown.town.generation.TownMapUtils.Corner;
 
@@ -67,6 +69,13 @@ public class BuildBud {
         }
         tag.put("AdjacentPaths", tags);
         return tag;
+    }
+
+    public CompoundTag getDataForGui() {
+        CompoundTag displayData = new CompoundTag();
+        displayData.putByte("Category", Build.BUD);
+        displayData.put("RealPos", NbtUtils.writeBlockPos(getRealPos()));
+        return displayData;
     }
 
     /**

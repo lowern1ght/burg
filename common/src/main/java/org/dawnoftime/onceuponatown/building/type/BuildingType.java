@@ -25,7 +25,6 @@ import java.io.Reader;
 import java.util.HashMap;
 
 public class BuildingType extends BuildType{
-
     private final HashMap<Orientation, Integer> researchGain = new HashMap<>();
     private final HashMap<NpcJob, Integer> npcJobs = new HashMap<>();
     private final Item iconItem;
@@ -48,15 +47,15 @@ public class BuildingType extends BuildType{
                 String path = buildResource.getPath();
                 String buildTypeName = path.substring(path.lastIndexOf('/') + 1, path.lastIndexOf('.'));
                 JsonObject buildTypeJson = GsonHelper.parse(reader);
-                JsonElement element = buildTypeJson.get("icon");
-                Item item;
-                if (element != null) {
-                    item = BuiltInRegistries.ITEM.get(new ResourceLocation(element.getAsString()));
+                JsonElement iconItemJson = buildTypeJson.get("icon");
+                Item iconItem;
+                if (iconItemJson != null) {
+                    iconItem = Ouat.COMMON.getItem(new ResourceLocation(iconItemJson.getAsString()));
                 } else {
-                    item = Items.OAK_DOOR;
+                    iconItem = Items.AIR;
                 }
                 // TODO Parse the content of the json file of Build Types.
-                return new BuildingType(buildTypeName, item);
+                return new BuildingType(buildTypeName, iconItem);
             }
         } catch (IOException | JsonParseException e) {
             Ouat.error("Could not read the Build Type json file : " + buildResource);

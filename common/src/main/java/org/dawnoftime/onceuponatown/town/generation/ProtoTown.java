@@ -534,16 +534,19 @@ public class ProtoTown {
     }
 
     public CompoundTag getTownMapDataForGui(){
-        CompoundTag mapData = new CompoundTag();
-        mapData.putString("TownName", getName());
-        mapData.put("NWCorner", NbtUtils.writeBlockPos(getNWCorner()));
-        mapData.put("SECorner", NbtUtils.writeBlockPos(getSECorner()));
-        ListTag builds = new ListTag();
+        CompoundTag mapDataTag = new CompoundTag();
+        mapDataTag.putString("TownName", getName());
+        mapDataTag.put("NWCorner", NbtUtils.writeBlockPos(getNWCorner()));
+        mapDataTag.put("SECorner", NbtUtils.writeBlockPos(getSECorner()));
+        ListTag elementsTag = new ListTag();
         for (Build build : getBuilds()) {
-            builds.add(build.getDataForGui());
+            elementsTag.add(build.getDataForGui());
         }
-        mapData.put("Builds", builds);
-        return mapData;
+        for (BuildBud bud : getBuds()) {
+            elementsTag.add(bud.getDataForGui());
+        }
+        mapDataTag.put("Elements", elementsTag);
+        return mapDataTag;
     }
 
     /**

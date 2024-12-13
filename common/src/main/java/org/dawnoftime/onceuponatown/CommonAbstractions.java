@@ -5,6 +5,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.MenuProvider;
@@ -13,6 +14,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.dawnoftime.onceuponatown.network.IOuatPacket;
@@ -61,6 +63,10 @@ public interface CommonAbstractions {
     ItemStack getProjectile(LivingEntity entity, ItemStack weaponStack, ItemStack projectileStack);
 
     AbstractArrow getArrow(Level level, LivingEntity entity, ItemStack itemStackInHand);
+
+    Item getItem(ResourceLocation resourceLocation);
+
+    ResourceLocation getResourceLocation(Item item);
 
     /**
      * Function that returns an ArmPose if the item in hand has a custom animation. Returns null otherwise.
