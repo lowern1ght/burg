@@ -6,6 +6,7 @@ import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraftforge.event.entity.living.MobSpawnEvent;
+import net.minecraftforge.event.server.ServerAboutToStartEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -38,7 +39,7 @@ public class CommonEvents {
         }
 
         @SubscribeEvent
-        public static void onServerStarting(ServerStartingEvent event) {
+        public static void onServerStarting(ServerAboutToStartEvent event) {
             CultureManager.loadCultures(event.getServer().getResourceManager());
         }
 
