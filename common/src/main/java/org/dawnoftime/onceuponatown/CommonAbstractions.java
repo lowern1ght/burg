@@ -20,6 +20,7 @@ import net.minecraft.world.level.Level;
 import org.dawnoftime.onceuponatown.network.IOuatPacket;
 
 import javax.annotation.Nullable;
+import java.io.File;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -83,4 +84,10 @@ public interface CommonAbstractions {
      * @return True if this item can be used to fish.
      */
     boolean canBeUsedAsFishingRod(ItemStack itemStack);
+
+    /**
+     * Function used by the culture creator to get the path of the export folders.
+     * @return The File corresponding to the folder .minecraft/config.
+     */
+    File getConfigFolder();
 }

@@ -27,6 +27,7 @@ import net.minecraft.world.level.Level;
 import org.dawnoftime.onceuponatown.network.IOuatPacket;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -95,7 +96,12 @@ public class CommonAbstractionsImpl implements CommonAbstractions {
     public boolean canBeUsedAsFishingRod(ItemStack itemStack) {
         return false;
     }
-    
+
+    @Override
+    public File getConfigFolder() {
+        return FabricLoader.getInstance().getConfigDir().toFile();
+    }
+
     public boolean isDevelopmentEnvironment() {
         return FabricLoader.getInstance().isDevelopmentEnvironment();
     }
