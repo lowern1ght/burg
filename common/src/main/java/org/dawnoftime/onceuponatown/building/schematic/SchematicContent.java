@@ -115,7 +115,7 @@ public class SchematicContent {
             int offsetY = slice.y() - originY;
             List<BlockInfo> blocks = sliceMap.get(slice.variantName())[yIndex % patternLength].getBlocks();
             if(slice.shape() == SliceBuildType.SliceBuildShape.STAIRS_INVERTED){
-                blocks.replaceAll(BlockInfo::inverse);
+                blocks = blocks.stream().map(BlockInfo::inverse).toList();
             }
             int finalYIndex = yIndex;
             schematic.blocks.addAll(blocks.stream().map(blockInfo -> blockInfo.move(0, offsetY, finalYIndex)).toList());
