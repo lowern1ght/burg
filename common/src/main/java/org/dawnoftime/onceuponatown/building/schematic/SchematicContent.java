@@ -122,7 +122,7 @@ public class SchematicContent {
             List<EntityInfo> entities = sliceMap.get(slice.variantName())[yIndex % patternLength].getEntities();
             schematic.entities.addAll(entities.stream().map(entityInfo -> entityInfo.move(0, offsetY, finalYIndex)).toList());
         }
-        schematic.size = new Vec3i(build.getNorthSizeX(), build.getYSize(), yShape.length);
+        schematic.size = new Vec3i(build.getNorthSizeX(), build.getSizeY(), yShape.length);
         return schematic;
     }
 

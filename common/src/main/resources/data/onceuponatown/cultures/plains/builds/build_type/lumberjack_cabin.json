@@ -1,0 +1,12 @@
+{
+    "id": "lumberjack_cabin",
+    "category": "work",
+    "item": "minecraft:oak_sapling",
+    "weight": 10,
+    "levels": [
+        {
+            "required_era": 1,
+            "xp_gain": 50
+        }
+    ]
+}

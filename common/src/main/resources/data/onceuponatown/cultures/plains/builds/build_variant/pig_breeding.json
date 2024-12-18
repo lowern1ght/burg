@@ -1,0 +1,11 @@
+{
+    "build_type": "pig_breeding",
+    "size": {"x": 8, "y": 6, "z": 11},
+    "levels": [
+        {
+            "level": 1,
+            "schematic": "pig_breeding_vanilla_animal_pen",
+            "waypoints": []
+        }
+    ]
+}

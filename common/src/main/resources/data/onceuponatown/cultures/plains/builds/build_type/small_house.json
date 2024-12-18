@@ -1,31 +1,5 @@
 {
-    "id": "small_house",
-    "icon": "minecraft:white_bed",
-    "min_amount_in_starter_pack": 0,
-    "max_amount_in_starter_pack": 1,
-    "weight": 20,
-    "orientations": [
-        {"id": "crafting", "gain": 10},
-        {"id": "military", "gain": 2}
-    ],
-    "jobs": [
-        {"id": "builder", "required_level": 1}
-    ],
-    "levels": [
-        {
-            "order": 1,
-            "dimensions": [18,13,22],
-            "required_era": 1,
-            "resource_cost": [
-                {"id": "minecraft:cobblestone", "amount": 120},
-                {"id": "minecraft:oak_planks", "amount": 50}
-            ],
-            "xp_gain": 110,
-            "daily_production": [],
-            "action_positions": [
-                {"type": "bed", "pos": [10,0,12]},
-                {"type": "chimney", "pos": [6,0,23]}
-            ]
-        }
-    ]
+    "id": "big_house",
+    "category": "dwelling",
+    "item": "minecraft:white_bed"
 }

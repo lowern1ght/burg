@@ -208,10 +208,7 @@ public class Town extends ProtoTown {
     }
 
     private void collectProduction() {
-        for (Build build : this.getBuilds()) {
-            HashMap<ResourceLocation, Integer> production = build.getProduction();
-            //production.forEach(this.inventory::add);
-        }
+
     }
 
     private void handleAllUnloadedNpc() {

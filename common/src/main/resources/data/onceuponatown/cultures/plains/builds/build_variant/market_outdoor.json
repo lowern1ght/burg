@@ -1,0 +1,11 @@
+{
+    "build_type": "market",
+    "size": {"x": 25, "y": 8, "z": 18},
+    "levels": [
+        {
+            "level": 1,
+            "schematic": "market_outdoor",
+            "waypoints": []
+        }
+    ]
+}

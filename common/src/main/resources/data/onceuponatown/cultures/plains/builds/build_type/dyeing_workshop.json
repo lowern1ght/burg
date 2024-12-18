@@ -1,0 +1,12 @@
+{
+    "id": "dyeing_workshop",
+    "category": "work",
+    "item": "minecraft:yellow_dye",
+    "weight": 10,
+    "levels": [
+        {
+            "required_era": 1,
+            "xp_gain": 50
+        }
+    ]
+}

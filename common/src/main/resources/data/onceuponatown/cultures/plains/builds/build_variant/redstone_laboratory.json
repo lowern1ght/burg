@@ -1,0 +1,11 @@
+{
+    "build_type": "redstone_laboratory",
+    "size": {"x": 11, "y": 10, "z": 17},
+    "levels": [
+        {
+            "level": 1,
+            "schematic": "library_vanilla",
+            "waypoints": []
+        }
+    ]
+}

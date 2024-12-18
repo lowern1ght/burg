@@ -1,0 +1,11 @@
+{
+    "build_type": "weaponsmith_forge",
+    "size": {"x": 9, "y": 8, "z": 11},
+    "levels": [
+        {
+            "level": 1,
+            "schematic": "weaponsmith_forge_vanilla",
+            "waypoints": []
+        }
+    ]
+}

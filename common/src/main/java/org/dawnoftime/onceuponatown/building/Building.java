@@ -1,15 +1,11 @@
 package org.dawnoftime.onceuponatown.building;
 
-import com.ibm.icu.impl.duration.impl.Utils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
-import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import org.dawnoftime.onceuponatown.Ouat;
@@ -76,8 +72,17 @@ public class Building extends Build {
     }
 
     @Override
-    public StructurePiece generatePieces(StructureTemplateManager manager, Culture culture, @Nullable ProtoTown town) {
-        return new BuildingPiece(manager, this.variant.getSchematicResource(this.getLevel()), this.getCornerPos(Corner.getCornerNextToDir(this.getDirection().getOpposite(), false)), this.getDirection(), town);
+    public int getSizeY() {
+        return this.variant.getSize().getY();
+    }
+
+    @Override
+    public StructurePiece generatePieces(Culture culture, @Nullable ProtoTown town) {
+        return new BuildingPiece(this, town);
+    }
+
+    public ResourceLocation getSchematicResourceLocation() {
+        return variant.getSchematicResource(this.getLevel());
     }
 
     @Override

@@ -1,0 +1,11 @@
+{
+    "build_type": "alchemy_laboratory",
+    "size": {"x": 8, "y": 11, "z": 9},
+    "levels": [
+        {
+            "level": 1,
+            "schematic": "small_house",
+            "waypoints": []
+        }
+    ]
+}

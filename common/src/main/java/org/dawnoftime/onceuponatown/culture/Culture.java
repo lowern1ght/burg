@@ -61,6 +61,17 @@ public class Culture {
         List<BuildingType> types = new ArrayList<>();
         for (String buildTypeName: this.starterPack.keySet()){
             Pair<Integer, Integer> range = this.starterPack.get(buildTypeName);
+            BuildType type = this.buildTypeMap.get(buildTypeName);
+            if(type instanceof BuildingType buildingType){
+                int times = rand.nextIntBetweenInclusive(range.getA(), range.getB());
+                for (int i = 0; i < times; ++i){
+                    types.add(buildingType);
+                }
+            }else{
+                Ouat.error(new CorruptedCultureException(this.id, "A build '%s' listed in the starter pack is not a building from this culture's datapack.".formatted(buildTypeName)).getMessage());
+            }
+            /*
+            Pair<Integer, Integer> range = this.starterPack.get(buildTypeName);
             for (int n = range.getA(); n < rand.nextIntBetweenInclusive(range.getA(), range.getB()); n++){
                 BuildType type = this.buildTypeMap.get(buildTypeName);
                 if(type instanceof BuildingType buildingType){
@@ -69,6 +80,7 @@ public class Culture {
                     Ouat.error(new CorruptedCultureException(this.id, "A build '%s' listed in the starter pack is not a building from this culture's datapack.".formatted(buildTypeName)).getMessage());
                 }
             }
+             */
         }
         Collections.shuffle(types);
         return types;
@@ -126,9 +138,9 @@ public class Culture {
                 }
                 int min = CultureManager.tryGet(subObject, "min", " in an object in the section 'starter_pack'", CULTURE_FILE, cultureId, CULTURE_FILE, fileLocation).getAsInt();
                 int max = CultureManager.tryGet(subObject, "max", " in an object in the section 'starter_pack'", CULTURE_FILE, cultureId, CULTURE_FILE, fileLocation).getAsInt();
-                if(min < 1 || max < min){
+                if (max < min) {
                     throw new CorruptedCultureException(cultureId, "Failed to load a culture. Check the values of the minimum and maximum number of the build_type '%s' in the starter pack in this file: %s".formatted(name, fileLocation));
-                };
+                }
                 culture.addStarterPackBuild(name, min, max);
             }
             return culture;

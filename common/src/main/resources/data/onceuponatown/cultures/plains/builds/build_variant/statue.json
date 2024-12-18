@@ -1,0 +1,11 @@
+{
+    "build_type": "statue",
+    "size": {"x": 13, "y": 7, "z": 13},
+    "levels": [
+        {
+            "level": 1,
+            "schematic": "fountain_place",
+            "waypoints": []
+        }
+    ]
+}

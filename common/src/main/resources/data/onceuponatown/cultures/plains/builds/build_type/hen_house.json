@@ -1,0 +1,12 @@
+{
+    "id": "hen_house",
+    "category": "work",
+    "item": "minecraft:egg",
+    "weight": 10,
+    "levels": [
+        {
+            "required_era": 1,
+            "xp_gain": 50
+        }
+    ]
+}
