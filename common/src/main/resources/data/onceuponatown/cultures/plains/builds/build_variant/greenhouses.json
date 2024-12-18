@@ -1,0 +1,11 @@
+{
+    "build_type": "greenhouses",
+    "size": {"x": 10, "y": 8, "z": 6},
+    "levels": [
+        {
+            "level": 1,
+            "schematic": "garden_wheat_pile",
+            "waypoints": []
+        }
+    ]
+}

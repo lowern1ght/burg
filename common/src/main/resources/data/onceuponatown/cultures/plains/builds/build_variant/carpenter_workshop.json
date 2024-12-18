@@ -1,0 +1,11 @@
+{
+    "build_type": "carpenter_workshop",
+    "size": {"x": 8, "y": 7, "z": 9},
+    "levels": [
+        {
+            "level": 1,
+            "schematic": "carpenter_workshop_vanilla_mason",
+            "waypoints": []
+        }
+    ]
+}

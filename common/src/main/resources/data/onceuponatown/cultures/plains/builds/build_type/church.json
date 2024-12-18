@@ -1,4 +1,5 @@
 {
   "id": "church",
-  "icon": "minecraft:lectern"
+  "category": "miscellaneous",
+  "item": "minecraft:bell"
 }

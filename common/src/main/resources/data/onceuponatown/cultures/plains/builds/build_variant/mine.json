@@ -1,0 +1,11 @@
+{
+    "build_type": "mine",
+    "size": {"x": 14, "y": 4, "z": 11},
+    "levels": [
+        {
+            "level": 1,
+            "schematic": "pile_of_resources",
+            "waypoints": []
+        }
+    ]
+}

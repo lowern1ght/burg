@@ -1,0 +1,11 @@
+{
+    "build_type": "well",
+    "size": {"x": 10, "y": 7, "z": 10},
+    "levels": [
+        {
+            "level": 1,
+            "schematic": "well_vanilla",
+            "waypoints": []
+        }
+    ]
+}

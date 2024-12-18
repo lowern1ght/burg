@@ -1,4 +1,5 @@
 {
   "id": "big_house",
-  "icon": "minecraft:red_bed"
+  "category": "dwelling",
+  "item": "minecraft:red_bed"
 }

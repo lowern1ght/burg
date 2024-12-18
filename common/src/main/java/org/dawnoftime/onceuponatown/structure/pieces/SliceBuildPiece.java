@@ -1,6 +1,7 @@
 package org.dawnoftime.onceuponatown.structure.pieces;
 
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.level.material.FluidState;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.Build;
 import org.dawnoftime.onceuponatown.building.SliceBuild;
@@ -27,63 +28,60 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class SliceBuildPiece extends StructurePiece {
-    private final BlockPos originPos;
-    private final SliceBuild sliceBuild;
     private final String cultureId;
+    private final SliceBuild sliceBuild;
+    private final BlockPos originPos;
     private final @Nullable CompoundTag townTag;
 
-    /**
-     * Generate a Piece that will manage the world generation of the SliceBuilds.
-     * @param originPos BlockPos corner of the building. BE CAREFUL ! If the slice build was extended and found in the process a lower Y, this BlockPos should have the corresponding Y value !
-     * @param orientation Direction of the building.
-     * @param build Instance of building that is placed.
-     */
-    public SliceBuildPiece(BlockPos originPos, Direction orientation, SliceBuild build, Culture culture, @Nullable ProtoTown protoTown) {
-        super(StructurePieceRegistry.REGISTRY.SLICE_BUILD_PIECE.get(), 0, makeBoundingBox(originPos.getX(), originPos.getY(), originPos.getZ(), orientation, build.getNorthSizeX(), build.getYSize(), build.getNorthSizeZ()));
-        // We set the orientation to north, because the direction will try to rotate the BlockState and we already managed it.
-        this.setOrientation(Direction.NORTH);
-        this.originPos = originPos;
-        this.sliceBuild = build;
-        this.cultureId = culture.getId();
+    public SliceBuildPiece(String cultureId, SliceBuild sliceBuild, @Nullable ProtoTown protoTown) {
+        super(StructurePieceRegistry.REGISTRY.SLICE_BUILD_PIECE.get(), 0, makeBoundingBox(sliceBuild.getOriginPos().getX(), sliceBuild.getOriginPos().getY(), sliceBuild.getOriginPos().getZ(), sliceBuild.getDirection(), sliceBuild.getNorthSizeX(), sliceBuild.getSizeY(), sliceBuild.getNorthSizeZ()));
+        setOrientation(Direction.NORTH); // Using our custom orientation system instead
+        this.cultureId = cultureId;
+        this.sliceBuild = sliceBuild;
+        // OriginPos : BE CAREFUL ! If the slice build was extended and found in the process a lower Y, this BlockPos should have the corresponding Y value !
+        this.originPos = sliceBuild.getOriginPos();
         this.townTag = (protoTown == null) ? null : protoTown.writeNBT();
     }
 
     public SliceBuildPiece(CompoundTag tag) {
         super(StructurePieceRegistry.REGISTRY.SLICE_BUILD_PIECE.get(), tag);
-        // We set the orientation to north, because the direction will try to rotate the BlockState and we already managed it.
-        this.setOrientation(Direction.NORTH);
-        this.originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
-        this.cultureId = tag.getString("CultureId");
-        Culture culture = CultureManager.getCultureById(this.cultureId);
-        this.sliceBuild = (SliceBuild) Build.readNBT(culture, tag.getCompound("Build"));
-        this.townTag = (tag.contains("Town")) ? tag.getCompound("Town") : null;
+        setOrientation(Direction.NORTH); // Using our custom orientation system instead
+        cultureId = tag.getString("CultureId");
+        Culture culture = CultureManager.getCultureById(cultureId);
+        sliceBuild = (SliceBuild) Build.readNBT(culture, tag.getCompound("SliceBuild"));
+        originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
+        townTag = (tag.contains("FutureTownData")) ? tag.getCompound("FutureTownData") : null;
     }
 
     @Override
     protected void addAdditionalSaveData(@NotNull StructurePieceSerializationContext context, CompoundTag tag) {
-        tag.put("OriginPos", NbtUtils.writeBlockPos(this.originPos));
-        tag.putString("CultureId", this.cultureId);
-        tag.put("Build", this.sliceBuild.writeNBT());
-        if(this.townTag != null){
-            tag.put("Town", this.townTag);
+        tag.putString("CultureId", cultureId);
+        tag.put("SliceBuild", sliceBuild.writeNBT());
+        tag.put("OriginPos", NbtUtils.writeBlockPos(originPos));
+        if (townTag != null) {
+            tag.put("FutureTownData", townTag);
         }
     }
 
     @Override
-    public void postProcess(@NotNull WorldGenLevel level, @NotNull StructureManager structureManager, @NotNull ChunkGenerator generator, @NotNull RandomSource random, @NotNull BoundingBox box, @NotNull ChunkPos chunkPos, @NotNull BlockPos pos) {
-        MinecraftServer server = level.getServer();
-        if(server != null){
-            SchematicContent schematicContent = this.sliceBuild.getSchematicContent(server.getResourceManager());
-            for(BlockInfo block: schematicContent.getBlocks()){
-                this.placeBlock(level, block.state(), block.pos().getX(), block.pos().getY(), block.pos().getZ(), box);
+    public void postProcess(@NotNull WorldGenLevel level, @NotNull StructureManager structureManager, @NotNull ChunkGenerator chunkGenerator, @NotNull RandomSource random, @NotNull BoundingBox boundingBox, @NotNull ChunkPos chunkPos, @NotNull BlockPos pos) {
+        SchematicContent schematicContent = sliceBuild.getSchematicContent(level.getServer().getResourceManager());
+        BlockPos.MutableBlockPos cursorPos = new BlockPos(0, 0, 0).mutable();
+        for(BlockInfo block: schematicContent.getBlocks()) {
+            cursorPos.set(originPos.getX(), originPos.getY(), originPos.getZ());
+            cursorPos.move(block.pos());
+            if (boundingBox.isInside(cursorPos)) {
+                level.setBlock(cursorPos, block.state(), 2);
+                FluidState fluidState = level.getFluidState(cursorPos);
+                if (!fluidState.isEmpty()) {
+                    level.scheduleTick(cursorPos, fluidState.getType(), 0);
+                }
+                // Vanilla if (SHAPE_CHECK_BLOCKS.contains(blockstate.getBlock())) {level.getChunk(blockPos).markPosForPostprocessing(blockPos);}
             }
-            //for(EntityInfo entity: schematicContent.getEntities()){} TODO Place the entities !
-            if(this.townTag != null){
-                LevelTowns manager = LevelTowns.of(level.getLevel());
-                manager.initProtoTown(this.townTag);
-            }
-        }else{
-            Ouat.debug("PAS DE SERVER ????"); //TODO Is it even possible to have this bug ?
+        }
+        // TODO Place the schematic entities as well
+        if (townTag != null) {
+            LevelTowns.of(level.getLevel()).initProtoTown(townTag);
         }
     }
 }

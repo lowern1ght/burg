@@ -1,0 +1,11 @@
+{
+    "build_type": "garden",
+    "size": {"x": 14, "y": 8, "z": 13},
+    "levels": [
+        {
+            "level": 1,
+            "schematic": "garden_bench",
+            "waypoints": []
+        }
+    ]
+}

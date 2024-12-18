@@ -10,7 +10,7 @@ public abstract class StructurePieceRegistry {
     public static StructurePieceRegistry REGISTRY;
 
     public final Supplier<StructurePieceType> BUILDING_PIECE = register("building_piece",
-            () -> (StructurePieceType.StructureTemplateType) BuildingPiece::new);
+            () -> (StructurePieceType.ContextlessType) BuildingPiece::new);
 
     public final Supplier<StructurePieceType> SLICE_BUILD_PIECE = register("slice_build_piece",
             () -> (StructurePieceType.ContextlessType) SliceBuildPiece::new);

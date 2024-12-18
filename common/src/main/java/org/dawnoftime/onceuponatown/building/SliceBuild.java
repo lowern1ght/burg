@@ -178,8 +178,8 @@ public abstract class SliceBuild extends Build {
     }
 
     @Override
-    public StructurePiece generatePieces(StructureTemplateManager manager, Culture culture, @Nullable ProtoTown town) {
-        return new SliceBuildPiece(this.getOriginPos(), this.getDirection(), this, culture, town);
+    public StructurePiece generatePieces(Culture culture, @Nullable ProtoTown town) {
+        return new SliceBuildPiece(culture.getId(), this, town);
     }
 
     public HashMap<String, Pair<BuildVariant, SliceBuildType.SliceBuildShape>> getBuildVariantMap(){
@@ -193,7 +193,8 @@ public abstract class SliceBuild extends Build {
         return map;
     }
 
-    public int getYSize(){
+    @Override
+    public int getSizeY(){
         int pattern = ((SliceBuildType) this.getBuildType()).getPatternLength();
         HashMap<String, Pair<BuildVariant, SliceBuildType.SliceBuildShape>> map = this.getBuildVariantMap();
         int minY = this.yShape[0].y();

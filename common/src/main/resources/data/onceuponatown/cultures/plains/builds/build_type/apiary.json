@@ -1,0 +1,12 @@
+{
+    "id": "apiary",
+    "category": "work",
+    "item": "minecraft:honeycomb",
+    "weight": 10,
+    "levels": [
+        {
+            "required_era": 1,
+            "xp_gain": 50
+        }
+    ]
+}

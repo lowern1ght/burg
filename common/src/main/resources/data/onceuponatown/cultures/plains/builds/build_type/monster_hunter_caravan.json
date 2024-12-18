@@ -1,0 +1,12 @@
+{
+    "id": "monster_hunter_caravan",
+    "category": "work",
+    "item": "minecraft:spider_eye",
+    "weight": 10,
+    "levels": [
+        {
+            "required_era": 1,
+            "xp_gain": 50
+        }
+    ]
+}

@@ -186,6 +186,8 @@ public abstract class Build implements MapBlock {
         return this.getSizeZ(this.getDirection());
     }
 
+    public abstract int getSizeY();
+
     /**
      * Function called to add this Build in the Town. This function assume all the condition to place it are met.
      * This function will set the origin BlockPos and the direction of the Build, and call the post placement effects
@@ -221,10 +223,6 @@ public abstract class Build implements MapBlock {
      */
     public abstract boolean canBeBuiltOnBud(ProtoTown map, BuildBud buildBud, Direction dir);
 
-    public HashMap<ResourceLocation, Integer> getProduction() {
-        return this.buildType.getProduction();
-    }
-
     public BuildType getType() {
         return this.buildType;
     }
@@ -234,7 +232,7 @@ public abstract class Build implements MapBlock {
         return this;
     }
 
-    public abstract StructurePiece generatePieces(StructureTemplateManager manager, Culture culture, @Nullable ProtoTown town);
+    public abstract StructurePiece generatePieces(Culture culture, @Nullable ProtoTown town);
 
     /**
      * Function called just after this Build was added to the TownMap.

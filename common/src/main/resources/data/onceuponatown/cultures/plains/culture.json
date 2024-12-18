@@ -1,10 +1,29 @@
 {
   "starter_pack": [
-    {"build_type": "church", "min": 3, "max": 6},
-    {"build_type": "big_house", "min": 20, "max": 40},
-    {"build_type": "small_house", "min": 40, "max": 80}],
-  "foods": ["minecraft:bread", "minecraft:potato", "minecraft:carrot", "minecraft:beetroot"],
-  "eras": [{"required_xp": 0, "buildings_weight": 80}, {"required_xp": 150, "buildings_weight": 160}, {"required_xp": 300, "buildings_weight": 210}],
+    {"build_type": "small_house", "min": 2, "max": 4},
+    {"build_type": "big_house", "min": 1, "max": 1},
+    {"build_type": "cowshed", "min": 1, "max": 1},
+    {"build_type": "church", "min": 1, "max": 1},
+    {"build_type": "market", "min": 1, "max": 1},
+    {"build_type": "pile_of_resources", "min": 0, "max": 1},
+    {"build_type": "well", "min": 1, "max": 1},
+    {"build_type": "garden", "min": 2, "max": 3}],
+  "foods": [
+    "minecraft:bread",
+    "minecraft:potato",
+    "minecraft:carrot",
+    "minecraft:beetroot",
+    "minecraft:apple",
+    "minecraft:baked_potato",
+    "minecraft:dried_kelp",
+    "minecraft:cooked_beef",
+    "minecraft:cooked_porkshop",
+    "minecraft:cooked_mutton",
+    "minecraft:cooked_chicken",
+    "minecraft:cooked_rabbit",
+    "minecraft:cooked_cod",
+    "minecraft:cooked_salmon"],
+  "eras": [{"required_xp": 0, "buildings_weight": 100}, {"required_xp": 300, "buildings_weight": 200}, {"required_xp": 600, "buildings_weight": 300}],
   "orientations" : [
     {
       "id": "agriculture",
@@ -27,6 +46,20 @@
     },
     {
       "id": "religion"
+    }
+  ],
+  "knowledge" : [
+    {
+      "id": "industry",
+      "color": {"red": 200, "green": 100, "blue": 50},
+      "progression": [
+      ]
+    },
+    {
+      "id": "craft"
+    },
+    {
+      "id": "defense"
     }
   ]
 }

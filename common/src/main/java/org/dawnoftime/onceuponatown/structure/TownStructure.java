@@ -5,7 +5,6 @@ import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.Utils;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.culture.CultureManager;
@@ -25,12 +24,12 @@ import java.util.Optional;
 import static org.dawnoftime.onceuponatown.Utils.blockPosToString;
 
 public class TownStructure extends Structure {
-    public final String cultureID;
-    public static final Codec<TownStructure> CODEC = RecordCodecBuilder.create((p) -> p.group(settingsCodec(p), Codec.STRING.fieldOf("culture").forGetter((town) -> town.cultureID)).apply(p, TownStructure::new));
+    public final String cultureId;
+    public static final Codec<TownStructure> CODEC = RecordCodecBuilder.create((p) -> p.group(settingsCodec(p), Codec.STRING.fieldOf("culture").forGetter((town) -> town.cultureId)).apply(p, TownStructure::new));
 
-    public TownStructure(StructureSettings settings, String cultureID) {
-        super(settings);
-        this.cultureID = cultureID;
+    public TownStructure(StructureSettings structureSettings, String cultureId) {
+        super(structureSettings);
+        this.cultureId = cultureId;
     }
 
     protected @NotNull Optional<GenerationStub> findGenerationPoint(@NotNull GenerationContext context) {
@@ -39,24 +38,22 @@ public class TownStructure extends Structure {
 
     private void generatePieces(StructurePiecesBuilder builder, GenerationContext context) {
         try {
-            Culture culture = CultureManager.getCultureById(this.cultureID);
-            ChunkGenerator chunk = context.chunkGenerator();
-            int townHeight = chunk.getFirstOccupiedHeight(context.chunkPos().getMinBlockX(), context.chunkPos().getMinBlockZ(), Heightmap.Types.WORLD_SURFACE_WG, context.heightAccessor(), context.randomState());
+            Culture culture = CultureManager.getCultureById(cultureId);
+            ChunkGenerator chunkGenerator = context.chunkGenerator();
+            int townHeight = chunkGenerator.getFirstOccupiedHeight(context.chunkPos().getMinBlockX(), context.chunkPos().getMinBlockZ(), Heightmap.Types.WORLD_SURFACE_WG, context.heightAccessor(), context.randomState());
             BlockPos townCenterPos = new BlockPos(context.chunkPos().getMinBlockX(), townHeight, context.chunkPos().getMinBlockZ());
-
-            Ouat.info("Town at " + blockPosToString(townCenterPos) + " : started generating pieces...");
             // TODO Improve the code to give names to new Towns.
             String name = "Town " + Mth.nextInt(RandomSource.create(), 0, 100);
-            ProtoTown town = new ProtoTown(culture, name, townCenterPos, (x, z) -> chunk.getFirstOccupiedHeight(x, z, Heightmap.Types.WORLD_SURFACE_WG, context.heightAccessor(), context.randomState()));
-            if(town.buildStarterPack()){
-                // Generate the pieces for each Build. The first one contains the data to create the Town.
-                for(int i = 0; i < town.getBuilds().size(); i++){
-                    builder.addPiece((town.getBuilds().get(i).generatePieces(context.structureTemplateManager(), culture, i == 0 ? town : null)));
+            ProtoTown town = new ProtoTown(culture, name, townCenterPos, (x, z) -> chunkGenerator.getFirstOccupiedHeight(x, z, Heightmap.Types.WORLD_SURFACE_WG, context.heightAccessor(), context.randomState()));
+            if (town.buildStarterPack()) {
+                // Creates a StructurePiece for each town Build. The first one contains the data to register the Town on the future ServerLevel
+                for (int i = 0; i < town.getBuilds().size(); ++i) {
+                    builder.addPiece((town.getBuilds().get(i).generatePieces(culture, i == 0 ? town : null)));
                 }
-            }else{
-                Ouat.info("Could not generate a %s Town in %s.".formatted(this.cultureID, blockPosToString(townCenterPos)));
+            } else {
+                Ouat.info("Failed to generate a %s Town in %s.".formatted(cultureId, blockPosToString(townCenterPos)));
             }
-        }catch(CorruptedCultureException | CorruptedTownException e){
+        } catch (CorruptedCultureException | CorruptedTownException e){
             Ouat.error(e.getMessage());
         }
     }

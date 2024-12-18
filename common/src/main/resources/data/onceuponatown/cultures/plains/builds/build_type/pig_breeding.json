@@ -1,0 +1,12 @@
+{
+    "id": "cow_breeding",
+    "category": "work",
+    "item": "minecraft:porkchop",
+    "weight": 10,
+    "levels": [
+        {
+            "required_era": 1,
+            "xp_gain": 50
+        }
+    ]
+}

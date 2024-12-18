@@ -1,0 +1,11 @@
+{
+    "build_type": "glass_blower_workshop",
+    "size": {"x": 13, "y": 11, "z": 11},
+    "levels": [
+        {
+            "level": 1,
+            "schematic": "big_house",
+            "waypoints": []
+        }
+    ]
+}
