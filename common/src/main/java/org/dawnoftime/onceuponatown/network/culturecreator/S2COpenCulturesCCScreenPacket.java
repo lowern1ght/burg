@@ -1,14 +1,11 @@
 package org.dawnoftime.onceuponatown.network.culturecreator;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.client.screen.TownMapItemScreen;
-import org.dawnoftime.onceuponatown.client.screen.culturecreator.CCBaseScreen;
+import org.dawnoftime.onceuponatown.client.screen.culturecreator.CulturesCCScreen;
 import org.dawnoftime.onceuponatown.network.IOuatPacket;
-import org.dawnoftime.onceuponatown.network.S2COpenTownMapScreenPacket;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -17,10 +14,15 @@ import java.util.List;
 import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
 import static org.dawnoftime.onceuponatown.Ouat.createOuatResource;
 
-public record S2COpenScreenCCCultureListPacket(List<String> cultureIds) implements IOuatPacket {
+public class S2COpenCulturesCCScreenPacket implements IOuatPacket {
     private static final ResourceLocation ID = createOuatResource("s2c_open_screen_cc_culture_list");
 
-    public static S2COpenScreenCCCultureListPacket create(){
+    private final List<String> cultureIds;
+    private S2COpenCulturesCCScreenPacket(List<String> cultureIds){
+        this.cultureIds = cultureIds;
+    }
+
+    public static S2COpenCulturesCCScreenPacket create(){
         File targetDir = new File(Ouat.COMMON.getConfigFolder(), MOD_ID);
         List<String> cultures = new ArrayList<>();
         if (targetDir.exists() && targetDir.isDirectory()) {
@@ -33,12 +35,12 @@ public record S2COpenScreenCCCultureListPacket(List<String> cultureIds) implemen
                 }
             }
         }
-        return new S2COpenScreenCCCultureListPacket(cultures);
+        return new S2COpenCulturesCCScreenPacket(cultures);
     }
 
-    public static S2COpenScreenCCCultureListPacket decode(FriendlyByteBuf buf) {
+    public static S2COpenCulturesCCScreenPacket decode(FriendlyByteBuf buf) {
         List<String> cultureIds = buf.readList(FriendlyByteBuf::readUtf);
-        return new S2COpenScreenCCCultureListPacket(cultureIds);
+        return new S2COpenCulturesCCScreenPacket(cultureIds);
     }
 
     @Override
@@ -52,9 +54,9 @@ public record S2COpenScreenCCCultureListPacket(List<String> cultureIds) implemen
     }
 
     public static class Handler {
-        public static void handle(S2COpenScreenCCCultureListPacket packet) {
+        public static void handle(S2COpenCulturesCCScreenPacket packet) {
             Minecraft.getInstance().execute(() -> {
-                //Minecraft.getInstance().setScreen(new CCBaseScreen(packet) {});
+                Minecraft.getInstance().setScreen(new CulturesCCScreen(packet));
             });
         }
     }

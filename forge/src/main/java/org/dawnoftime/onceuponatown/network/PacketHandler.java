@@ -8,6 +8,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 import net.minecraft.resources.ResourceLocation;
 import org.apache.logging.log4j.util.TriConsumer;
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.network.culturecreator.S2COpenCulturesCCScreenPacket;
 
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -27,6 +28,7 @@ public class PacketHandler {
 
         // Server to Client packets
         CHANNEL.registerMessage(i++, S2COpenTownMapScreenPacket.class, S2COpenTownMapScreenPacket::encode, S2COpenTownMapScreenPacket::decode, makeS2CHandler(S2COpenTownMapScreenPacket.Handler::handle));
+        CHANNEL.registerMessage(i++, S2COpenCulturesCCScreenPacket.class, S2COpenCulturesCCScreenPacket::encode, S2COpenCulturesCCScreenPacket::decode, makeS2CHandler(S2COpenCulturesCCScreenPacket.Handler::handle));
     }
 
     private static <T> BiConsumer<T, Supplier<NetworkEvent.Context>> makeC2SHandler(TriConsumer<T, MinecraftServer, ServerPlayer> handler) {
