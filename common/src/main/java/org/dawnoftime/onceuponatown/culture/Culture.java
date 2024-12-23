@@ -13,6 +13,7 @@ import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.building.type.BuildType;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
+import org.dawnoftime.onceuponatown.building.type.RoadBuildType;
 import org.dawnoftime.onceuponatown.building.type.SliceBuildType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -101,8 +102,8 @@ public class Culture {
             Culture culture = new Culture(cultureId, eras);
 
             // Mandatory BuildType
-            culture.addBuildType(new SliceBuildType(ROAD_TYPE_NAME));
-            culture.addBuildType(new SliceBuildType(WIDE_ROAD_TYPE_NAME));
+            culture.addBuildType(new RoadBuildType(ROAD_TYPE_NAME));
+            culture.addBuildType(new RoadBuildType(WIDE_ROAD_TYPE_NAME));
             //culture.addBuildType(new SliceBuildType(BRIDGE_TYPE_NAME));
             //culture.addBuildType(new SliceBuildType(WALL_TYPE_NAME));
 

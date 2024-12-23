@@ -26,6 +26,8 @@ import oshi.util.tuples.Triplet;
 import java.util.*;
 import java.util.List;
 
+import static org.dawnoftime.onceuponatown.client.screen.ScreenUtils.drawCenteredString;
+
 public class TownMapItemScreen extends Screen {
     private static final ResourceLocation TEXTURE = Ouat.createOuatResource("textures/gui/town_map_item_screen.png");
     private static final int TEXTURE_WIDTH = 192;
@@ -164,9 +166,7 @@ public class TownMapItemScreen extends Screen {
         renderBackground(graphics);
         graphics.blit(TEXTURE, backGroundLeftPos, backGroundTopPos, 0, 0, BACKGROUND_WIDTH, BACKGROUND_HEIGHT, TEXTURE_WIDTH, TEXTURE_HEIGHT);
         renderMap(graphics, mouseX, mouseY);
-        graphics.drawString(this.font, Component.translatable("map_of").append(" ").append(title),
-                backGroundLeftPos + (BACKGROUND_WIDTH - (font.width(Component.translatable("map_of")) + font.width(title))) / 2,
-                backGroundTopPos + MAP_MARGIN, FastColor.ARGB32.color(255, 161, 28, 24), false);
+        drawCenteredString(graphics, font, Component.translatable("map_of").append(" ").append(title), backGroundLeftPos, backGroundTopPos + MAP_MARGIN,  BACKGROUND_WIDTH, FastColor.ARGB32.color(255, 161, 28, 24));
         super.render(graphics, mouseX, mouseY, partialTick);
     }
 

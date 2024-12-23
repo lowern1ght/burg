@@ -12,6 +12,7 @@ import net.minecraft.nbt.NbtUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.dawnoftime.onceuponatown.Ouat;
@@ -47,7 +48,7 @@ public class SchematicContent {
             CompoundTag tag = NbtIo.readCompressed(inputStream);
             SchematicContent schematic = new SchematicContent();
             schematic.readSchematic(BuiltInRegistries.BLOCK.asLookup(), tag);
-            return schematic.withoutAirBlocks();
+            return schematic.withoutVoidBlocks();
         } catch (FileNotFoundException fileNotFoundException) {
             Ouat.LOG.error("Could not find a schematic file. It should be located here: {}", schematicPath);
             return null;
@@ -199,12 +200,12 @@ public class SchematicContent {
     }
 
     /**
-     * @return This building plan without air blocks
+     * @return This building plan without void blocks
      */
-    public SchematicContent withoutAirBlocks() {
+    public SchematicContent withoutVoidBlocks() {
         List<BlockInfo> toRemove = new ArrayList<>();
         for (BlockInfo blockInfo : this.blocks) {
-            if (blockInfo.state().isAir()) {
+            if (blockInfo.state().getBlock() == Blocks.STRUCTURE_VOID) {
                 toRemove.add(blockInfo);
             }
         }

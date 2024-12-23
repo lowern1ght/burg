@@ -1,7 +1,7 @@
 {
     "build_type": "road",
     "shape": "stairs",
-    "size": {"x": 2, "y": 5, "z": 5},
+    "size": {"x": 2, "y": 8, "z": 5},
     "levels": [
         {
             "level": 1,

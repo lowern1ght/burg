@@ -48,6 +48,10 @@ public class S2COpenCulturesCCScreenPacket implements IOuatPacket {
         buf.writeCollection(cultureIds, FriendlyByteBuf::writeUtf);
     }
 
+    public List<String> getCultureIds() {
+        return cultureIds;
+    }
+
     @Override
     public ResourceLocation getFabricId() {
         return ID;
