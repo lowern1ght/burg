@@ -1,0 +1,12 @@
+{
+  "id": "pile_of_resources",
+  "category": "decoration",
+  "weight": 0,
+  "levels": [
+    {
+      "level": 1,
+      "required_era": 1
+    }
+  ],
+  "item": "minecraft:barrel"
+}

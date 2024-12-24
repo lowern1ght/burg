@@ -1,0 +1,12 @@
+{
+    "id": "vegetable_garden",
+    "category": "work",
+    "weight": 10,
+    "levels": [
+        {
+            "level": 1,
+            "required_era": 1
+        }
+    ],
+    "item": "minecraft:carrot"
+}

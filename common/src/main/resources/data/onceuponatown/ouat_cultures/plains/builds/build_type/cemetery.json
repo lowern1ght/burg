@@ -1,0 +1,12 @@
+{
+  "id": "cemetery",
+  "category": "decoration",
+  "weight": 0,
+  "levels": [
+    {
+      "level": 1,
+      "required_era": 1
+    }
+  ],
+  "item": "minecraft:bone"
+}

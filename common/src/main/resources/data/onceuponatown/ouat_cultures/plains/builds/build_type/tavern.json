@@ -1,0 +1,12 @@
+{
+  "id": "tavern",
+  "category": "special",
+  "weight": 20,
+  "levels": [
+    {
+      "level": 1,
+      "required_era": 1
+    }
+  ],
+  "item": "minecraft:pumpkin_pie"
+}
