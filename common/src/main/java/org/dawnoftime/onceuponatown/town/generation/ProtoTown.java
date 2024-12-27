@@ -122,7 +122,6 @@ public class ProtoTown {
     public boolean buildStarterPack(){
         List<BuildingType> starterPack = this.culture.getRandomStarterPack(RANDOM_SOURCE);
         SliceBuildType wideRoad = (SliceBuildType) this.culture.getBuildType(Culture.WIDE_ROAD_TYPE_NAME);
-        boolean flipped = RANDOM_SOURCE.nextBoolean(); //TODO Will be used to decide the direction of the central road.
         
         // First let's put the main vertical wide road, with length of 2 * mini_size + big_width
         int halfBigPath = wideRoad.getWidth() / 2;

@@ -28,7 +28,6 @@ public abstract class BaseCCScreen extends Screen {
     protected static final int WIDGET_ZONE_WIDTH = 254;
     protected static final int WIDGET_ZONE_HEIGHT = 139;
     protected static final int WIDGET_HEIGHT = 20;
-    protected static final int WIDGET_SPACING = 5;
 
     private int posX;
     private int posY;
@@ -46,7 +45,7 @@ public abstract class BaseCCScreen extends Screen {
         posY = (height - TEXTURE_TOTAL_HEIGHT) / 2;
         this.initWidgets();
         this.updateWidgetPositions();
-        scrollMaxOffset = Math.max(widgets.size() * WIDGET_HEIGHT + (widgets.size() - 1) * WIDGET_SPACING - WIDGET_ZONE_HEIGHT, 0);
+        scrollMaxOffset = Math.max(widgets.size() * WIDGET_HEIGHT - WIDGET_ZONE_HEIGHT, 0);
     }
 
     @Override
@@ -54,10 +53,9 @@ public abstract class BaseCCScreen extends Screen {
         this.renderBackground(guiGraphics);
         guiGraphics.blit(BACKGROUND_TEXTURE, posX, posY, 0, 0, TEXTURE_TOTAL_WIDTH, TEXTURE_TAB_HEIGHT, TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT);
         drawCenteredString(guiGraphics, font, title, posX, posY + TITLE_OFFSET_Y, TEXTURE_TOTAL_WIDTH, GUI_COLOR_GREY);
-        RenderSystem.enableScissor(posX + WIDGET_ZONE_X, posY + WIDGET_ZONE_Y, 100, 100);//posX + WIDGET_ZONE_X, posY + WIDGET_ZONE_Y, posX + WIDGET_ZONE_X + WIDGET_ZONE_WIDTH, posY + WIDGET_ZONE_Y + WIDGET_ZONE_HEIGHT);
+        guiGraphics.enableScissor(posX + WIDGET_ZONE_X, posY + WIDGET_ZONE_Y, posX + WIDGET_ZONE_X + WIDGET_ZONE_WIDTH, posY + WIDGET_ZONE_Y + WIDGET_ZONE_HEIGHT);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
-        guiGraphics.fill(0, 0, width, height, FastColor.ARGB32.color(255, 255, 0, 0));
-        RenderSystem.disableScissor();
+        guiGraphics.disableScissor();
     }
 
     @Override
@@ -75,25 +73,20 @@ public abstract class BaseCCScreen extends Screen {
     }
 
     private void updateWidgetPositions() {
-        int startY = 10 - scrollOffset;
         for (int i = 0; i < widgets.size(); i++) {
-            int itemIndex = i + scrollOffset / (WIDGET_HEIGHT + WIDGET_SPACING);
-
-            if (itemIndex >= widgets.size()) {
-                widgets.get(i).visible = false;
-                continue;
-            }
-
             AbstractWidget widget = widgets.get(i);
-            int widgetY = startY + (i * (WIDGET_HEIGHT + WIDGET_SPACING));
-
-            widget.setY(widgetY);
-            widget.visible = widgetY + WIDGET_HEIGHT > 0 && widgetY < WIDGET_ZONE_HEIGHT;
+            int widgetY = i * WIDGET_HEIGHT - scrollOffset;
+            if(widgetY + WIDGET_HEIGHT > 0 && widgetY < WIDGET_ZONE_HEIGHT){
+                widget.visible = true;
+                widget.setY(posY + WIDGET_ZONE_Y + widgetY);
+            }else{
+                widget.visible = false;
+            }
         }
     }
 
     protected void createButton(Component component,  Button.OnPress onPress){
-        Button button = Button.builder(component, onPress).bounds(0, 0, WIDGET_ZONE_WIDTH, WIDGET_HEIGHT).build();
+        Button button = Button.builder(component, onPress).bounds(posX + WIDGET_ZONE_X, posY + WIDGET_ZONE_Y, WIDGET_ZONE_WIDTH, WIDGET_HEIGHT).build();
         widgets.add(button);
         this.addRenderableWidget(button);
     }

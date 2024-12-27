@@ -77,7 +77,7 @@ public abstract class SliceBuild extends Build {
 
     @Override
     public boolean canBeBuiltOnBud(ProtoTown map, BuildBud buildBud, Direction dir) {
-        // In the case of MapPaths, we only checks the line of block. The Map size will be defined when it's placed on the Map.
+        // In the case of SliceBuilds, we only checks the line of block. The Map size will be defined when it's placed on the Map.
         BlockPos testedOriginPos = buildBud.findOriginPos(this, dir);
         BlockPos cursor = testedOriginPos.mutable();
         // We check all the position from the Bud to the width.
@@ -92,6 +92,20 @@ public abstract class SliceBuild extends Build {
 
     public SliceProperty[] getYShape() {
         return this.yShape;
+    }
+
+    /**
+     * Function that compute the Y index of the given position in the YShape.
+     * Be careful ! This value can be out of yShape bounds !
+     * @param pos BlockPos to convert in YIndex.
+     * @return the integer that correspond to the y index.
+     */
+    public int getYIndexFromPos(BlockPos pos){
+        if (this.getDirection().getAxis() == Direction.Axis.X){
+            return Math.abs(pos.getX() - this.getOriginPos().getX()) + 1;
+        }else{
+            return Math.abs(pos.getZ() - this.getOriginPos().getZ()) + 1;
+        }
     }
 
     public void computeShape(ProtoTown town){
