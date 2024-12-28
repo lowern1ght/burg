@@ -1,13 +1,16 @@
 package org.dawnoftime.onceuponatown.client.screen.culturecreator;
 
-import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.BeaconScreen;
+import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.FastColor;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.jetbrains.annotations.NotNull;
 
@@ -33,7 +36,7 @@ public abstract class BaseCCScreen extends Screen {
     private int posY;
     private int scrollOffset = 0;
     private int scrollMaxOffset;
-    protected final List<AbstractWidget> widgets = new ArrayList<>();
+    protected final List<AbstractWidget[]> widgets = new ArrayList<>();
 
     public BaseCCScreen(Component title) {
         super(title);
@@ -44,6 +47,15 @@ public abstract class BaseCCScreen extends Screen {
         posX = (width - TEXTURE_TOTAL_WIDTH) / 2;
         posY = (height - TEXTURE_TOTAL_HEIGHT) / 2;
         this.initWidgets();
+        this.updateWidgetPositions();
+        scrollMaxOffset = Math.max(widgets.size() * WIDGET_HEIGHT - WIDGET_ZONE_HEIGHT, 0);
+    }
+
+    @Override
+    public void resize(@NotNull Minecraft minecraft, int width, int height) {
+        super.resize(minecraft, width, height);
+        posX = (width - TEXTURE_TOTAL_WIDTH) / 2;
+        posY = (height - TEXTURE_TOTAL_HEIGHT) / 2;
         this.updateWidgetPositions();
         scrollMaxOffset = Math.max(widgets.size() * WIDGET_HEIGHT - WIDGET_ZONE_HEIGHT, 0);
     }
@@ -74,22 +86,70 @@ public abstract class BaseCCScreen extends Screen {
 
     private void updateWidgetPositions() {
         for (int i = 0; i < widgets.size(); i++) {
-            AbstractWidget widget = widgets.get(i);
+            AbstractWidget[] rowWidgets = widgets.get(i);
             int widgetY = i * WIDGET_HEIGHT - scrollOffset;
             if(widgetY + WIDGET_HEIGHT > 0 && widgetY < WIDGET_ZONE_HEIGHT){
-                widget.visible = true;
-                widget.setY(posY + WIDGET_ZONE_Y + widgetY);
+                for (AbstractWidget widget : rowWidgets){
+                    widget.visible = true;
+                    widget.setY(posY + WIDGET_ZONE_Y + widgetY);
+                }
             }else{
-                widget.visible = false;
+                for (AbstractWidget widget : rowWidgets){
+                    widget.visible = false;
+                }
             }
         }
     }
 
-    protected void createButton(Component component,  Button.OnPress onPress){
-        Button button = Button.builder(component, onPress).bounds(posX + WIDGET_ZONE_X, posY + WIDGET_ZONE_Y, WIDGET_ZONE_WIDTH, WIDGET_HEIGHT).build();
-        widgets.add(button);
+    public abstract void initWidgets();
+
+    /**
+     * Adds a row to the screen that contains only a button.
+     * @param buttonTextComponent Component that will be displayed on the button.
+     * @param onPress OnPress effect of the button.
+     */
+    protected void createButton(Component buttonTextComponent, Button.OnPress onPress){
+        Button button = Button.builder(buttonTextComponent, onPress).bounds(posX + WIDGET_ZONE_X, 0, WIDGET_ZONE_WIDTH, WIDGET_HEIGHT).build();
+        widgets.add(new AbstractWidget[]{button});
         this.addRenderableWidget(button);
     }
 
-    public abstract void initWidgets();
+    /**
+     * Adds a row to the screen that an editBox, with a confirm button next to it.
+     * @param editBoxHintComponent Component that will be displayed in the editBox to help the user knowing what to write.
+     * @param onPressConfirm OnPress effect of the confirm button.
+     */
+    protected void createEditBoxAndConfirm(Component editBoxHintComponent, Button.OnPress onPressConfirm){
+        EditBox editBox = new EditBox(this.font, posX + WIDGET_ZONE_X + 1, 0, WIDGET_ZONE_WIDTH - WIDGET_HEIGHT - 2, WIDGET_HEIGHT - 2, Component.empty()){
+            // We must edit the setY function because for some reason, MC devs decided that the actual border of this widget should be out of its size...
+            @Override
+            public void setY(int y) {
+                super.setY(y + 1);
+            }
+        };
+        editBox.setHint(editBoxHintComponent);
+        IconButton button = new IconButton(posX + WIDGET_ZONE_X + WIDGET_ZONE_WIDTH - WIDGET_HEIGHT, 0, WIDGET_HEIGHT, 83, 166, onPressConfirm);
+        widgets.add(new AbstractWidget[]{editBox, button});
+        this.addRenderableWidget(editBox);
+        this.addRenderableWidget(button);
+    }
+
+    private static class IconButton extends Button {
+        private final int uOffset;
+        private final int vOffset;
+
+        private IconButton(int x, int y, int size, int uOffset, int vOffset, Button.OnPress onPress) {
+            super(x, y, size, size, Component.empty(), onPress, DEFAULT_NARRATION);
+            this.uOffset = uOffset;
+            this.vOffset = vOffset;
+        }
+
+        @Override
+        public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+            super.render(guiGraphics, mouseX, mouseY, partialTick);
+            if (this.visible) {
+               guiGraphics.blit(BACKGROUND_TEXTURE, this.getX(), this.getY(), uOffset, vOffset, this.getWidth(), this.getHeight(), TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT);
+            }
+        }
+    }
 }
