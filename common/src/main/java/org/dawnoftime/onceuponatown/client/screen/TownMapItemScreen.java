@@ -94,15 +94,16 @@ public class TownMapItemScreen extends Screen {
         int sizeX = tag.getInt("SizeX");
         int sizeZ = tag.getInt("SizeZ");
         var northWestCorner = Component.translatable("north_west_corner").append( " : " + originPos.toShortString()).withStyle(ChatFormatting.GRAY);
+        var direction = Component.translatable("direction").append(" : " + tag.getString("Direction")).withStyle(ChatFormatting.GRAY);
         var length = Component.translatable("length").append(" : " + Math.max(sizeX, sizeZ)).withStyle(ChatFormatting.GRAY);
         var width = Component.translatable("width").append(" : " + Math.min(sizeX, sizeZ)).withStyle(ChatFormatting.GRAY);
-        var isWide = Component.literal("isWide = " + tag.getBoolean("IsWide")).withStyle(ChatFormatting.ITALIC, ChatFormatting.DARK_GRAY);
-        var canGrow = Component.literal("canGrow = " + tag.getBoolean("CanGrow")).withStyle(ChatFormatting.ITALIC, ChatFormatting.DARK_GRAY);
+        var isWide = Component.literal("isWide : " + tag.getBoolean("IsWide")).withStyle(ChatFormatting.ITALIC, ChatFormatting.DARK_GRAY);
+        var canGrow = Component.literal("canGrow : " + tag.getBoolean("CanGrow")).withStyle(ChatFormatting.ITALIC, ChatFormatting.DARK_GRAY);
         int minX = originPos.getX() - NWCorner.getX();
         int minZ = originPos.getZ() - NWCorner.getZ();
         return new MapElement(Build.ROAD, Optional.empty(),
-                List.of(nameAndLevel, CommonComponents.EMPTY, northWestCorner, length, width),
-                List.of(nameAndLevel, CommonComponents.EMPTY, northWestCorner, length, width, isWide, canGrow), minX, minX + sizeX, minZ, minZ + sizeZ);
+                List.of(nameAndLevel, CommonComponents.EMPTY, northWestCorner, direction, length, width),
+                List.of(nameAndLevel, CommonComponents.EMPTY, northWestCorner, direction, length, width, isWide, canGrow), minX, minX + sizeX, minZ, minZ + sizeZ);
     }
 
     private MapElement createBuildingMapElement(CompoundTag tag, BlockPos NWCorner) {

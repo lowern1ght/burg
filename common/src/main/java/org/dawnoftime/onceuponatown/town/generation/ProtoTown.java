@@ -24,10 +24,10 @@ import javax.annotation.Nullable;
 import java.util.*;
 import java.util.function.BiFunction;
 
-import static org.dawnoftime.onceuponatown.Config.DEFAULT_PATH_LENGTH;
+import static org.dawnoftime.onceuponatown.Config.DEFAULT_ROAD_LENGTH;
 import static org.dawnoftime.onceuponatown.culture.Culture.ROAD_TYPE_NAME;
 import static org.dawnoftime.onceuponatown.culture.Culture.WIDE_ROAD_TYPE_NAME;
-import static org.dawnoftime.onceuponatown.Config.MINI_PATH_SPACE;
+import static org.dawnoftime.onceuponatown.Config.MINI_ROAD_SPACE;
 
 public class ProtoTown {
     public static final RandomSource RANDOM_SOURCE = RandomSource.create();
@@ -123,31 +123,36 @@ public class ProtoTown {
         List<BuildingType> starterPack = this.culture.getRandomStarterPack(RANDOM_SOURCE);
         SliceBuildType wideRoad = (SliceBuildType) this.culture.getBuildType(Culture.WIDE_ROAD_TYPE_NAME);
         
-        // First let's put the main vertical wide road, with length of 2 * mini_size + big_width
+        // First let's put the main vertical wide road, with length of 2 * mini_size + big_width.
+        // Since a road can only grow in one direction, we split it in 2 parts.
         int halfBigPath = wideRoad.getWidth() / 2;
-        BuildBud firstBud = this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, this, this.getCenter().getX() - halfBigPath, this.getCenter().getZ() - halfBigPath - DEFAULT_PATH_LENGTH, TownMapUtils.Corner.NORTH_WEST, new Direction[]{Direction.NORTH}));
-        SliceBuild mainRoad = new RoadBuild(wideRoad, 2 * DEFAULT_PATH_LENGTH + wideRoad.getWidth());
-        boolean success = this.tryBuild(mainRoad, firstBud);
+        BuildBud firstBud = this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, this, this.getCenter().getX() - halfBigPath, this.getCenter().getZ(), TownMapUtils.Corner.NORTH_WEST, new Direction[]{Direction.NORTH}));
+        SliceBuild bottomRoad = new RoadBuild(wideRoad, DEFAULT_ROAD_LENGTH + wideRoad.getWidth() / 2);
+        boolean success = this.tryBuild(bottomRoad, firstBud);
+        firstBud = this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, this, this.getCenter().getX() - halfBigPath, this.getCenter().getZ() - 1, TownMapUtils.Corner.SOUTH_WEST, new Direction[]{Direction.SOUTH}));
+        SliceBuild topRoad = new RoadBuild(wideRoad, DEFAULT_ROAD_LENGTH + wideRoad.getWidth() / 2);
+        success &= this.tryBuild(topRoad, firstBud);
+
         if(success){
             // Working on the west side of the road.
             if(RANDOM_SOURCE.nextBoolean()){
                 // We put a perpendicular road.
-                BuildBud bud = this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, this, mainRoad.getOriginPos().getX() - 1, mainRoad.getOriginPos().getZ() + RANDOM_SOURCE.nextInt(3) * DEFAULT_PATH_LENGTH, TownMapUtils.Corner.NORTH_EAST, new Direction[]{Direction.EAST}));
-                SliceBuild road = new RoadBuild(wideRoad, DEFAULT_PATH_LENGTH);
+                BuildBud bud = this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, this, topRoad.getOriginPos().getX() - 1, topRoad.getOriginPos().getZ() + RANDOM_SOURCE.nextInt(3) * DEFAULT_ROAD_LENGTH, TownMapUtils.Corner.NORTH_EAST, new Direction[]{Direction.EAST}));
+                SliceBuild road = new RoadBuild(wideRoad, DEFAULT_ROAD_LENGTH);
                 success = this.tryBuild(road, bud);
             }else{
                 // We just add a bud.
-                this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, this, mainRoad.getOriginPos().getX() - 1, mainRoad.getOriginPos().getZ() + RANDOM_SOURCE.nextInt(3) * DEFAULT_PATH_LENGTH, TownMapUtils.Corner.NORTH_EAST, new Direction[]{Direction.EAST}));
+                this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, this, topRoad.getOriginPos().getX() - 1, topRoad.getOriginPos().getZ() + RANDOM_SOURCE.nextInt(3) * DEFAULT_ROAD_LENGTH, TownMapUtils.Corner.NORTH_EAST, new Direction[]{Direction.EAST}));
             }
             // And now on the east side.
             if(RANDOM_SOURCE.nextBoolean()){
                 // We put a perpendicular road.
-                BuildBud bud = this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, this, mainRoad.getOriginPos().getX() + wideRoad.getWidth(), mainRoad.getOriginPos().getZ() + RANDOM_SOURCE.nextInt(3) * DEFAULT_PATH_LENGTH, TownMapUtils.Corner.NORTH_WEST, new Direction[]{Direction.WEST}));
-                SliceBuild road = new RoadBuild(wideRoad, DEFAULT_PATH_LENGTH);
+                BuildBud bud = this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, this, topRoad.getOriginPos().getX() + wideRoad.getWidth(), topRoad.getOriginPos().getZ() + RANDOM_SOURCE.nextInt(3) * DEFAULT_ROAD_LENGTH, TownMapUtils.Corner.NORTH_WEST, new Direction[]{Direction.WEST}));
+                SliceBuild road = new RoadBuild(wideRoad, DEFAULT_ROAD_LENGTH);
                 success &= this.tryBuild(road, bud);
             }else{
                 // We just add a bud.
-                this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, this, mainRoad.getOriginPos().getX() + wideRoad.getWidth(), mainRoad.getOriginPos().getZ() + RANDOM_SOURCE.nextInt(3) * DEFAULT_PATH_LENGTH, TownMapUtils.Corner.NORTH_WEST, new Direction[]{Direction.WEST}));
+                this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, this, topRoad.getOriginPos().getX() + wideRoad.getWidth(), topRoad.getOriginPos().getZ() + RANDOM_SOURCE.nextInt(3) * DEFAULT_ROAD_LENGTH, TownMapUtils.Corner.NORTH_WEST, new Direction[]{Direction.WEST}));
             }
         }
         for(BuildingType type: starterPack){
@@ -318,20 +323,23 @@ public class ProtoTown {
      * @param buildBud Bud to be tested.
      */
     public void tryCreateRoad(@NotNull BuildBud buildBud){
-        // If this bud has only one adjacent Path, we try
-        if(buildBud.getAdjacentRoads().length == 1 && RANDOM_SOURCE.nextFloat() < Config.ROAD_SPAWN_RATE){
-            boolean mustBeWide = false;
-            Direction pathDir = buildBud.getAdjacentRoads()[0];
-            if(this.getBuild(buildBud.getRealPos().relative(pathDir)) instanceof RoadBuild road){
-                if(road.isWide()){
-                    mustBeWide = RANDOM_SOURCE.nextFloat() < Config.WIDE_ROAD_SPAWN_RATE;
+        // If this bud has only one adjacent Road, we try to create a new road.
+        if (buildBud.getAdjacentRoads().length == 1) {
+            // If the number of bud is too low or if the randomly rolled value is correct, we create a new road.
+            if (this.buildBuds.size() <= Config.CRITICAL_BUDS_NUMBER || RANDOM_SOURCE.nextFloat() < Config.ROAD_SPAWN_RATE) {
+                boolean mustBeWide = false;
+                Direction pathDir = buildBud.getAdjacentRoads()[0];
+                if (this.getBuild(buildBud.getRealPos().relative(pathDir)) instanceof RoadBuild road) {
+                    if (road.isWide()) {
+                        mustBeWide = RANDOM_SOURCE.nextFloat() < Config.WIDE_ROAD_SPAWN_RATE;
+                    }
                 }
-            }
-            SliceBuildType road = (SliceBuildType) this.culture.getBuildType(mustBeWide ? WIDE_ROAD_TYPE_NAME : ROAD_TYPE_NAME);
-            // We check if there is already a road quite close to this one.
-            Direction secondDir = buildBud.getCorner().getLeftDirection() == pathDir ? buildBud.getCorner().getRightDirection() : buildBud.getCorner().getLeftDirection();
-            if(this.roadTooCloseInDir(buildBud.getRealPos().mutable().move(secondDir), secondDir) && this.roadTooCloseInDir(buildBud.getRealPos().mutable().move(secondDir, -road.getWidth()), secondDir.getOpposite())){
-                this.tryBuild(new RoadBuild(road, DEFAULT_PATH_LENGTH), buildBud);
+                SliceBuildType road = (SliceBuildType) this.culture.getBuildType(mustBeWide ? WIDE_ROAD_TYPE_NAME : ROAD_TYPE_NAME);
+                // We check if there is already a road quite close to this one.
+                Direction secondDir = buildBud.getCorner().getLeftDirection() == pathDir ? buildBud.getCorner().getRightDirection() : buildBud.getCorner().getLeftDirection();
+                if (this.roadTooCloseInDir(buildBud.getRealPos().mutable().move(secondDir), secondDir) && this.roadTooCloseInDir(buildBud.getRealPos().mutable().move(secondDir, -road.getWidth()), secondDir.getOpposite())) {
+                    this.tryBuild(new RoadBuild(road, DEFAULT_ROAD_LENGTH), buildBud);
+                }
             }
         }
 
@@ -375,7 +383,7 @@ public class ProtoTown {
      * @return False if a BuildRoad was detected at less than MINI_PATH_SPACE blocks, true otherwise.
      */
     public boolean roadTooCloseInDir(BlockPos.MutableBlockPos cursor, Direction dir){
-        for(int length = 0; length < MINI_PATH_SPACE; length++){
+        for(int length = 0; length < MINI_ROAD_SPACE; length++){
             if(this.getBuild(cursor) instanceof RoadBuild){
                 return false;
             }

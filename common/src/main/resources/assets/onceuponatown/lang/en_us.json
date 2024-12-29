@@ -19,5 +19,6 @@
   "size" : "Size",
   "width" : "Width",
   "length" : "Length",
+  "direction" : "Facing",
   "bud" : "Building bud"
 }

@@ -4,7 +4,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
-import net.minecraft.network.chat.Component;
 import org.dawnoftime.onceuponatown.building.type.SliceBuildType;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
@@ -14,10 +13,9 @@ import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
 import java.util.ArrayList;
 import java.util.Objects;
 
+import static org.dawnoftime.onceuponatown.Config.*;
 import static org.dawnoftime.onceuponatown.culture.Culture.WIDE_ROAD_TYPE_NAME;
 import static org.dawnoftime.onceuponatown.town.generation.ProtoTown.RANDOM_SOURCE;
-import static org.dawnoftime.onceuponatown.Config.DEFAULT_PATH_LENGTH;
-import static org.dawnoftime.onceuponatown.Config.PATH_STOP_RATE;
 
 public class RoadBuild extends SliceBuild {
     private final boolean isWide;
@@ -48,6 +46,7 @@ public class RoadBuild extends SliceBuild {
         displayData.putByte("Category", Build.ROAD);
         displayData.putString("BuildType", getBuildType().getName());
         displayData.put("OriginPos", NbtUtils.writeBlockPos(getOriginPos()));
+        displayData.putString("Direction", this.getDirection().getName());
         displayData.putInt("SizeX", getSizeX());
         displayData.putInt("SizeZ", getSizeZ());
         displayData.putInt("Level", getLevel());
@@ -66,7 +65,7 @@ public class RoadBuild extends SliceBuild {
     }
 
     /**
-     * Function that tries to grow this MapPath, and adds the associated Buds.
+     * Function that tries to make this road grow, and adds the associated Buds.
      * @param town TownMap of this MapPath.
      */
     public void updateRoad(ProtoTown town){
@@ -75,31 +74,29 @@ public class RoadBuild extends SliceBuild {
         this.computeShape(town);
     }
 
+    /**
+     * Function that tries to extend the road. The road can only grow in its opposite direction.
+     * This function will successively try : to stop the road growth, to turn, then to grow.
+     * @param town Town where the road is located.
+     */
     private void tryGrowing(ProtoTown town) {
         if(this.canGrow){
             // We decide if this Path will stop growing definitively after this growth.
-            if(!this.isWide){
-                if(RANDOM_SOURCE.nextFloat() < PATH_STOP_RATE){
+            if(!this.isWide && town.getBuds().size() > CRITICAL_BUDS_NUMBER){
+                if(RANDOM_SOURCE.nextFloat() < ROAD_STOP_RATE){
                     this.canGrow = false;
                 }
             }
             // If the road will stop growing, it should stop directly at the end of the adjacent Build.
-            int bonusSize = this.canGrow ? DEFAULT_PATH_LENGTH : 0;
+            int bonusSize = this.canGrow ? DEFAULT_ROAD_LENGTH : 0;
             int dirGrowth = this.getGrowthSize(town, this.getDirection(), bonusSize);
-            int oppositeDirGrowth = this.getGrowthSize(town, this.getDirection().getOpposite(), bonusSize);
-            if(dirGrowth + oppositeDirGrowth > 0){
+            if(dirGrowth > 0){
                 // We move the origin depending on the growth.
                 if(this.getDirection() == Direction.NORTH || this.getDirection() == Direction.WEST){
-                    if(dirGrowth > 0){
-                        this.setOriginPos(this.getOriginPos().relative(this.getDirection(), dirGrowth));
-                    }
-                }else{
-                    if(oppositeDirGrowth > 0){
-                        this.setOriginPos(this.getOriginPos().relative(this.getDirection(), -oppositeDirGrowth));
-                    }
+                    this.setOriginPos(this.getOriginPos().relative(this.getDirection(), dirGrowth));
                 }
                 // Finally we change the size which will also update the shape.
-                this.extendLength(dirGrowth, oppositeDirGrowth);
+                this.extendLength(dirGrowth);
             }
             // And lastly we will add the special Buds : bridge or stairs
             town.updateTownMap(this);
@@ -109,13 +106,12 @@ public class RoadBuild extends SliceBuild {
     /**
      * Extends the length of this road. The yShape needs to be updated afterward !
      * @param extendInDir Number of blocks extended in this build's direction.
-     * @param extendInOppositeDir Number of blocks extended in this build's opposite direction.
      */
-    protected void extendLength(int extendInDir, int extendInOppositeDir){
-        this.length += extendInDir + extendInOppositeDir;
+    protected void extendLength(int extendInDir){
+        this.length += extendInDir;
         // We move the YShape so that the locked shapes stay at the same position.
         SliceProperty[] newYShape = new SliceProperty[this.length];
-        System.arraycopy(this.yShape, 0, newYShape, extendInOppositeDir, this.yShape.length);
+        System.arraycopy(this.yShape, 0, newYShape, 0, this.yShape.length);
         this.yShape = newYShape;
     }
 
@@ -137,7 +133,9 @@ public class RoadBuild extends SliceBuild {
         BlockPos.MutableBlockPos adjRightCursor = initPos.relative(dir.getClockWise(), this.getSize(dir)).mutable();
         while(true){
             // While the cursor is at an empty vec3 (or the vec3 contains this block), we can extend this MapPath.
-            //TODO Check if there is a Y difference to big : we stop and will make a tower Bud.
+            //TODO Check if there is a Y difference too big : we stop and will make a tower Bud.
+            boolean a = map.isEmpty(pathLeftCursor, this);
+            boolean b = map.isEmpty(pathRightCursor, this);
             if(map.isEmpty(pathLeftCursor, this) && map.isEmpty(pathRightCursor, this)){
                 growth++;
                 emptyAdjacentBlocks++;
