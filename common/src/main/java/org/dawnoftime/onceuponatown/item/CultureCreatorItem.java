@@ -7,8 +7,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.network.S2COpenTownMapScreenPacket;
-import org.dawnoftime.onceuponatown.network.culturecreator.S2COpenScreenCCCultureListPacket;
+import org.dawnoftime.onceuponatown.network.culturecreator.S2COpenCulturesCCScreenPacket;
 import org.jetbrains.annotations.NotNull;
 
 public class CultureCreatorItem extends Item {
@@ -22,16 +21,8 @@ public class CultureCreatorItem extends Item {
         ItemStack stack = player.getItemInHand(hand);
         if (!level.isClientSide()) {
             //TODO Add condition to check if the user is ADMIN !
-            //Ouat.COMMON.sendToClient(player, new S2COpenScreenCCCultureListPacket());
+            Ouat.COMMON.sendToClient(player, S2COpenCulturesCCScreenPacket.create());
         }
         return InteractionResultHolder.pass(stack);
-    }
-
-    public static abstract class CultureCreatorPage{
-        private CultureCreatorPage(){
-
-        }
-
-        //public
     }
 }

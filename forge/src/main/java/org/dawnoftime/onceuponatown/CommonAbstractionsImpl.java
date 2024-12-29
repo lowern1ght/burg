@@ -26,6 +26,7 @@ import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.common.ToolActions;
 import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.fml.ModList;
+import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -33,6 +34,7 @@ import org.dawnoftime.onceuponatown.network.PacketHandler;
 import org.dawnoftime.onceuponatown.network.IOuatPacket;
 
 import javax.annotation.Nullable;
+import java.io.File;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -107,4 +109,8 @@ public class CommonAbstractionsImpl implements CommonAbstractions {
         return IClientItemExtensions.of(stack).getArmPose(entity, hand, stack);
     }
 
+    @Override
+    public File getConfigFolder() {
+        return FMLPaths.CONFIGDIR.get().toFile();
+    }
 }

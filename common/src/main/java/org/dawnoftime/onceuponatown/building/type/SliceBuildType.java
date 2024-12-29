@@ -11,10 +11,10 @@ import java.util.Set;
 import static org.dawnoftime.onceuponatown.town.generation.ProtoTown.RANDOM_SOURCE;
 
 public class SliceBuildType extends BuildType {
-    private final HashMap<String, BuildVariant> slabVariants = new HashMap<>();
-    private final HashMap<String, BuildVariant> stairsVariants = new HashMap<>();
-    private int width;
-    private int patternLength;
+    protected final HashMap<String, BuildVariant> slabVariants = new HashMap<>();
+    protected final HashMap<String, BuildVariant> stairsVariants = new HashMap<>();
+    protected int width;
+    protected int patternLength;
 
     public SliceBuildType(String buildTypeName) {
         super(buildTypeName, 0, new ArrayList<>());

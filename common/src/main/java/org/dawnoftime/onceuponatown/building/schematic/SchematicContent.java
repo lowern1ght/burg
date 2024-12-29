@@ -49,7 +49,7 @@ public class SchematicContent {
             CompoundTag tag = NbtIo.readCompressed(inputStream);
             SchematicContent schematic = new SchematicContent();
             schematic.readSchematicNbtTag(BuiltInRegistries.BLOCK.asLookup(), tag);
-            return schematic; // Why this ? : return schematic.withoutAirBlocks();
+            return schematic.withoutVoidBlocks();
         } catch (FileNotFoundException fnfe) {
             String msg = "Corrupted culture. Could not find a schematic file. It should be located here %s".formatted(schematicRl);
             Ouat.LOG.error(msg, fnfe);
@@ -115,9 +115,9 @@ public class SchematicContent {
         for (int yIndex = 0; yIndex < yShape.length; yIndex++) {
             SliceBuild.SliceProperty slice = yShape[yIndex];
             int offsetY = slice.y() - originY;
-            List<BlockInfo> blocks = sliceMap.get(slice.buildVariantId())[yIndex % patternLength].getBlocks();
-            if (slice.shape() == SliceBuildType.SliceBuildShape.STAIRS_INVERTED) {
-                blocks.replaceAll(BlockInfo::inverse);
+            List<BlockInfo> blocks = sliceMap.get(slice.variantName())[yIndex % patternLength].getBlocks();
+            if(slice.shape() == SliceBuildType.SliceBuildShape.STAIRS_INVERTED){
+                blocks = blocks.stream().map(BlockInfo::inverse).toList();
             }
             int finalYIndex = yIndex;
             schematic.blocks.addAll(blocks.stream().map(blockInfo -> blockInfo.move(0, offsetY, finalYIndex)).toList());
@@ -206,12 +206,12 @@ public class SchematicContent {
     }
 
     /**
-     * @return This Schematic without air blocks.
+     * @return This building plan without void blocks
      */
-    public SchematicContent withoutAirBlocks() {
+    public SchematicContent withoutVoidBlocks() {
         List<BlockInfo> toRemove = new ArrayList<>();
-        for (BlockInfo blockInfo : blocks) {
-            if (blockInfo.state().isAir()) {
+        for (BlockInfo blockInfo : this.blocks) {
+            if (blockInfo.state().getBlock() == Blocks.STRUCTURE_VOID) {
                 toRemove.add(blockInfo);
             }
         }

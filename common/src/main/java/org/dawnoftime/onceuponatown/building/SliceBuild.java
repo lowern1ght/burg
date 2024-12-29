@@ -78,6 +78,24 @@ public abstract class SliceBuild extends NpcBuild {
         return true;
     }
 
+    public SliceProperty[] getYShape() {
+        return this.yShape;
+    }
+
+    /**
+     * Function that compute the Y index of the given position in the YShape.
+     * Be careful ! This value can be out of yShape bounds !
+     * @param pos BlockPos to convert in YIndex.
+     * @return the integer that correspond to the y index.
+     */
+    public int getYIndexFromPos(BlockPos pos){
+        if (this.getDirection().getAxis() == Direction.Axis.X){
+            return Math.abs(pos.getX() - this.getOriginPos().getX()) + 1;
+        }else{
+            return Math.abs(pos.getZ() - this.getOriginPos().getZ()) + 1;
+        }
+    }
+
     public void computeShape(ProtoTown town) {
         Direction dir = this.getDirection();
         // We set the cursors on both side of the Road at its start, on block before to smooth the curve.
@@ -181,10 +199,6 @@ public abstract class SliceBuild extends NpcBuild {
     @Override
     public SchematicContent getSchematicContent(ResourceManager resourceManager) {
         return SchematicContent.getSliceBuildSchematic(this, resourceManager).rotate(this.getDirection());
-    }
-
-    public SliceProperty[] getYShape() {
-        return yShape;
     }
 
     @Override
