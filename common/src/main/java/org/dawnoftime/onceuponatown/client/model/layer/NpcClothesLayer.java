@@ -31,14 +31,14 @@ public class NpcClothesLayer<T extends Npc, M extends NpcModel<T>> extends Rende
     private void renderCultureCommonClothes(M model, PoseStack poseStack, MultiBufferSource buffer, int packedLight, T npc) {
         //NpcCulture culture = npc.getCulture();
         String path = "cultures/plains/skins/common_clothes.png";
-        ResourceLocation resourceLocation = Ouat.createOuatResource(path);
+        ResourceLocation resourceLocation = Ouat.modResource(path);
         renderColoredCutoutModel(model, resourceLocation, poseStack, buffer, packedLight, npc, 1.0F, 1.0F, 1.0F);
     }
 
     private void renderProfessionClothes(M model, PoseStack poseStack, MultiBufferSource buffer, int packedLight, T npc) {
         //NpcProfession profession = npc.getProfession();
         String path = "cultures/plains/skins/professions/" + "fisherman" + ".png";
-        ResourceLocation resourceLocation = Ouat.createOuatResource(path);
+        ResourceLocation resourceLocation = Ouat.modResource(path);
         renderColoredCutoutModel(model, resourceLocation, poseStack, buffer, packedLight, npc, 1.0F, 1.0F, 1.0F);
     }
 

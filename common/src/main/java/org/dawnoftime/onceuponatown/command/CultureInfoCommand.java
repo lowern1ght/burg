@@ -8,6 +8,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
+import org.dawnoftime.onceuponatown.culture.Specialization;
 
 import java.util.List;
 
@@ -20,20 +21,44 @@ public class CultureInfoCommand {
 
     private static int cultureInfo(CommandSourceStack source, String cultureId) {
         Culture culture = CultureManager.getCultureById(cultureId);
-        if (culture != null) {
-            var erasComponent = Component.literal("Eras :");
-            List<Culture.Era> eras = culture.getEras();
-            for (int i = 0; i < eras.size(); ++i) {
-                Culture.Era era = eras.get(i);
-                erasComponent.append(Component.literal("\n" + era.order() + " - Required xp : " + era.requiredXp() + ", Max buildings weight : " + era.buildingsWeight()));
-            }
-            var cultureInfo = Component.literal("Culture ").append(Component.literal(culture.getId() + "\n").withStyle(ChatFormatting.YELLOW))
-                    .append(erasComponent);
 
-            source.sendSuccess(() -> cultureInfo, false);
-        } else {
-            source.sendSuccess(() -> Component.literal("Culture not found"), false);
-        }
+        // Eras
+        var erasComponent = Component.literal("Eras").withStyle(ChatFormatting.BLUE).append(" (");
+        var eras = culture.getEras();
+        erasComponent.append(eras.size() + ") :\n");
+        eras.forEach((era
+        -> erasComponent.append(Component.literal(era.index() + " - Exp needed : " + era.requiredXp() + ", max clutter : " + era.buildingsWeight() + "\n"))));
+
+        // Specializations
+        var specializationsComponent = Component.literal("Specializations").withStyle(ChatFormatting.BLUE).append(" (");
+        var specializations = culture.getSpecializations();
+        specializationsComponent.append(specializations.size() + ") : ");
+        specializations.forEach((s -> specializationsComponent.append(s + " ")));
+        specializationsComponent.append("\n");
+
+        // Starter pack
+        var starterPackComponent = Component.literal("Starter pack").withStyle(ChatFormatting.BLUE).append(" (");
+        var starterPack = culture.getStarterPack();
+        starterPackComponent.append(starterPack.size() + " building" + (starterPack.size() > 1 ? "s" : "") + ") :\n");
+        starterPack.forEach((buildTypeId, amountInPack)
+        -> starterPackComponent.append(Component.literal(buildTypeId).withStyle(ChatFormatting.AQUA))
+                .append(" (min : " + amountInPack.getA() +", max : " + amountInPack.getB() + ")\n"));
+
+        // Build types
+        var buildTypesComponent = Component.literal("Buildings (");
+        var buildTypes = culture.getBuildTypes();
+        buildTypesComponent.append(buildTypes.size() + ") :\n");
+        buildTypes.forEach((buildType) -> {
+            int nbOfVariants = buildType.getBuildVariants().size();
+            int nbOfLevels = buildType.getLevels().size();
+            buildTypesComponent.append(buildType.getId()).withStyle(ChatFormatting.AQUA)
+                    .append(" : " + nbOfVariants + " variant" + (nbOfVariants > 1 ? "s" : "") +", " + nbOfLevels + " level" + (nbOfLevels > 1 ? "s" : "") + "\n");
+        });
+
+        var cultureInfo = Component.literal("Culture '").append(Component.literal(culture.getId()).withStyle(ChatFormatting.YELLOW)).append("'\n")
+                .append(erasComponent).append(specializationsComponent).append(starterPackComponent).append(buildTypesComponent);
+
+        source.sendSuccess(() -> cultureInfo, false);
         return 1;
     }
 }

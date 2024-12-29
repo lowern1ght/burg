@@ -18,14 +18,13 @@ import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.function.Supplier;
 
 import static org.dawnoftime.onceuponatown.client.screen.BuyScreen.DealButton.HEIGHT;
 import static org.dawnoftime.onceuponatown.client.screen.BuyScreen.DealButton.WIDTH;
 
 
 public class BuyScreen extends NpcBaseScreen<BuyMenu> {
-    private static final ResourceLocation TEXTURE = Ouat.createOuatResource("textures/gui/buy_screen.png");
+    private static final ResourceLocation TEXTURE = Ouat.modResource("textures/gui/buy_screen.png");
     private static final int MAIN_BLIT_WIDTH = 281;
     private static final int MAIN_BLIT_HEIGHT = 166;
     private static final int SCROLLER_HEIGHT = 27;

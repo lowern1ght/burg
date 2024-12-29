@@ -1,113 +1,68 @@
 package org.dawnoftime.onceuponatown.building.schematic;
 
 import net.minecraft.core.*;
-import net.minecraft.world.phys.Vec3;
-import org.dawnoftime.onceuponatown.Ouat;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtIo;
-import net.minecraft.nbt.NbtUtils;
-import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.state.BlockState;
-import org.dawnoftime.onceuponatown.construction.BlockInfo;
-import org.dawnoftime.onceuponatown.construction.ConstructionUtils;
-import org.dawnoftime.onceuponatown.construction.EntityInfo;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 
 /**
- * Represents a structure NBT file.<br>
- * Can be seen as the construction plan of a structure.<br>
- * Shared by all structures which are described by the same NBT file.<br>
- * Does not contain any information about how the structure should be placed in world (position, rotation...).<br>
- * Warning ! The content of the NBT is only loaded when needed, only the resourceLocation is kept in cache.
+ * A Schematic is a set of blocks and entities, like vanilla StructureTemplate, which can be saved using a structure block. <br>
+ * Can be seen as the construction plan of a structure. It does not contain any information about how the structure should be placed in world (position, rotation...)<br>
+ * For performance issues, the content of its NBT structure file is only loaded when needed. <br>
+ * A Schematic also defines Waypoints for NPCs to use, like beds, workstations...
  */
 public class BuildSchematic {
+    private final ResourceLocation schematicResourceLocation; // The ResourceLocation of the Minecraft NBT file of the structure
+    private final HashMap<Vec3i, Waypoint> waypoints = new HashMap<>(); // Waypoints of this schematic
 
-    private final ResourceLocation schematicResourceLocation;
-    private final HashMap<Vec3i, Waypoint> waypoints = new HashMap<>();
-
-    private BuildSchematic(ResourceLocation schematicResourceLocation){
+    private BuildSchematic(ResourceLocation schematicResourceLocation) {
         this.schematicResourceLocation = schematicResourceLocation;
     }
 
-    public ResourceLocation getSchematicResourceLocation() {
-        return this.schematicResourceLocation;
-    }
-
-    public static BuildSchematic create(ResourceManager resourceManager, ResourceLocation schematicResourceLocation, Vec3i requiredSize, String cultureName, String buildVariantName) throws CorruptedCultureException{
-        Vec3i size = getSchematicSize(resourceManager, schematicResourceLocation, cultureName, buildVariantName);
-        if(requiredSize.equals(size)){
+    public static BuildSchematic createFromDataPack(ResourceManager resourceManager, ResourceLocation schematicResourceLocation, Vec3i requiredDimensions, String cultureId, String buildVariantId) throws CorruptedCultureException {
+        Vec3i dimensions = getSchematicDimensions(resourceManager, schematicResourceLocation, cultureId, buildVariantId);
+        if (dimensions.equals(requiredDimensions)) {
             return new BuildSchematic(schematicResourceLocation);
-        }else{
-            throw new CorruptedCultureException(cultureName, "A schematic loaded has a size of [%s], instead of the size [%s] defined in the build_variant '%s'. Check this file: %s".formatted(size.toShortString(), requiredSize.toShortString(), buildVariantName, schematicResourceLocation));
+        } else {
+            throw new CorruptedCultureException(cultureId, "Schematic at %s has dimensions [%s], but its build_variant '%s' requires a size of [%s]".formatted(schematicResourceLocation, dimensions.toShortString(), buildVariantId, requiredDimensions.toShortString()));
         }
     }
 
-    private static Vec3i getSchematicSize(ResourceManager resourceManager, ResourceLocation schematicResourceLocation, String cultureName, String buildVariantName){
+    private static Vec3i getSchematicDimensions(ResourceManager resourceManager, ResourceLocation schematicResourceLocation, String cultureId, String buildVariantId) throws CorruptedCultureException {
+        String path = schematicResourceLocation.getPath();
+        String fileName = path.substring(path.lastIndexOf('/') + 1, path.lastIndexOf('.'));
         try (InputStream inputStream = resourceManager.open(schematicResourceLocation)) {
             CompoundTag tag = NbtIo.readCompressed(inputStream);
             ListTag sizeTag = tag.getList("size", 3);
             return new Vec3i(sizeTag.getInt(0), sizeTag.getInt(1), sizeTag.getInt(2));
         } catch (FileNotFoundException fileNotFoundException) {
-            String path = schematicResourceLocation.getPath();
-            throw CorruptedCultureException.missingFile(cultureName, "schematic", path.substring(path.lastIndexOf('/') + 1, path.lastIndexOf('.')), schematicResourceLocation);
-        } catch (Throwable throwable) {
-            throw new CorruptedCultureException(cultureName, "Error loading a schematic for the build_variant '%s'. Could not load the file: %s".formatted(buildVariantName, schematicResourceLocation));
+            throw CorruptedCultureException.missingFile(cultureId, "Schematic", fileName, schematicResourceLocation);
+        } catch (Exception e) {
+            throw new CorruptedCultureException(cultureId, "Could not load schematic '%s' of the build_variant '%s'. Please verify the file at %s".formatted(fileName, buildVariantId, schematicResourceLocation));
         }
     }
 
-    public void addWaypoint(Vec3i position, Waypoint waypoint){
-        this.waypoints.put(position, waypoint);
+    public void addWaypoint(Vec3i position, Waypoint waypoint) {
+        waypoints.put(position, waypoint);
+    }
+
+    public @Nullable SchematicContent loadSchematic(ResourceManager resourceManager) {
+        return SchematicContent.createFromDataPack(schematicResourceLocation, resourceManager);
+    }
+
+    public ResourceLocation getResourceLocation() {
+        return schematicResourceLocation;
     }
 
     public HashMap<Vec3i, Waypoint> getWaypoints() {
-        return this.waypoints;
-    }
-
-    public @Nullable SchematicContent load(ResourceManager resourceManager){
-        return SchematicContent.create(this.schematicResourceLocation, resourceManager);
-    }
-
-    static class Palette implements Iterable<BlockState> {
-        public static final BlockState DEFAULT_BLOCK_STATE = Blocks.AIR.defaultBlockState();
-        private final IdMapper<BlockState> ids = new IdMapper<>(16);
-        private int lastId;
-
-        public int idFor(BlockState state) {
-            int i = this.ids.getId(state);
-            if (i == -1) {
-                i = this.lastId++;
-                this.ids.addMapping(state, i);
-            }
-
-            return i;
-        }
-
-        public BlockState stateFor(int id) {
-            BlockState blockstate = this.ids.byId(id);
-            return blockstate == null ? DEFAULT_BLOCK_STATE : blockstate;
-        }
-
-        public @NotNull Iterator<BlockState> iterator() {
-            return this.ids.iterator();
-        }
-
-        public void addMapping(BlockState state, int id) {
-            this.ids.addMapping(state, id);
-        }
+        return waypoints;
     }
 }

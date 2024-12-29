@@ -1,16 +1,15 @@
 package org.dawnoftime.onceuponatown.town;
 
 import net.minecraft.nbt.Tag;
-import net.minecraft.util.Mth;
 import net.minecraft.world.level.levelgen.Heightmap;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.construction.ConstructionProject;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.culture.CultureManager;
-import org.dawnoftime.onceuponatown.culture.Orientation;
+import org.dawnoftime.onceuponatown.culture.Specialization;
 import org.dawnoftime.onceuponatown.entity.Npc;
-import org.dawnoftime.onceuponatown.building.Build;
+import org.dawnoftime.onceuponatown.building.NpcBuild;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.SharedConstants;
@@ -19,7 +18,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.bossevents.CustomBossEvent;
 import net.minecraft.server.bossevents.CustomBossEvents;
 import net.minecraft.server.level.ServerLevel;
@@ -36,7 +34,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 public class Town extends ProtoTown {
@@ -49,7 +46,7 @@ public class Town extends ProtoTown {
     private final List<ConstructionProject> constructionProjects;
     // The variables bellow are not saved.
     private long lastProductionHarvest;
-    private HashMap<Integer, Orientation> developmentProgress;
+    private HashMap<Integer, Specialization> developmentProgress;
     private int experience;
     private int buildingClutter;
     private CustomBossEvent townXpBar;
@@ -77,7 +74,7 @@ public class Town extends ProtoTown {
                 NbtUtils.readBlockPos(tag.getCompound("NWCorner")).mutable(),
                 NbtUtils.readBlockPos(tag.getCompound("SECorner")).mutable(),
                 tag.getList("BuildBuds", Tag.TAG_COMPOUND).stream().map(budTag -> new BuildBud((CompoundTag) budTag)).collect(Collectors.toList()),
-                tag.getList("Builds", Tag.TAG_COMPOUND).stream().map(buildTag -> Build.readNBT(culture, (CompoundTag) buildTag)).collect(Collectors.toList()),
+                tag.getList("Builds", Tag.TAG_COMPOUND).stream().map(buildTag -> NpcBuild.load(culture, (CompoundTag) buildTag)).collect(Collectors.toList()),
                 (x, z) -> level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) - 1
         );
         this.level = level;
@@ -170,12 +167,12 @@ public class Town extends ProtoTown {
     private void createOrLoadXpBar() {
         CustomBossEvents customBossEvents = this.level.getServer().getCustomBossEvents();
         String barID = (getName() + "_bar").replaceAll("\\s","").toLowerCase();
-        if (customBossEvents.get(Ouat.createOuatResource(barID)) == null) {
+        if (customBossEvents.get(Ouat.modResource(barID)) == null) {
             Component barText = Component.literal(this.getName()).withStyle(ChatFormatting.WHITE);
-            this.townXpBar = customBossEvents.create(Ouat.createOuatResource(barID), barText);
+            this.townXpBar = customBossEvents.create(Ouat.modResource(barID), barText);
             this.townXpBar.setColor(BossEvent.BossBarColor.WHITE);
         } else {
-            this.townXpBar = customBossEvents.get(Ouat.createOuatResource(barID));
+            this.townXpBar = customBossEvents.get(Ouat.modResource(barID));
         }
     }
 

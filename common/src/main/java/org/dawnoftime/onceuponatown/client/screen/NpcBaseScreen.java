@@ -1,10 +1,8 @@
 package org.dawnoftime.onceuponatown.client.screen;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.TabButton;
-import net.minecraft.client.gui.components.tabs.Tab;
-import net.minecraft.client.gui.components.tabs.TabManager;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -21,8 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class NpcBaseScreen<T extends AbstractContainerMenu> extends AbstractContainerScreen<T> {
-    private static final ResourceLocation EMPTY_TABS_TEXTURE = Ouat.createOuatResource("textures/gui/tabs/empty_tabs.png");
-    private static final ResourceLocation CITIZEN_HEADER_TEXTURE = Ouat.createOuatResource("textures/gui/npc_header.png");
+    private static final ResourceLocation EMPTY_TABS_TEXTURE = Ouat.modResource("textures/gui/tabs/empty_tabs.png");
+    private static final ResourceLocation CITIZEN_HEADER_TEXTURE = Ouat.modResource("textures/gui/npc_header.png");
     private static final int NPC_HEADER_TEXTURE_WIDTH = 281;
     private static final int NPC_HEADER_TEXTURE_HEIGHT = 65;
     private static final int EMPTY_TABS_TEXTURE_WIDTH = 65;
@@ -141,11 +139,11 @@ public abstract class NpcBaseScreen<T extends AbstractContainerMenu> extends Abs
     private record DrawnTab(int index, NpcTab tab, int x, int y) {}
 
     public enum NpcTab {
-        BUY(Ouat.createOuatResource("textures/gui/tabs/buy_icon.png"), 14, 21, 11, 3),
-        SELL(Ouat.createOuatResource("textures/gui/tabs/sell_icon.png"), 14, 21, 11, 3),
-        QUESTS(Ouat.createOuatResource("textures/gui/tabs/quests_icon.png"),15 ,12 ,10 ,7),
+        BUY(Ouat.modResource("textures/gui/tabs/buy_icon.png"), 14, 21, 11, 3),
+        SELL(Ouat.modResource("textures/gui/tabs/sell_icon.png"), 14, 21, 11, 3),
+        QUESTS(Ouat.modResource("textures/gui/tabs/quests_icon.png"),15 ,12 ,10 ,7),
         INFO(new ResourceLocation("textures/item/oak_sign.png"), 16, 16, 10, 5),
-        TRADE(Ouat.createOuatResource("textures/item/emerald_pouch_nonempty.png"), 16, 16, 10, 6);
+        TRADE(Ouat.modResource("textures/item/emerald_pouch_full.png"), 16, 16, 10, 6);
 
         public final ResourceLocation iconTexture;
         public final int iconWidth;

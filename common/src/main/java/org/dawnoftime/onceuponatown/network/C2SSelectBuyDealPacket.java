@@ -9,10 +9,10 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import org.slf4j.Logger;
 
-import static org.dawnoftime.onceuponatown.Ouat.createOuatResource;
+import static org.dawnoftime.onceuponatown.Ouat.modResource;
 
 public record C2SSelectBuyDealPacket(int dealIndex) implements IOuatPacket {
-    public static final ResourceLocation ID = createOuatResource("c2s_select_buy_deal");
+    public static final ResourceLocation ID = modResource("c2s_select_buy_deal");
 
     public static C2SSelectBuyDealPacket decode(FriendlyByteBuf buf) {
         return new C2SSelectBuyDealPacket(buf.readVarInt());

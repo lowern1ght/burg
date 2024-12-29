@@ -36,6 +36,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockState;
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 import org.dawnoftime.onceuponatown.entity.ai.goal.core.NpcPanicGoal;
 import org.dawnoftime.onceuponatown.entity.ai.goal.fight.SelfDefenseGoal;
 import org.dawnoftime.onceuponatown.entity.ai.goal.work.FishermanWorkGoal;

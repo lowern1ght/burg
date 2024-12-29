@@ -17,70 +17,62 @@ public class SliceBuildType extends BuildType {
     private int patternLength;
 
     public SliceBuildType(String buildTypeName) {
-        super(buildTypeName, 0);
-    }
-
-    public int getPatternLength() {
-        return this.patternLength;
-    }
-
-    public int getWidth() {
-        return this.width;
+        super(buildTypeName, 0, new ArrayList<>());
     }
 
     @Override
     public void addVariant(BuildVariant variant, String shape, String cultureId) {
         try {
-            if (this.width == 0) {
-                this.width = variant.getSize().getX();
-                this.patternLength = variant.getSize().getZ();
+            if (width == 0) {
+                width = variant.getDimensions().getX();
+                patternLength = variant.getDimensions().getZ();
             } else {
-                if (this.width != variant.getSize().getX() || this.patternLength != variant.getSize().getZ()) {
-                    throw new CorruptedCultureException(cultureId, "Failed to register a build_variant. Every build_variant associated with '%s' must have the same width and length.".formatted(this.getName()));
+                if (width != variant.getDimensions().getX() || patternLength != variant.getDimensions().getZ()) {
+                    throw new CorruptedCultureException(cultureId, "Failed to register a build_variant. Every build_variant associated with '%s' must have the same width and length.".formatted(this.getId()));
                 }
             }
-            switch (SliceBuildShape.fromStringToRegister(cultureId, variant.getName(), shape)) {
+            switch (SliceBuildShape.fromStringToRegister(cultureId, variant.getId(), shape)) {
                 case FLAT -> super.addVariant(variant, shape, cultureId);
-                case SLAB -> this.slabVariants.put(variant.getName(), variant);
-                case STAIRS -> this.stairsVariants.put(variant.getName(), variant);
+                case SLAB -> slabVariants.put(variant.getId(), variant);
+                case STAIRS -> stairsVariants.put(variant.getId(), variant);
             }
-        }catch(CorruptedCultureException e){
+        } catch (CorruptedCultureException e) {
             Ouat.error(e.getMessage());
         }
     }
 
-    public BuildVariant getVariant(SliceBuildShape shape, String variantName){
-        return switch(shape){
-            case SLAB -> this.slabVariants.get(variantName);
-            case STAIRS, STAIRS_INVERTED -> this.stairsVariants.get(variantName);
-            default -> this.getVariants().get(variantName);
+    public BuildVariant getVariant(SliceBuildShape shape, String variantId) {
+        return switch(shape) {
+            case SLAB -> slabVariants.get(variantId);
+            case STAIRS, STAIRS_INVERTED -> stairsVariants.get(variantId);
+            default -> this.getBuildVariants().get(variantId);
         };
     }
 
-    public String getRandomVariantName(SliceBuildShape shape){
-        Set<String> keys = switch(shape){
-            case SLAB -> this.slabVariants.keySet();
-            case STAIRS, STAIRS_INVERTED -> this.stairsVariants.keySet();
-            default -> this.getVariants().keySet();
+    public String getRandomVariantName(SliceBuildShape shape) {
+        Set<String> keys = switch(shape) {
+            case SLAB -> slabVariants.keySet();
+            case STAIRS, STAIRS_INVERTED -> stairsVariants.keySet();
+            default -> this.getBuildVariants().keySet();
         };
         return new ArrayList<>(keys).get(RANDOM_SOURCE.nextInt(keys.size()));
     }
 
     @Override
-    public boolean isNotValid(String cultureId) {
-        if(this.getVariants().isEmpty()){
-            throw new CorruptedCultureException(cultureId, "Failed to load a culture. You need to define at least one build_variant for the build_type '%s' with 'shape': 'flat'.".formatted(this.getName()));
+    public boolean isValid(String cultureId) {
+        if (this.getBuildVariants().isEmpty()) {
+            throw new CorruptedCultureException(cultureId, "Failed to load a culture. You need to define at least one build_variant for the build_type '%s' with 'shape': 'flat'.".formatted(this.getId()));
         }
-        if(this.slabVariants.isEmpty()){
-            throw new CorruptedCultureException(cultureId, "Failed to load a culture. You need to define at least one build_variant for the build_type '%s' with 'shape': 'slab'.".formatted(this.getName()));
+        if (slabVariants.isEmpty()) {
+            throw new CorruptedCultureException(cultureId, "Failed to load a culture. You need to define at least one build_variant for the build_type '%s' with 'shape': 'slab'.".formatted(this.getId()));
         }
-        if(this.stairsVariants.isEmpty()) {
-            throw new CorruptedCultureException(cultureId, "Failed to load a culture. You need to define at least one build_variant for the build_type '%s' with 'shape': 'stairs'.".formatted(this.getName()));
+        if (stairsVariants.isEmpty()) {
+            throw new CorruptedCultureException(cultureId, "Failed to load a culture. You need to define at least one build_variant for the build_type '%s' with 'shape': 'stairs'.".formatted(this.getId()));
         }
-        return false;
+        return true;
     }
 
-    public enum SliceBuildShape{
+    public enum SliceBuildShape {
         FLAT("flat", 0, false),
         SLAB("slab", 0, false),
         STAIRS("stairs", 1.0F, false),
@@ -93,7 +85,7 @@ public class SliceBuildType extends BuildType {
         private final float slope;
         private final boolean locked;
 
-        SliceBuildShape(String shapeName, float slope, boolean locked){
+        SliceBuildShape(String shapeName, float slope, boolean locked) {
             this.shapeName = shapeName;
             this.slope = slope;
             this.locked = locked;
@@ -103,16 +95,16 @@ public class SliceBuildType extends BuildType {
             return locked;
         }
 
-        public int getYSize(int patternLength, int totalSizeY){
+        public int getYSize(int patternLength, int totalSizeY) {
             return getMaxYForSliceSchematic(0, patternLength, totalSizeY) + 1;
         }
 
-        public int getMinYForSliceSchematic(int patternPos){
-            return (int) Math.floor(patternPos * this.slope);
+        public int getMinYForSliceSchematic(int patternPos) {
+            return (int)Math.floor(patternPos * slope);
         }
 
-        public int getMaxYForSliceSchematic(int patternPos, int patternLength, int totalSizeY){
-            return totalSizeY - (int) Math.floor((patternLength - 1 - patternPos) * this.slope) - 1;
+        public int getMaxYForSliceSchematic(int patternPos, int patternLength, int totalSizeY) {
+            return totalSizeY - (int) Math.floor((patternLength - 1 - patternPos) * slope) - 1;
         }
 
         public static SliceBuildShape fromStringToRegister(String cultureId, String variantName, String shapeName) {
@@ -124,5 +116,13 @@ public class SliceBuildType extends BuildType {
             }
             throw new CorruptedCultureException(cultureId, "Failed to register a build_variant '%s'. The accepted shapes are %s, and not '%s'.".formatted(variantName, accepted, shapeName));
         }
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public int getPatternLength() {
+        return patternLength;
     }
 }

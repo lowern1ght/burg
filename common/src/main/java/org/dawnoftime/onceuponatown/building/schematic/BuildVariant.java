@@ -13,7 +13,6 @@ import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 import org.dawnoftime.onceuponatown.culture.CultureManager;
 import org.jetbrains.annotations.Nullable;
-import oshi.util.tuples.Pair;
 import oshi.util.tuples.Triplet;
 
 import java.io.IOException;
@@ -23,110 +22,112 @@ import java.util.TreeMap;
 import java.util.stream.IntStream;
 
 /**
- * This class contains all the information required to build one of the instance of a BuildType,
- * such as the id of the building and a List of BuildSchematic (one for each level).
+ * A BuildType's variant is a set of schematics for that BuildType. For example, you could have a house build type with two variants : one with a garden and one without.
+ * All variants share the same behavior (number of inhabitants, number of workstations...) but are aesthetically different. <br>
  */
 public class BuildVariant {
-    private final String name;
-    private final Vec3i size;
+    private final String id;
+    private final Vec3i dimensions;
     private final BuildSchematic[] buildSchematicArray;
 
-    private BuildVariant(String name, Vec3i size, TreeMap<Integer, BuildSchematic> buildSchematicList){
-        this.name = name;
-        this.size = size;
+    private BuildVariant(String id, Vec3i dimensions, TreeMap<Integer, BuildSchematic> buildSchematicList) {
+        this.id = id;
+        this.dimensions = dimensions;
         this.buildSchematicArray = buildSchematicList.values().toArray(new BuildSchematic[0]);
     }
 
     /**
-     * Read the schematic plan (named with the variant name) that contains :<p>
-     * - the size of the building (the schematics must all have the same size).<p>
-     * - the list of level with the corresponding schematic path and its waypoints.
-     * @param resourceManager Resource manager used to load the file.
-     * @param buildResource The resource location of the file being loaded.
-     * @param cultureName The name of the culture that owns this build_variant. Only used to throw specific error description.
-     * @return Either a Pair BuildType name / BuildSchematicPlan if all the files could be loaded, null otherwise.
+     * Creates a BuildVariant from the data pack. <br>
+     * Reads the corresponding Json file.
+     *
+     * @param buildVariantRl The ResourceLocation of the BuildVariant being loaded.
+     * @param cultureId      The name of the culture that owns this build_variant. Only used to add specific error description.
+     * @return The BuildType's name + the loaded BuildVariant + optional shape if the files could be loaded, null otherwise.
      */
-    public static @Nullable Triplet<String, BuildVariant, String> createFromJson(ResourceManager resourceManager, ResourceLocation buildResource, String cultureName){
-        try {
-            Resource resource = resourceManager.getResource(buildResource).orElseThrow();
-            try (Reader reader = resource.openAsReader()) {
-                String path = buildResource.getPath();
-                String buildVariantName = path.substring(path.lastIndexOf('/') + 1, path.lastIndexOf('.'));
-                JsonObject buildVariantJson = GsonHelper.parse(reader);
+    public static @Nullable Triplet<String, BuildVariant, String> createFromDataPack(ResourceManager resourceManager, ResourceLocation buildVariantRl, String cultureId) {
+        try (Reader reader = resourceManager.openAsReader(buildVariantRl)) {
+            String path = buildVariantRl.getPath();
+            String buildVariantId = path.substring(path.lastIndexOf('/') + 1, path.lastIndexOf('.'));
+            String fileName = buildVariantId + ".json";
+            JsonObject objectJson = GsonHelper.parse(reader);
+            var variantJson = new CultureManager.CultureJsonFile(cultureId, "build_variant", objectJson, buildVariantRl, fileName);
 
-                // Reading the build_type.
-                JsonElement elem = CultureManager.tryGet(buildVariantJson, "build_type", "build_variant", cultureName, buildVariantName + ".json", buildResource);
-                String buildTypeName = elem.getAsString();
+            // Reading the build_type.
+            JsonElement elem = variantJson.tryGet("build_type");
+            String buildTypeName = elem.getAsString();
 
-                // Reading the size.
-                elem = CultureManager.tryGet(buildVariantJson, "size", "build_variant", cultureName, buildVariantName + ".json", buildResource);
-                JsonObject subObject = elem.getAsJsonObject();
-                int x = CultureManager.tryGet(subObject, "x", " in the section 'size'", "build_variant", cultureName, buildVariantName + ".json", buildResource).getAsInt();
-                int y = CultureManager.tryGet(subObject, "y", " in the section 'size'", "build_variant", cultureName, buildVariantName + ".json", buildResource).getAsInt();
-                int z = CultureManager.tryGet(subObject, "z", " in the section 'size'", "build_variant", cultureName, buildVariantName + ".json", buildResource).getAsInt();
-                Vec3i size = new Vec3i(x, y, z);
+            // Reading the size.
+            elem = variantJson.tryGet("size");
+            JsonObject subObject = elem.getAsJsonObject();
+            int x = variantJson.tryGet(subObject, "x", "in the section 'size'").getAsInt();
+            int y = variantJson.tryGet(subObject, "y", "in the section 'size'").getAsInt();
+            int z = variantJson.tryGet(subObject, "z", "in the section 'size'").getAsInt();
+            Vec3i size = new Vec3i(x, y, z);
 
-                // Reading each level.
-                elem = CultureManager.tryGet(buildVariantJson, "levels", "build_variant", cultureName, buildVariantName + ".json", buildResource);
-                JsonArray array = elem.getAsJsonArray();
-                TreeMap<Integer, BuildSchematic> schematics = new TreeMap<>();
-                for(JsonElement arrayElem : array){
-                    subObject = arrayElem.getAsJsonObject();
-                    int level = CultureManager.tryGet(subObject, "level", " in an object in the section 'levels'", "build_variant", cultureName, buildVariantName + ".json", buildResource).getAsInt();
-                    String schematicName = CultureManager.tryGet(subObject, "schematic", " in an object in the section 'levels'", "build_variant", cultureName, buildVariantName + ".json", buildResource).getAsString();
-                    BuildSchematic schematic = BuildSchematic.create(resourceManager, Ouat.createOuatResource("cultures/%s/builds/schematic/%s.nbt".formatted(cultureName, schematicName)), size, cultureName, buildVariantName);
-                    // TODO Do the code that loads the waypoints.
-                    // for each waypoints loaded : schematic.addWaypoint();
-                    schematics.put(level, schematic);
-                }
-
-                // Read the bonus info : the shape.
-                elem = buildVariantJson.get("shape");
-                String shape = elem != null ? elem.getAsString() : null;
-
-                // Finally we check if the BuildSchematic exists for each list level, and have the correct size.
-                if (schematics.isEmpty()){
-                    throw new CorruptedCultureException(cultureName, "Failed to register a build_variant. You need to define at least the first level. Please check the file: %s".formatted(buildResource));
-                }
-                if (schematics.firstKey() < 1) {
-                    throw new CorruptedCultureException(cultureName, "Failed to register a build_variant. The lowest level must be 1. Please check the file: %s".formatted(buildResource));
-                }
-                if (!IntStream.rangeClosed(1, schematics.lastKey()).allMatch(schematics::containsKey)) {
-                    throw new CorruptedCultureException(cultureName, "Failed to register a build_variant. You need to define each level from 1 to the maximum level. Please check the file: %s".formatted(buildResource));
-                }
-                return new Triplet<>(buildTypeName, new BuildVariant(buildVariantName, size, schematics), shape);
+            // Reading each level.
+            elem = variantJson.tryGet("levels");
+            JsonArray array = elem.getAsJsonArray();
+            TreeMap<Integer, BuildSchematic> schematics = new TreeMap<>();
+            for (JsonElement arrayElem : array) {
+                subObject = arrayElem.getAsJsonObject();
+                int level = variantJson.tryGet(subObject, "level", "in an object in the section 'levels'").getAsInt();
+                String schematicName = variantJson.tryGet(subObject, "schematic", " in an object in the section 'levels'").getAsString();
+                BuildSchematic schematic = BuildSchematic.createFromDataPack(resourceManager, Ouat.modResource(CultureManager.CULTURE_FOLDER_NAME + "/%s/builds/schematic/%s.nbt".formatted(cultureId, schematicName)), size, cultureId, buildVariantId);
+                // TODO Do the code that loads the waypoints.
+                // for each waypoints loaded : schematic.addWaypoint();
+                schematics.put(level, schematic);
             }
+
+            // Read the bonus info : the shape.
+            elem = objectJson.get("shape");
+            String shape = elem != null ? elem.getAsString() : null;
+
+            // Finally we check if the BuildSchematic exists for each list level, and have the correct size.
+            if (schematics.isEmpty()) {
+                throw new CorruptedCultureException(cultureId, "Failed to register the build_variant '%s' because it has no levels. It should have at least one level. Check the file at : %s".formatted(buildVariantId, buildVariantRl));
+            }
+            if (schematics.firstKey() < 1) {
+                throw new CorruptedCultureException(cultureId, "Failed to register the build_variant '%s'. The lowest level must be 1. Check the file at : %s".formatted(buildVariantId, buildVariantRl));
+            }
+            if (!IntStream.rangeClosed(1, schematics.lastKey()).allMatch(schematics::containsKey)) {
+                throw new CorruptedCultureException(cultureId, "Failed to register the build_variant '%s'. You need to define each level from 1 to the maximum level. Check the file at : %s".formatted(buildVariantId, buildVariantRl));
+            }
+            return new Triplet<>(buildTypeName, new BuildVariant(buildVariantId, size, schematics), shape);
+
         } catch (IOException | JsonParseException e) {
-            Ouat.error("Culture [%s]: Could not read a build_variant file. Maybe you made a typo in the file: %s".formatted(cultureName, buildResource));
+            // Why no throw ?
+            Ouat.error(new CorruptedCultureException(cultureId, "Could not read a build_variant file. Maybe there is a typo ? Check the file at : %s".formatted(cultureId, buildVariantRl)).getMessage());
         } catch (IllegalStateException e) {
-            Ouat.error("Culture [%s]: Could not read a build_variant file. The structure of the json is not correct in the file: %s".formatted(cultureName, buildResource));
-        } catch (CorruptedCultureException e){
+            // Why no throw ?
+            Ouat.error(new CorruptedCultureException(cultureId, "Could not read a build_variant file because its json structure is incorrect. Check the file at : %s".formatted(cultureId, buildVariantRl)).getMessage());
+        } catch (CorruptedCultureException e) {
+            // Why no throw ?
             Ouat.error(e.getMessage());
         }
         return null;
     }
 
     public BuildSchematic getBuildSchematic(int level) {
-        return this.buildSchematicArray[level - 1];
+        return buildSchematicArray[level - 1];
     }
 
-    public HashMap<Vec3i, Waypoint> getWaypoints(int level){
+    public HashMap<Vec3i, Waypoint> getWaypoints(int level) {
         return this.getBuildSchematic(level).getWaypoints();
     }
 
-    public ResourceLocation getSchematicResource(int level){
-        return this.getBuildSchematic(level).getSchematicResourceLocation();
+    public ResourceLocation getSchematicResourceLocation(int level) {
+        return this.getBuildSchematic(level).getResourceLocation();
     }
 
-    public SchematicContent getSchematic(ResourceManager resourceManager, int level){
-        return this.getBuildSchematic(level).load(resourceManager);
+    public SchematicContent getSchematicContent(ResourceManager resourceManager, int level) {
+        return this.getBuildSchematic(level).loadSchematic(resourceManager);
     }
 
-    public String getName() {
-        return this.name;
+    public String getId() {
+        return id;
     }
 
-    public Vec3i getSize(){
-        return this.size;
+    public Vec3i getDimensions() {
+        return dimensions;
     }
 }

@@ -9,10 +9,10 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import org.slf4j.Logger;
 
-import static org.dawnoftime.onceuponatown.Ouat.createOuatResource;
+import static org.dawnoftime.onceuponatown.Ouat.modResource;
 
 public record C2SSellScreenPacket(int dealIndex, RequestType requestType) implements IOuatPacket {
-    public static final ResourceLocation ID = createOuatResource("c2s_sell_screen");
+    public static final ResourceLocation ID = modResource("c2s_sell_screen");
 
     public static C2SSellScreenPacket decode(FriendlyByteBuf buf) {
         return new C2SSellScreenPacket(buf.readVarInt(), buf.readEnum(RequestType.class));

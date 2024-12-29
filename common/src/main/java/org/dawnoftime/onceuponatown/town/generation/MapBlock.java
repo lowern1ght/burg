@@ -1,12 +1,11 @@
 package org.dawnoftime.onceuponatown.town.generation;
 
-import org.dawnoftime.onceuponatown.building.Build;
-import org.dawnoftime.onceuponatown.building.type.BuildType;
+import org.dawnoftime.onceuponatown.building.NpcBuild;
 import org.jetbrains.annotations.Nullable;
 
 public interface MapBlock {
 
-    default @Nullable Build getBuild(){
+    default @Nullable NpcBuild getBuild(){
         return null;
     }
 }

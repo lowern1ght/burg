@@ -16,7 +16,7 @@ public class Ouat {
     public static final CommonAbstractions COMMON = load(CommonAbstractions.class);
     public static final ClientAbstractions CLIENT = load(ClientAbstractions.class);
 
-    public static ResourceLocation createOuatResource(String name) {
+    public static ResourceLocation modResource(String name) {
         return new ResourceLocation(MOD_ID, name);
     }
 

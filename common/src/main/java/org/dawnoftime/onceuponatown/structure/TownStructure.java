@@ -48,7 +48,7 @@ public class TownStructure extends Structure {
             if (town.buildStarterPack()) {
                 // Creates a StructurePiece for each town Build. The first one contains the data to register the Town on the future ServerLevel
                 for (int i = 0; i < town.getBuilds().size(); ++i) {
-                    builder.addPiece((town.getBuilds().get(i).generatePieces(culture, i == 0 ? town : null)));
+                    builder.addPiece((town.getBuilds().get(i).createStructurePiece(culture, i == 0 ? town : null)));
                 }
             } else {
                 Ouat.info("Failed to generate a %s Town in %s.".formatted(cultureId, blockPosToString(townCenterPos)));
