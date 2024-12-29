@@ -14,6 +14,7 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
 import net.minecraft.world.level.material.FluidState;
+import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.Building;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
 import org.dawnoftime.onceuponatown.construction.BlockInfo;
@@ -60,23 +61,28 @@ public class BuildingPiece extends StructurePiece {
 
     @Override
     public void postProcess(@NotNull WorldGenLevel level, @NotNull StructureManager structureManager, @NotNull ChunkGenerator chunkGenerator, @NotNull RandomSource random, @NotNull BoundingBox boundingBox, @NotNull ChunkPos chunkPos, @NotNull BlockPos pos) {
-        SchematicContent schematicContent = SchematicContent.create(schematicLocation, level.getServer().getResourceManager()).rotate(buildingOrientation);
-        BlockPos.MutableBlockPos cursorPos = new BlockPos(0, 0, 0).mutable();
-        for(BlockInfo block: schematicContent.getBlocks()){
-            cursorPos.set(originPos.getX(), originPos.getY(), originPos.getZ());
-            cursorPos.move(block.pos());
-            if (boundingBox.isInside(cursorPos)) {
-                level.setBlock(cursorPos, block.state(), 2);
-                FluidState fluidState = level.getFluidState(cursorPos);
-                if (!fluidState.isEmpty()) {
-                    level.scheduleTick(cursorPos, fluidState.getType(), 0);
+        SchematicContent schematicContent = SchematicContent.createFromDataPack(schematicLocation, level.getServer().getResourceManager());
+        if (schematicContent != null) {
+            schematicContent.rotate(buildingOrientation);
+            BlockPos.MutableBlockPos cursorPos = new BlockPos(0, 0, 0).mutable();
+            for (BlockInfo block : schematicContent.getBlocks()) {
+                cursorPos.set(originPos.getX(), originPos.getY(), originPos.getZ());
+                cursorPos.move(block.pos());
+                if (boundingBox.isInside(cursorPos)) {
+                    level.setBlock(cursorPos, block.state(), 2);
+                    FluidState fluidState = level.getFluidState(cursorPos);
+                    if (!fluidState.isEmpty()) {
+                        level.scheduleTick(cursorPos, fluidState.getType(), 0);
+                    }
+                    // Vanilla if (SHAPE_CHECK_BLOCKS.contains(blockstate.getBlock())) {level.getChunk(blockPos).markPosForPostprocessing(blockPos);}
                 }
-                // Vanilla if (SHAPE_CHECK_BLOCKS.contains(blockstate.getBlock())) {level.getChunk(blockPos).markPosForPostprocessing(blockPos);}
+                // TODO Place the schematic entities as well
+                if (townTag != null) {
+                    LevelTowns.of(level.getLevel()).initProtoTown(townTag);
+                }
             }
-            // TODO Place the schematic entities as well
-            if (townTag != null) {
-                LevelTowns.of(level.getLevel()).initProtoTown(townTag);
-            }
+        } else {
+            Ouat.error("Failed to place a village building during world generation. Check the file at " + schematicLocation);
         }
     }
 }

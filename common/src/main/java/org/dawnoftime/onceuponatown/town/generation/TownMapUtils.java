@@ -3,7 +3,7 @@ package org.dawnoftime.onceuponatown.town.generation;
 import com.google.common.collect.AbstractIterator;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import org.dawnoftime.onceuponatown.building.Build;
+import org.dawnoftime.onceuponatown.building.NpcBuild;
 
 import java.util.Collections;
 
@@ -14,7 +14,7 @@ public class TownMapUtils {
     public static final Direction[] NW_DIR_CYCLE = new Direction[]{Direction.EAST, Direction.SOUTH, Direction.WEST, NORTH};
 
     /**
-     * Function that provides an iterator of MutablePos on a rectangular shape in Clockwise order.
+     * Function that provides an iterator of MutablePos on a rectangular shape in Clockwise index.
      * @param originPos NORTH_WEST BlockPos of the rectangle.
      * @param sizeX Horizontal size of the rectangle.
      * @param sizeZ Vertical size of the rectangle.
@@ -82,7 +82,7 @@ public class TownMapUtils {
          * @param buildDir Direction to which the Build will be oriented.
          * @return The position of the NORTH_WEST corner of the Build if it is placed on this corner.
          */
-        public BlockPos getOrigin(BlockPos pos, Build build, Direction buildDir){
+        public BlockPos getOrigin(BlockPos pos, NpcBuild build, Direction buildDir){
             return this.getCornerPos(pos, build, buildDir, NORTH_WEST);
         }
 
@@ -94,7 +94,7 @@ public class TownMapUtils {
          * @param targetCorner The corner we want to obtain.
          * @return The BlockPos of the targetCorner.
          */
-        public BlockPos getCornerPos(BlockPos pos, Build build, Direction buildDir, Corner targetCorner){
+        public BlockPos getCornerPos(BlockPos pos, NpcBuild build, Direction buildDir, Corner targetCorner){
             int signOffsetX = (targetCorner.getStepX() - this.getStepX()) / 2;
             int signOffsetZ = (targetCorner.getStepZ() - this.getStepZ()) / 2;
             return pos.offset(signOffsetX * (build.getSizeX(buildDir) - 1), 0, signOffsetZ * (build.getSizeZ(buildDir) - 1));

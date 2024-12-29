@@ -10,7 +10,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
-import org.dawnoftime.onceuponatown.building.Build;
+import org.dawnoftime.onceuponatown.building.NpcBuild;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
 import org.dawnoftime.onceuponatown.construction.BlockInfo;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
@@ -38,7 +38,7 @@ public class TownSpawnCommand {
                 LevelTowns.of(level).addTown(town);
                 // Now we place the blocks.
                 BlockPos.MutableBlockPos cursor = new BlockPos(0, 0, 0).mutable();
-                for(Build build: town.getBuilds()){
+                for(NpcBuild build: town.getBuilds()){
                     SchematicContent schema = build.getSchematicContent(level.getServer().getResourceManager());
                     for(BlockInfo block: schema.getBlocks()){
                         cursor.set(build.getOriginPos().getX(), build.getOriginPos().getY(), build.getOriginPos().getZ());

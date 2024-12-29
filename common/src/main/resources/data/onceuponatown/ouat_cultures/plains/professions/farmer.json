@@ -1,0 +1,21 @@
+{
+  "id": "farmer",
+  "schedule": "default",
+  "work_ai": "farmer",
+  "levels": [
+    {
+      "level": 1,
+      "production": [
+        {"id": "minecraft:wheat", "amount": 16},
+        {"id": "minecraft:seeds", "amount": 3}
+      ],
+      "crafts": [
+        {"id": "minecraft:bread"}
+      ],
+      "trades": [
+        {"type": "buy", "cost_a": {"id": "minecraft:emerald", "amount": 2}, "result": {"id": "minecraft:bread", "amount": 1}},
+        {"type": "sell", "cost_a": {"id": "minecraft:apple", "amount": 3}, "result": {"id": "minecraft:emerald", "amount": 1}}
+      ]
+    }
+  ]
+}

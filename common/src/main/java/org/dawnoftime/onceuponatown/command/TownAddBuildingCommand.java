@@ -6,20 +6,14 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
-import org.dawnoftime.onceuponatown.building.Build;
+import org.dawnoftime.onceuponatown.building.NpcBuild;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
 import org.dawnoftime.onceuponatown.building.type.BuildType;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import org.dawnoftime.onceuponatown.construction.BlockInfo;
-import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
-import org.dawnoftime.onceuponatown.culture.Culture;
-import org.dawnoftime.onceuponatown.culture.CultureManager;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.Town;
 
@@ -51,7 +45,7 @@ public class TownAddBuildingCommand {
             BuildType type = finalClosestTown.getCulture().getBuildType(buildTypeName);
             if(type != null){
                 if(type instanceof BuildingType buildingType){
-                    Build build = finalClosestTown.addBuilding(buildingType);
+                    NpcBuild build = finalClosestTown.addBuilding(buildingType);
                     if(build != null){
                         ServerLevel level = source.getLevel();
                         BlockPos.MutableBlockPos cursor = new BlockPos(0, 0, 0).mutable();

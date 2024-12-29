@@ -17,10 +17,10 @@ import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import org.slf4j.Logger;
 
-import static org.dawnoftime.onceuponatown.Ouat.createOuatResource;
+import static org.dawnoftime.onceuponatown.Ouat.modResource;
 
 public record C2SChangeNpcTabPacket(int newTab) implements IOuatPacket {
-    public static final ResourceLocation ID = createOuatResource("c2s_change_npc_tab");
+    public static final ResourceLocation ID = modResource("c2s_change_npc_tab");
 
     public static C2SChangeNpcTabPacket decode(FriendlyByteBuf buf) {
         return new C2SChangeNpcTabPacket(buf.readVarInt());

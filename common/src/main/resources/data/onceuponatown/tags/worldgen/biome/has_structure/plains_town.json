@@ -1,7 +1,6 @@
 {
   "values": [
     "minecraft:plains",
-    "minecraft:meadow",
-    "minecraft:taiga"
+    "minecraft:meadow"
   ]
 }

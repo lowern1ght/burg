@@ -1,0 +1,25 @@
+{
+    "id": "alchemy_laboratory",
+    "category": "work",
+    "weight": 10,
+    "levels": [
+        {
+            "level": 1,
+            "required_era": 1
+        }
+    ],
+    "item": "minecraft:brewing_stand",
+    "variants": [
+        {
+            "name": "small_lab",
+            "size": {"x": 8, "y": 11, "z": 9},
+            "levels": [
+                {
+                    "level": 1,
+                    "schematic": "alchemy_laboratory_small_lab",
+                    "waypoints": []
+                }
+            ]
+        }
+    ]
+}

@@ -24,7 +24,7 @@ import static org.dawnoftime.onceuponatown.client.screen.BuyScreen.DealButton.WI
 
 
 public class TradeScreenOld extends NpcBaseScreen<TradeMenu> {
-    private static final ResourceLocation TEXTURE = Ouat.createOuatResource("textures/gui/trade_screen.png");
+    private static final ResourceLocation TEXTURE = Ouat.modResource("textures/gui/trade_screen.png");
     private static final int MAIN_BLIT_WIDTH = 281;
     private static final int MAIN_BLIT_HEIGHT = 166;
     private static final int SCROLLER_HEIGHT = 27;

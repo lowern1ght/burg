@@ -1,0 +1,12 @@
+{
+  "id": "theater",
+  "category": "special",
+  "weight": 20,
+  "levels": [
+    {
+      "level": 1,
+      "required_era": 1
+    }
+  ],
+  "item": "minecraft:music_disc_stal"
+}

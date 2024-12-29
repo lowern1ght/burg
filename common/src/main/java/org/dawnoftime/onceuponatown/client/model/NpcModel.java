@@ -19,7 +19,7 @@ import org.dawnoftime.onceuponatown.entity.Npc;
 import java.util.List;
 
 public class NpcModel<T extends Npc> extends HumanoidModel<T> {
-    public static final ModelLayerLocation LAYER_LOCATION = new ModelLayerLocation(Ouat.createOuatResource("npc"), "main_layer");
+    public static final ModelLayerLocation LAYER_LOCATION = new ModelLayerLocation(Ouat.modResource("npc"), "main_layer");
     private final List<ModelPart> parts;
     private final ModelPart crossedArms;
 

@@ -15,7 +15,7 @@ import org.dawnoftime.onceuponatown.client.model.layer.NpcClothesLayer;
 import org.dawnoftime.onceuponatown.entity.Npc;
 
 public class NpcRenderer extends HumanoidMobRenderer<Npc, NpcModel<Npc>> {
-    private static final ResourceLocation NPC_BASE_SKIN = Ouat.createOuatResource("cultures/plains/skins/base_skin.png");
+    private static final ResourceLocation NPC_BASE_SKIN = Ouat.modResource("cultures/plains/skins/underclothes.png");
 
     public NpcRenderer(EntityRendererProvider.Context context) {
         super(context, new NpcModel<>(context.bakeLayer(NpcModel.LAYER_LOCATION)), 0.5F);

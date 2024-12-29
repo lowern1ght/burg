@@ -26,7 +26,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 
 public class SellScreen extends NpcBaseScreen<SellMenu> {
-    private static final ResourceLocation TEXTURE = Ouat.createOuatResource("textures/gui/sell_screen.png");
+    private static final ResourceLocation TEXTURE = Ouat.modResource("textures/gui/sell_screen.png");
     private static final int BUY_SCREEN_TEXTURE_WIDTH = 299;
     private static final int BUY_SCREEN_TEXTURE_HEIGHT = 174;
     // Texture size and offset in file
@@ -216,7 +216,7 @@ public class SellScreen extends NpcBaseScreen<SellMenu> {
         //graphics.pose().translate(0.0F, 0.0F, 100.0F);
         if (this.menu.isGoodsGridLocked()) {
             graphics.pose().translate(0.0F, 0.0F, 400.0F);
-            graphics.blit(Ouat.createOuatResource("textures/gui/lock.png"), this.leftPos + 143, this.topPos + 48 , 0, 0, 10, 14, 10, 14);
+            graphics.blit(Ouat.modResource("textures/gui/lock.png"), this.leftPos + 143, this.topPos + 48 , 0, 0, 10, 14, 10, 14);
         }
         graphics.drawString(this.font, Component.literal("Simir Kurtmar, ").withStyle(ChatFormatting.GOLD).append(Component.literal("Inkeeper").withStyle(ChatFormatting.GRAY).withStyle(ChatFormatting.ITALIC)), leftPos + 305, topPos+18, 4210752, false);
         //graphics.drawString(this.font, Component.literal("                               ").withStyle(ChatFormatting.WHITE).withStyle(ChatFormatting.UNDERLINE),leftPos + 305, topPos +2, 4210752, false);

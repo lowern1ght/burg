@@ -1,9 +1,7 @@
 package org.dawnoftime.onceuponatown.structure.pieces;
 
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.material.FluidState;
-import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.building.Build;
+import org.dawnoftime.onceuponatown.building.NpcBuild;
 import org.dawnoftime.onceuponatown.building.SliceBuild;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
 import org.dawnoftime.onceuponatown.construction.BlockInfo;
@@ -48,7 +46,7 @@ public class SliceBuildPiece extends StructurePiece {
         setOrientation(Direction.NORTH); // Using our custom orientation system instead
         cultureId = tag.getString("CultureId");
         Culture culture = CultureManager.getCultureById(cultureId);
-        sliceBuild = (SliceBuild) Build.readNBT(culture, tag.getCompound("SliceBuild"));
+        sliceBuild = (SliceBuild) NpcBuild.load(culture, tag.getCompound("SliceBuild"));
         originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
         townTag = (tag.contains("FutureTownData")) ? tag.getCompound("FutureTownData") : null;
     }
@@ -56,7 +54,7 @@ public class SliceBuildPiece extends StructurePiece {
     @Override
     protected void addAdditionalSaveData(@NotNull StructurePieceSerializationContext context, CompoundTag tag) {
         tag.putString("CultureId", cultureId);
-        tag.put("SliceBuild", sliceBuild.writeNBT());
+        tag.put("SliceBuild", sliceBuild.save());
         tag.put("OriginPos", NbtUtils.writeBlockPos(originPos));
         if (townTag != null) {
             tag.put("FutureTownData", townTag);

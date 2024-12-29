@@ -3,11 +3,9 @@ package org.dawnoftime.onceuponatown.building;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
-import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
@@ -26,103 +24,62 @@ import java.util.HashSet;
 import static org.dawnoftime.onceuponatown.Config.MAXI_Y_DIFFERENCE;
 import static org.dawnoftime.onceuponatown.town.generation.TownMapUtils.rectangularPosIterator;
 
-public class Building extends Build {
+/**
+ * Buildings are places where NPCs may work, sleep, relax, hide... <br>
+ * Roads, Bridges or Walls are not Buildings
+ */
+public class Building extends NpcBuild {
     private final BuildVariant variant;
 
-    public Building(BuildType type, BuildVariant variant) {
-        super(type);
-        this.variant = variant;
+    public Building(BuildType buildType, BuildVariant buildVariant, int level) {
+        super(buildType, level);
+        this.variant = buildVariant;
     }
 
-    public Building(Culture culture, CompoundTag tag) {
+    protected Building(Culture culture, CompoundTag tag) {
         super(culture, tag);
-        this.variant = this.getBuildType().getVariants().get(tag.getString("BuildVariant"));
+        variant = this.getBuildType().getBuildVariants().get(tag.getString("BuildVariant"));
     }
 
     @Override
-    public CompoundTag writeNBT() {
-        CompoundTag tag = super.writeNBT();
-        tag.putString("BuildVariant", this.variant.getName());
+    public CompoundTag save() {
+        CompoundTag tag = super.save();
+        tag.putString("BuildVariant", variant.getId());
         return tag;
     }
 
     @Override
-    public CompoundTag getDataForGui() {
-        CompoundTag displayData = new CompoundTag();
-        displayData.putByte("Category", Build.BUILDING);
-        displayData.putString("BuildType", getBuildType().getName());
-        displayData.put("OriginPos", NbtUtils.writeBlockPos(getOriginPos()));
-        displayData.putInt("SizeX", getSizeX());
-        displayData.putInt("SizeZ", getSizeZ());
-        displayData.putInt("Level", getLevel());
-        if (getBuildType() instanceof BuildingType type) {
-            displayData.putString("IconItem", Ouat.COMMON.getResourceLocation(type.getIconItem()).toString());
-        }
-        return displayData;
-    }
-
-    @Override
-    public int getNorthSizeX() {
-        return this.variant.getSize().getX();
-    }
-
-    @Override
-    public int getNorthSizeZ() {
-        return this.variant.getSize().getZ();
-    }
-
-    @Override
-    public int getSizeY() {
-        return this.variant.getSize().getY();
-    }
-
-    @Override
-    public StructurePiece generatePieces(Culture culture, @Nullable ProtoTown town) {
-        return new BuildingPiece(this, town);
-    }
-
-    public ResourceLocation getSchematicResourceLocation() {
-        return variant.getSchematicResource(this.getLevel());
-    }
-
-    @Override
     protected void onAddedToTown(ProtoTown town) {
-        // We try to find all the adjacent MapPath to extend them and add the Buds.
-        // We will iterate on a "1 block bigger rectangle" to find all the adjacent MapBuild.
+        // Trying to find all the adjacent Roads to extend them and add new Buds.
+        // Iterating on a "1 block bigger rectangle" to find all the adjacent Roads.
         HashSet<MapBlock> mapBlocks = new HashSet<>();
-        for(BlockPos.MutableBlockPos pos : rectangularPosIterator(this.getOriginPos().north().west(), this.getSizeX() + 2, this.getSizeZ() + 2)) {
+        for (BlockPos.MutableBlockPos pos : rectangularPosIterator(this.getOriginPos().north().west(), this.getSizeX() + 2, this.getSizeZ() + 2)) {
             mapBlocks.add(town.getMapBlockInMapPos(pos));
             // TODO lock the shape on the corresponding pos.
         }
-        for(MapBlock mapBlock : mapBlocks){
-            if(mapBlock instanceof RoadBuild road){
-                road.updateRoad(town);
+        for (MapBlock mapBlock : mapBlocks) {
+            if (mapBlock instanceof Road road) {
+                road.tryGrowing(town);
             }
         }
     }
 
-    /**
-     * @param originPos North-West BlockPos of the building.
-     * @param dir Direction of the building.
-     * @return The BlockPos of the door of this MapBuilding, with the given parameters.
-     */
-    private BlockPos getEntranceYPos(BlockPos originPos, Direction dir){
-        //TODO Replace this function with the real position of the Door.
+    @Override
+    public int getSuitablePlacementAltitude(BlockPos originPos, Direction dir) {
+        return getEntranceYPos(originPos, dir).getY();
+    }
 
-        //TODO Fix this function, it doesn't seem to work properly
-        // I will assume the door is in the middle of the North side.
+    /**
+     * @param originPos North-West BlockPos of the Building.
+     * @param dir       Direction of the Building.
+     * @return The BlockPos of the main entrance of this Building, with the given parameters.
+     */
+    private BlockPos getEntranceYPos(BlockPos originPos, Direction dir) {
+        // TODO Return the entrance waypoint instead
+        // TODO Fix this function, it doesn't seem to work properly
+        // Assuming that the door is in the middle of the North side.
         int offset = dir.getAxis() == Direction.Axis.X ? this.getSizeZ(dir) : this.getSizeX(dir);
         return Corner.NORTH_WEST.getCornerPos(originPos, this, dir, Corner.getCornerNextToDir(dir.getOpposite(), false)).relative(dir.getClockWise(), offset / 2);
-    }
-
-    @Override
-    public SchematicContent getSchematicContent(ResourceManager resourceManager) {
-        return this.variant.getSchematic(resourceManager, this.getLevel()).rotate(this.getDirection());
-    }
-
-    @Override
-    public int findAdaptedY(BlockPos originPos, Direction dir) {
-        return this.getEntranceYPos(originPos, dir).getY();
     }
 
     @Override
@@ -131,10 +88,25 @@ public class Building extends Build {
     }
 
     @Override
+    public int getNorthSizeX() {
+        return variant.getDimensions().getX();
+    }
+
+    @Override
+    public int getNorthSizeZ() {
+        return variant.getDimensions().getZ();
+    }
+
+    @Override
+    public int getSizeY() {
+        return variant.getDimensions().getY();
+    }
+
+    @Override
     public boolean canBeBuiltOnBud(ProtoTown town, BuildBud buildBud, Direction dir) {
         BlockPos testedOriginPos = buildBud.findOriginPos(this, dir);
-        for(BlockPos.MutableBlockPos testedPos : rectangularPosIterator(testedOriginPos, this.getSizeX(dir), this.getSizeZ(dir))) {
-            if(!town.isEmpty(testedPos) || Math.abs(testedPos.getY() - this.getYOnPosForTestedOrigin(testedOriginPos, testedPos)) > MAXI_Y_DIFFERENCE){
+        for (BlockPos.MutableBlockPos testedPos : rectangularPosIterator(testedOriginPos, this.getSizeX(dir), this.getSizeZ(dir))) {
+            if (!town.isEmpty(testedPos) || Math.abs(testedPos.getY() - this.getYOnPosForTestedOrigin(testedOriginPos, testedPos)) > MAXI_Y_DIFFERENCE) {
                 return false;
             }
         }
@@ -142,7 +114,31 @@ public class Building extends Build {
     }
 
     @Override
-    protected BuildCategory getBuildTypeCategory() {
-        return BuildCategory.BUILDING;
+    public StructurePiece createStructurePiece(Culture culture, @Nullable ProtoTown town) {
+        return new BuildingPiece(this, town);
+    }
+
+    @Override
+    public CompoundTag getDescriptionForGui() {
+        CompoundTag descriptionTag = super.getDescriptionForGui();
+        descriptionTag.putByte("Category", NpcBuild.BUILDING);
+        if (getBuildType() instanceof BuildingType type) {
+            descriptionTag.putString("IconItem", Ouat.COMMON.getResourceLocation(type.getIconItem()).toString());
+        }
+        return descriptionTag;
+    }
+
+    public ResourceLocation getSchematicResourceLocation() {
+        return variant.getSchematicResourceLocation(this.getLevel());
+    }
+
+    @Override
+    public SchematicContent getSchematicContent(ResourceManager resourceManager) {
+        return variant.getSchematicContent(resourceManager, this.getLevel()).rotate(this.getDirection());
+    }
+
+    @Override
+    protected byte getBuildCategory() {
+        return BUILDING;
     }
 }

@@ -10,9 +10,9 @@ import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import org.dawnoftime.onceuponatown.Config;
 import org.dawnoftime.onceuponatown.Utils;
-import org.dawnoftime.onceuponatown.building.Build;
+import org.dawnoftime.onceuponatown.building.NpcBuild;
 import org.dawnoftime.onceuponatown.building.Building;
-import org.dawnoftime.onceuponatown.building.RoadBuild;
+import org.dawnoftime.onceuponatown.building.Road;
 import org.dawnoftime.onceuponatown.building.SliceBuild;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import org.dawnoftime.onceuponatown.building.type.SliceBuildType;
@@ -39,12 +39,12 @@ public class ProtoTown {
     private final BlockPos.MutableBlockPos NWCorner;
     private final BlockPos.MutableBlockPos SECorner;
     private final List<BuildBud> buildBuds;
-    private final List<Build> builds;
+    private final List<NpcBuild> builds;
     // The variables below are not saved.
     private final BiFunction<Integer, Integer, Integer> getSurfaceY;
     private MapBlock[][] townMap;
 
-    public ProtoTown(UUID uuid, Culture culture, String name, BlockPos center, BlockPos.MutableBlockPos NWCorner, BlockPos.MutableBlockPos SECorner, List<BuildBud> buildBuds, List<Build> builds, BiFunction<Integer, Integer, Integer> getSurfaceY){
+    public ProtoTown(UUID uuid, Culture culture, String name, BlockPos center, BlockPos.MutableBlockPos NWCorner, BlockPos.MutableBlockPos SECorner, List<BuildBud> buildBuds, List<NpcBuild> builds, BiFunction<Integer, Integer, Integer> getSurfaceY){
         this.uuid = uuid;
         this.culture = culture;
         this.name = name;
@@ -73,7 +73,7 @@ public class ProtoTown {
         this.buildBuds.forEach((bud) -> buds.add(bud.writeNBT()));
         tag.put("BuildBuds", buds);
         ListTag bds = new ListTag();
-        this.builds.forEach((build) -> bds.add(build.writeNBT()));
+        this.builds.forEach((build) -> bds.add(build.save()));
         tag.put("Builds", bds);
         return tag;
     }
@@ -83,7 +83,7 @@ public class ProtoTown {
      */
     public void createTownMap(){
         this.townMap = new MapBlock[this.SECorner.getZ() - this.NWCorner.getZ() + 1][this.SECorner.getX() - this.NWCorner.getX() + 1];
-        for(Build build: this.builds){
+        for(NpcBuild build: this.builds){
             int xStart = this.getMapX(build.getOriginPos().getX());
             int zStart = this.getMapZ(build.getOriginPos().getZ());
             for (int x = 0; x < build.getSizeX(); x++) {
@@ -110,7 +110,7 @@ public class ProtoTown {
         return uuid;
     }
 
-    public List<Build> getBuilds() {
+    public List<NpcBuild> getBuilds() {
         return this.builds;
     }
 
@@ -127,10 +127,10 @@ public class ProtoTown {
         // Since a road can only grow in one direction, we split it in 2 parts.
         int halfBigPath = wideRoad.getWidth() / 2;
         BuildBud firstBud = this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, this, this.getCenter().getX() - halfBigPath, this.getCenter().getZ(), TownMapUtils.Corner.NORTH_WEST, new Direction[]{Direction.NORTH}));
-        SliceBuild bottomRoad = new RoadBuild(wideRoad, DEFAULT_ROAD_LENGTH + wideRoad.getWidth() / 2);
+        SliceBuild bottomRoad = new Road(wideRoad, DEFAULT_ROAD_LENGTH + wideRoad.getWidth() / 2);
         boolean success = this.tryBuild(bottomRoad, firstBud);
         firstBud = this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, this, this.getCenter().getX() - halfBigPath, this.getCenter().getZ() - 1, TownMapUtils.Corner.SOUTH_WEST, new Direction[]{Direction.SOUTH}));
-        SliceBuild topRoad = new RoadBuild(wideRoad, DEFAULT_ROAD_LENGTH + wideRoad.getWidth() / 2);
+        SliceBuild topRoad = new Road(wideRoad, DEFAULT_ROAD_LENGTH + wideRoad.getWidth() / 2);
         success &= this.tryBuild(topRoad, firstBud);
 
         if(success){
@@ -138,7 +138,7 @@ public class ProtoTown {
             if(RANDOM_SOURCE.nextBoolean()){
                 // We put a perpendicular road.
                 BuildBud bud = this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, this, topRoad.getOriginPos().getX() - 1, topRoad.getOriginPos().getZ() + RANDOM_SOURCE.nextInt(3) * DEFAULT_ROAD_LENGTH, TownMapUtils.Corner.NORTH_EAST, new Direction[]{Direction.EAST}));
-                SliceBuild road = new RoadBuild(wideRoad, DEFAULT_ROAD_LENGTH);
+                SliceBuild road = new Road(wideRoad, DEFAULT_ROAD_LENGTH);
                 success = this.tryBuild(road, bud);
             }else{
                 // We just add a bud.
@@ -148,7 +148,7 @@ public class ProtoTown {
             if(RANDOM_SOURCE.nextBoolean()){
                 // We put a perpendicular road.
                 BuildBud bud = this.addToBuds(new BuildBud(BuildBud.BudType.DEFAULT, this, topRoad.getOriginPos().getX() + wideRoad.getWidth(), topRoad.getOriginPos().getZ() + RANDOM_SOURCE.nextInt(3) * DEFAULT_ROAD_LENGTH, TownMapUtils.Corner.NORTH_WEST, new Direction[]{Direction.WEST}));
-                SliceBuild road = new RoadBuild(wideRoad, DEFAULT_ROAD_LENGTH);
+                SliceBuild road = new Road(wideRoad, DEFAULT_ROAD_LENGTH);
                 success &= this.tryBuild(road, bud);
             }else{
                 // We just add a bud.
@@ -168,14 +168,14 @@ public class ProtoTown {
      * @param buildBud Bud on which we try to build.
      * @return True if the Build was successfully built, false otherwise.
      */
-    public boolean tryBuild(Build build, @Nullable BuildBud buildBud){
+    public boolean tryBuild(NpcBuild build, @Nullable BuildBud buildBud){
         if(buildBud == null){
             return false;
         }
         for(Direction dir : buildBud.getAdjacentRoads()){
             if(build.canBeBuiltOnBud(this, buildBud, dir)){
                 this.removeFromBuds(buildBud);
-                build.addToTownMap(this, buildBud, dir);
+                build.addToTown(this, buildBud, dir);
                 return true;
             }
         }
@@ -191,7 +191,7 @@ public class ProtoTown {
         //TODO What if there is no Bud left ?
         this.getBuds().sort(Comparator.comparingInt(BuildBud::getSquaredDistToCenter));
         BuildBud[] buildBuds = this.getBuds().toArray(new BuildBud[0]);
-        Building building = new Building(type, type.getRandomVariant(RANDOM_SOURCE));
+        Building building = new Building(type, type.getRandomVariant(RANDOM_SOURCE), 1);
         for(BuildBud buildBud : buildBuds){
             if(this.tryBuild(building, buildBud)){
                 return building;
@@ -221,7 +221,7 @@ public class ProtoTown {
             if(buildBud.getType() == BuildBud.BudType.DEFAULT){
                 Direction[] dirs = buildBud.getAdjacentRoads();
                 if(dirs.length == 1){
-                    if(this.getBuild(buildBud.getRealPos().relative(dirs[0])) instanceof RoadBuild path) {
+                    if(this.getBuild(buildBud.getRealPos().relative(dirs[0])) instanceof Road path) {
                         if(path.isWide()) {
                             monoPathBuildBuds.add(buildBud);
                         }
@@ -229,7 +229,7 @@ public class ProtoTown {
                 }else{
                     boolean onlyBig = true;
                     for(Direction dir : dirs){
-                        if(this.getBuild(buildBud.getRealPos().relative(dir)) instanceof RoadBuild path){
+                        if(this.getBuild(buildBud.getRealPos().relative(dir)) instanceof Road path){
                             if(!path.isWide()){
                                 onlyBig = false;
                             }
@@ -263,7 +263,7 @@ public class ProtoTown {
      * Called directly when a new Build is created.
      * @param build Build to be added.
      */
-    public void addNewBuilds(Build build){
+    public void addNewBuilds(NpcBuild build){
         this.builds.add(build);
         this.updateTownMap(build);
     }
@@ -272,7 +272,7 @@ public class ProtoTown {
      * Update the TownMap by resizing it so that the new build fits, and add its ids in the TownMap matrix.
      * @param build Build that must be added or updated on the TownMap.
      */
-    public void updateTownMap(Build build){
+    public void updateTownMap(NpcBuild build){
         this.resizeTownMap(build);
         int xStart = this.getMapX(build.getOriginPos().getX());
         int zStart = this.getMapZ(build.getOriginPos().getZ());
@@ -287,7 +287,7 @@ public class ProtoTown {
      * Resize the TownMap matrix so that the given Build can fit inside.
      * @param build Build that must be added or updated on the TownMap.
      */
-    private void resizeTownMap(Build build){
+    private void resizeTownMap(NpcBuild build){
         int north = Math.max(0, this.NWCorner.getZ() - build.getOriginPos().getZ());
         int east = Math.max(0, build.getCornerPos(TownMapUtils.Corner.SOUTH_EAST).getX() - this.SECorner.getX());
         int south = Math.max(0, build.getCornerPos(TownMapUtils.Corner.SOUTH_EAST).getZ() - this.SECorner.getZ());
@@ -329,7 +329,7 @@ public class ProtoTown {
             if (this.buildBuds.size() <= Config.CRITICAL_BUDS_NUMBER || RANDOM_SOURCE.nextFloat() < Config.ROAD_SPAWN_RATE) {
                 boolean mustBeWide = false;
                 Direction pathDir = buildBud.getAdjacentRoads()[0];
-                if (this.getBuild(buildBud.getRealPos().relative(pathDir)) instanceof RoadBuild road) {
+                if (this.getBuild(buildBud.getRealPos().relative(pathDir)) instanceof Road road) {
                     if (road.isWide()) {
                         mustBeWide = RANDOM_SOURCE.nextFloat() < Config.WIDE_ROAD_SPAWN_RATE;
                     }
@@ -338,7 +338,7 @@ public class ProtoTown {
                 // We check if there is already a road quite close to this one.
                 Direction secondDir = buildBud.getCorner().getLeftDirection() == pathDir ? buildBud.getCorner().getRightDirection() : buildBud.getCorner().getLeftDirection();
                 if (this.roadTooCloseInDir(buildBud.getRealPos().mutable().move(secondDir), secondDir) && this.roadTooCloseInDir(buildBud.getRealPos().mutable().move(secondDir, -road.getWidth()), secondDir.getOpposite())) {
-                    this.tryBuild(new RoadBuild(road, DEFAULT_ROAD_LENGTH), buildBud);
+                    this.tryBuild(new Road(road, DEFAULT_ROAD_LENGTH), buildBud);
                 }
             }
         }
@@ -384,7 +384,7 @@ public class ProtoTown {
      */
     public boolean roadTooCloseInDir(BlockPos.MutableBlockPos cursor, Direction dir){
         for(int length = 0; length < MINI_ROAD_SPACE; length++){
-            if(this.getBuild(cursor) instanceof RoadBuild){
+            if(this.getBuild(cursor) instanceof Road){
                 return false;
             }
             cursor.move(dir);
@@ -455,16 +455,16 @@ public class ProtoTown {
      * @param zMap The coordinate z of the block in map coordinate.
      * @return The corresponding instance of Build, or null if there is no building.
      */
-    public @Nullable Build getBuild(int xMap, int zMap){
+    public @Nullable NpcBuild getBuild(int xMap, int zMap){
         MapBlock mapBlock = this.getMapBlockInMapPos(xMap, zMap);
-        return mapBlock instanceof Build build ? build : null;
+        return mapBlock instanceof NpcBuild build ? build : null;
     }
 
     /**
      * @param pos The real BlockPos of the block we study.
      * @return The corresponding instance of Build, or null if there is no building.
      */
-    public @Nullable Build getBuild(BlockPos pos){
+    public @Nullable NpcBuild getBuild(BlockPos pos){
         return this.getBuild(this.getMapX(pos.getX()), this.getMapZ(pos.getZ()));
     }
 
@@ -546,8 +546,8 @@ public class ProtoTown {
         mapDataTag.put("NWCorner", NbtUtils.writeBlockPos(getNWCorner()));
         mapDataTag.put("SECorner", NbtUtils.writeBlockPos(getSECorner()));
         ListTag elementsTag = new ListTag();
-        for (Build build : getBuilds()) {
-            elementsTag.add(build.getDataForGui());
+        for (NpcBuild build : getBuilds()) {
+            elementsTag.add(build.getDescriptionForGui());
         }
         for (BuildBud bud : getBuds()) {
             elementsTag.add(bud.getDataForGui());
@@ -564,9 +564,9 @@ public class ProtoTown {
         System.out.println("Town Center: " + Utils.blockPosToString(this.getCenter()));
         System.out.println("Size: " + this.getTownMap()[0].length + "×" + this.getTownMap().length);
         System.out.println("Builds:");
-        for(Build build : this.builds){
+        for(NpcBuild build : this.builds){
             System.out.println("    - " + build.getClass().getSimpleName()
-                    + " [type: " + build.getBuildType().getName()
+                    + " [type: " + build.getBuildType().getId()
                     + ", direction: " + build.getDirection().getName()
                     + ", origin: " + Utils.blockPosToString(build.getOriginPos())
                     + ", size: " + build.getSizeX() + "×" + build.getSizeZ() + "]");

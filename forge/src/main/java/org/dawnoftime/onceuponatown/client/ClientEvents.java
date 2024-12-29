@@ -19,7 +19,6 @@ import org.dawnoftime.onceuponatown.client.screen.SellScreen;
 import org.dawnoftime.onceuponatown.client.screen.TradeScreen;
 import org.dawnoftime.onceuponatown.client.screen.tooltip.*;
 import org.dawnoftime.onceuponatown.item.EmeraldPouchItem;
-import org.dawnoftime.onceuponatown.menu.TradeMenu;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
 import org.dawnoftime.onceuponatown.registry.ItemRegistry;
 import org.dawnoftime.onceuponatown.registry.MenuRegistry;
@@ -34,7 +33,7 @@ public class ClientEvents {
                 MenuScreens.register(MenuRegistry.REGISTRY.SELL_MENU.get(), SellScreen::new);
                 MenuScreens.register(MenuRegistry.REGISTRY.TRADE_MENU.get(), TradeScreen::new);
                 // Custom client item properties
-                ItemProperties.register(ItemRegistry.REGISTRY.EMERALD_POUCH.get(), Ouat.createOuatResource("nonempty_pouch"), (emeraldPouchStack, clientLevel, livingEntity, id) -> EmeraldPouchItem.isEmpty(emeraldPouchStack) ? 0.0F : 1.0F);
+                ItemProperties.register(ItemRegistry.REGISTRY.EMERALD_POUCH.get(), Ouat.modResource("empty_pouch"), (emeraldPouchStack, clientLevel, livingEntity, id) -> EmeraldPouchItem.isEmpty(emeraldPouchStack) ? 1.0F : 0.0F);
             }
             );
         }
