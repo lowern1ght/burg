@@ -43,8 +43,9 @@ public class ClientEvents {
             if (event.getTabKey() == CreativeModeTabs.SPAWN_EGGS) {
                 event.accept(ItemRegistry.REGISTRY.NPC_SPAWN_EGG);
             }
-            if (event.getTabKey() == CreativeModeTabs.INGREDIENTS) {
-                event.accept(ItemRegistry.REGISTRY.EMERALD_SHARD);
+            if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
+                event.accept(ItemRegistry.REGISTRY.EMERALD_POUCH);
+                event.accept(ItemRegistry.REGISTRY.TOWN_MAP);
             }
         }
 

@@ -50,7 +50,7 @@ public class RegistriesImpls {
         // Creative inventory init
         CREATIVE_MODE_TAB.register(modEventBus);
         CREATIVE_MODE_TAB.register(MOD_ID, () -> CreativeModeTab.builder()
-                .title(Component.literal(Ouat.MOD_NAME))
+                .title(Component.translatable("creative_mode_tab.onceuponatown.main_tab"))
                 //.icon(() -> TAB_ICON.get().getDefaultInstance())
                 //.displayItems((params, output) -> output.acceptAll(ForgeItemsRegistry.ITEMS_REGISTRY.getEntries().stream().filter(holder -> holder != TAB_ICON).map((itemDeferredHolder) -> itemDeferredHolder.get().getDefaultInstance()).toList()))
                 .icon(() -> new ItemStack(ItemRegistry.REGISTRY.TOWN_MAP.get()))

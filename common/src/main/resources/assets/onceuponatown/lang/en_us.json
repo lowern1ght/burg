@@ -4,18 +4,26 @@
   "item.onceuponatown.npc_spawn_egg": "Npc Spawn Egg",
   "item.onceuponatown.emerald_pouch": "Emerald pouch",
   "item.onceuponatown.town_map": "Town map",
-  "ouat.road": "Small road",
-  "ouat.wide_road": "Road",
-  "ouat.small_house": "Small house",
-  "ouat.big_house": "Big house",
-  "ouat.coordinates" : "Coordinates",
-  "ouat.plot_size" : "Plot size",
+  "item.onceuponatown.culture_creator": "Culture creator",
+
   "ouat.map_of" : "Map of",
   "ouat.center_map" : "Center map",
   "ouat.debug_view" : "Debug view",
+  "ouat.coordinates" : "Coordinates",
+  "ouat.plot_size" : "Plot size",
   "ouat.north_west_corner" : "North-west corner",
   "ouat.size" : "Size",
   "ouat.width" : "Width",
   "ouat.length" : "Length",
-  "ouat.bud" : "Building bud"
+  "ouat.bud" : "Building bud",
+
+  "ouat.road": "Small road",
+  "ouat.wide_road": "Road",
+  "ouat.small_house": "Small house",
+  "ouat.big_house": "Big house",
+  "ouat.cowshed": "Cowshed",
+  "ouat.church": "Church",
+  "ouat.market": "Market",
+  "ouat.pile_of_resources": "Pile of resources",
+  "ouat.garden": "Garden"
 }

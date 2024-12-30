@@ -23,19 +23,19 @@ public class RoadBuildType extends SliceBuildType{
     public void addVariant(BuildVariant variant, String shape, String cultureId) {
         try {
             if (this.getWidth() == 0) {
-                this.width = variant.getSize().getX();
-                this.patternLength = variant.getSize().getZ();
+                this.width = variant.getDimensions().getX();
+                this.patternLength = variant.getDimensions().getZ();
             } else {
-                if (this.width != variant.getSize().getX() || this.patternLength != variant.getSize().getZ()) {
-                    throw new CorruptedCultureException(cultureId, "Failed to register a build_variant. Every build_variant associated with '%s' must have the same width and length.".formatted(this.getName()));
+                if (this.width != variant.getDimensions().getX() || this.patternLength != variant.getDimensions().getZ()) {
+                    throw new CorruptedCultureException(cultureId, "Failed to register a build_variant. Every build_variant associated with '%s' must have the same width and length.".formatted(this.getId()));
                 }
             }
-            switch (SliceBuildShape.fromStringToRegister(cultureId, variant.getName(), shape)) {
+            switch (SliceBuildShape.fromStringToRegister(cultureId, variant.getId(), shape)) {
                 case FLAT -> super.addVariant(variant, shape, cultureId);
-                case SLAB -> this.slabVariants.put(variant.getName(), variant);
-                case STAIRS -> this.stairsVariants.put(variant.getName(), variant);
-                case CROSSROAD_RIGHT -> this.crossroadRightVariants.put(variant.getName(), variant);
-                case CROSSROAD_DOUBLE -> this.crossroadDoubleVariants.put(variant.getName(), variant);
+                case SLAB -> this.slabVariants.put(variant.getId(), variant);
+                case STAIRS -> this.stairsVariants.put(variant.getId(), variant);
+                case CROSSROAD_RIGHT -> this.crossroadRightVariants.put(variant.getId(), variant);
+                case CROSSROAD_DOUBLE -> this.crossroadDoubleVariants.put(variant.getId(), variant);
             }
         }catch(CorruptedCultureException e){
             Ouat.error(e.getMessage());
@@ -65,13 +65,13 @@ public class RoadBuildType extends SliceBuildType{
     }
 
     @Override
-    public boolean isNotValid(String cultureId) {
+    public boolean isValid(String cultureId) {
         if(this.crossroadRightVariants.isEmpty()){
-            throw new CorruptedCultureException(cultureId, "Failed to load a culture. You need to define at least one build_variant for the build_type '%s' with 'shape': 'crossroad_right'.".formatted(this.getName()));
+            throw new CorruptedCultureException(cultureId, "Failed to load a culture. You need to define at least one build_variant for the build_type '%s' with 'shape': 'crossroad_right'.".formatted(this.getId()));
         }
         if(this.crossroadDoubleVariants.isEmpty()) {
-            throw new CorruptedCultureException(cultureId, "Failed to load a culture. You need to define at least one build_variant for the build_type '%s' with 'shape': 'crossroad_double'.".formatted(this.getName()));
+            throw new CorruptedCultureException(cultureId, "Failed to load a culture. You need to define at least one build_variant for the build_type '%s' with 'shape': 'crossroad_double'.".formatted(this.getId()));
         }
-        return super.isNotValid(cultureId);
+        return super.isValid(cultureId);
     }
 }

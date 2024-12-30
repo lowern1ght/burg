@@ -143,7 +143,7 @@ public abstract class NpcBaseScreen<T extends AbstractContainerMenu> extends Abs
         SELL(Ouat.modResource("textures/gui/tabs/sell_icon.png"), 14, 21, 11, 3),
         QUESTS(Ouat.modResource("textures/gui/tabs/quests_icon.png"),15 ,12 ,10 ,7),
         INFO(new ResourceLocation("textures/item/oak_sign.png"), 16, 16, 10, 5),
-        TRADE(Ouat.modResource("textures/item/emerald_pouch_full.png"), 16, 16, 10, 6);
+        TRADE(Ouat.modResource("textures/item/emerald_pouch.png"), 16, 16, 10, 6);
 
         public final ResourceLocation iconTexture;
         public final int iconWidth;

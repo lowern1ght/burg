@@ -6,9 +6,9 @@
   "overrides": [
     {
       "predicate": {
-        "onceuponatown:empty_pouch": 0
+        "onceuponatown:empty_pouch": 1.0
       },
-      "model": "onceuponatown:item/emerald_pouch_full"
+      "model": "onceuponatown:item/emerald_pouch_empty"
     }
   ]
 }

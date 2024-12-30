@@ -21,7 +21,7 @@ import static org.dawnoftime.onceuponatown.client.screen.ScreenUtils.GUI_COLOR_G
 import static org.dawnoftime.onceuponatown.client.screen.ScreenUtils.drawCenteredString;
 
 public abstract class BaseCCScreen extends Screen {
-    private static final ResourceLocation BACKGROUND_TEXTURE = Ouat.createOuatResource("textures/gui/culture_creator.png");
+    private static final ResourceLocation BACKGROUND_TEXTURE = Ouat.modResource("textures/gui/culture_creator.png");
     private static final int TEXTURE_TOTAL_WIDTH = 281;
     private static final int TEXTURE_TOTAL_HEIGHT = 217;
     private static final int TEXTURE_TAB_HEIGHT = 166;

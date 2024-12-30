@@ -177,7 +177,7 @@ public class SellContainer implements Container {
             if (available == 0) continue;
             int timesSellable = available / wantedItem.getCount();
 
-            int maxShards = ItemRegistry.REGISTRY.EMERALD_SHARD.get().getMaxStackSize() - valueShards;
+            int maxShards = 0;//ItemRegistry.REGISTRY.EMERALD_SHARD.get().getMaxStackSize() - valueShards;
             int maxEmeralds = Items.EMERALD.getMaxStackSize() - valueEmeralds;
             int maxBlocks = Items.EMERALD_BLOCK.getMaxStackSize() - valueEmeraldBlocks;
 
@@ -230,7 +230,7 @@ public class SellContainer implements Container {
             }
         }
 
-        ItemStack shards = (valueShards <= 0) ? ItemStack.EMPTY : new ItemStack(ItemRegistry.REGISTRY.EMERALD_SHARD.get(), valueShards);
+        ItemStack shards = ItemStack.EMPTY;// (valueShards <= 0) ? ItemStack.EMPTY : new ItemStack(ItemRegistry.REGISTRY.EMERALD_SHARD.get(), valueShards);
         ItemStack emeralds = (valueEmeralds <= 0) ? ItemStack.EMPTY : new ItemStack(Items.EMERALD, valueEmeralds);
         ItemStack emeraldBlocks = (valueEmeraldBlocks <= 0) ? ItemStack.EMPTY : new ItemStack(Items.EMERALD_BLOCK, valueEmeraldBlocks);
         this.itemStacks.set(VALUE_SHARDS_SLOT, shards);

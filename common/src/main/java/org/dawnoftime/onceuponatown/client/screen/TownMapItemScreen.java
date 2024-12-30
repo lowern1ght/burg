@@ -79,22 +79,22 @@ public class TownMapItemScreen extends Screen {
 
     private MapElement createBudMapElement(CompoundTag tag, BlockPos NWCorner) {
         var realPos = NbtUtils.readBlockPos(tag.getCompound("RealPos"));
-        var name = Component.translatable("bud");
-        var position = Component.translatable("coordinates").append(" : ").append(realPos.toShortString()).withStyle(ChatFormatting.GRAY);
+        var name = Ouat.translatable("bud");
+        var position = Ouat.translatable("coordinates").append(" : ").append(realPos.toShortString()).withStyle(ChatFormatting.GRAY);
         int minX = realPos.getX() - NWCorner.getX();
         int minZ = realPos.getZ() - NWCorner.getZ();
         return new MapElement(NpcBuild.BUD, Optional.empty(), List.of(name, position), List.of(name, position), minX, minX + 1, minZ, minZ + 1);
     }
 
     private MapElement createRoadMapElement(CompoundTag tag, BlockPos NWCorner) {
-        var nameAndLevel = Component.translatable(tag.getString("BuildType")).append(" ")
+        var nameAndLevel = Ouat.translatable(tag.getString("BuildType")).append(" ")
                 .append(Component.literal(Utils.intToRoman(tag.getInt("Level"))).withStyle(ChatFormatting.YELLOW));
         var originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
         int sizeX = tag.getInt("SizeX");
         int sizeZ = tag.getInt("SizeZ");
-        var northWestCorner = Component.translatable("north_west_corner").append( " : " + originPos.toShortString()).withStyle(ChatFormatting.GRAY);
-        var length = Component.translatable("length").append(" : " + Math.max(sizeX, sizeZ)).withStyle(ChatFormatting.GRAY);
-        var width = Component.translatable("width").append(" : " + Math.min(sizeX, sizeZ)).withStyle(ChatFormatting.GRAY);
+        var northWestCorner = Ouat.translatable("north_west_corner").append( " : " + originPos.toShortString()).withStyle(ChatFormatting.GRAY);
+        var length = Ouat.translatable("length").append(" : " + Math.max(sizeX, sizeZ)).withStyle(ChatFormatting.GRAY);
+        var width = Ouat.translatable("width").append(" : " + Math.min(sizeX, sizeZ)).withStyle(ChatFormatting.GRAY);
         var isWide = Component.literal("isWide = " + tag.getBoolean("IsWide")).withStyle(ChatFormatting.ITALIC, ChatFormatting.DARK_GRAY);
         var canGrow = Component.literal("canGrow = " + tag.getBoolean("CanGrow")).withStyle(ChatFormatting.ITALIC, ChatFormatting.DARK_GRAY);
         int minX = originPos.getX() - NWCorner.getX();
@@ -105,13 +105,13 @@ public class TownMapItemScreen extends Screen {
     }
 
     private MapElement createBuildingMapElement(CompoundTag tag, BlockPos NWCorner) {
-        var nameAndLevel = Component.translatable(tag.getString("BuildType")).append(" ")
+        var nameAndLevel = Ouat.translatable(tag.getString("BuildType")).append(" ")
                 .append(Component.literal(Utils.intToRoman(tag.getInt("Level"))).withStyle(ChatFormatting.YELLOW));
         var originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
         int sizeX = tag.getInt("SizeX");
         int sizeZ = tag.getInt("SizeZ");
-        var coordinates = Component.translatable("coordinates").append( " : " + originPos.toShortString()).withStyle(ChatFormatting.GRAY);
-        var plotSize = Component.translatable("plot_size").append(" : " + sizeX + "x" + sizeZ).withStyle(ChatFormatting.GRAY);
+        var coordinates = Ouat.translatable("coordinates").append( " : " + originPos.toShortString()).withStyle(ChatFormatting.GRAY);
+        var plotSize = Ouat.translatable("plot_size").append(" : " + sizeX + "x" + sizeZ).withStyle(ChatFormatting.GRAY);
         int minX = originPos.getX() - NWCorner.getX();
         int minZ = originPos.getZ() - NWCorner.getZ();
         return new MapElement(NpcBuild.BUILDING,
@@ -139,7 +139,7 @@ public class TownMapItemScreen extends Screen {
                     isHovered = mouseX >= getX() && mouseY >= getY() && mouseX < getX() + width && mouseY < getY() + height;
                     graphics.blit(TEXTURE, getX(), getY(), 69, isHovered ? 149 : 133, width, height, TownMapItemScreen.TEXTURE_WIDTH, TownMapItemScreen.TEXTURE_HEIGHT);
                     if (isHoveredOrFocused()) {
-                        graphics.renderTooltip(font, Component.translatable("center_map"), mouseX, mouseY);
+                        graphics.renderTooltip(font, Ouat.translatable("center_map"), mouseX, mouseY);
                     }
                 }
             }
@@ -153,7 +153,7 @@ public class TownMapItemScreen extends Screen {
                     isHovered = mouseX >= getX() && mouseY >= getY() && mouseX < getX() + width && mouseY < getY() + height;
                     graphics.blit(TEXTURE, getX(), getY(), 98, isHovered ? 149 : 133, width, height, TownMapItemScreen.TEXTURE_WIDTH, TownMapItemScreen.TEXTURE_HEIGHT);
                     if (isHoveredOrFocused()) {
-                        graphics.renderTooltip(font, Component.translatable("debug_view"), mouseX, mouseY);
+                        graphics.renderTooltip(font, Ouat.translatable("debug_view"), mouseX, mouseY);
                     }
                 }
             }
@@ -165,7 +165,7 @@ public class TownMapItemScreen extends Screen {
         renderBackground(graphics);
         graphics.blit(TEXTURE, backGroundLeftPos, backGroundTopPos, 0, 0, BACKGROUND_WIDTH, BACKGROUND_HEIGHT, TEXTURE_WIDTH, TEXTURE_HEIGHT);
         renderMap(graphics, mouseX, mouseY);
-        drawCenteredString(graphics, font, Component.translatable("map_of").append(" ").append(title), backGroundLeftPos, backGroundTopPos + MAP_MARGIN,  BACKGROUND_WIDTH, FastColor.ARGB32.color(255, 161, 28, 24));
+        drawCenteredString(graphics, font, Ouat.translatable("map_of").append(" ").append(title), backGroundLeftPos, backGroundTopPos + MAP_MARGIN,  BACKGROUND_WIDTH, FastColor.ARGB32.color(255, 161, 28, 24));
         super.render(graphics, mouseX, mouseY, partialTick);
     }
 

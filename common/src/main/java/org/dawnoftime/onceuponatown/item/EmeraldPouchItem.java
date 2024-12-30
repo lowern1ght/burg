@@ -12,6 +12,7 @@ import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.screen.tooltip.SingleItemTooltip;
 
 import java.util.Optional;
@@ -79,6 +80,7 @@ public class EmeraldPouchItem extends Item {
     }
 
     public static int getEmeraldCount(ItemStack pouchStack) {
+        Ouat.debug(String.valueOf(pouchStack.getOrCreateTag().getInt("emerald_count")));
         return pouchStack.getOrCreateTag().getInt("emerald_count");
     }
 

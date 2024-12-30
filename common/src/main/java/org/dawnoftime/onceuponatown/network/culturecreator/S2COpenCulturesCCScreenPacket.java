@@ -12,10 +12,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
-import static org.dawnoftime.onceuponatown.Ouat.createOuatResource;
+import static org.dawnoftime.onceuponatown.Ouat.modResource;
 
 public class S2COpenCulturesCCScreenPacket implements IOuatPacket {
-    private static final ResourceLocation ID = createOuatResource("s2c_open_screen_cc_culture_list");
+    private static final ResourceLocation ID = modResource("s2c_open_screen_cc_culture_list");
 
     private final List<String> cultureIds;
     private S2COpenCulturesCCScreenPacket(List<String> cultureIds){
