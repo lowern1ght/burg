@@ -4,10 +4,12 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.RenderLayerParent;
 import net.minecraft.client.renderer.entity.layers.RenderLayer;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.model.NpcModel;
 import org.dawnoftime.onceuponatown.client.renderer.NpcRenderer;
+import org.dawnoftime.onceuponatown.culture.CultureManager;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.jetbrains.annotations.NotNull;
 
@@ -29,15 +31,15 @@ public class NpcClothesLayer<T extends Npc, M extends NpcModel<T>> extends Rende
     }
 
     private void renderCultureCommonClothes(M model, PoseStack poseStack, MultiBufferSource buffer, int packedLight, T npc) {
-        //NpcCulture culture = npc.getCulture();
-        String path = "cultures/plains/skins/common_clothes.png";
+        CompoundTag clientData = npc.getClientData();
+        String path = CultureManager.CULTURE_FOLDER_NAME + "/" + clientData.getString("CultureId") + "/clothes/jacket.png";
         ResourceLocation resourceLocation = Ouat.modResource(path);
         renderColoredCutoutModel(model, resourceLocation, poseStack, buffer, packedLight, npc, 1.0F, 1.0F, 1.0F);
     }
 
     private void renderProfessionClothes(M model, PoseStack poseStack, MultiBufferSource buffer, int packedLight, T npc) {
-        //NpcProfession profession = npc.getProfession();
-        String path = "cultures/plains/skins/professions/" + "fisherman" + ".png";
+        CompoundTag clientData = npc.getClientData();
+        String path = CultureManager.CULTURE_FOLDER_NAME + "/" + clientData.getString("CultureId") + "/clothes/professions/" + clientData.getString("ProfessionId") + ".png";
         ResourceLocation resourceLocation = Ouat.modResource(path);
         renderColoredCutoutModel(model, resourceLocation, poseStack, buffer, packedLight, npc, 1.0F, 1.0F, 1.0F);
     }

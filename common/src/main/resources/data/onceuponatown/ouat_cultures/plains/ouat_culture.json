@@ -1,5 +1,15 @@
 {
   "id" : "plains",
+  "specializations": [
+    {"id": "industry", "rgbColor": [100, 100, 100]},
+    {"id": "military", "rgbColor": [100, 100, 100]},
+    {"id": "science", "rgbColor": [100, 100, 100]}
+  ],
+  "eras": [
+    {"required_experience": 0, "max_buildings_weight": 100},
+    {"required_experience": 300, "max_buildings_weight": 200},
+    {"required_experience": 600, "max_buildings_weight": 300}
+  ],
   "starter_pack": [
     {"build_type": "small_house", "min": 2, "max": 4},
     {"build_type": "big_house", "min": 1, "max": 1},
@@ -24,15 +34,5 @@
     "minecraft:cooked_rabbit",
     "minecraft:cooked_cod",
     "minecraft:cooked_salmon"
-  ],
-  "eras": [
-    {"required_experience": 0, "max_buildings_weight": 100},
-    {"required_experience": 300, "max_buildings_weight": 200},
-    {"required_experience": 600, "max_buildings_weight": 300}
-  ],
-  "specializations": [
-    {"id": "industry", "rgbColor": [100, 100, 100]},
-    {"id": "military", "rgbColor": [100, 100, 100]},
-    {"id": "science", "rgbColor": [100, 100, 100]}
   ]
 }
