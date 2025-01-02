@@ -1,0 +1,58 @@
+package org.dawnoftime.onceuponatown.culture;
+
+import org.dawnoftime.onceuponatown.Ouat;
+import net.minecraft.server.packs.resources.PreparableReloadListener;
+import net.minecraft.server.packs.resources.ResourceManager;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.StringJoiner;
+
+public class ServerCultures {
+    public static final String CULTURE_FOLDER_NAME = "ouat_cultures";
+    public static final String CULTURE_JSON_FILE_NAME = "ouat_culture.json";
+    private static final Map<String, Culture> LOADED_CULTURES = new HashMap<>();
+
+    public static void loadCultures(ResourceManager manager) {
+        LOADED_CULTURES.clear(); // Just in case
+        var detectedCultures = new HashMap<>(manager.listResources(CULTURE_FOLDER_NAME, (rl) -> rl.getPath().endsWith("/" + CULTURE_JSON_FILE_NAME)));
+        int n = detectedCultures.size();
+        if (n == 0) {
+            Ouat.error("No cultures detected");
+        } else {
+            Ouat.info(detectedCultures.size() + " culture" + (n > 1 ? "s" : "") + " will be loaded");
+        }
+        detectedCultures.forEach((rl, res) -> {
+            String path = rl.getPath();
+            String detectedId = path.substring((CULTURE_FOLDER_NAME + "/").length(), path.length() - ("/" + CULTURE_JSON_FILE_NAME).length());
+            if (LOADED_CULTURES.containsKey(detectedId)) {
+                Ouat.error("Culture [%s]: Failed to register the culture. Another culture was already registered with the same id.".formatted(detectedId));
+            } else {
+                Culture culture = Culture.readCultureFromDataPack(detectedId, rl, res, manager);
+                if (culture != null) {
+                    LOADED_CULTURES.put(detectedId, culture);
+                } else {
+                    Ouat.error("Culture [%s]: Failed to register the culture.".formatted(detectedId));
+                }
+            }
+        });
+        StringJoiner joiner = new StringJoiner(", ");
+        n = LOADED_CULTURES.size();
+        LOADED_CULTURES.keySet().forEach(joiner::add);
+        Ouat.info(("%s culture" + (n > 1 ? "s" : "") + " loaded : %s").formatted(n, joiner));
+    }
+
+    public static List<Culture> getLoadedCultures() {
+        return LOADED_CULTURES.values().stream().toList();
+    }
+
+    public static Culture getCultureOrDefault(String cultureId) {
+        Culture culture = LOADED_CULTURES.get(cultureId);
+        return culture == null ? Culture.DEFAULT_CULTURE : culture;
+    }
+
+    public static Culture getCultureOrNull(String cultureId) {
+        return LOADED_CULTURES.get(cultureId);
+    }
+}

@@ -7,7 +7,7 @@ import net.minecraft.world.level.chunk.ChunkGenerator;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 import org.dawnoftime.onceuponatown.culture.Culture;
-import org.dawnoftime.onceuponatown.culture.CultureManager;
+import org.dawnoftime.onceuponatown.culture.ServerCultures;
 import org.dawnoftime.onceuponatown.registry.StructureTypeRegistry;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -38,7 +38,7 @@ public class TownStructure extends Structure {
 
     private void generatePieces(StructurePiecesBuilder builder, GenerationContext context) {
         try {
-            Culture culture = CultureManager.getCultureById(cultureId);
+            Culture culture = ServerCultures.getCultureOrDefault(cultureId);
             ChunkGenerator chunkGenerator = context.chunkGenerator();
             int townHeight = chunkGenerator.getFirstOccupiedHeight(context.chunkPos().getMinBlockX(), context.chunkPos().getMinBlockZ(), Heightmap.Types.WORLD_SURFACE_WG, context.heightAccessor(), context.randomState());
             BlockPos townCenterPos = new BlockPos(context.chunkPos().getMinBlockX(), townHeight, context.chunkPos().getMinBlockZ());

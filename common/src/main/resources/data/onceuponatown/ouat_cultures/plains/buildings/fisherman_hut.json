@@ -1,0 +1,35 @@
+{
+  "id": "fisherman_hut",
+  "category": "work",
+  "weight": 10,
+  "levels": [
+    {
+      "required_era": 1,
+      "dwelling_slots": 2,
+      "working_slots": [
+        {
+          "profession": "fisherman",
+          "max_level": 1
+        }
+      ]
+    }
+  ],
+  "item": "minecraft:fishing_rod",
+  "variants": [
+    {
+      "name": "variant1",
+      "size": {
+        "x": 8,
+        "y": 11,
+        "z": 9
+      },
+      "levels": [
+        {
+          "schematic": "small_house",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

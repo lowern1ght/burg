@@ -13,10 +13,13 @@ import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.phys.Vec3;
+import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
+import org.dawnoftime.onceuponatown.culture.CultureFileHelper;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.Town;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 
@@ -149,7 +152,24 @@ public class Utils {
         }
     }
 
+    public static Vec3i getSchematicDimensions(String cultureId, String buildVariantId, ResourceLocation schematicRl, ResourceManager resourceManager) throws CorruptedCultureException {
+        String path = schematicRl.getPath();
+        String fileName = path.substring(path.lastIndexOf('/') + 1, path.lastIndexOf('.'));
+        try (InputStream inputStream = resourceManager.open(schematicRl)) {
+            CompoundTag tag = NbtIo.readCompressed(inputStream);
+            // TODO warning ! schematic size is not verified
+            ListTag sizeTag = tag.getList("size", 3);
+            return new Vec3i(sizeTag.getInt(0), sizeTag.getInt(1), sizeTag.getInt(2));
+        } catch (IOException e) {
+            throw new CorruptedCultureException(cultureId, "Could not read schematic file '" + fileName + ".nbt' of build variant '" + buildVariantId + "', supposed to be located at " + Utils.rlToDebug(schematicRl) + ". " + e.getMessage());
+        }
+    }
+
     public static String blockPosToString(BlockPos pos){
         return "(" + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + ")";
+    }
+
+    public static String rlToDebug(ResourceLocation rl) {
+        return rl.toString().replace(':', '/');
     }
 }

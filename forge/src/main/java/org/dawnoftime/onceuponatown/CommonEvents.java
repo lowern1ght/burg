@@ -7,11 +7,10 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraftforge.event.entity.living.MobSpawnEvent;
 import net.minecraftforge.event.server.ServerAboutToStartEvent;
-import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import org.dawnoftime.onceuponatown.culture.CultureManager;
+import org.dawnoftime.onceuponatown.culture.ServerCultures;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.network.PacketHandler;
 import org.dawnoftime.onceuponatown.registry.CommandRegistry;
@@ -40,7 +39,7 @@ public class CommonEvents {
 
         @SubscribeEvent
         public static void onServerStarting(ServerAboutToStartEvent event) {
-            CultureManager.loadCultures(event.getServer().getResourceManager());
+            ServerCultures.loadCultures(event.getServer().getResourceManager());
         }
 
         @SubscribeEvent

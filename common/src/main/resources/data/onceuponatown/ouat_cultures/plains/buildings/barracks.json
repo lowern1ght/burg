@@ -1,0 +1,28 @@
+{
+  "id": "barracks",
+  "category": "work",
+  "weight": 10,
+  "levels": [
+    {
+      "required_era": 1
+    }
+  ],
+  "item": "minecraft:target",
+  "variants": [
+    {
+      "name": "soldier_house",
+      "size": {
+        "x": 13,
+        "y": 13,
+        "z": 13
+      },
+      "levels": [
+        {
+          "schematic": "barracks",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

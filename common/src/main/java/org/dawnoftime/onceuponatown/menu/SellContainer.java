@@ -78,7 +78,7 @@ public class SellContainer implements Container {
     }
 
     public void setItem(int index, ItemStack stack) {
-        //ModLogger.info(String.valueOf(index));
+        //ModLogger.info(String.valueOf(era));
         this.itemStacks.set(index, stack);
         if (!stack.isEmpty() && stack.getCount() > this.getMaxStackSize()) {
             stack.setCount(this.getMaxStackSize());

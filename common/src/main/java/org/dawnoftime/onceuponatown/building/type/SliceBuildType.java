@@ -1,11 +1,13 @@
 package org.dawnoftime.onceuponatown.building.type;
 
+import net.minecraft.world.item.Item;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
 
 import static org.dawnoftime.onceuponatown.town.generation.ProtoTown.RANDOM_SOURCE;
@@ -16,19 +18,19 @@ public class SliceBuildType extends BuildType {
     protected int width;
     protected int patternLength;
 
-    public SliceBuildType(String buildTypeName) {
-        super(buildTypeName, 0, new ArrayList<>());
+    public SliceBuildType(String buildTypeName, int weight, List<BuildLevel> levels, BuildingPurpose purpose) {
+        super(buildTypeName, weight, levels, purpose);
     }
 
     @Override
-    public void addVariant(BuildVariant variant, String shape, String cultureId) {
+    protected void addVariant(BuildVariant variant, String shape, String cultureId) throws CorruptedCultureException {
         try {
             if (width == 0) {
                 width = variant.getDimensions().getX();
                 patternLength = variant.getDimensions().getZ();
             } else {
                 if (width != variant.getDimensions().getX() || patternLength != variant.getDimensions().getZ()) {
-                    throw new CorruptedCultureException(cultureId, "Failed to register a build_variant. Every build_variant associated with '%s' must have the same width and length.".formatted(this.getId()));
+                    throw new CorruptedCultureException(cultureId, "Failed to register a build variant. Every build variant of the build type '%s' must have the same width and length.".formatted(this.getId()));
                 }
             }
             switch (SliceBuildShape.fromStringToRegister(cultureId, variant.getId(), shape)) {
@@ -36,8 +38,9 @@ public class SliceBuildType extends BuildType {
                 case SLAB -> slabVariants.put(variant.getId(), variant);
                 case STAIRS -> stairsVariants.put(variant.getId(), variant);
             }
-        } catch (CorruptedCultureException e) {
-            Ouat.error(e.getMessage());
+        } catch (CorruptedCultureException cce) {
+            // TODO no throw but there is a risk that all variants are wrong, leading to unusable build type
+            Ouat.error(cce.getMessage());
         }
     }
 
@@ -107,14 +110,14 @@ public class SliceBuildType extends BuildType {
             return totalSizeY - (int) Math.floor((patternLength - 1 - patternPos) * slope) - 1;
         }
 
-        public static SliceBuildShape fromStringToRegister(String cultureId, String variantName, String shapeName) {
+        public static SliceBuildShape fromStringToRegister(String cultureId, String variantName, String shapeName) throws CorruptedCultureException {
             SliceBuildShape[] accepted = new SliceBuildShape[]{FLAT, SLAB, STAIRS, CROSSROAD_RIGHT, CROSSROAD_DOUBLE};
             for (SliceBuildShape shape : accepted) {
                 if (shape.shapeName.equals(shapeName)) {
                     return shape;
                 }
             }
-            throw new CorruptedCultureException(cultureId, "Failed to register a build_variant '%s'. The accepted shapes are %s, and not '%s'.".formatted(variantName, accepted, shapeName));
+            throw new CorruptedCultureException(cultureId, "Failed to register build variant '%s'. The accepted shapes are %s, and not '%s'.".formatted(variantName, accepted, shapeName));
         }
     }
 

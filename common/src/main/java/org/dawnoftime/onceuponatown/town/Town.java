@@ -6,7 +6,7 @@ import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.construction.ConstructionProject;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 import org.dawnoftime.onceuponatown.culture.Culture;
-import org.dawnoftime.onceuponatown.culture.CultureManager;
+import org.dawnoftime.onceuponatown.culture.ServerCultures;
 import org.dawnoftime.onceuponatown.culture.Specialization;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.building.NpcBuild;
@@ -62,7 +62,7 @@ public class Town extends ProtoTown {
      * @throws CorruptedCultureException if the corresponding culture could not be found.
      */
     public Town(Level level, CompoundTag tag) throws CorruptedCultureException {
-        this(level, CultureManager.getCultureById(tag.getString("Culture")), tag);
+        this(level, ServerCultures.getCultureOrDefault(tag.getString("Culture")), tag);
     }
 
     private Town(Level level, Culture culture, CompoundTag tag) throws CorruptedCultureException {

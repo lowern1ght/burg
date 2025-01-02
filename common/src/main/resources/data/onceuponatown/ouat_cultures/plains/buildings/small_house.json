@@ -1,0 +1,74 @@
+{
+  "id": "small_house",
+  "category": "dwelling",
+  "weight": 5,
+  "levels": [
+    {
+      "required_era": 1,
+      "dwelling_slots": 2
+    }
+  ],
+  "item": "minecraft:white_bed",
+  "variants": [
+    {
+      "name": "standard",
+      "size": {
+        "x": 8,
+        "y": 11,
+        "z": 9
+      },
+      "levels": [
+        {
+          "schematic": "small_house",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "medium",
+      "size": {
+        "x": 11,
+        "y": 11,
+        "z": 10
+      },
+      "levels": [
+        {
+          "schematic": "small_house_medium",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "fancy",
+      "size": {
+        "x": 14,
+        "y": 11,
+        "z": 10
+      },
+      "levels": [
+        {
+          "schematic": "small_house_fancy",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "garden",
+      "size": {
+        "x": 14,
+        "y": 9,
+        "z": 8
+      },
+      "levels": [
+        {
+          "schematic": "small_house_garden",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

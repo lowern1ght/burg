@@ -1,0 +1,28 @@
+{
+  "id": "cowshed",
+  "category": "work",
+  "weight": 10,
+  "levels": [
+    {
+      "required_era": 1
+    }
+  ],
+  "item": "minecraft:milk_bucket",
+  "variants": [
+    {
+      "name": "variant1",
+      "size": {
+        "x": 16,
+        "y": 12,
+        "z": 11
+      },
+      "levels": [
+        {
+          "schematic": "cowshed",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

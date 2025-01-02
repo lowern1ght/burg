@@ -1,0 +1,43 @@
+{
+  "id": "garden",
+  "category": "decoration",
+  "weight": 0,
+  "levels": [
+    {
+      "required_era": 1
+    }
+  ],
+  "item": "minecraft:grass",
+  "variants": [
+    {
+      "name": "bench",
+      "size": {
+        "x": 14,
+        "y": 8,
+        "z": 13
+      },
+      "levels": [
+        {
+          "schematic": "garden_bench",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "wheat_pile",
+      "size": {
+        "x": 10,
+        "y": 8,
+        "z": 6
+      },
+      "levels": [
+        {
+          "schematic": "garden_wheat_pile",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

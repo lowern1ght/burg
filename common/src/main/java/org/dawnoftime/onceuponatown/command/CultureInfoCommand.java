@@ -1,16 +1,17 @@
 package org.dawnoftime.onceuponatown.command;
 
+import org.dawnoftime.onceuponatown.building.type.BuildType;
 import org.dawnoftime.onceuponatown.culture.Culture;
-import org.dawnoftime.onceuponatown.culture.CultureManager;
+import org.dawnoftime.onceuponatown.culture.ServerCultures;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
-import org.dawnoftime.onceuponatown.culture.Specialization;
 
-import java.util.List;
+import java.util.Collections;
+import java.util.Comparator;
 
 public class CultureInfoCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> register() {
@@ -20,45 +21,50 @@ public class CultureInfoCommand {
     }
 
     private static int cultureInfo(CommandSourceStack source, String cultureId) {
-        Culture culture = CultureManager.getCultureById(cultureId);
+        Culture culture = ServerCultures.getCultureOrNull(cultureId);
+        if (culture != null) {
+            // Eras
+            var erasComponent = Component.literal("Eras").withStyle(ChatFormatting.BLUE).append(" (");
+            var eras = culture.getEras();
+            erasComponent.append(eras.size() + ") :\n");
+            eras.forEach((era
+                    -> erasComponent.append(Component.literal(era.era() + " - Exp needed : " + era.requiredExperience() + ", max clutter : " + era.maxBuildingsWeight() + "\n"))));
 
-        // Eras
-        var erasComponent = Component.literal("Eras").withStyle(ChatFormatting.BLUE).append(" (");
-        var eras = culture.getEras();
-        erasComponent.append(eras.size() + ") :\n");
-        eras.forEach((era
-        -> erasComponent.append(Component.literal(era.index() + " - Exp needed : " + era.requiredXp() + ", max clutter : " + era.buildingsWeight() + "\n"))));
+            // Specializations
+            var specializationsComponent = Component.literal("Specializations").withStyle(ChatFormatting.BLUE).append(" (");
+            var specializations = culture.getSpecializations();
+            specializationsComponent.append(specializations.size() + ") : ");
+            specializations.forEach((s -> specializationsComponent.append(s + " ")));
+            specializationsComponent.append("\n");
 
-        // Specializations
-        var specializationsComponent = Component.literal("Specializations").withStyle(ChatFormatting.BLUE).append(" (");
-        var specializations = culture.getSpecializations();
-        specializationsComponent.append(specializations.size() + ") : ");
-        specializations.forEach((s -> specializationsComponent.append(s + " ")));
-        specializationsComponent.append("\n");
+            // Starter pack
+            var starterPackComponent = Component.literal("Starter pack").withStyle(ChatFormatting.BLUE).append(" (");
+            var starterPack = culture.getStarterPack();
+            starterPackComponent.append(starterPack.size() + " building" + (starterPack.size() > 1 ? "s" : "") + ") :\n");
+            starterPack.forEach((buildTypeId, amountInPack)
+                    -> starterPackComponent.append(Component.literal(buildTypeId).withStyle(ChatFormatting.AQUA))
+                    .append(" (min : " + amountInPack.getA() +", max : " + amountInPack.getB() + ")\n"));
 
-        // Starter pack
-        var starterPackComponent = Component.literal("Starter pack").withStyle(ChatFormatting.BLUE).append(" (");
-        var starterPack = culture.getStarterPack();
-        starterPackComponent.append(starterPack.size() + " building" + (starterPack.size() > 1 ? "s" : "") + ") :\n");
-        starterPack.forEach((buildTypeId, amountInPack)
-        -> starterPackComponent.append(Component.literal(buildTypeId).withStyle(ChatFormatting.AQUA))
-                .append(" (min : " + amountInPack.getA() +", max : " + amountInPack.getB() + ")\n"));
+            // Build types
+            var buildTypesComponent = Component.literal("Buildings (");
+            var buildTypes = culture.getBuildTypes();
+            buildTypesComponent.append(buildTypes.size() + ") :\n");
+            //buildTypes.sort(Comparator.comparing(BuildType::getId));
 
-        // Build types
-        var buildTypesComponent = Component.literal("Buildings (");
-        var buildTypes = culture.getBuildTypes();
-        buildTypesComponent.append(buildTypes.size() + ") :\n");
-        buildTypes.forEach((buildType) -> {
-            int nbOfVariants = buildType.getBuildVariants().size();
-            int nbOfLevels = buildType.getLevels().size();
-            buildTypesComponent.append(buildType.getId()).withStyle(ChatFormatting.AQUA)
-                    .append(" : " + nbOfVariants + " variant" + (nbOfVariants > 1 ? "s" : "") +", " + nbOfLevels + " level" + (nbOfLevels > 1 ? "s" : "") + "\n");
-        });
+            buildTypes.forEach((buildType) -> {
+                int nbOfVariants = buildType.getBuildVariants().size();
+                int nbOfLevels = buildType.getLevels().size();
+                buildTypesComponent.append(buildType.getId()).withStyle(ChatFormatting.AQUA)
+                        .append(" : " + nbOfVariants + " variant" + (nbOfVariants > 1 ? "s" : "") +", " + nbOfLevels + " level" + (nbOfLevels > 1 ? "s" : "") + "\n");
+            });
 
-        var cultureInfo = Component.literal("Culture '").append(Component.literal(culture.getId()).withStyle(ChatFormatting.YELLOW)).append("'\n")
-                .append(erasComponent).append(specializationsComponent).append(starterPackComponent).append(buildTypesComponent);
+            var cultureInfo = Component.literal("Culture '").append(Component.literal(culture.getId()).withStyle(ChatFormatting.YELLOW)).append("'\n")
+                    .append(erasComponent).append(specializationsComponent).append(starterPackComponent).append(buildTypesComponent);
 
-        source.sendSuccess(() -> cultureInfo, false);
+            source.sendSuccess(() -> cultureInfo, false);
+        } else {
+            source.sendFailure(Component.literal("Culture not founded"));
+        }
         return 1;
     }
 }

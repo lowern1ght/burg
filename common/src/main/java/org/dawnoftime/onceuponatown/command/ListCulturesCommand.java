@@ -1,7 +1,7 @@
 package org.dawnoftime.onceuponatown.command;
 
 import org.dawnoftime.onceuponatown.culture.Culture;
-import org.dawnoftime.onceuponatown.culture.CultureManager;
+import org.dawnoftime.onceuponatown.culture.ServerCultures;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -16,7 +16,7 @@ public class ListCulturesCommand {
     }
 
     private static int listCultures(CommandSourceStack source) {
-        List<Culture> cultures = CultureManager.getLoadedCultures();
+        List<Culture> cultures = ServerCultures.getLoadedCultures();
         if (cultures != null && !cultures.isEmpty()) {
             source.sendSuccess(() -> Component.literal("Following cultures found (" + cultures.size() + ") :"), false);
             for (Culture culture : cultures) {

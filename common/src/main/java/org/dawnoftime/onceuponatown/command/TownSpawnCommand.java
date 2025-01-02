@@ -15,7 +15,7 @@ import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
 import org.dawnoftime.onceuponatown.construction.BlockInfo;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 import org.dawnoftime.onceuponatown.culture.Culture;
-import org.dawnoftime.onceuponatown.culture.CultureManager;
+import org.dawnoftime.onceuponatown.culture.ServerCultures;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.Town;
 
@@ -28,19 +28,19 @@ public class TownSpawnCommand {
     }
 
     private static int spawnTown(CommandSourceStack source, String cultureId, String townName) {
-        try{
-            Vec3 pos = source.getPosition();
-            Culture culture = CultureManager.getCultureById(cultureId);
+        Vec3 pos = source.getPosition();
+        Culture culture = ServerCultures.getCultureOrNull(cultureId);
+        if (culture != null) {
             ServerLevel level = source.getLevel();
             BlockPos posTown = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, new BlockPos((int) pos.x, (int) pos.y, (int) pos.z));
             Town town = new Town(level, culture, townName, posTown);
-            if(town.buildStarterPack()){
+            if (town.buildStarterPack()) {
                 LevelTowns.of(level).addTown(town);
                 // Now we place the blocks.
                 BlockPos.MutableBlockPos cursor = new BlockPos(0, 0, 0).mutable();
-                for(NpcBuild build: town.getBuilds()){
+                for (NpcBuild build : town.getBuilds()) {
                     SchematicContent schema = build.getSchematicContent(level.getServer().getResourceManager());
-                    for(BlockInfo block: schema.getBlocks()){
+                    for (BlockInfo block : schema.getBlocks()) {
                         cursor.set(build.getOriginPos().getX(), build.getOriginPos().getY(), build.getOriginPos().getZ());
                         level.setBlock(cursor.move(block.pos()), block.state(), 2);
                     }
@@ -49,12 +49,12 @@ public class TownSpawnCommand {
                 source.sendSuccess(() -> Component.literal("The town ")
                         .append(Component.literal(townName).withStyle(ChatFormatting.GREEN))
                         .append(Component.literal(" was successfully generated !")), false);
-            }else{
+            } else {
                 source.sendSuccess(() -> Component.literal("The town ")
                         .append(Component.literal(townName).withStyle(ChatFormatting.YELLOW))
                         .append(Component.literal(" couldn't not be spawned because there wasn't enough free space.")), false);
             }
-        } catch (CorruptedCultureException e) {
+        } else {
             source.sendSuccess(() -> Component.literal("The culture ")
                     .append(Component.literal(cultureId).withStyle(ChatFormatting.YELLOW))
                     .append(Component.literal(" doesn't exist.")), false);

@@ -129,7 +129,7 @@ public class Building extends NpcBuild {
     }
 
     public ResourceLocation getSchematicResourceLocation() {
-        return variant.getSchematicResourceLocation(this.getLevel());
+        return variant.getSchematicRl(this.getLevel());
     }
 
     @Override

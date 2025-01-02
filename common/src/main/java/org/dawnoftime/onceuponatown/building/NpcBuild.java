@@ -125,7 +125,7 @@ public abstract class NpcBuild implements MapBlock {
     }
 
     /**
-     * Finds a suitable y position in order to place this Build on a BuildingBud. <br>
+     * Finds a suitable y position in era to place this Build on a BuildingBud. <br>
      * For example, Buildings will try to place themselves so that their main entrance is connected to a street.
      * @param originPos BlockPos to place this Build at. Only x and z are important here, since this method will find the correct y.
      * @param dir       Direction being evaluated.

@@ -1,0 +1,28 @@
+{
+  "id": "cathedral",
+  "category": "special",
+  "weight": 30,
+  "levels": [
+    {
+      "required_era": 1
+    }
+  ],
+  "item": "minecraft:bell",
+  "variants": [
+    {
+      "name": "variant1",
+      "size": {
+        "x": 19,
+        "y": 34,
+        "z": 32
+      },
+      "levels": [
+        {
+          "schematic": "cathedral",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

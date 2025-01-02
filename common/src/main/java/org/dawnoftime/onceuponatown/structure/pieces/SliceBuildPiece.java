@@ -6,7 +6,7 @@ import org.dawnoftime.onceuponatown.building.SliceBuild;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
 import org.dawnoftime.onceuponatown.construction.BlockInfo;
 import org.dawnoftime.onceuponatown.culture.Culture;
-import org.dawnoftime.onceuponatown.culture.CultureManager;
+import org.dawnoftime.onceuponatown.culture.ServerCultures;
 import org.dawnoftime.onceuponatown.registry.StructurePieceRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -45,7 +45,7 @@ public class SliceBuildPiece extends StructurePiece {
         super(StructurePieceRegistry.REGISTRY.SLICE_BUILD_PIECE.get(), tag);
         setOrientation(Direction.NORTH); // Using our custom orientation system instead
         cultureId = tag.getString("CultureId");
-        Culture culture = CultureManager.getCultureById(cultureId);
+        Culture culture = ServerCultures.getCultureOrDefault(cultureId);
         sliceBuild = (SliceBuild) NpcBuild.load(culture, tag.getCompound("SliceBuild"));
         originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
         townTag = (tag.contains("FutureTownData")) ? tag.getCompound("FutureTownData") : null;

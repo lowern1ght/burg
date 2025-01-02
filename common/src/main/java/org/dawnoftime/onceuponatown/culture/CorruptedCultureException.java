@@ -1,29 +1,30 @@
 package org.dawnoftime.onceuponatown.culture;
 
-import com.google.gson.JsonElement;
 import net.minecraft.resources.ResourceLocation;
+import org.dawnoftime.onceuponatown.Utils;
 
 public class CorruptedCultureException extends RuntimeException {
-
     public CorruptedCultureException(String cultureId, String message) {
         super("Culture [" + cultureId + "] is corrupted. " + message);
     }
 
-    /**
-     * An exception raised when an invalid culture loads
-     * @param cultureId The culture detected as invalid
-     * @param file The invalid file
-     * @param field The element in the file that may be invalid
-     */
-    public CorruptedCultureException(String cultureId, String file, String field, String message) {
-        this(cultureId, "Affected file : " + file + ". Affected field : " + field + "." + ((message == null) ? "" : " " + message));
+    public static CorruptedCultureException missingFile(String cultureId, String fileName, ResourceLocation fileRl, String objectName) {
+        return new CorruptedCultureException(cultureId, "Missing " + objectName + " file " + fileName + ". Please verify, it should be located at " + Utils.rlToDebug(fileRl));
     }
 
-    public static CorruptedCultureException missingField(String cultureId, String objectClassName, String fileName, String missingField, String missingFieldDescription, ResourceLocation rl) {
-        return new CorruptedCultureException(cultureId, "Failed to register a %s. '%s' is missing the field '%s'%s. Check at this location : %s".formatted(objectClassName, fileName, missingField, missingFieldDescription, rl.getPath()));
+    public static CorruptedCultureException invalidFile(String cultureId, String fileName, ResourceLocation fileRl, String objectName, String message) {
+        return new CorruptedCultureException(cultureId, "There is an error in " + objectName + " file " + fileName + ". " + message + ". Please check the file at " +  Utils.rlToDebug(fileRl));
     }
 
-    public static CorruptedCultureException missingFile(String cultureId, String objectClassName, String fileName, ResourceLocation rl) {
-        return new CorruptedCultureException(cultureId, "%s file '%s' is missing. It should be located here : %s".formatted(objectClassName, fileName, rl.getPath()));
+    public static CorruptedCultureException missingField(String cultureId, String fileName, ResourceLocation fileRl, String objectName, String field, String fieldLocation, String fieldType) {
+        return new CorruptedCultureException(cultureId, "There is an error in " + objectName + " file " + fileName + (fieldLocation.isEmpty() ? "." : " " + fieldLocation + ".") + " Missing " + fieldType + " property '" + field + "'. Please check the file at " +  Utils.rlToDebug(fileRl));
+    }
+
+    public static CorruptedCultureException wrongFieldType(String cultureId, String fileName, ResourceLocation fileRl, String objectName, String field, String fieldLocation, String expectedFieldType, String foundFieldType) {
+        return new CorruptedCultureException(cultureId, "There is an error in " + objectName + " file " + fileName + (fieldLocation.isEmpty() ? "." : " " + fieldLocation + ".") + " Property '" + field + "' should be a " + expectedFieldType + ", not a " + foundFieldType + ". Please check the file at " +  Utils.rlToDebug(fileRl));
+    }
+
+    public static CorruptedCultureException invalidField(String cultureId, String fileName, ResourceLocation fileRl, String objectName, String field, String fieldLocation, String message) {
+        return new CorruptedCultureException(cultureId, "There is an error in " + objectName + " file " + fileName + (fieldLocation.isEmpty() ? "." : " " + fieldLocation + ".") + " Invalid property '" + field + "'. " + message + ". Please check the file at " +  Utils.rlToDebug(fileRl));
     }
 }

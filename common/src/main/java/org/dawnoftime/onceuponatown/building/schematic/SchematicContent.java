@@ -101,7 +101,7 @@ public class SchematicContent {
         // First, we load the needed schematics.
         HashMap<String, SchematicContent[]> sliceMap = new HashMap<>();
         build.getBuildVariantMap().forEach((variantName, pair) -> {
-            SchematicContent schematicContent = SchematicContent.createFromDataPack(pair.getA().getSchematicResourceLocation(build.getLevel()), resourceManager);
+            SchematicContent schematicContent = SchematicContent.createFromDataPack(pair.getA().getSchematicRl(build.getLevel()), resourceManager);
             if (schematicContent != null) {
                 sliceMap.put(variantName, schematicContent.asSliceArray(pair.getB()));
             }

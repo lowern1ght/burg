@@ -14,7 +14,7 @@ public class TownMapUtils {
     public static final Direction[] NW_DIR_CYCLE = new Direction[]{Direction.EAST, Direction.SOUTH, Direction.WEST, NORTH};
 
     /**
-     * Function that provides an iterator of MutablePos on a rectangular shape in Clockwise index.
+     * Function that provides an iterator of MutablePos on a rectangular shape in Clockwise era.
      * @param originPos NORTH_WEST BlockPos of the rectangle.
      * @param sizeX Horizontal size of the rectangle.
      * @param sizeZ Vertical size of the rectangle.

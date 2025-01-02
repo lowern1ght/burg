@@ -120,6 +120,10 @@ public class ProtoTown {
      * @return True if the town creation was successful.
      */
     public boolean buildStarterPack(){
+        // Corrupted cultures don't generate towns
+        if (culture == Culture.DEFAULT_CULTURE) {
+            return false;
+        }
         List<BuildingType> starterPack = this.culture.getRandomStarterPack(RANDOM_SOURCE);
         SliceBuildType wideRoad = (SliceBuildType) this.culture.getBuildType(Culture.WIDE_ROAD_TYPE_NAME);
         

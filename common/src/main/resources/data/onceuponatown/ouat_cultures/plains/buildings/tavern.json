@@ -1,0 +1,28 @@
+{
+  "id": "tavern",
+  "category": "special",
+  "weight": 20,
+  "levels": [
+    {
+      "required_era": 1
+    }
+  ],
+  "item": "minecraft:pumpkin_pie",
+  "variants": [
+    {
+      "name": "variant1",
+      "size": {
+        "x": 8,
+        "y": 11,
+        "z": 9
+      },
+      "levels": [
+        {
+          "schematic": "small_house",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}
