@@ -3,7 +3,9 @@ package org.dawnoftime.onceuponatown.culture;
 import org.dawnoftime.onceuponatown.Ouat;
 import net.minecraft.server.packs.resources.PreparableReloadListener;
 import net.minecraft.server.packs.resources.ResourceManager;
+import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,26 +35,30 @@ public class ServerCultures {
                 if (culture != null) {
                     LOADED_CULTURES.put(detectedId, culture);
                 } else {
-                    Ouat.error("Culture [%s]: Failed to register the culture.".formatted(detectedId));
+                    Ouat.error("Culture [%s]: Failed to load the culture".formatted(detectedId));
                 }
             }
         });
-        StringJoiner joiner = new StringJoiner(", ");
         n = LOADED_CULTURES.size();
-        LOADED_CULTURES.keySet().forEach(joiner::add);
-        Ouat.info(("%s culture" + (n > 1 ? "s" : "") + " loaded : %s").formatted(n, joiner));
+        if (n > 0) {
+            StringJoiner joiner = new StringJoiner(", ");
+            LOADED_CULTURES.keySet().forEach(joiner::add);
+            Ouat.info(("%s culture" + (n > 1 ? "s" : "") + " loaded : %s").formatted(n, joiner));
+        } else {
+            Ouat.error("No culture loaded");
+        }
     }
 
     public static List<Culture> getLoadedCultures() {
         return LOADED_CULTURES.values().stream().toList();
     }
 
-    public static Culture getCultureOrDefault(String cultureId) {
+    public static @NotNull Culture getCultureOrDefault(String cultureId) {
         Culture culture = LOADED_CULTURES.get(cultureId);
         return culture == null ? Culture.DEFAULT_CULTURE : culture;
     }
 
-    public static Culture getCultureOrNull(String cultureId) {
+    public static @Nullable Culture getCultureOrNull(String cultureId) {
         return LOADED_CULTURES.get(cultureId);
     }
 }

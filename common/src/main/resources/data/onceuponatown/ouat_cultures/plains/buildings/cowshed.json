@@ -23,6 +23,36 @@
           ]
         }
       ]
+    },
+    {
+      "name": "variant2",
+      "size": {
+        "x": 12,
+        "y": 13,
+        "z": 15
+      },
+      "levels": [
+        {
+          "schematic": "cowshed2",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "small",
+      "size": {
+        "x": 11,
+        "y": 7,
+        "z": 14
+      },
+      "levels": [
+        {
+          "schematic": "cowshed_small",
+          "waypoints": [
+          ]
+        }
+      ]
     }
   ]
 }

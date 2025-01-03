@@ -115,7 +115,6 @@ public class Culture {
                 helper.throwInvalidField("buildings_starter_pack", "It can't be empty. Each town should have at least one building when spawning.");
             }
             /* Finished reading all the culture's files */
-            Ouat.info("Culture '" + detectedId + "' loaded.");
             return new Culture(detectedId, specializations, buildTypeMap, starterPack, eras);
         } catch (IOException ioException) {
             throw new CorruptedCultureException(detectedId, "Could not open the culture json file.");

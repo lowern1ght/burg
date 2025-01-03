@@ -11,7 +11,7 @@
   "item": "minecraft:white_bed",
   "variants": [
     {
-      "name": "standard",
+      "name": "variant1",
       "size": {
         "x": 8,
         "y": 11,
@@ -26,15 +26,15 @@
       ]
     },
     {
-      "name": "medium",
+      "name": "variant2",
       "size": {
-        "x": 11,
-        "y": 11,
+        "x": 10,
+        "y": 10,
         "z": 10
       },
       "levels": [
         {
-          "schematic": "small_house_medium",
+          "schematic": "small_house2",
           "waypoints": [
           ]
         }

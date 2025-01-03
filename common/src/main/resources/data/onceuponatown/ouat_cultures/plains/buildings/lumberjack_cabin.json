@@ -12,13 +12,13 @@
     {
       "name": "variant1",
       "size": {
-        "x": 8,
-        "y": 11,
-        "z": 9
+        "x": 20,
+        "y": 9,
+        "z": 17
       },
       "levels": [
         {
-          "schematic": "small_house",
+          "schematic": "lumberjack_cabin",
           "waypoints": [
           ]
         }

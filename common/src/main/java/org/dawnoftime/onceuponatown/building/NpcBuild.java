@@ -43,7 +43,7 @@ public abstract class NpcBuild implements MapBlock {
      * @param buildType BuildType of this Build.
      * @param level     Starting level for this Build. Has to be between 1 and the maximum level defined by the BuildType.
      */
-    public NpcBuild(BuildType buildType, int level) {
+    protected NpcBuild(BuildType buildType, int level) {
         this.buildType = buildType;
         this.level = level;
     }

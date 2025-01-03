@@ -18,7 +18,22 @@
       },
       "levels": [
         {
-          "schematic": "market_house",
+          "schematic": "merchant_house",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "wandering_trader",
+      "size": {
+        "x": 20,
+        "y": 14,
+        "z": 16
+      },
+      "levels": [
+        {
+          "schematic": "wandering_house",
           "waypoints": [
           ]
         }

@@ -35,6 +35,12 @@ public abstract class BuildType {
         this.purpose = purpose;
     }
 
+    public static class CorruptedBuildType extends BuildType {
+        protected CorruptedBuildType(String corruptedId) {
+            super(corruptedId, 0, List.of(), BuildingPurpose.MISCELLANEOUS);
+        }
+    }
+
     protected static @NotNull BuildTypeCommonJsonData readJsonCommonData(String cultureId, String buildTypeId, JsonObject rootJson, CultureFileHelper helper, ResourceManager resourceManager) throws CorruptedCultureException {
         /* Reading mandatory id to avoid conflicts with other build types */
         if (!helper.getString(rootJson, "id").equals(buildTypeId)) {

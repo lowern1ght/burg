@@ -38,7 +38,7 @@ public class RoadType extends SliceBuildType {
             BuildTypeCommonJsonData mainData = readJsonCommonData(cultureId, roadTypeId, rootJson, helper, resourceManager);
             return new RoadType(roadTypeId, mainData.weight(), mainData.levels(), mainData.variants(), cultureId);
         } catch (NoSuchElementException | IOException | JsonParseException e) {
-            throw new CorruptedCultureException(cultureId, "Could not read road type file '" + roadTypeId + "'.json, supposed to be located at " + Utils.rlToDebug(roadRl) + ". " + e.getMessage());
+            throw new CorruptedCultureException(cultureId, "Could not read road type file '" + roadTypeId + "'.json, supposed to be located at " + Utils.serverRlToDebug(roadRl) + ". " + e.getMessage());
         }
     }
 

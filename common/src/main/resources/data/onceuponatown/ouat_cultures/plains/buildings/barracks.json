@@ -10,15 +10,15 @@
   "item": "minecraft:target",
   "variants": [
     {
-      "name": "soldier_house",
+      "name": "bow_training_camp",
       "size": {
-        "x": 13,
-        "y": 13,
-        "z": 13
+        "x": 25,
+        "y": 8,
+        "z": 39
       },
       "levels": [
         {
-          "schematic": "barracks",
+          "schematic": "bow_training_camp",
           "waypoints": [
           ]
         }

@@ -14,7 +14,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.phys.Vec3;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
-import org.dawnoftime.onceuponatown.culture.CultureFileHelper;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.Town;
 
@@ -161,7 +160,7 @@ public class Utils {
             ListTag sizeTag = tag.getList("size", 3);
             return new Vec3i(sizeTag.getInt(0), sizeTag.getInt(1), sizeTag.getInt(2));
         } catch (IOException e) {
-            throw new CorruptedCultureException(cultureId, "Could not read schematic file '" + fileName + ".nbt' of build variant '" + buildVariantId + "', supposed to be located at " + Utils.rlToDebug(schematicRl) + ". " + e.getMessage());
+            throw new CorruptedCultureException(cultureId, "Could not read schematic file '" + fileName + ".nbt' of build variant '" + buildVariantId + "', supposed to be located at " + Utils.serverRlToDebug(schematicRl));
         }
     }
 
@@ -169,7 +168,11 @@ public class Utils {
         return "(" + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + ")";
     }
 
-    public static String rlToDebug(ResourceLocation rl) {
-        return rl.toString().replace(':', '/');
+    public static String clientRlToDebug(ResourceLocation clientDataPackRl) {
+        return "data/" + clientDataPackRl.toString().replace(':', '/');
+    }
+
+    public static String serverRlToDebug(ResourceLocation serverDataPackRl) {
+        return "assets/" + serverDataPackRl.toString().replace(':', '/');
     }
 }
