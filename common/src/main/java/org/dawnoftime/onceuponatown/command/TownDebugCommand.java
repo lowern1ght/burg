@@ -1,8 +1,5 @@
 package org.dawnoftime.onceuponatown.command;
 
-import net.minecraft.world.level.block.Blocks;
-import org.dawnoftime.onceuponatown.town.Town;
-import org.dawnoftime.onceuponatown.town.LevelTowns;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -10,7 +7,10 @@ import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
+import org.dawnoftime.onceuponatown.town.LevelTowns;
+import org.dawnoftime.onceuponatown.town.Town;
 
 import java.util.Collection;
 
@@ -26,9 +26,9 @@ public class TownDebugCommand {
         if (!towns.isEmpty()) {
             Town closestTown = null;
             double dist = -1;
-            for (Town town : towns){
+            for (Town town : towns) {
                 double newDist = town.getCenter().distToCenterSqr(sourcePos);
-                if(dist == -1 || newDist < dist){
+                if (dist == -1 || newDist < dist) {
                     dist = newDist;
                     closestTown = town;
                 }

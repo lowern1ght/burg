@@ -1,10 +1,5 @@
 package org.dawnoftime.onceuponatown.client.screen;
 
-import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.client.screen.tooltip.TradeItemTooltip;
-import org.dawnoftime.onceuponatown.menu.SellMenu;
-import org.dawnoftime.onceuponatown.network.C2SSellScreenPacket;
-import org.dawnoftime.onceuponatown.trade.SellDeal;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -21,6 +16,11 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.client.screen.tooltip.TradeItemTooltip;
+import org.dawnoftime.onceuponatown.menu.SellMenu;
+import org.dawnoftime.onceuponatown.network.C2SSellScreenPacket;
+import org.dawnoftime.onceuponatown.trade.SellDeal;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -69,8 +69,8 @@ public class SellScreen extends NpcBaseScreen<SellMenu> {
         //this.leftPos = this.leftPos - 80;
         //this.leftPos = 167 + (this.width - this.imageWidth - 200) / 2;
         createButtons();
-        this.addRenderableWidget(new Button.Builder(Component.literal("↑"),(button -> onSellEverythingButtonClick()))
-                .bounds(this.leftPos + 169,this.topPos + 77,12,13)
+        this.addRenderableWidget(new Button.Builder(Component.literal("↑"), (button -> onSellEverythingButtonClick()))
+                .bounds(this.leftPos + 169, this.topPos + 77, 12, 13)
                 .tooltip(Tooltip.create(Component.literal("Sell all wanted items"))).build());
     }
 
@@ -80,8 +80,8 @@ public class SellScreen extends NpcBaseScreen<SellMenu> {
         int buttonIndex = 0;
         for (int i = 0; i < GRID_ROWS; ++i) {
             x = startX;
-            for(int j = 0; j < GRID_COLUMNS; ++j) {
-                this.dealButtons[buttonIndex] = this.addRenderableWidget(new DealButton(x, y, buttonIndex, (button) -> onDealButtonLeftClick((DealButton)button)));
+            for (int j = 0; j < GRID_COLUMNS; ++j) {
+                this.dealButtons[buttonIndex] = this.addRenderableWidget(new DealButton(x, y, buttonIndex, (button) -> onDealButtonLeftClick((DealButton) button)));
                 ++buttonIndex;
                 x += BuyScreen.DealButton.WIDTH;
             }
@@ -116,12 +116,12 @@ public class SellScreen extends NpcBaseScreen<SellMenu> {
     }
 
     private int nbOfTimesCanScrollDown() {
-        return Mth.ceil((((double)this.menu.getDeals().size() - (double)NUMBER_OF_DEAL_BUTTONS) / 6));
+        return Mth.ceil((((double) this.menu.getDeals().size() - (double) NUMBER_OF_DEAL_BUTTONS) / 6));
     }
 
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
         if (this.canScroll()) {
-            this.scrollOff = Mth.clamp((int)((double)this.scrollOff - delta), 0, nbOfTimesCanScrollDown());
+            this.scrollOff = Mth.clamp((int) ((double) this.scrollOff - delta), 0, nbOfTimesCanScrollDown());
         }
         return true;
     }
@@ -135,7 +135,7 @@ public class SellScreen extends NpcBaseScreen<SellMenu> {
         this.isDragging = false;
         int i = (this.width - this.imageWidth) / 2;
         int j = (this.height - this.imageHeight) / 2;
-        if (this.canScroll() && mouseX > (double)(i + 119) && mouseX < (double)(i + 119 + 6) && mouseY > (double)(j + 24) && mouseY <= (double)(j + 24 + 139 + 1)) {
+        if (this.canScroll() && mouseX > (double) (i + 119) && mouseX < (double) (i + 119 + 6) && mouseY > (double) (j + 24) && mouseY <= (double) (j + 24 + 139 + 1)) {
             this.isDragging = true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
@@ -146,9 +146,9 @@ public class SellScreen extends NpcBaseScreen<SellMenu> {
             int j = this.topPos + 24;
             int k = j + SCROLL_BAR_HEIGHT;
             int l = nbOfTimesCanScrollDown();
-            float f = ((float)mouseY - (float)j - 13.5F) / ((float)(k - j) - 27.0F);
-            f = f * (float)l + 0.5F;
-            this.scrollOff = Mth.clamp((int)f, 0, l);
+            float f = ((float) mouseY - (float) j - 13.5F) / ((float) (k - j) - 27.0F);
+            f = f * (float) l + 0.5F;
+            this.scrollOff = Mth.clamp((int) f, 0, l);
             return true;
         } else {
             return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
@@ -161,7 +161,7 @@ public class SellScreen extends NpcBaseScreen<SellMenu> {
         graphics.pose().translate(0.0F, 0.0F, 100.0F);
         graphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight, BUY_SCREEN_TEXTURE_WIDTH, BUY_SCREEN_TEXTURE_HEIGHT);
         if (this.menu.slots.get(SellMenu.VALUE_BLOCKS_SLOT).hasItem()) {
-            graphics.blit(TEXTURE, this.leftPos + 219, this.topPos + 49 , 112, 91, 18, 18, BUY_SCREEN_TEXTURE_WIDTH, BUY_SCREEN_TEXTURE_HEIGHT);
+            graphics.blit(TEXTURE, this.leftPos + 219, this.topPos + 49, 112, 91, 18, 18, BUY_SCREEN_TEXTURE_WIDTH, BUY_SCREEN_TEXTURE_HEIGHT);
         }
 
         renderTabs(graphics);
@@ -185,12 +185,12 @@ public class SellScreen extends NpcBaseScreen<SellMenu> {
 
         List<SellDeal> deals = this.menu.getDeals();
         if (!deals.isEmpty()) {
-            int startX  = leftPos + GRID_X + 1;
+            int startX = leftPos + GRID_X + 1;
             int x = startX;
             int y = topPos + GRID_Y + 1 + 1;
 
             int index = 0;
-            for(SellDeal deal : deals) {
+            for (SellDeal deal : deals) {
                 if (!this.canScroll() || index >= (this.scrollOff * GRID_COLUMNS) && index < NUMBER_OF_DEAL_BUTTONS + (this.scrollOff * GRID_COLUMNS)) {
                     ItemStack good = deal.getGood();
                     graphics.pose().pushPose();
@@ -216,13 +216,13 @@ public class SellScreen extends NpcBaseScreen<SellMenu> {
         //graphics.pose().translate(0.0F, 0.0F, 100.0F);
         if (this.menu.isGoodsGridLocked()) {
             graphics.pose().translate(0.0F, 0.0F, 400.0F);
-            graphics.blit(Ouat.modResource("textures/gui/lock.png"), this.leftPos + 143, this.topPos + 48 , 0, 0, 10, 14, 10, 14);
+            graphics.blit(Ouat.modResource("textures/gui/lock.png"), this.leftPos + 143, this.topPos + 48, 0, 0, 10, 14, 10, 14);
         }
-        graphics.drawString(this.font, Component.literal("Simir Kurtmar, ").withStyle(ChatFormatting.GOLD).append(Component.literal("Inkeeper").withStyle(ChatFormatting.GRAY).withStyle(ChatFormatting.ITALIC)), leftPos + 305, topPos+18, 4210752, false);
+        graphics.drawString(this.font, Component.literal("Simir Kurtmar, ").withStyle(ChatFormatting.GOLD).append(Component.literal("Inkeeper").withStyle(ChatFormatting.GRAY).withStyle(ChatFormatting.ITALIC)), leftPos + 305, topPos + 18, 4210752, false);
         //graphics.drawString(this.font, Component.literal("                               ").withStyle(ChatFormatting.WHITE).withStyle(ChatFormatting.UNDERLINE),leftPos + 305, topPos +2, 4210752, false);
-        graphics.drawWordWrap(this.font, Component.literal("Welcome to Rochecolombe, dear traveler! It's a pleasure to have you here in our quaint town. Whether you've come from near or far, we're delighted to extend our warmest hospitality to you.").withStyle(ChatFormatting.GRAY),leftPos + 305, topPos +35, 120,4210752);
-        graphics.drawString(this.font, Component.literal(" > I'll have a drink").withStyle(ChatFormatting.WHITE).withStyle(ChatFormatting.ITALIC), leftPos + 300, topPos +150, 4210752, false);
-        graphics.drawString(this.font, Component.literal(" > Good bye").withStyle(ChatFormatting.WHITE), leftPos +300, topPos +160, 4210752, false);
+        graphics.drawWordWrap(this.font, Component.literal("Welcome to Rochecolombe, dear traveler! It's a pleasure to have you here in our quaint town. Whether you've come from near or far, we're delighted to extend our warmest hospitality to you.").withStyle(ChatFormatting.GRAY), leftPos + 305, topPos + 35, 120, 4210752);
+        graphics.drawString(this.font, Component.literal(" > I'll have a drink").withStyle(ChatFormatting.WHITE).withStyle(ChatFormatting.ITALIC), leftPos + 300, topPos + 150, 4210752, false);
+        graphics.drawString(this.font, Component.literal(" > Good bye").withStyle(ChatFormatting.WHITE), leftPos + 300, topPos + 160, 4210752, false);
 
     }
 
@@ -293,7 +293,7 @@ public class SellScreen extends NpcBaseScreen<SellMenu> {
 
                 graphics.blit(TEXTURE, getX(), getY(), offsetX, offsetY, this.width, this.height, SellScreen.BUY_SCREEN_TEXTURE_WIDTH, SellScreen.BUY_SCREEN_TEXTURE_HEIGHT);
                 if (isHoveredOrFocused()) {
-                    renderToolTip(graphics,mouseX,mouseY);
+                    renderToolTip(graphics, mouseX, mouseY);
                 }
             }
 

@@ -3,9 +3,9 @@ package org.dawnoftime.onceuponatown.registry;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.MenuType;
 import org.dawnoftime.onceuponatown.menu.BuyMenu;
 import org.dawnoftime.onceuponatown.menu.SellMenu;
-import net.minecraft.world.inventory.MenuType;
 import org.dawnoftime.onceuponatown.menu.TradeMenu;
 
 import java.util.function.Supplier;

@@ -1,8 +1,5 @@
 package org.dawnoftime.onceuponatown.menu;
 
-import org.dawnoftime.onceuponatown.entity.Npc;
-import org.dawnoftime.onceuponatown.registry.ItemRegistry;
-import org.dawnoftime.onceuponatown.trade.SellDeal;
 import net.minecraft.core.NonNullList;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.Container;
@@ -10,6 +7,8 @@ import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import org.dawnoftime.onceuponatown.entity.Npc;
+import org.dawnoftime.onceuponatown.trade.SellDeal;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -44,7 +43,7 @@ public class SellContainer implements Container {
     }
 
     public boolean isEmpty() {
-        for(ItemStack stack : this.itemStacks) {
+        for (ItemStack stack : this.itemStacks) {
             if (!stack.isEmpty()) {
                 return false;
             }
@@ -204,7 +203,7 @@ public class SellContainer implements Container {
                         int decrement = Math.min(totalShrinkable, stack.getCount());
                         stack.shrink(decrement);
                         if (stack.isEmpty()) {
-                        stack = ItemStack.EMPTY;
+                            stack = ItemStack.EMPTY;
                         }
                         totalShrinkable = totalShrinkable - decrement;
                     }
@@ -244,7 +243,7 @@ public class SellContainer implements Container {
         if (!this.hasConcludedTrade) {
             if (this.npc instanceof Npc) {
                 Npc entity = npc.getNpc();
-                entity.playSound(SoundEvents.VILLAGER_YES, 1.0F,1.0F);
+                entity.playSound(SoundEvents.VILLAGER_YES, 1.0F, 1.0F);
             }
             this.hasConcludedTrade = true;
             for (int i = GOOD_1_SLOT; i <= GOOD_8_SLOT; ++i) {
@@ -256,6 +255,7 @@ public class SellContainer implements Container {
             updateValue();
         }
     }
+
     public void clearContent() {
         this.itemStacks.clear();
     }

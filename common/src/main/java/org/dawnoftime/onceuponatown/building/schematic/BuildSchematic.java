@@ -1,6 +1,6 @@
 package org.dawnoftime.onceuponatown.building.schematic;
 
-import net.minecraft.core.*;
+import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import org.jetbrains.annotations.Nullable;
@@ -17,7 +17,7 @@ public class BuildSchematic {
     private final ResourceLocation resourceLocation; // The ResourceLocation of the Minecraft NBT file of the structure
     private final HashMap<Vec3i, Waypoint> waypoints; // Waypoints of this schematic
 
-    public BuildSchematic(ResourceLocation resourceLocation, HashMap<Vec3i, Waypoint> waypoints ) {
+    public BuildSchematic(ResourceLocation resourceLocation, HashMap<Vec3i, Waypoint> waypoints) {
         this.resourceLocation = resourceLocation;
         this.waypoints = waypoints;
     }

@@ -1,7 +1,5 @@
 package org.dawnoftime.onceuponatown.command;
 
-import org.dawnoftime.onceuponatown.town.Town;
-import org.dawnoftime.onceuponatown.town.LevelTowns;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -9,6 +7,8 @@ import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
+import org.dawnoftime.onceuponatown.town.LevelTowns;
+import org.dawnoftime.onceuponatown.town.Town;
 
 import java.util.Collection;
 

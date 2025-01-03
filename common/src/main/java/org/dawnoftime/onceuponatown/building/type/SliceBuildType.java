@@ -1,6 +1,5 @@
 package org.dawnoftime.onceuponatown.building.type;
 
-import net.minecraft.world.item.Item;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
@@ -45,7 +44,7 @@ public class SliceBuildType extends BuildType {
     }
 
     public BuildVariant getVariant(SliceBuildShape shape, String variantId) {
-        return switch(shape) {
+        return switch (shape) {
             case SLAB -> slabVariants.get(variantId);
             case STAIRS, STAIRS_INVERTED -> stairsVariants.get(variantId);
             default -> this.getBuildVariants().get(variantId);
@@ -53,7 +52,7 @@ public class SliceBuildType extends BuildType {
     }
 
     public String getRandomVariantName(SliceBuildShape shape) {
-        Set<String> keys = switch(shape) {
+        Set<String> keys = switch (shape) {
             case SLAB -> slabVariants.keySet();
             case STAIRS, STAIRS_INVERTED -> stairsVariants.keySet();
             default -> this.getBuildVariants().keySet();
@@ -103,7 +102,7 @@ public class SliceBuildType extends BuildType {
         }
 
         public int getMinYForSliceSchematic(int patternPos) {
-            return (int)Math.floor(patternPos * slope);
+            return (int) Math.floor(patternPos * slope);
         }
 
         public int getMaxYForSliceSchematic(int patternPos, int patternLength, int totalSizeY) {

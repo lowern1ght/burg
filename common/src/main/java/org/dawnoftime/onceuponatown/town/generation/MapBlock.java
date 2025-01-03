@@ -5,7 +5,7 @@ import org.jetbrains.annotations.Nullable;
 
 public interface MapBlock {
 
-    default @Nullable NpcBuild getBuild(){
+    default @Nullable NpcBuild getBuild() {
         return null;
     }
 }

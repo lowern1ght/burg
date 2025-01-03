@@ -1,6 +1,5 @@
 package org.dawnoftime.onceuponatown.trade;
 
-import org.dawnoftime.onceuponatown.registry.ItemRegistry;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.FriendlyByteBuf;
@@ -14,7 +13,7 @@ import java.util.List;
 
 public class TradeUtils {
     public static BuyDeal buyDeal(Item bought, int emeraldCost) {
-        return new BuyDeal.Builder(new ItemStack(Items.EMERALD,emeraldCost), new ItemStack(bought,1)).build();
+        return new BuyDeal.Builder(new ItemStack(Items.EMERALD, emeraldCost), new ItemStack(bought, 1)).build();
     }
 
     public static BuyDeal buyDeal(Item bought, int amount, int costShards, int costEmeralds, int costBlocks) {
@@ -22,7 +21,7 @@ public class TradeUtils {
     }
 
     public static SellDeal sellDeal(Item good, int valueEmeralds) {
-        return new SellDeal.Builder(new ItemStack(good,1), new ItemStack(Items.EMERALD, valueEmeralds)).build();
+        return new SellDeal.Builder(new ItemStack(good, 1), new ItemStack(Items.EMERALD, valueEmeralds)).build();
     }
 
     public static SellDeal sellDeal(Item good, int amount, int valueShards, int valueEmeralds, int valueBlocks) {
@@ -37,6 +36,7 @@ public class TradeUtils {
             buffer.writeItem(deal.getResult());
         });
     }
+
     public static List<BuyDeal> createBuyDealsFromStream(FriendlyByteBuf friendlyByteBuf) {
         return friendlyByteBuf.readCollection(ArrayList::new, (buffer) -> {
             ItemStack inputA = buffer.readItem();
@@ -55,6 +55,7 @@ public class TradeUtils {
             buf.writeEnum(deal.getTradeType());
         });
     }
+
     public static List<MerchantDeal> createMerchantDealsFromStream(FriendlyByteBuf friendlyByteBuf) {
         return friendlyByteBuf.readCollection(ArrayList::new, (buf) -> {
             ItemStack requiredA = buf.readItem();

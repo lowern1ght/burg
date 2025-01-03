@@ -1,7 +1,7 @@
 package org.dawnoftime.onceuponatown.town;
 
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.SharedConstants;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
@@ -52,11 +52,11 @@ public class LevelTowns extends SavedData {
 
     public void loadTowns(CompoundTag tag) {
         CompoundTag townsTag = tag.getCompound("Towns");
-        for(String key: townsTag.getAllKeys()) {
+        for (String key : townsTag.getAllKeys()) {
             Town town = new Town(this.level, townsTag.getCompound(key));
-            if(this.towns.containsKey(town.getUuid())) {
+            if (this.towns.containsKey(town.getUuid())) {
                 Ouat.error(new CorruptedTownException(town, "Impossible de register the town '%s'. A town was already loaded with the exact same UUID.".formatted(key)).getMessage());
-            }else{
+            } else {
                 this.towns.put(town.getUuid(), town);
             }
         }
@@ -77,7 +77,7 @@ public class LevelTowns extends SavedData {
     public void initProtoTown(@NotNull CompoundTag townTag) {
         UUID townUUID = townTag.getUUID("UUID");
         // Avoid creating the same town several times when loading the same BuildPiece in different chunks.
-        if(!this.towns.containsKey(townUUID)){
+        if (!this.towns.containsKey(townUUID)) {
             Town town = new Town(this.level, townTag);
             this.level.getServer().getPlayerList().broadcastSystemMessage(Component.literal(town.getName() + " discovered at " + Utils.blockPosToString(town.getCenter())), false);
             this.addTown(town);
@@ -86,6 +86,7 @@ public class LevelTowns extends SavedData {
 
     /**
      * Delete town instance, keep structures, convert npcs to wanderers
+     *
      * @param townUUID UUID of the town to delete
      */
     public void deleteTown(UUID townUUID) {
@@ -98,6 +99,7 @@ public class LevelTowns extends SavedData {
 
     /**
      * Delete town instance, destroy structures, kill npcs
+     *
      * @param townUUID UUID of the town to delete
      */
     public void deleteAndDemolishTown(UUID townUUID) {
@@ -113,7 +115,7 @@ public class LevelTowns extends SavedData {
         if (dayTime == 0 || dayTime == 6000 || dayTime == 13000) {
             if (!this.towns.isEmpty()) {
                 for (Town town : this.getAllTowns()) {
-                    if(dayTime == 0) {
+                    if (dayTime == 0) {
                         town.ringTownBell(Town.TownBellRingType.DAWN);
                     } else if (dayTime == 6000) {
                         town.ringTownBell(Town.TownBellRingType.NOON);

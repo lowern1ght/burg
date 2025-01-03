@@ -85,13 +85,14 @@ public abstract class SliceBuild extends NpcBuild {
     /**
      * Function that compute the Y era of the given position in the YShape.
      * Be careful ! This value can be out of yShape bounds !
+     *
      * @param pos BlockPos to convert in YIndex.
      * @return the integer that correspond to the y era.
      */
-    public int getYIndexFromPos(BlockPos pos){
-        if (this.getDirection().getAxis() == Direction.Axis.X){
+    public int getYIndexFromPos(BlockPos pos) {
+        if (this.getDirection().getAxis() == Direction.Axis.X) {
             return Math.abs(pos.getX() - this.getOriginPos().getX()) + 1;
-        }else{
+        } else {
             return Math.abs(pos.getZ() - this.getOriginPos().getZ()) + 1;
         }
     }

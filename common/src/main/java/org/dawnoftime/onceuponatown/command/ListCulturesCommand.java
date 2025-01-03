@@ -1,12 +1,12 @@
 package org.dawnoftime.onceuponatown.command;
 
-import org.dawnoftime.onceuponatown.culture.Culture;
-import org.dawnoftime.onceuponatown.culture.ServerCultures;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
+import org.dawnoftime.onceuponatown.culture.Culture;
+import org.dawnoftime.onceuponatown.culture.ServerCultures;
 
 import java.util.List;
 

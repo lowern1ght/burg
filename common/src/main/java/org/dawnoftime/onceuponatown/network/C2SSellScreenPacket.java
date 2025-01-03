@@ -1,12 +1,12 @@
 package org.dawnoftime.onceuponatown.network;
 
+import com.mojang.logging.LogUtils;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import org.dawnoftime.onceuponatown.menu.SellMenu;
-import com.mojang.logging.LogUtils;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import org.dawnoftime.onceuponatown.menu.SellMenu;
 import org.slf4j.Logger;
 
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
@@ -35,8 +35,7 @@ public record C2SSellScreenPacket(int dealIndex, RequestType requestType) implem
             if (!sellMenu.stillValid(player)) {
                 Logger LOGGER = LogUtils.getLogger();
                 LOGGER.debug("Player {} interacted with invalid menu {}", player, sellMenu);
-            }
-            else {
+            } else {
                 sellMenu.setSelectedDeal(this.dealIndex());
                 sellMenu.handleClientAction(this.dealIndex(), this.requestType());
             }

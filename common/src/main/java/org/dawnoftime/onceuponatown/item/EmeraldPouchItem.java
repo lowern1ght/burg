@@ -1,6 +1,5 @@
 package org.dawnoftime.onceuponatown.item;
 
-import com.mojang.datafixers.kinds.IdF;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.Entity;
@@ -57,7 +56,7 @@ public class EmeraldPouchItem extends Item {
                     access.set(new ItemStack(Items.EMERALD, amountOut));
                     playRemoveOneSound(player);
                 }
-            } else if (otherStack.getItem() == Items.EMERALD){
+            } else if (otherStack.getItem() == Items.EMERALD) {
                 int increment = Math.min(MAX_WEIGHT - getEmeraldCount(pouchStack), otherStack.getCount());
                 if (increment > 0 && incrementCount(pouchStack, increment)) {
                     otherStack.shrink(increment);

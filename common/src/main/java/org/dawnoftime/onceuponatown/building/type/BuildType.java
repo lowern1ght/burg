@@ -3,21 +3,18 @@ package org.dawnoftime.onceuponatown.building.type;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import net.minecraft.core.Vec3i;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.Utils;
-import org.dawnoftime.onceuponatown.building.schematic.BuildSchematic;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 import org.dawnoftime.onceuponatown.culture.CultureFileHelper;
-import org.dawnoftime.onceuponatown.culture.ServerCultures;
 import org.dawnoftime.onceuponatown.entity.Profession;
 import org.jetbrains.annotations.NotNull;
 import oshi.util.tuples.Pair;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 public abstract class BuildType {
     public static final BuildType DEFAULT = new BuildType("default_build_type", 0, List.of(new BuildLevel(1, 1, 0, new HashMap<>(), 0)), BuildingPurpose.MISCELLANEOUS) {
@@ -124,7 +121,11 @@ public abstract class BuildType {
         return levels;
     }
 
-    protected record BuildTypeCommonJsonData(int weight, List<BuildLevel> levels, HashMap<String, Pair<BuildVariant, String>> variants) {}
+    protected record BuildTypeCommonJsonData(int weight, List<BuildLevel> levels,
+                                             HashMap<String, Pair<BuildVariant, String>> variants) {
+    }
 
-    public record BuildLevel(int level, int requiredEra, int experienceGain, HashMap<Profession, Integer> workingSlots, int dwellingSlots) {}
+    public record BuildLevel(int level, int requiredEra, int experienceGain, HashMap<Profession, Integer> workingSlots,
+                             int dwellingSlots) {
+    }
 }

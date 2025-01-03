@@ -1,20 +1,20 @@
 package org.dawnoftime.onceuponatown.structure;
 
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.chunk.ChunkGenerator;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.level.levelgen.structure.StructureType;
+import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.culture.ServerCultures;
 import org.dawnoftime.onceuponatown.registry.StructureTypeRegistry;
-import com.mojang.serialization.Codec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.level.levelgen.structure.Structure;
-import net.minecraft.world.level.levelgen.structure.StructureType;
-import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
 import org.dawnoftime.onceuponatown.town.CorruptedTownException;
 import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
 import org.jetbrains.annotations.NotNull;
@@ -53,7 +53,7 @@ public class TownStructure extends Structure {
             } else {
                 Ouat.info("Failed to generate a %s Town in %s.".formatted(cultureId, blockPosToString(townCenterPos)));
             }
-        } catch (CorruptedCultureException | CorruptedTownException e){
+        } catch (CorruptedCultureException | CorruptedTownException e) {
             Ouat.error(e.getMessage());
         }
     }

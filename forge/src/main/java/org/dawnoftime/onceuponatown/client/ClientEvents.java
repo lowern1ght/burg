@@ -29,12 +29,12 @@ public class ClientEvents {
         @SubscribeEvent
         public static void clientSetup(FMLClientSetupEvent event) {
             event.enqueueWork(() -> {
-                MenuScreens.register(MenuRegistry.REGISTRY.BUY_MENU.get(), BuyScreen::new);
-                MenuScreens.register(MenuRegistry.REGISTRY.SELL_MENU.get(), SellScreen::new);
-                MenuScreens.register(MenuRegistry.REGISTRY.TRADE_MENU.get(), TradeScreen::new);
-                // Custom client item properties
-                ItemProperties.register(ItemRegistry.REGISTRY.EMERALD_POUCH.get(), Ouat.modResource("empty_pouch"), (emeraldPouchStack, clientLevel, livingEntity, id) -> EmeraldPouchItem.isEmpty(emeraldPouchStack) ? 1.0F : 0.0F);
-            }
+                        MenuScreens.register(MenuRegistry.REGISTRY.BUY_MENU.get(), BuyScreen::new);
+                        MenuScreens.register(MenuRegistry.REGISTRY.SELL_MENU.get(), SellScreen::new);
+                        MenuScreens.register(MenuRegistry.REGISTRY.TRADE_MENU.get(), TradeScreen::new);
+                        // Custom client item properties
+                        ItemProperties.register(ItemRegistry.REGISTRY.EMERALD_POUCH.get(), Ouat.modResource("empty_pouch"), (emeraldPouchStack, clientLevel, livingEntity, id) -> EmeraldPouchItem.isEmpty(emeraldPouchStack) ? 1.0F : 0.0F);
+                    }
             );
         }
 

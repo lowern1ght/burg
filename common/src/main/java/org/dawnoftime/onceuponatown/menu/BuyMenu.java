@@ -1,9 +1,5 @@
 package org.dawnoftime.onceuponatown.menu;
 
-import org.dawnoftime.onceuponatown.entity.Npc;
-import org.dawnoftime.onceuponatown.registry.MenuRegistry;
-import org.dawnoftime.onceuponatown.trade.BuyDeal;
-import org.dawnoftime.onceuponatown.trade.TradeUtils;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -13,6 +9,10 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import org.dawnoftime.onceuponatown.entity.Npc;
+import org.dawnoftime.onceuponatown.registry.MenuRegistry;
+import org.dawnoftime.onceuponatown.trade.BuyDeal;
+import org.dawnoftime.onceuponatown.trade.TradeUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -36,7 +36,7 @@ public class BuyMenu extends NpcBaseMenu {
     public BuyMenu(int containerId, Inventory playerInventory, FriendlyByteBuf friendlyByteBuf) {
         this(containerId, playerInventory,
                 new ClientSideInteractingNpc.Builder(
-                        (Npc)(playerInventory.player.level().getEntity(friendlyByteBuf.readInt())), playerInventory.player)
+                        (Npc) (playerInventory.player.level().getEntity(friendlyByteBuf.readInt())), playerInventory.player)
                         .buyDeals(TradeUtils.createBuyDealsFromStream(friendlyByteBuf))
                         .build());
     }
@@ -50,12 +50,12 @@ public class BuyMenu extends NpcBaseMenu {
         this.addSlot(new Slot(this.buyContainer, INPUT_B_SLOT, INPUT_B_X, ROW_Y));
         this.addSlot(new Slot(this.buyContainer, INPUT_C_SLOT, INPUT_C_X, ROW_Y));
         this.addSlot(new BuyResultSlot(playerInventory.player, npc, this.buyContainer, RESULT_SLOT, RESULT_X, ROW_Y));
-        for(int i = 0; i < 3; ++i) { // Inventory
-            for(int j = 0; j < 9; ++j) {
+        for (int i = 0; i < 3; ++i) { // Inventory
+            for (int j = 0; j < 9; ++j) {
                 this.addSlot(new Slot(playerInventory, j + i * 9 + 9, 113 + j * 18, 92 + i * 18));
             }
         }
-        for(int k = 0; k < 9; ++k) { // Hot bar
+        for (int k = 0; k < 9; ++k) { // Hot bar
             this.addSlot(new Slot(playerInventory, k, 113 + k * 18, 150));
         }
     }
@@ -120,7 +120,7 @@ public class BuyMenu extends NpcBaseMenu {
     private void playThankYouSound() {
         if (this.interactingNpc instanceof Npc) {
             Npc entity = interactingNpc.getNpc();
-            entity.playSound(SoundEvents.VILLAGER_YES, 1.0F,1.0F);
+            entity.playSound(SoundEvents.VILLAGER_YES, 1.0F, 1.0F);
         }
     }
 
@@ -194,7 +194,7 @@ public class BuyMenu extends NpcBaseMenu {
 
     private void moveFromInventoryToPaymentSlot(int pPaymentSlotIndex, ItemStack pPaymentSlot) {
         if (!pPaymentSlot.isEmpty()) {
-            for(int i = INV_SLOT_START; i < HOT_BAR_SLOT_END + 1; ++i) {
+            for (int i = INV_SLOT_START; i < HOT_BAR_SLOT_END + 1; ++i) {
                 ItemStack itemstack = this.slots.get(i).getItem();
                 if (!itemstack.isEmpty() && ItemStack.isSameItemSameTags(pPaymentSlot, itemstack)) {
                     ItemStack itemstack1 = this.buyContainer.getItem(pPaymentSlotIndex);
@@ -256,6 +256,7 @@ public class BuyMenu extends NpcBaseMenu {
 
         /**
          * Typically increases an internal count, then calls {@code onCrafting(item)}.
+         *
          * @param pStack the output - ie, iron ingots, and pickaxes, not ore and wood.
          */
         @Override
@@ -265,7 +266,6 @@ public class BuyMenu extends NpcBaseMenu {
         }
 
         /**
-         *
          * @param pStack the output - ie, iron ingots, and pickaxes, not ore and wood.
          */
         @Override

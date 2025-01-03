@@ -42,9 +42,10 @@ public class Ouat {
     /**
      * Load a service for the current environment. Your implementation of the service must be defined
      * manually by including a text file in META-INF/services named with the fully qualified class name of the service.
+     *
      * @param clazz Class of the common element that is implemented differently depending on the platform.
+     * @param <T>   Class studied.
      * @return An instance of the given class.
-     * @param <T> Class studied.
      */
     public static <T> T load(Class<T> clazz) {
         return ServiceLoader.load(clazz)

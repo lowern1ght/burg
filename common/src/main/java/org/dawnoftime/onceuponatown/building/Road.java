@@ -12,9 +12,9 @@ import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
 import java.util.ArrayList;
 import java.util.Objects;
 
-import static org.dawnoftime.onceuponatown.town.generation.ProtoTown.RANDOM_SOURCE;
 import static org.dawnoftime.onceuponatown.Config.DEFAULT_PATH_LENGTH;
 import static org.dawnoftime.onceuponatown.Config.PATH_STOP_RATE;
+import static org.dawnoftime.onceuponatown.town.generation.ProtoTown.RANDOM_SOURCE;
 
 /**
  * Town's Roads are special Builds that automatically grow when new Buildings are placed in the Town
@@ -104,7 +104,7 @@ public class Road extends SliceBuild {
     }
 
     /**
-     * @param town Town this Road belongs to.
+     * @param town      Town this Road belongs to.
      * @param dir       Direction in which we try to extend this Road.
      * @param bonusSize Extra size that the Road should have after the last adjacent Build. This value is 0 if the Road
      *                  stops growing, thus it will stop definitively at the end of its adjacent Build.

@@ -60,24 +60,24 @@ public class NpcFishingHook extends ThrowableProjectile {
     }
 
     public NpcFishingHook(Npc npc, Level level) {
-        this(EntityRegistry.REGISTRY.NPC_FISHING_HOOK.get(),level);
+        this(EntityRegistry.REGISTRY.NPC_FISHING_HOOK.get(), level);
         this.setOwner(npc);
         float f = npc.getXRot();
         float f1 = npc.getYRot();
-        float f2 = Mth.cos(-f1 * ((float)Math.PI / 180F) - (float)Math.PI);
-        float f3 = Mth.sin(-f1 * ((float)Math.PI / 180F) - (float)Math.PI);
-        float f4 = -Mth.cos(-f * ((float)Math.PI / 180F));
-        float f5 = Mth.sin(-f * ((float)Math.PI / 180F));
-        double d0 = npc.getX() - (double)f3 * 0.3D;
+        float f2 = Mth.cos(-f1 * ((float) Math.PI / 180F) - (float) Math.PI);
+        float f3 = Mth.sin(-f1 * ((float) Math.PI / 180F) - (float) Math.PI);
+        float f4 = -Mth.cos(-f * ((float) Math.PI / 180F));
+        float f5 = Mth.sin(-f * ((float) Math.PI / 180F));
+        double d0 = npc.getX() - (double) f3 * 0.3D;
         double d1 = npc.getEyeY();
-        double d2 = npc.getZ() - (double)f2 * 0.3D;
+        double d2 = npc.getZ() - (double) f2 * 0.3D;
         this.moveTo(d0, d1, d2, f1, f);
-        Vec3 vec3 = new Vec3((double)(-f3), (double)Mth.clamp(-(f5 / f4), -5.0F, 5.0F), (double)(-f2));
+        Vec3 vec3 = new Vec3((double) (-f3), (double) Mth.clamp(-(f5 / f4), -5.0F, 5.0F), (double) (-f2));
         double d3 = vec3.length();
         vec3 = vec3.multiply(0.6D / d3 + this.random.triangle(0.5D, 0.0103365D), 0.6D / d3 + this.random.triangle(0.5D, 0.0103365D), 0.6D / d3 + this.random.triangle(0.5D, 0.0103365D));
         this.setDeltaMovement(vec3);
-        this.setYRot((float)(Mth.atan2(vec3.x, vec3.z) * (double)(180F / (float)Math.PI)));
-        this.setXRot((float)(Mth.atan2(vec3.y, vec3.horizontalDistance()) * (double)(180F / (float)Math.PI)));
+        this.setYRot((float) (Mth.atan2(vec3.x, vec3.z) * (double) (180F / (float) Math.PI)));
+        this.setXRot((float) (Mth.atan2(vec3.y, vec3.horizontalDistance()) * (double) (180F / (float) Math.PI)));
         this.yRotO = this.getYRot();
         this.xRotO = this.getXRot();
     }
@@ -90,7 +90,7 @@ public class NpcFishingHook extends ThrowableProjectile {
         if (DATA_BITING.equals(key)) {
             this.biting = this.getEntityData().get(DATA_BITING);
             if (this.biting) {
-                this.setDeltaMovement(this.getDeltaMovement().x, (double)(-0.4F * Mth.nextFloat(this.synchronizedRandom, 0.6F, 1.0F)), this.getDeltaMovement().z);
+                this.setDeltaMovement(this.getDeltaMovement().x, (double) (-0.4F * Mth.nextFloat(this.synchronizedRandom, 0.6F, 1.0F)), this.getDeltaMovement().z);
             }
         }
 
@@ -137,16 +137,16 @@ public class NpcFishingHook extends ThrowableProjectile {
             } else {
                 if (this.currentState == HookState.BOBBING) {
                     Vec3 vec3 = this.getDeltaMovement();
-                    double d0 = this.getY() + vec3.y - (double)blockpos.getY() - (double)f;
+                    double d0 = this.getY() + vec3.y - (double) blockpos.getY() - (double) f;
                     if (Math.abs(d0) < 0.01D) {
                         d0 += Math.signum(d0) * 0.1D;
                     }
 
-                    this.setDeltaMovement(vec3.x * 0.9D, vec3.y - d0 * (double)this.random.nextFloat() * 0.2D, vec3.z * 0.9D);
+                    this.setDeltaMovement(vec3.x * 0.9D, vec3.y - d0 * (double) this.random.nextFloat() * 0.2D, vec3.z * 0.9D);
                     if (flag) {
                         this.outOfWaterTime = Math.max(0, this.outOfWaterTime - 1);
                         if (this.biting) {
-                            this.setDeltaMovement(this.getDeltaMovement().add(0.0D, -0.1D * (double)this.synchronizedRandom.nextFloat() * (double)this.synchronizedRandom.nextFloat(), 0.0D));
+                            this.setDeltaMovement(this.getDeltaMovement().add(0.0D, -0.1D * (double) this.synchronizedRandom.nextFloat() * (double) this.synchronizedRandom.nextFloat(), 0.0D));
                         }
 
                         if (!this.level().isClientSide) {
@@ -198,7 +198,7 @@ public class NpcFishingHook extends ThrowableProjectile {
     }
 
     private void catchingFish(BlockPos pPos) {
-        ServerLevel serverlevel = (ServerLevel)this.level();
+        ServerLevel serverlevel = (ServerLevel) this.level();
         int i = 1;
         BlockPos blockpos = pPos.above();
         if (this.random.nextFloat() < 0.25F && this.level().isRainingAt(blockpos)) {
@@ -219,29 +219,29 @@ public class NpcFishingHook extends ThrowableProjectile {
         } else if (this.timeUntilHooked > 0) {
             this.timeUntilHooked -= i;
             if (this.timeUntilHooked > 0) {
-                this.fishAngle += (float)this.random.triangle(0.0D, 9.188D);
-                float f = this.fishAngle * ((float)Math.PI / 180F);
+                this.fishAngle += (float) this.random.triangle(0.0D, 9.188D);
+                float f = this.fishAngle * ((float) Math.PI / 180F);
                 float f1 = Mth.sin(f);
                 float f2 = Mth.cos(f);
-                double d0 = this.getX() + (double)(f1 * (float)this.timeUntilHooked * 0.1F);
-                double d1 = (double)((float)Mth.floor(this.getY()) + 1.0F);
-                double d2 = this.getZ() + (double)(f2 * (float)this.timeUntilHooked * 0.1F);
+                double d0 = this.getX() + (double) (f1 * (float) this.timeUntilHooked * 0.1F);
+                double d1 = (double) ((float) Mth.floor(this.getY()) + 1.0F);
+                double d2 = this.getZ() + (double) (f2 * (float) this.timeUntilHooked * 0.1F);
                 BlockState blockstate = serverlevel.getBlockState(BlockPos.containing(d0, d1 - 1.0D, d2));
                 if (blockstate.is(Blocks.WATER)) {
                     if (this.random.nextFloat() < 0.15F) {
-                        serverlevel.sendParticles(ParticleTypes.BUBBLE, d0, d1 - (double)0.1F, d2, 1, (double)f1, 0.1D, (double)f2, 0.0D);
+                        serverlevel.sendParticles(ParticleTypes.BUBBLE, d0, d1 - (double) 0.1F, d2, 1, (double) f1, 0.1D, (double) f2, 0.0D);
                     }
 
                     float f3 = f1 * 0.04F;
                     float f4 = f2 * 0.04F;
-                    serverlevel.sendParticles(ParticleTypes.FISHING, d0, d1, d2, 0, (double)f4, 0.01D, (double)(-f3), 1.0D);
-                    serverlevel.sendParticles(ParticleTypes.FISHING, d0, d1, d2, 0, (double)(-f4), 0.01D, (double)f3, 1.0D);
+                    serverlevel.sendParticles(ParticleTypes.FISHING, d0, d1, d2, 0, (double) f4, 0.01D, (double) (-f3), 1.0D);
+                    serverlevel.sendParticles(ParticleTypes.FISHING, d0, d1, d2, 0, (double) (-f4), 0.01D, (double) f3, 1.0D);
                 }
             } else {
                 this.playSound(SoundEvents.FISHING_BOBBER_SPLASH, 0.25F, 1.0F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
                 double d3 = this.getY() + 0.5D;
-                serverlevel.sendParticles(ParticleTypes.BUBBLE, this.getX(), d3, this.getZ(), (int)(1.0F + this.getBbWidth() * 20.0F), (double)this.getBbWidth(), 0.0D, (double)this.getBbWidth(), (double)0.2F);
-                serverlevel.sendParticles(ParticleTypes.FISHING, this.getX(), d3, this.getZ(), (int)(1.0F + this.getBbWidth() * 20.0F), (double)this.getBbWidth(), 0.0D, (double)this.getBbWidth(), (double)0.2F);
+                serverlevel.sendParticles(ParticleTypes.BUBBLE, this.getX(), d3, this.getZ(), (int) (1.0F + this.getBbWidth() * 20.0F), (double) this.getBbWidth(), 0.0D, (double) this.getBbWidth(), (double) 0.2F);
+                serverlevel.sendParticles(ParticleTypes.FISHING, this.getX(), d3, this.getZ(), (int) (1.0F + this.getBbWidth() * 20.0F), (double) this.getBbWidth(), 0.0D, (double) this.getBbWidth(), (double) 0.2F);
                 this.nibble = Mth.nextInt(this.random, 20, 40);
                 this.getEntityData().set(DATA_BITING, true);
             }
@@ -249,22 +249,22 @@ public class NpcFishingHook extends ThrowableProjectile {
             this.timeUntilLured -= i;
             float f5 = 0.15F;
             if (this.timeUntilLured < 20) {
-                f5 += (float)(20 - this.timeUntilLured) * 0.05F;
+                f5 += (float) (20 - this.timeUntilLured) * 0.05F;
             } else if (this.timeUntilLured < 40) {
-                f5 += (float)(40 - this.timeUntilLured) * 0.02F;
+                f5 += (float) (40 - this.timeUntilLured) * 0.02F;
             } else if (this.timeUntilLured < 60) {
-                f5 += (float)(60 - this.timeUntilLured) * 0.01F;
+                f5 += (float) (60 - this.timeUntilLured) * 0.01F;
             }
 
             if (this.random.nextFloat() < f5) {
-                float f6 = Mth.nextFloat(this.random, 0.0F, 360.0F) * ((float)Math.PI / 180F);
+                float f6 = Mth.nextFloat(this.random, 0.0F, 360.0F) * ((float) Math.PI / 180F);
                 float f7 = Mth.nextFloat(this.random, 25.0F, 60.0F);
-                double d4 = this.getX() + (double)(Mth.sin(f6) * f7) * 0.1D;
-                double d5 = (double)((float)Mth.floor(this.getY()) + 1.0F);
-                double d6 = this.getZ() + (double)(Mth.cos(f6) * f7) * 0.1D;
+                double d4 = this.getX() + (double) (Mth.sin(f6) * f7) * 0.1D;
+                double d5 = (double) ((float) Mth.floor(this.getY()) + 1.0F);
+                double d6 = this.getZ() + (double) (Mth.cos(f6) * f7) * 0.1D;
                 BlockState blockstate1 = serverlevel.getBlockState(BlockPos.containing(d4, d5 - 1.0D, d6));
                 if (blockstate1.is(Blocks.WATER)) {
-                    serverlevel.sendParticles(ParticleTypes.SPLASH, d4, d5, d6, 2 + this.random.nextInt(2), (double)0.1F, 0.0D, (double)0.1F, 0.0D);
+                    serverlevel.sendParticles(ParticleTypes.SPLASH, d4, d5, d6, 2 + this.random.nextInt(2), (double) 0.1F, 0.0D, (double) 0.1F, 0.0D);
                 }
             }
 
@@ -284,7 +284,7 @@ public class NpcFishingHook extends ThrowableProjectile {
         if (!this.level().isClientSide && npc != null && !this.shouldStopFishing(npc)) {
             if (this.nibble > 0) {
                 List<ItemStack> list = ImmutableList.of(Items.COD.getDefaultInstance(), Items.SALMON.getDefaultInstance(), Items.TROPICAL_FISH.getDefaultInstance());
-                for(ItemStack itemstack : list) {
+                for (ItemStack itemstack : list) {
                     ItemEntity itementity = new ItemEntity(this.level(), this.getX(), this.getY(), this.getZ(), itemstack);
                     double d0 = npc.getX() - this.getX();
                     double d1 = npc.getY() - this.getY();

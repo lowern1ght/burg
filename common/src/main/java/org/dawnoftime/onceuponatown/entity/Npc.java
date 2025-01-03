@@ -1,6 +1,5 @@
 package org.dawnoftime.onceuponatown.entity;
 
-import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -38,7 +37,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.entity.ai.goal.core.NpcPanicGoal;
 import org.dawnoftime.onceuponatown.entity.ai.goal.fight.SelfDefenseGoal;
-import org.dawnoftime.onceuponatown.entity.ai.goal.work.FishermanWorkGoal;
 import org.dawnoftime.onceuponatown.menu.InteractingNpc;
 import org.dawnoftime.onceuponatown.menu.TradeMenu;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
@@ -49,7 +47,6 @@ import org.dawnoftime.onceuponatown.trade.SellDeal;
 import org.dawnoftime.onceuponatown.trade.TradeUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -184,7 +181,7 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
             }
 
             ++blockBreakTime;
-            int i = (int)((float) blockBreakTime / destroySpeed);
+            int i = (int) ((float) blockBreakTime / destroySpeed);
             System.out.println("destroySpeed : " + destroySpeed + " | breakTime : " + blockBreakTime + " | i : " + i);
             if (i != lastBreakProgress) {
                 level().destroyBlockProgress(getId(), posAboveHead, i);
@@ -285,7 +282,7 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         double d1 = target.getY(0.3333333333333333D) - arrow.getY();
         double d2 = target.getZ() - this.getZ();
         double d3 = Math.sqrt(d0 * d0 + d2 * d2);
-        arrow.shoot(d0, d1 + d3 * (double)0.2F, d2, 1.6F, (float)(14 - this.level().getDifficulty().getId() * 4));
+        arrow.shoot(d0, d1 + d3 * (double) 0.2F, d2, 1.6F, (float) (14 - this.level().getDifficulty().getId() * 4));
         playSound(SoundEvents.ARROW_SHOOT, 1.0F, 1.0F / (this.getRandom().nextFloat() * 0.4F + 0.8F));
         level().addFreshEntity(arrow);
     }
@@ -306,23 +303,23 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
 
     public List<BuyDeal> getBuyDeals() {
         List<BuyDeal> deals = new ArrayList<>();
-        deals.add(TradeUtils.buyDeal(Items.BROWN_MUSHROOM,1));
-        deals.add(TradeUtils.buyDeal(Items.RED_MUSHROOM,1));
-        deals.add(TradeUtils.buyDeal(Items.MANGROVE_PROPAGULE,3));
-        deals.add(TradeUtils.buyDeal(Items.CHERRY_SAPLING,2));
-        deals.add(TradeUtils.buyDeal(Items.AZALEA,2));
-        deals.add(TradeUtils.buyDeal(Items.FEATHER,1));
-        deals.add(TradeUtils.buyDeal(Items.DANDELION,1, 0, 1, 26));
-        deals.add(TradeUtils.buyDeal(Items.FERN,1, 5, 10, 42));
-        deals.add(TradeUtils.buyDeal(Items.FERN,1,1,0,2));
-        deals.add(TradeUtils.buyDeal(Items.DIAMOND_SWORD,1));
+        deals.add(TradeUtils.buyDeal(Items.BROWN_MUSHROOM, 1));
+        deals.add(TradeUtils.buyDeal(Items.RED_MUSHROOM, 1));
+        deals.add(TradeUtils.buyDeal(Items.MANGROVE_PROPAGULE, 3));
+        deals.add(TradeUtils.buyDeal(Items.CHERRY_SAPLING, 2));
+        deals.add(TradeUtils.buyDeal(Items.AZALEA, 2));
+        deals.add(TradeUtils.buyDeal(Items.FEATHER, 1));
+        deals.add(TradeUtils.buyDeal(Items.DANDELION, 1, 0, 1, 26));
+        deals.add(TradeUtils.buyDeal(Items.FERN, 1, 5, 10, 42));
+        deals.add(TradeUtils.buyDeal(Items.FERN, 1, 1, 0, 2));
+        deals.add(TradeUtils.buyDeal(Items.DIAMOND_SWORD, 1));
         return deals;
     }
 
     public List<SellDeal> getSellDeals() {
         List<SellDeal> deals = new ArrayList<>();
         deals.add(TradeUtils.sellDeal(Items.WATER_BUCKET, 1, 3, 0, 0));
-        deals.add(TradeUtils.sellDeal(Items.RABBIT, 1, 0, 5,3));
+        deals.add(TradeUtils.sellDeal(Items.RABBIT, 1, 0, 5, 3));
         deals.add(TradeUtils.sellDeal(Items.COAL, 5));
         deals.add(TradeUtils.sellDeal(Items.EGG, 5));
         deals.add(TradeUtils.sellDeal(Items.STICK, 5));
@@ -354,7 +351,7 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
             Witch witch = EntityType.WITCH.create(level);
             if (witch != null) {
                 witch.moveTo(this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot());
-                witch.finalizeSpawn(level, level.getCurrentDifficultyAt(witch.blockPosition()), MobSpawnType.CONVERSION, (SpawnGroupData)null, (CompoundTag)null);
+                witch.finalizeSpawn(level, level.getCurrentDifficultyAt(witch.blockPosition()), MobSpawnType.CONVERSION, (SpawnGroupData) null, (CompoundTag) null);
                 witch.setNoAi(this.isNoAi());
                 if (this.hasCustomName()) {
                     witch.setCustomName(this.getCustomName());
@@ -460,7 +457,7 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         fishingHook = hook;
     }
 
-    public Town getTown(){
+    public Town getTown() {
         return town;
     }
 

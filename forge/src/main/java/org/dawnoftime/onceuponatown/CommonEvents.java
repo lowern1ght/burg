@@ -53,6 +53,7 @@ public class CommonEvents {
         public static void addReloadListener(AddReloadListenerEvent event) {
             //event.addListener(CultureManager.instance());
         }
+
         @SubscribeEvent
         public static void finalizeSpawn(MobSpawnEvent.FinalizeSpawn event) {
             if (event.getEntity() instanceof Npc npc) {

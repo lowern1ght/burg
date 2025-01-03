@@ -16,7 +16,11 @@
     {
       "name": "flat_a",
       "shape": "flat",
-      "size": {"x": 5, "y": 5, "z": 5},
+      "size": {
+        "x": 5,
+        "y": 5,
+        "z": 5
+      },
       "levels": [
         {
           "level": 1,
@@ -38,7 +42,11 @@
     {
       "name": "slab_a",
       "shape": "slab",
-      "size": {"x": 5, "y": 4, "z": 5},
+      "size": {
+        "x": 5,
+        "y": 4,
+        "z": 5
+      },
       "levels": [
         {
           "level": 1,
@@ -60,7 +68,11 @@
     {
       "name": "stairs_a",
       "shape": "stairs",
-      "size": {"x": 5, "y": 8, "z": 5},
+      "size": {
+        "x": 5,
+        "y": 8,
+        "z": 5
+      },
       "levels": [
         {
           "level": 1,
@@ -82,7 +94,11 @@
     {
       "name": "turn_right_a",
       "shape": "crossroad_right",
-      "size": {"x": 5, "y": 4, "z": 5},
+      "size": {
+        "x": 5,
+        "y": 4,
+        "z": 5
+      },
       "levels": [
         {
           "schematic": "crossroad_simple_a1",
@@ -101,7 +117,11 @@
     {
       "name": "turn_double_a",
       "shape": "crossroad_double",
-      "size": {"x": 5, "y": 4, "z": 5},
+      "size": {
+        "x": 5,
+        "y": 4,
+        "z": 5
+      },
       "levels": [
         {
           "schematic": "crossroad_simple_a1",

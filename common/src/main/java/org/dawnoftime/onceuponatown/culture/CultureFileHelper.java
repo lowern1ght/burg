@@ -9,8 +9,6 @@ import net.minecraft.util.GsonHelper;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 
-import java.util.List;
-
 /**
  * Utility for reading a data pack file of a culture.
  */

@@ -23,7 +23,7 @@ public class NpcRenderer extends HumanoidMobRenderer<Npc, NpcModel<Npc>> {
         // TODO : make an armor that fit well the npc body, especially the head
         this.addLayer(new HumanoidArmorLayer<>(this, new HumanoidArmorModel<>(context.bakeLayer(ModelLayers.PLAYER_INNER_ARMOR)), new HumanoidArmorModel<>(context.bakeLayer(ModelLayers.PLAYER_OUTER_ARMOR)), context.getModelManager()));
         //this.addLayer(new CrossedArmsItemLayer<>(this, pContext.getItemInHandRenderer()));
-        this.addLayer(new NpcArrowLayer<>( context, this));
+        this.addLayer(new NpcArrowLayer<>(context, this));
     }
 
     public void render(Npc npc, float entityYaw, float partialTicks, PoseStack matrixStack, MultiBufferSource buffer, int packedLight) {

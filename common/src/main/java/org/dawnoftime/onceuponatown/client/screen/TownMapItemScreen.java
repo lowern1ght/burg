@@ -22,8 +22,10 @@ import org.dawnoftime.onceuponatown.client.screen.tooltip.ItemAndTitleTooltip;
 import org.jetbrains.annotations.NotNull;
 import oshi.util.tuples.Triplet;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
 import static org.dawnoftime.onceuponatown.client.screen.ScreenUtils.drawCenteredString;
 
@@ -92,7 +94,7 @@ public class TownMapItemScreen extends Screen {
         var originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
         int sizeX = tag.getInt("SizeX");
         int sizeZ = tag.getInt("SizeZ");
-        var northWestCorner = Ouat.translatable("north_west_corner").append( " : " + originPos.toShortString()).withStyle(ChatFormatting.GRAY);
+        var northWestCorner = Ouat.translatable("north_west_corner").append(" : " + originPos.toShortString()).withStyle(ChatFormatting.GRAY);
         var length = Ouat.translatable("length").append(" : " + Math.max(sizeX, sizeZ)).withStyle(ChatFormatting.GRAY);
         var width = Ouat.translatable("width").append(" : " + Math.min(sizeX, sizeZ)).withStyle(ChatFormatting.GRAY);
         var isWide = Component.literal("isWide = " + tag.getBoolean("IsWide")).withStyle(ChatFormatting.ITALIC, ChatFormatting.DARK_GRAY);
@@ -110,7 +112,7 @@ public class TownMapItemScreen extends Screen {
         var originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
         int sizeX = tag.getInt("SizeX");
         int sizeZ = tag.getInt("SizeZ");
-        var coordinates = Ouat.translatable("coordinates").append( " : " + originPos.toShortString()).withStyle(ChatFormatting.GRAY);
+        var coordinates = Ouat.translatable("coordinates").append(" : " + originPos.toShortString()).withStyle(ChatFormatting.GRAY);
         var plotSize = Ouat.translatable("plot_size").append(" : " + sizeX + "x" + sizeZ).withStyle(ChatFormatting.GRAY);
         int minX = originPos.getX() - NWCorner.getX();
         int minZ = originPos.getZ() - NWCorner.getZ();
@@ -133,7 +135,11 @@ public class TownMapItemScreen extends Screen {
         // Center map button
         addRenderableWidget(new ReleaseFocusButton(backGroundLeftPos + (BACKGROUND_WIDTH / 2) - BUTTONS_WIDTH - 2,
                 backGroundTopPos + BACKGROUND_HEIGHT + 5, BUTTONS_WIDTH, BUTTONS_HEIGHT, Component.literal(""),
-                (pressedButton -> {mapZoom = 1; xDrag = 0; yDrag = 0;})) {
+                (pressedButton -> {
+                    mapZoom = 1;
+                    xDrag = 0;
+                    yDrag = 0;
+                })) {
             public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
                 if (visible) {
                     isHovered = mouseX >= getX() && mouseY >= getY() && mouseX < getX() + width && mouseY < getY() + height;
@@ -165,7 +171,7 @@ public class TownMapItemScreen extends Screen {
         renderBackground(graphics);
         graphics.blit(TEXTURE, backGroundLeftPos, backGroundTopPos, 0, 0, BACKGROUND_WIDTH, BACKGROUND_HEIGHT, TEXTURE_WIDTH, TEXTURE_HEIGHT);
         renderMap(graphics, mouseX, mouseY);
-        drawCenteredString(graphics, font, Ouat.translatable("map_of").append(" ").append(title), backGroundLeftPos, backGroundTopPos + MAP_MARGIN,  BACKGROUND_WIDTH, FastColor.ARGB32.color(255, 161, 28, 24));
+        drawCenteredString(graphics, font, Ouat.translatable("map_of").append(" ").append(title), backGroundLeftPos, backGroundTopPos + MAP_MARGIN, BACKGROUND_WIDTH, FastColor.ARGB32.color(255, 161, 28, 24));
         super.render(graphics, mouseX, mouseY, partialTick);
     }
 
@@ -208,8 +214,8 @@ public class TownMapItemScreen extends Screen {
     private void drawRectangleWithShadow(GuiGraphics graphics, int minX, int maxX, int minZ, int maxZ, int alpha, Triplet<Integer, Integer, Integer> rgb) {
         graphics.fill(minX, minZ, maxX - 1, maxZ - 1, color(alpha, rgb)); // Lighted part
         int shadowColor = color(Math.min(255, alpha + 20), rgb);
-        graphics.fill(minX , maxZ - 1 , maxX, maxZ, shadowColor); // Bottom shadow
-        graphics.fill(maxX - 1 , minZ , maxX, maxZ - 1, shadowColor); // Right Shadow
+        graphics.fill(minX, maxZ - 1, maxX, maxZ, shadowColor); // Bottom shadow
+        graphics.fill(maxX - 1, minZ, maxX, maxZ - 1, shadowColor); // Right Shadow
     }
 
     private int color(int alpha, Triplet<Integer, Integer, Integer> rgb) {
@@ -239,18 +245,18 @@ public class TownMapItemScreen extends Screen {
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         if (draggingMap) {
-            if(dragX > 0.4D && dragX < 1.0D) {
+            if (dragX > 0.4D && dragX < 1.0D) {
                 dragX = 1.0D;
             } else if (dragX < -0.4D && dragX > -1.0D) {
                 dragX = -1.0D;
             }
-            if(dragY > 0.4D && dragY < 1.0D) {
+            if (dragY > 0.4D && dragY < 1.0D) {
                 dragY = 1.0D;
             } else if (dragY < -0.4D && dragY > -1.0D) {
                 dragY = -1.0D;
             }
-            xDrag += (int)dragX;
-            yDrag += (int)dragY;
+            xDrag += (int) dragX;
+            yDrag += (int) dragY;
         }
         return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
     }
@@ -261,11 +267,11 @@ public class TownMapItemScreen extends Screen {
             int windowCenterX = (mapWindowRightBound - mapWindowLeftBound) / 2;
             int windowCenterY = (mapWindowBottomBound - mapWindowTopBound) / 2;
             if (delta > 0) {
-                xDrag -= ((int)(mouseX - mapWindowLeftBound) - windowCenterX);
-                yDrag -= ((int)(mouseY - mapWindowTopBound) - windowCenterY);
-            } else if (mapZoom > 1){
-                xDrag += ((int)(mouseX - mapWindowLeftBound) - windowCenterX);
-                yDrag += ((int)(mouseY - mapWindowTopBound) - windowCenterY);
+                xDrag -= ((int) (mouseX - mapWindowLeftBound) - windowCenterX);
+                yDrag -= ((int) (mouseY - mapWindowTopBound) - windowCenterY);
+            } else if (mapZoom > 1) {
+                xDrag += ((int) (mouseX - mapWindowLeftBound) - windowCenterX);
+                yDrag += ((int) (mouseY - mapWindowTopBound) - windowCenterY);
             }
             if (delta > 0 || mapZoom > 1) {
                 if (soundTicks > 3) {
@@ -273,7 +279,7 @@ public class TownMapItemScreen extends Screen {
                     soundTicks = 0;
                 }
             }
-            mapZoom = Math.max(1, mapZoom + (int)delta);
+            mapZoom = Math.max(1, mapZoom + (int) delta);
         }
         return super.mouseScrolled(mouseX, mouseY, delta);
     }
@@ -301,5 +307,7 @@ public class TownMapItemScreen extends Screen {
         minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.BOOK_PAGE_TURN, 1.0F));
     }
 
-    private record MapElement(byte category, Optional<TooltipComponent> titleWithIcon, List<Component> description, List<Component> debugDescription, int minX, int maxX, int minZ, int maxZ) {}
+    private record MapElement(byte category, Optional<TooltipComponent> titleWithIcon, List<Component> description,
+                              List<Component> debugDescription, int minX, int maxX, int minZ, int maxZ) {
+    }
 }

@@ -8,7 +8,6 @@ import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.item.Item;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.type.BuildType;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
@@ -20,8 +19,8 @@ import java.io.IOException;
 import java.io.Reader;
 import java.util.*;
 
-import static org.dawnoftime.onceuponatown.culture.ServerCultures.CULTURE_JSON_FILE_NAME;
 import static org.dawnoftime.onceuponatown.culture.ServerCultures.CULTURE_FOLDER_NAME;
+import static org.dawnoftime.onceuponatown.culture.ServerCultures.CULTURE_JSON_FILE_NAME;
 
 public class Culture {
     // TODO manage default culture in case of corrupted culture files or town files
@@ -63,7 +62,7 @@ public class Culture {
             CultureFileHelper helper = new CultureFileHelper(detectedId, CULTURE_JSON_FILE_NAME, jsonFileLocation, "culture");
             /* Reading mandatory id to avoid conflicts with other cultures */
             if (!helper.getString(rootJson, "id").equals(detectedId)) {
-                helper.throwInvalidField("id", "It should match the name of the data pack culture's folder." );
+                helper.throwInvalidField("id", "It should match the name of the data pack culture's folder.");
             }
             /* Reading Specializations */
             List<Specialization> specializations = readSpecializations(rootJson, helper);
@@ -74,13 +73,13 @@ public class Culture {
             /* Reading Buildings */
             var buildingsRls = resourceManager.listResources(CULTURE_FOLDER_NAME + "/" + detectedId + "/buildings", (rl) -> rl.getPath().endsWith(".json")).keySet();
             for (ResourceLocation buildingRL : buildingsRls) {
-               String rlPath = buildingRL.getPath();
-               String typeId = rlPath.substring(rlPath.lastIndexOf('/') + 1, rlPath.lastIndexOf('.'));
-               if (buildTypeMap.containsKey(typeId)) {
-                   throw new CorruptedCultureException(detectedId, "Duplicated building type '" + typeId + "'.");
-               }
-               buildTypeMap.put(typeId, BuildingType.createFromDataPack(detectedId, buildingRL, resourceManager));
-           }
+                String rlPath = buildingRL.getPath();
+                String typeId = rlPath.substring(rlPath.lastIndexOf('/') + 1, rlPath.lastIndexOf('.'));
+                if (buildTypeMap.containsKey(typeId)) {
+                    throw new CorruptedCultureException(detectedId, "Duplicated building type '" + typeId + "'.");
+                }
+                buildTypeMap.put(typeId, BuildingType.createFromDataPack(detectedId, buildingRL, resourceManager));
+            }
             /* Reading Roads */
             var roadsRls = resourceManager.listResources(CULTURE_FOLDER_NAME + "/" + detectedId + "/roads", (rl) -> rl.getPath().endsWith(".json")).keySet();
             for (ResourceLocation roadRl : roadsRls) {
@@ -101,7 +100,7 @@ public class Culture {
                 if (starterPack.containsKey(buildingTypeId)) {
                     helper.throwInvalidField("id", loc, "Duplicated building type id '" + buildingTypeId + "' in the starter pack.");
                 }
-                if (!buildTypeMap.containsKey(buildingTypeId)){
+                if (!buildTypeMap.containsKey(buildingTypeId)) {
                     helper.throwInvalidField("id", "Unknown building type id '" + buildingTypeId + "' in the starter pack. Maybe a typo ?");
                 }
                 int min = helper.getPositiveInt(elemJson, "min", loc);
@@ -127,7 +126,7 @@ public class Culture {
 
     private static List<Specialization> readSpecializations(JsonObject rootJson, CultureFileHelper helper) throws CorruptedCultureException {
         List<Specialization> specializations = new ArrayList<>();
-        JsonArray array = helper.getJsonArray(rootJson,"specializations");
+        JsonArray array = helper.getJsonArray(rootJson, "specializations");
         Set<String> ids = new HashSet<>();
         String loc = "in specializations[]";
         for (JsonElement je : array) {
@@ -149,7 +148,7 @@ public class Culture {
 
     private static List<Era> readEras(JsonObject rootJson, CultureFileHelper helper) throws CorruptedCultureException {
         List<Era> eras = new ArrayList<>();
-        JsonArray array = helper.getJsonArray(rootJson,"eras");
+        JsonArray array = helper.getJsonArray(rootJson, "eras");
         String loc = "in eras[]";
         int i = 1;
         for (JsonElement je : array) {
@@ -173,6 +172,7 @@ public class Culture {
 
     /**
      * Returns a random list of buildings that should spawn in a naturally generated hamlet.
+     *
      * @param rand RandomSource used to roll the number of each BuildingType.
      * @return The list of BuildingTypes to build.
      */

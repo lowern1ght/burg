@@ -1,13 +1,5 @@
 package org.dawnoftime.onceuponatown.structure.pieces;
 
-import net.minecraft.world.level.material.FluidState;
-import org.dawnoftime.onceuponatown.building.NpcBuild;
-import org.dawnoftime.onceuponatown.building.SliceBuild;
-import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
-import org.dawnoftime.onceuponatown.construction.BlockInfo;
-import org.dawnoftime.onceuponatown.culture.Culture;
-import org.dawnoftime.onceuponatown.culture.ServerCultures;
-import org.dawnoftime.onceuponatown.registry.StructurePieceRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -20,6 +12,14 @@ import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
+import net.minecraft.world.level.material.FluidState;
+import org.dawnoftime.onceuponatown.building.NpcBuild;
+import org.dawnoftime.onceuponatown.building.SliceBuild;
+import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
+import org.dawnoftime.onceuponatown.construction.BlockInfo;
+import org.dawnoftime.onceuponatown.culture.Culture;
+import org.dawnoftime.onceuponatown.culture.ServerCultures;
+import org.dawnoftime.onceuponatown.registry.StructurePieceRegistry;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
 import org.jetbrains.annotations.NotNull;
@@ -65,7 +65,7 @@ public class SliceBuildPiece extends StructurePiece {
     public void postProcess(@NotNull WorldGenLevel level, @NotNull StructureManager structureManager, @NotNull ChunkGenerator chunkGenerator, @NotNull RandomSource random, @NotNull BoundingBox boundingBox, @NotNull ChunkPos chunkPos, @NotNull BlockPos pos) {
         SchematicContent schematicContent = sliceBuild.getSchematicContent(level.getServer().getResourceManager());
         BlockPos.MutableBlockPos cursorPos = new BlockPos(0, 0, 0).mutable();
-        for(BlockInfo block: schematicContent.getBlocks()) {
+        for (BlockInfo block : schematicContent.getBlocks()) {
             cursorPos.set(originPos.getX(), originPos.getY(), originPos.getZ());
             cursorPos.move(block.pos());
             if (boundingBox.isInside(cursorPos)) {

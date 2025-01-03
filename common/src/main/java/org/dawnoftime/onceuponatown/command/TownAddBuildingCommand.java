@@ -34,36 +34,36 @@ public class TownAddBuildingCommand {
         if (!towns.isEmpty()) {
             Town closestTown = null;
             double dist = -1;
-            for (Town town : towns){
+            for (Town town : towns) {
                 double newDist = town.getCenter().distToCenterSqr(sourcePos);
-                if(dist == -1 || newDist < dist){
+                if (dist == -1 || newDist < dist) {
                     dist = newDist;
                     closestTown = town;
                 }
             }
             Town finalClosestTown = closestTown;
             BuildType type = finalClosestTown.getCulture().getBuildType(buildTypeName);
-            if(type != null){
-                if(type instanceof BuildingType buildingType){
+            if (type != null) {
+                if (type instanceof BuildingType buildingType) {
                     NpcBuild build = finalClosestTown.addBuilding(buildingType);
-                    if(build != null){
+                    if (build != null) {
                         ServerLevel level = source.getLevel();
                         BlockPos.MutableBlockPos cursor = new BlockPos(0, 0, 0).mutable();
                         SchematicContent schema = build.getSchematicContent(level.getServer().getResourceManager());
-                        for(BlockInfo block: schema.getBlocks()){
+                        for (BlockInfo block : schema.getBlocks()) {
                             cursor.set(build.getOriginPos().getX(), build.getOriginPos().getY(), build.getOriginPos().getZ());
                             level.setBlock(cursor.move(block.pos()), block.state(), 2);
                         }
                         source.sendSuccess(() -> Component.literal("A build from the build_type ")
                                 .append(Component.literal(buildTypeName).withStyle(ChatFormatting.GREEN))
                                 .append(Component.literal(" was successfully generated !")), false);
-                    }else{
+                    } else {
                         source.sendSuccess(() -> Component.literal("Could not manage to place the build."), false);
                     }
-                }else{
+                } else {
                     source.sendFailure(Component.literal("The build_type must be a standard building."));
                 }
-            }else{
+            } else {
                 source.sendFailure(Component.literal("This build_type doesn't exist in the closest town's culture."));
             }
         } else {

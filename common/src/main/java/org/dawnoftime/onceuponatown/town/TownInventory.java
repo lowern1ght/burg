@@ -17,10 +17,11 @@ public class TownInventory {
 
     /**
      * Constructor used to create a TownInventory instance from the information stored in the NBT.
+     *
      * @param inventoryTag ListTag that holds all the information.
      */
     public TownInventory(ListTag inventoryTag) {
-        for(int i = 0; i < inventoryTag.size(); ++i) {
+        for (int i = 0; i < inventoryTag.size(); ++i) {
             CompoundTag entryTag = inventoryTag.getCompound(i);
             Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(entryTag.getString("item")));
             this.inventory.put(item, entryTag.getInt("amount"));
@@ -29,6 +30,7 @@ public class TownInventory {
 
     /**
      * Function used to save the content of this Town's inventory.
+     *
      * @return A Tag with all the information.
      */
     public ListTag writeNBT() {

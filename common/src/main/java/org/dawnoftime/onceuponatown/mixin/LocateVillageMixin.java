@@ -1,7 +1,5 @@
 package org.dawnoftime.onceuponatown.mixin;
 
-import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.Config;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import net.minecraft.ChatFormatting;
@@ -11,17 +9,15 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.commands.LocateCommand;
 import net.minecraft.world.level.levelgen.structure.Structure;
+import org.dawnoftime.onceuponatown.Config;
+import org.dawnoftime.onceuponatown.Ouat;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 
 @Mixin(LocateCommand.class)
@@ -66,9 +62,9 @@ public class LocateVillageMixin {
         return Component.literal("Use ")
                 .append(Component.literal(command)
                         .withStyle(style -> style
-                        .withColor(ChatFormatting.YELLOW)
-                        .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, command))
-                        .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("Click to locate")))))
+                                .withColor(ChatFormatting.YELLOW)
+                                .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, command))
+                                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("Click to locate")))))
                 .append(Component.literal(" instead."));
     }
 }

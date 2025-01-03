@@ -1,10 +1,5 @@
 package org.dawnoftime.onceuponatown.menu;
 
-import org.dawnoftime.onceuponatown.entity.Npc;
-import org.dawnoftime.onceuponatown.network.C2SSellScreenPacket;
-import org.dawnoftime.onceuponatown.registry.MenuRegistry;
-import org.dawnoftime.onceuponatown.trade.SellDeal;
-import org.dawnoftime.onceuponatown.trade.TradeUtils;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -13,6 +8,11 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import org.dawnoftime.onceuponatown.entity.Npc;
+import org.dawnoftime.onceuponatown.network.C2SSellScreenPacket;
+import org.dawnoftime.onceuponatown.registry.MenuRegistry;
+import org.dawnoftime.onceuponatown.trade.SellDeal;
+import org.dawnoftime.onceuponatown.trade.TradeUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashSet;
@@ -38,7 +38,7 @@ public class SellMenu extends NpcBaseMenu {
     public SellMenu(int containerId, Inventory playerInventory, FriendlyByteBuf friendlyByteBuf) {
         this(containerId, playerInventory,
                 new ClientSideInteractingNpc.Builder(
-                        (Npc)(playerInventory.player.level().getEntity(friendlyByteBuf.readInt())), playerInventory.player)
+                        (Npc) (playerInventory.player.level().getEntity(friendlyByteBuf.readInt())), playerInventory.player)
                         .sellDeals(TradeUtils.createSellDealsFromStream(friendlyByteBuf))
                         .build());
     }
@@ -59,12 +59,12 @@ public class SellMenu extends NpcBaseMenu {
         this.addSlot(new SellResultSlot(playerInventory.player, npc, this.sellContainer, VALUE_SHARDS_SLOT, RESULT_START_X + slotWidth * 2, RESULT_ROW_Y, VALUE_SHARDS_SLOT));
         this.addSlot(new SellResultSlot(playerInventory.player, npc, this.sellContainer, VALUE_EMERALDS_SLOT, RESULT_START_X + slotWidth, RESULT_ROW_Y, VALUE_EMERALDS_SLOT));
         this.addSlot(new SellResultSlot(playerInventory.player, npc, this.sellContainer, VALUE_BLOCKS_SLOT, RESULT_START_X, RESULT_ROW_Y, VALUE_BLOCKS_SLOT));
-        for(int i = 0; i < 3; ++i) { // Inventory
-            for(int j = 0; j < 9; ++j) {
+        for (int i = 0; i < 3; ++i) { // Inventory
+            for (int j = 0; j < 9; ++j) {
                 this.addSlot(new Slot(playerInventory, j + i * 9 + 9, 113 + j * 18, 92 + i * 18));
             }
         }
-        for(int k = 0; k < 9; ++k) { // Hot bar
+        for (int k = 0; k < 9; ++k) { // Hot bar
             this.addSlot(new Slot(playerInventory, k, 113 + k * 18, 150));
         }
     }
@@ -131,7 +131,7 @@ public class SellMenu extends NpcBaseMenu {
     private void playThankYouSound() {
         if (this.interactingNpc instanceof Npc) {
             Npc entity = interactingNpc.getNpc();
-            entity.playSound(SoundEvents.VILLAGER_YES, 1.0F,1.0F);
+            entity.playSound(SoundEvents.VILLAGER_YES, 1.0F, 1.0F);
         }
     }
 
@@ -142,7 +142,8 @@ public class SellMenu extends NpcBaseMenu {
     public void removed(@NotNull Player player) {
         super.removed(player);
         this.interactingNpc.setInteractingPlayer(null);
-        if (this.interactingNpc.isClientSide()) return;;
+        if (this.interactingNpc.isClientSide()) return;
+        ;
         if (!player.isAlive() || player instanceof ServerPlayer serverPlayer && serverPlayer.hasDisconnected()) {
             for (int i = GOOD_SLOT_START; i <= GOOD_SLOT_END; ++i) {
                 ItemStack stack = this.sellContainer.removeItemNoUpdate(i);
@@ -188,9 +189,9 @@ public class SellMenu extends NpcBaseMenu {
             sellAllMatchingItems(deal.getGood());
         }
     }
-    
+
     private void sellOneMatchingItem(ItemStack wantedItem) {
-        for(int i = INVENTORY_START_INDEX; i <= HOTBAR_END_INDEX; ++i) {
+        for (int i = INVENTORY_START_INDEX; i <= HOTBAR_END_INDEX; ++i) {
             ItemStack playerStack = this.slots.get(i).getItem();
             if (!playerStack.isEmpty() && ItemStack.isSameItemSameTags(wantedItem, playerStack)) {
                 for (int goodIndex = 0; goodIndex < 8; ++goodIndex) {
@@ -217,7 +218,7 @@ public class SellMenu extends NpcBaseMenu {
     }
 
     private void removeOneMatchingItem(ItemStack wantedItem) {
-        for(int i = INVENTORY_START_INDEX; i <= HOTBAR_END_INDEX; ++i) {
+        for (int i = INVENTORY_START_INDEX; i <= HOTBAR_END_INDEX; ++i) {
             ItemStack playerStack = this.slots.get(i).getItem();
             if (playerStack.isEmpty() || ItemStack.isSameItemSameTags(wantedItem, playerStack)) {
                 for (int goodIndex = 0; goodIndex < 8; ++goodIndex) {
@@ -245,7 +246,8 @@ public class SellMenu extends NpcBaseMenu {
 
     private void sellAllMatchingItems(ItemStack wantedItem) {
         Set<Integer> ignoredSlots = new HashSet<>();
-        playerInvLoop : for(int i = INVENTORY_START_INDEX; i <= HOTBAR_END_INDEX; ++i) {
+        playerInvLoop:
+        for (int i = INVENTORY_START_INDEX; i <= HOTBAR_END_INDEX; ++i) {
             ItemStack playerStack = this.slots.get(i).getItem();
             if (!playerStack.isEmpty() && ItemStack.isSameItemSameTags(wantedItem, playerStack)) {
                 for (int goodIndex = 0; goodIndex < 8; ++goodIndex) {

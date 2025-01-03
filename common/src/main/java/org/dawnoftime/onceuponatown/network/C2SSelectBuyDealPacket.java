@@ -1,12 +1,12 @@
 package org.dawnoftime.onceuponatown.network;
 
+import com.mojang.logging.LogUtils;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import org.dawnoftime.onceuponatown.menu.BuyMenu;
-import com.mojang.logging.LogUtils;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import org.dawnoftime.onceuponatown.menu.BuyMenu;
 import org.slf4j.Logger;
 
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
@@ -26,7 +26,7 @@ public record C2SSelectBuyDealPacket(int dealIndex) implements IOuatPacket {
     @Override
     public ResourceLocation getFabricId() {
         return ID;
-}
+    }
 
     public void handle(MinecraftServer server, ServerPlayer player) {
         AbstractContainerMenu containerMenu = player.containerMenu;

@@ -4,5 +4,6 @@ public enum EmptyMapBlock implements MapBlock {
     WATER,
     LAVA;
 
-    EmptyMapBlock(){}
+    EmptyMapBlock() {
+    }
 }

@@ -26,8 +26,8 @@ public class BuyDeal {
 
     public boolean isSatisfiedBy(ItemStack offerA, ItemStack offerB, ItemStack offerC) {
         return this.isRequiredItem(offerA, getInputA()) && offerA.getCount() >= getInputA().getCount()
-            && this.isRequiredItem(offerB, getInputB()) && offerB.getCount() >= getInputB().getCount()
-            && this.isRequiredItem(offerC, getInputC()) && offerC.getCount() >= getInputC().getCount();
+                && this.isRequiredItem(offerB, getInputB()) && offerB.getCount() >= getInputB().getCount()
+                && this.isRequiredItem(offerC, getInputC()) && offerC.getCount() >= getInputC().getCount();
     }
 
     private boolean isRequiredItem(ItemStack offer, ItemStack required) {
@@ -70,13 +70,21 @@ public class BuyDeal {
         return tag;
     }
 
-    public ItemStack getInputA() {return this.inputA;}
+    public ItemStack getInputA() {
+        return this.inputA;
+    }
 
-    public ItemStack getInputB() {return this.inputB;}
+    public ItemStack getInputB() {
+        return this.inputB;
+    }
 
-    public ItemStack getInputC() {return this.inputC;}
+    public ItemStack getInputC() {
+        return this.inputC;
+    }
 
-    public ItemStack getResult() {return this.result;}
+    public ItemStack getResult() {
+        return this.result;
+    }
 
     public static class Builder {
         private ItemStack inputA;

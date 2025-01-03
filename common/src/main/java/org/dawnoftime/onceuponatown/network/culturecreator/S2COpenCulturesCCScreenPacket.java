@@ -18,11 +18,12 @@ public class S2COpenCulturesCCScreenPacket implements IOuatPacket {
     private static final ResourceLocation ID = modResource("s2c_open_screen_cc_culture_list");
 
     private final List<String> cultureIds;
-    private S2COpenCulturesCCScreenPacket(List<String> cultureIds){
+
+    private S2COpenCulturesCCScreenPacket(List<String> cultureIds) {
         this.cultureIds = cultureIds;
     }
 
-    public static S2COpenCulturesCCScreenPacket create(){
+    public static S2COpenCulturesCCScreenPacket create() {
         File targetDir = new File(Ouat.COMMON.getConfigFolder(), MOD_ID);
         List<String> cultures = new ArrayList<>();
         if (targetDir.exists() && targetDir.isDirectory()) {
