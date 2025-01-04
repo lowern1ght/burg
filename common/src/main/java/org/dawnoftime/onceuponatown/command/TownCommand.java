@@ -11,13 +11,12 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.ClickEvent;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.*;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
+import org.dawnoftime.onceuponatown.Utils;
 import org.dawnoftime.onceuponatown.building.NpcBuild;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
 import org.dawnoftime.onceuponatown.building.type.BuildType;
@@ -33,10 +32,11 @@ import java.util.Collection;
 import java.util.List;
 
 public class TownCommand {
+    private static final String CLOSEST = "CLOSEST";
     private static final SuggestionProvider<CommandSourceStack> SUGGEST_TOWNS = (context, suggestionsBuilder) -> {
         List<String> suggestions = new ArrayList<>();
         LevelTowns.of(context.getSource().getLevel()).getAllTowns().forEach(town -> suggestions.add(town.getName()));
-        suggestions.add("CLOSEST");
+        suggestions.add(CLOSEST);
         return SharedSuggestionProvider.suggest(suggestions, suggestionsBuilder);
     };
     private static final SuggestionProvider<CommandSourceStack> SUGGEST_BUILDING_TYPES = (context, suggestionsBuilder) -> {
@@ -127,15 +127,130 @@ public class TownCommand {
             );
     }
 
+    private static int listTowns(CommandSourceStack source) {
+        Collection<Town> towns = LevelTowns.of(source.getLevel()).getAllTowns();
+        if (!towns.isEmpty()) {
+            MutableComponent output = Component.empty()
+                .append(Component.literal(towns.size() + " ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("town" + (towns.size() > 1 ? "s" : "" ) + " founded : "));
+            towns.forEach(town -> output
+                .append(CommonComponents.NEW_LINE)
+                .append(Component.literal(town.getName() + " ").withStyle(ChatFormatting.YELLOW))
+                .append("at ")
+                .append(Component.literal(town.getCenter().getX() + " " + town.getCenter().getY() + " " + town.getCenter().getZ())
+                    .withStyle(style -> style
+                    .withColor(ChatFormatting.AQUA)
+                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("Teleport")))
+                    .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/tp @p " + town.getCenter().getX() + " " + town.getCenter().getY() + " " + town.getCenter().getZ())))
+                )
+            );
+            source.sendSuccess(() -> output, false);
+        } else {
+            source.sendSuccess(() -> Component.literal("No towns found"), false);
+        }
+        return 1;
+    }
+
+    private static int debugTown(CommandSourceStack source, String townName) {
+        Vec3 sourcePos = source.getPosition();
+        LevelTowns manager = LevelTowns.of(source.getLevel());
+        Collection<Town> towns = manager.getAllTowns();
+        if (!towns.isEmpty()) {
+            Town closestTown = null;
+            double dist = -1;
+            for (Town town : towns) {
+                double newDist = town.getCenter().distToCenterSqr(sourcePos);
+                if (dist == -1 || newDist < dist) {
+                    dist = newDist;
+                    closestTown = town;
+                }
+            }
+            Town finalClosestTown = closestTown;
+            var townInfo = Component.literal("Check in the logs the description of the closest town ")
+                .append(Component.literal(closestTown.getName()).withStyle(ChatFormatting.YELLOW))
+                .append(Component.literal(" found in "))
+                .append((Component.literal(closestTown.getCenter().toShortString())).withStyle((style -> style
+                    .withColor(ChatFormatting.AQUA)
+                    .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/tp @p " + finalClosestTown.getCenter().getX() + " " + finalClosestTown.getCenter().getY() + " " + finalClosestTown.getCenter().getZ()))
+                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("Teleport"))))));
+            source.sendSuccess(() -> townInfo, false);
+            closestTown.printDescription();
+            closestTown.getBuilds().forEach((build -> source.getLevel().setBlock(build.getOriginPos(), Blocks.ORANGE_WOOL.defaultBlockState(), 2)));
+            closestTown.getBuds().forEach((bud -> source.getLevel().setBlock(bud.getRealPos(), Blocks.PURPLE_WOOL.defaultBlockState(), 2)));
+        } else {
+            source.sendSuccess(() -> Component.literal("No towns found"), false);
+        }
+        return 1;
+    }
+
+    private static int spawnTown(CommandSourceStack source, String cultureId, String townName) {
+        Vec3 pos = source.getPosition();
+        Culture culture = ServerCultures.getCultureOrNull(cultureId);
+        if (culture != null) {
+            ServerLevel level = source.getLevel();
+            BlockPos posTown = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, new BlockPos((int) pos.x, (int) pos.y, (int) pos.z));
+            Town town = new Town(level, culture, townName, posTown);
+            if (town.buildStarterPack()) {
+                LevelTowns.of(level).addTown(town);
+                // Now we place the blocks.
+                BlockPos.MutableBlockPos cursor = new BlockPos(0, 0, 0).mutable();
+                for (NpcBuild build : town.getBuilds()) {
+                    SchematicContent schema = build.getSchematicContent(level.getServer().getResourceManager());
+                    for (BlockInfo block : schema.getBlocks()) {
+                        cursor.set(build.getOriginPos().getX(), build.getOriginPos().getY(), build.getOriginPos().getZ());
+                        level.setBlock(cursor.move(block.pos()), block.state(), 2);
+                    }
+                    // TODO Do the same for the entities !
+                }
+                source.sendSuccess(() -> Component.literal("The town ")
+                    .append(Component.literal(townName).withStyle(ChatFormatting.GREEN))
+                    .append(Component.literal(" was successfully generated !")), false);
+            } else {
+                source.sendSuccess(() -> Component.literal("The town ")
+                    .append(Component.literal(townName).withStyle(ChatFormatting.YELLOW))
+                    .append(Component.literal(" couldn't not be spawned because there wasn't enough free space.")), false);
+            }
+        } else {
+            source.sendSuccess(() -> Component.literal("The culture ")
+                .append(Component.literal(cultureId).withStyle(ChatFormatting.YELLOW))
+                .append(Component.literal(" doesn't exist.")), false);
+        }
+        return 1;
+    }
+
+    private static int deleteTown(CommandSourceStack source, String townName, boolean destroy) {
+        Town town = getTownOrClosest(source, townName);
+        if ((destroy ? LevelTowns.of(source.getLevel()).deleteAndDemolishTown(town.getUuid()) : LevelTowns.of(source.getLevel()).deleteTown(town.getUuid()))) {
+            source.sendSuccess(() -> Component.literal("Successfuly " + (destroy ? "demolished" : "deleted") + " town " + townName), false);
+        } else {
+            source.sendFailure(Component.literal("Failed to delete town"));
+        }
+        return 1;
+    }
+
+    private static Town getTownOrClosest(CommandSourceStack source, String townName) {
+        return (townName == null || townName.equals(CLOSEST)) ?
+            Utils.getNearestTown(source.getLevel(), new BlockPos((int) source.getPosition().x, (int) source.getPosition().y, (int) source.getPosition().z) ) :
+            LevelTowns.of(source.getLevel()).getTown(townName);
+    }
+
     private static int listBuildings(CommandSourceStack source, String townName) {
-        return 1;
-    }
-
-    private static int deleteBuilding(CommandSourceStack source, String townName, String buildingName, boolean destroy) {
-        return 1;
-    }
-
-    private static int upgradeBuilding(CommandSourceStack source, String townName, String buildingName) {
+        List<String> buildings = new ArrayList<>();
+        Town town = getTownOrClosest(source, townName);
+        if (town != null) {
+            town.getBuildings().forEach(building -> buildings.add(building.toSafeString()));
+            MutableComponent output = Component.literal("Town")
+                .append(Component.literal(" " + town.getName()).withStyle(ChatFormatting.YELLOW))
+                .append(" has")
+                .append(Component.literal(" " + buildings.size()).withStyle(ChatFormatting.GRAY))
+                .append(" buildings :");
+            buildings.forEach((building) -> output
+                .append(CommonComponents.NEW_LINE)
+                .append(Component.literal(building).withStyle(ChatFormatting.DARK_AQUA)));
+            source.sendSuccess(() -> output, false);
+        } else {
+            source.sendFailure(Component.literal("Town not founded"));
+        }
         return 1;
     }
 
@@ -185,97 +300,14 @@ public class TownCommand {
         return 1;
     }
 
-
-    private static int listTowns(CommandSourceStack source) {
-        LevelTowns manager = LevelTowns.of(source.getLevel());
-        Collection<Town> towns = manager.getAllTowns();
-        if (!towns.isEmpty()) {
-            source.sendSuccess(() -> Component.literal("Following towns found (" + towns.size() + ") :"), false);
-            for (Town town : towns) {
-                var townInfo = (Component.literal(town.getName()).withStyle(ChatFormatting.YELLOW))
-                    .append((Component.literal(" at ")).withStyle(ChatFormatting.WHITE))
-                    .append((Component.literal(town.getCenter().toShortString())).withStyle((style ->
-                        style.withColor(ChatFormatting.AQUA).withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/tp @p " + town.getCenter().getX() + " " + town.getCenter().getY() + " " + town.getCenter().getZ()))
-                            .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("Teleport"))))));
-                //.append((Component.literal(" | ID : " + town.getUuid())).withStyle(ChatFormatting.WHITE));
-                source.sendSuccess(() -> townInfo, false);
-            }
-        } else {
-            source.sendSuccess(() -> Component.literal("No towns found"), false);
-        }
+    private static int upgradeBuilding(CommandSourceStack source, String townName, String buildingName) {
         return 1;
     }
 
-    private static int deleteTown(CommandSourceStack source, String townName, boolean destroy) {
+    private static int deleteBuilding(CommandSourceStack source, String townName, String buildingName, boolean destroy) {
         return 1;
     }
 
-    private static int spawnTown(CommandSourceStack source, String cultureId, String townName) {
-        Vec3 pos = source.getPosition();
-        Culture culture = ServerCultures.getCultureOrNull(cultureId);
-        if (culture != null) {
-            ServerLevel level = source.getLevel();
-            BlockPos posTown = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, new BlockPos((int) pos.x, (int) pos.y, (int) pos.z));
-            Town town = new Town(level, culture, townName, posTown);
-            if (town.buildStarterPack()) {
-                LevelTowns.of(level).addTown(town);
-                // Now we place the blocks.
-                BlockPos.MutableBlockPos cursor = new BlockPos(0, 0, 0).mutable();
-                for (NpcBuild build : town.getBuilds()) {
-                    SchematicContent schema = build.getSchematicContent(level.getServer().getResourceManager());
-                    for (BlockInfo block : schema.getBlocks()) {
-                        cursor.set(build.getOriginPos().getX(), build.getOriginPos().getY(), build.getOriginPos().getZ());
-                        level.setBlock(cursor.move(block.pos()), block.state(), 2);
-                    }
-                    // TODO Do the same for the entities !
-                }
-                source.sendSuccess(() -> Component.literal("The town ")
-                    .append(Component.literal(townName).withStyle(ChatFormatting.GREEN))
-                    .append(Component.literal(" was successfully generated !")), false);
-            } else {
-                source.sendSuccess(() -> Component.literal("The town ")
-                    .append(Component.literal(townName).withStyle(ChatFormatting.YELLOW))
-                    .append(Component.literal(" couldn't not be spawned because there wasn't enough free space.")), false);
-            }
-        } else {
-            source.sendSuccess(() -> Component.literal("The culture ")
-                .append(Component.literal(cultureId).withStyle(ChatFormatting.YELLOW))
-                .append(Component.literal(" doesn't exist.")), false);
-        }
-        return 1;
-    }
-
-    private static int debugTown(CommandSourceStack source, String townName) {
-        Vec3 sourcePos = source.getPosition();
-        LevelTowns manager = LevelTowns.of(source.getLevel());
-        Collection<Town> towns = manager.getAllTowns();
-        if (!towns.isEmpty()) {
-            Town closestTown = null;
-            double dist = -1;
-            for (Town town : towns) {
-                double newDist = town.getCenter().distToCenterSqr(sourcePos);
-                if (dist == -1 || newDist < dist) {
-                    dist = newDist;
-                    closestTown = town;
-                }
-            }
-            Town finalClosestTown = closestTown;
-            var townInfo = Component.literal("Check in the logs the description of the closest town ")
-                .append(Component.literal(closestTown.getName()).withStyle(ChatFormatting.YELLOW))
-                .append(Component.literal(" found in "))
-                .append((Component.literal(closestTown.getCenter().toShortString())).withStyle((style -> style
-                    .withColor(ChatFormatting.AQUA)
-                    .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/tp @p " + finalClosestTown.getCenter().getX() + " " + finalClosestTown.getCenter().getY() + " " + finalClosestTown.getCenter().getZ()))
-                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("Teleport"))))));
-            source.sendSuccess(() -> townInfo, false);
-            closestTown.printDescription();
-            closestTown.getBuilds().forEach((build -> source.getLevel().setBlock(build.getOriginPos(), Blocks.ORANGE_WOOL.defaultBlockState(), 2)));
-            closestTown.getBuds().forEach((bud -> source.getLevel().setBlock(bud.getRealPos(), Blocks.PURPLE_WOOL.defaultBlockState(), 2)));
-        } else {
-            source.sendSuccess(() -> Component.literal("No towns found"), false);
-        }
-        return 1;
-    }
     private static StringArgumentType string() {
         return StringArgumentType.string();
     }

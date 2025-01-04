@@ -143,6 +143,6 @@ public class Building extends NpcBuild {
     }
 
     public String toSafeString() {
-        return getBuildType().getId() + "__" + getOriginPos().getX() + "_" + getOriginPos().getY() + "_" + getOriginPos().getZ();
+        return getBuildType().getId() + "_" + getOriginPos().getX() + "_" + getOriginPos().getY() + "_" + getOriginPos().getZ();
     }
 }

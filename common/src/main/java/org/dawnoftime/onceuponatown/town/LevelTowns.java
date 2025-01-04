@@ -78,8 +78,8 @@ public class LevelTowns extends SavedData {
         this.towns.put(town.getUuid(), town);
     }
 
-    public void removeTown(Town town) {
-        this.towns.remove(town.getUuid());
+    public boolean removeTown(Town town) {
+        return towns.remove(town.getUuid()) != null;
     }
 
     public @NotNull Collection<Town> getAllTowns() {
@@ -101,11 +101,13 @@ public class LevelTowns extends SavedData {
      *
      * @param townUUID UUID of the town to delete
      */
-    public void deleteTown(UUID townUUID) {
-        Town town = this.towns.get(townUUID);
+    public boolean deleteTown(UUID townUUID) {
+        Town town = towns.get(townUUID);
         if (town != null) {
-            town.softDelete();
-            this.removeTown(town);
+            town.unregister();
+            return removeTown(town);
+        } else {
+            return false;
         }
     }
 
@@ -114,11 +116,13 @@ public class LevelTowns extends SavedData {
      *
      * @param townUUID UUID of the town to delete
      */
-    public void deleteAndDemolishTown(UUID townUUID) {
-        Town town = this.towns.get(townUUID);
+    public boolean deleteAndDemolishTown(UUID townUUID) {
+        Town town = towns.get(townUUID);
         if (town != null) {
-            town.hardDelete();
-            this.removeTown(town);
+            town.destroy();
+            return removeTown(town);
+        } else {
+            return false;
         }
     }
 
