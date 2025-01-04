@@ -5,10 +5,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.BeaconScreen;
-import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.dawnoftime.onceuponatown.Ouat;
@@ -21,7 +18,7 @@ import static org.dawnoftime.onceuponatown.client.screen.ScreenUtils.GUI_COLOR_G
 import static org.dawnoftime.onceuponatown.client.screen.ScreenUtils.drawCenteredString;
 
 public abstract class BaseCCScreen extends Screen {
-    private static final ResourceLocation BACKGROUND_TEXTURE = Ouat.createOuatResource("textures/gui/culture_creator.png");
+    private static final ResourceLocation BACKGROUND_TEXTURE = Ouat.modResource("textures/gui/culture_creator.png");
     private static final int TEXTURE_TOTAL_WIDTH = 281;
     private static final int TEXTURE_TOTAL_HEIGHT = 217;
     private static final int TEXTURE_TAB_HEIGHT = 166;

@@ -234,6 +234,7 @@ public abstract class NpcBuild implements MapBlock {
         CompoundTag descriptionTag = new CompoundTag();
         descriptionTag.putString("BuildType", getBuildType().getId());
         descriptionTag.put("OriginPos", NbtUtils.writeBlockPos(getOriginPos()));
+        descriptionTag.putString("Direction", this.getDirection().getName());
         descriptionTag.putInt("SizeX", getSizeX());
         descriptionTag.putInt("SizeZ", getSizeZ());
         descriptionTag.putInt("Level", getLevel());

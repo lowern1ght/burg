@@ -7,15 +7,17 @@ import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.screen.culturecreator.CulturesCCScreen;
 import org.dawnoftime.onceuponatown.network.IOuatPacket;
 
-import java.io.File;
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
-import static org.dawnoftime.onceuponatown.Ouat.createOuatResource;
+import static org.dawnoftime.onceuponatown.Ouat.*;
 
 public class S2COpenCulturesCCScreenPacket implements IOuatPacket {
-    private static final ResourceLocation ID = createOuatResource("s2c_open_screen_cc_culture_list");
+    private static final ResourceLocation ID = modResource("s2c_open_cultures_screen_cc");
 
     private final List<String> cultureIds;
     private S2COpenCulturesCCScreenPacket(List<String> cultureIds){
@@ -23,19 +25,18 @@ public class S2COpenCulturesCCScreenPacket implements IOuatPacket {
     }
 
     public static S2COpenCulturesCCScreenPacket create(){
-        File targetDir = new File(Ouat.COMMON.getConfigFolder(), MOD_ID);
-        List<String> cultures = new ArrayList<>();
-        if (targetDir.exists() && targetDir.isDirectory()) {
-            File[] files = targetDir.listFiles();
-            if (files != null) {
-                for (File file : files) {
-                    if (file.isDirectory()) {
-                        cultures.add(file.getName());
-                    }
+        Path targetDir = Ouat.COMMON.getConfigFolder().toPath().resolve(MOD_ID);
+        List<String> cultureIds = new ArrayList<>();
+        if (Files.isDirectory(targetDir)) {
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(targetDir, Files::isDirectory)) {
+                for (Path subDir : stream) {
+                    cultureIds.add(subDir.getFileName().toString());
                 }
+            }catch (IOException e) {
+                Ouat.error("An unexpected error occurred while reading the culture folders : " + e);
             }
         }
-        return new S2COpenCulturesCCScreenPacket(cultures);
+        return new S2COpenCulturesCCScreenPacket(cultureIds);
     }
 
     public static S2COpenCulturesCCScreenPacket decode(FriendlyByteBuf buf) {

@@ -109,16 +109,17 @@ public class TownMapItemScreen extends Screen {
         var nameAndLevel = Component.translatable(tag.getString("BuildType")).append(" ")
                 .append(Component.literal(Utils.intToRoman(tag.getInt("Level"))).withStyle(ChatFormatting.YELLOW));
         var originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
+        var direction = Component.translatable("direction").append(" : " + tag.getString("Direction")).withStyle(ChatFormatting.GRAY);
         int sizeX = tag.getInt("SizeX");
         int sizeZ = tag.getInt("SizeZ");
         var coordinates = Component.translatable("coordinates").append( " : " + originPos.toShortString()).withStyle(ChatFormatting.GRAY);
-        var plotSize = Component.translatable("plot_size").append(" : " + sizeX + "x" + sizeZ).withStyle(ChatFormatting.GRAY);
+        var plotSize = Component.translatable("plot_size").append(" : " + sizeX + "×" + sizeZ).withStyle(ChatFormatting.GRAY);
         int minX = originPos.getX() - NWCorner.getX();
         int minZ = originPos.getZ() - NWCorner.getZ();
         return new MapElement(NpcBuild.BUILDING,
                 Optional.of(new ItemAndTitleTooltip(nameAndLevel, new ItemStack(Ouat.COMMON.getItem(new ResourceLocation(tag.getString("IconItem")))))),
-                List.of(CommonComponents.EMPTY, coordinates, plotSize),
-                List.of(CommonComponents.EMPTY, coordinates, plotSize), minX, minX + sizeX, minZ, minZ + sizeZ);
+                List.of(CommonComponents.EMPTY, coordinates, direction, plotSize),
+                List.of(CommonComponents.EMPTY, coordinates, direction, plotSize), minX, minX + sizeX, minZ, minZ + sizeZ);
     }
 
     @Override

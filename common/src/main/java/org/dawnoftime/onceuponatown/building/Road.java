@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.Objects;
 
 import static org.dawnoftime.onceuponatown.Config.*;
-import static org.dawnoftime.onceuponatown.culture.Culture.WIDE_ROAD_TYPE_NAME;
 import static org.dawnoftime.onceuponatown.town.generation.ProtoTown.RANDOM_SOURCE;
 
 /**
@@ -73,7 +72,7 @@ public class Road extends SliceBuild {
             }
             // If the road will stop growing, it should stop directly at the end of the adjacent Build.
             int bonusSize = canGrow ? DEFAULT_ROAD_LENGTH : 0;
-            int dirGrowth = this.getGrowthSize(town, this.getDirection(), bonusSize);
+            int dirGrowth = this.getGrowthSize(town, bonusSize);
             if(dirGrowth > 0){
                 // Updating the originPos of the Road depending on the growth.
                 if (this.getDirection() == Direction.NORTH || this.getDirection() == Direction.WEST) {
@@ -101,16 +100,16 @@ public class Road extends SliceBuild {
 
     /**
      * @param town Town this Road belongs to.
-     * @param dir       Direction in which we try to extend this Road.
      * @param bonusSize Extra size that the Road should have after the last adjacent Build. This value is 0 if the Road
      *                  stops growing, thus it will stop definitively at the end of its adjacent Build.
      * @return The total number of block this Road should grow in the given direction to reach the border of adjacent buildings
      * plus the DEFAULT_PATH_LENGTH. Returns 0 if this Road already stops at the correct position.
      */
-    private int getGrowthSize(ProtoTown town, Direction dir, int bonusSize) {
+    private int getGrowthSize(ProtoTown town, int bonusSize) {
         int growth = -bonusSize;
         int emptyAdjacentBlocks = 0;
-        BlockPos initPos = this.getCornerPos(TownMapUtils.Corner.getCornerNextToDir(dir.getOpposite(), false)).relative(dir, 1 - bonusSize);
+        Direction dir = this.getDirection().getOpposite();
+        BlockPos initPos = this.getCornerPos(TownMapUtils.Corner.getCornerNextToDir(this.getDirection(), false)).relative(dir, 1 - bonusSize);
         BlockPos.MutableBlockPos adjLeftCursor = initPos.relative(dir.getClockWise(), -1).mutable();
         BlockPos.MutableBlockPos pathLeftCursor = initPos.mutable();
         BlockPos.MutableBlockPos pathRightCursor = initPos.relative(dir.getClockWise(), this.getSize(dir) - 1).mutable();
@@ -118,8 +117,8 @@ public class Road extends SliceBuild {
         while (true) {
             // While the cursor is at an empty vec3 (or the vec3 contains this block), we can extend this Road.
             //TODO Check if there is a Y difference too big : we stop and will make a tower Bud.
-            boolean a = map.isEmpty(pathLeftCursor, this);
-            boolean b = map.isEmpty(pathRightCursor, this);
+            boolean a = town.isEmpty(pathLeftCursor, this);
+            boolean b = town.isEmpty(pathRightCursor, this);
             if (town.isEmpty(pathLeftCursor, this) && town.isEmpty(pathRightCursor, this)) {
                 growth++;
                 emptyAdjacentBlocks++;

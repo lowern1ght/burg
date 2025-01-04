@@ -21,6 +21,7 @@ public class CulturesCCScreen extends BaseCCScreen {
 
             });
         }
+        // TODO Put a max number of characters based on the packet size "String with a maximum length of Short.MAX_VALUE."
         this.createEditBoxAndConfirm(Component.literal("Create a new culture..."), btn -> {
 
         });
