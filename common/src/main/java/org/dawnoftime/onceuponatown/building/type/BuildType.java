@@ -128,4 +128,9 @@ public abstract class BuildType {
     public record BuildLevel(int level, int requiredEra, int experienceGain, HashMap<Profession, Integer> workingSlots,
                              int dwellingSlots) {
     }
+
+    @Override
+    public String toString() {
+        return "BuildType[" + id + "]";
+    }
 }

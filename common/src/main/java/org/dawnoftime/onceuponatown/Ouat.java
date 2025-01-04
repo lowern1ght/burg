@@ -23,8 +23,12 @@ public class Ouat {
         return new ResourceLocation(MOD_ID, name);
     }
 
+    public static MutableComponent translatable(String prefix, String key) {
+        return Component.translatable(MOD_ID + "." + prefix + "." + key);
+    }
+
     public static MutableComponent translatable(String key) {
-        return Component.translatable(MOD_ABBREVIATION + "." + key);
+        return Component.translatable(MOD_ID + "." + key);
     }
 
     public static void info(String info) {

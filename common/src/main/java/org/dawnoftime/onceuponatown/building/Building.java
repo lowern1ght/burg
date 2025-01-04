@@ -141,4 +141,8 @@ public class Building extends NpcBuild {
     protected byte getBuildCategory() {
         return BUILDING;
     }
+
+    public String toSafeString() {
+        return getBuildType().getId() + "__" + getOriginPos().getX() + "_" + getOriginPos().getY() + "_" + getOriginPos().getZ();
+    }
 }

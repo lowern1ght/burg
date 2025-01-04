@@ -55,6 +55,8 @@ public class Culture {
         //this.foods = foods;
     }
 
+    record StarterPackInfo(HashMap<String, Pair<Integer, Integer>> minMax) {}
+
     public static @Nullable Culture readCultureFromDataPack(String detectedId, ResourceLocation jsonFileLocation, Resource jsonFileResource, ResourceManager resourceManager) {
         Ouat.info("Loading culture '" + detectedId + "'");
         try (Reader reader = jsonFileResource.openAsReader()) {
@@ -217,5 +219,15 @@ public class Culture {
 
     public List<BuildType> getBuildTypes() {
         return buildTypes.values().stream().toList();
+    }
+
+    public List<BuildingType> getBuildingTypes() {
+        List<BuildingType> types = new ArrayList<>();
+        for (BuildType buildType : getBuildTypes()) {
+            if (buildType instanceof BuildingType buildingType) {
+                types.add(buildingType);
+            }
+        }
+        return types;
     }
 }

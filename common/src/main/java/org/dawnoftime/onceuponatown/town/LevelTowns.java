@@ -9,6 +9,7 @@ import org.dawnoftime.onceuponatown.Config;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.Utils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -60,6 +61,17 @@ public class LevelTowns extends SavedData {
                 this.towns.put(town.getUuid(), town);
             }
         }
+    }
+
+    public @Nullable Town getTown(String townName) {
+        Town town = null;
+        for (Town t : towns.values()) {
+            if (t.getName().equals(townName)) {
+                town = t;
+                break;
+            }
+        }
+        return town;
     }
 
     public void addTown(Town town) {

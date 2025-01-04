@@ -117,6 +117,16 @@ public class ProtoTown {
         return this.builds;
     }
 
+    public List<Building> getBuildings() {
+        List<Building> buildings = new ArrayList<>();
+        for (NpcBuild build : getBuilds()) {
+            if (build instanceof Building building) {
+                buildings.add(building);
+            }
+        }
+       return buildings;
+    }
+
     /**
      * Function that generate the town started pack and roads.
      * If one of the building could not be placed, the function will return false.

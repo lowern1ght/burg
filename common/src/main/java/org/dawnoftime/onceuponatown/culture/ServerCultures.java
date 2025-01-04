@@ -5,15 +5,13 @@ import org.dawnoftime.onceuponatown.Ouat;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.StringJoiner;
+import java.util.*;
 
 public class ServerCultures {
     public static final String CULTURE_FOLDER_NAME = "ouat_cultures";
     public static final String CULTURE_JSON_FILE_NAME = "ouat_culture.json";
     private static final Map<String, Culture> LOADED_CULTURES = new HashMap<>();
+    private static final Set<String> CORRUPTED_CULTURES = new HashSet<>();
 
     public static void loadCultures(ResourceManager manager) {
         LOADED_CULTURES.clear(); // Just in case
@@ -35,6 +33,7 @@ public class ServerCultures {
                     LOADED_CULTURES.put(detectedId, culture);
                 } else {
                     Ouat.error("Culture [%s]: Failed to load the culture".formatted(detectedId));
+                    CORRUPTED_CULTURES.add(detectedId);
                 }
             }
         });
@@ -48,8 +47,12 @@ public class ServerCultures {
         }
     }
 
-    public static List<Culture> getLoadedCultures() {
+    public static @NotNull List<Culture> getLoadedCultures() {
         return LOADED_CULTURES.values().stream().toList();
+    }
+
+    public static @NotNull Set<String> getCorruptedCultures() {
+        return CORRUPTED_CULTURES;
     }
 
     public static @NotNull Culture getCultureOrDefault(String cultureId) {
