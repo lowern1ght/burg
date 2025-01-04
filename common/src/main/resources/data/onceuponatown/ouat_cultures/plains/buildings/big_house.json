@@ -84,6 +84,21 @@
           ]
         }
       ]
+    },
+    {
+      "name": "apartments",
+      "size": {
+        "x": 30,
+        "y": 13,
+        "z": 18
+      },
+      "levels": [
+        {
+          "schematic": "apartments",
+          "waypoints": [
+          ]
+        }
+      ]
     }
   ]
 }
