@@ -44,14 +44,14 @@ public class FishermanWorkGoal extends NpcGoal {
     @Override
     public void tick() {
         super.tick();
-        if(npc.getLookControl().isLookingAtTarget() && !hookThrown && npcPos().closerThan(waterPos, 10.0D)) {
+        if (npc.getLookControl().isLookingAtTarget() && !hookThrown && npcPos().closerThan(waterPos, 10.0D)) {
             level().addFreshEntity(new NpcFishingHook(npc, level()));
             hookThrown = true;
         }
     }
 
     protected BlockPos lookForWater() {
-        if(!level().getBlockState(npcPos()).getCollisionShape(level(), npcPos()).isEmpty()) {
+        if (!level().getBlockState(npcPos()).getCollisionShape(level(), npcPos()).isEmpty()) {
             return null;
         } else {
             waterPos = BlockPos.findClosestMatch(npcPos(), 20, 10, (posCandidate) -> level().getFluidState(posCandidate).is(FluidTags.WATER)).orElse(null);

@@ -8,222 +8,192 @@ import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.item.Item;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.building.type.BuildType;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
-import org.dawnoftime.onceuponatown.building.type.RoadBuildType;
-import org.dawnoftime.onceuponatown.building.type.SliceBuildType;
-import org.jetbrains.annotations.NotNull;
+import org.dawnoftime.onceuponatown.building.type.RoadType;
 import org.jetbrains.annotations.Nullable;
 import oshi.util.tuples.Pair;
-import oshi.util.tuples.Triplet;
 
 import java.io.IOException;
 import java.io.Reader;
 import java.util.*;
 
-import static org.dawnoftime.onceuponatown.culture.CultureManager.CULTURE_JSON_FILE_NAME;
-import static org.dawnoftime.onceuponatown.culture.CultureManager.CULTURE_FOLDER_NAME;
+import static org.dawnoftime.onceuponatown.culture.ServerCultures.CULTURE_FOLDER_NAME;
+import static org.dawnoftime.onceuponatown.culture.ServerCultures.CULTURE_JSON_FILE_NAME;
 
 public class Culture {
-    // TODO Add some code to manage when a map was saved with a different version of the culture datapack (ie. a BuildType was removed).
-    public static final Culture DEFAULT_CULTURE = new Culture("default_culture", List.of(), List.of());
+    // TODO manage default culture in case of corrupted culture files or town files
     public static final String ROAD_TYPE_NAME = "road";
     public static final String WIDE_ROAD_TYPE_NAME = "wide_road";
     public static final String BRIDGE_TYPE_NAME = "bridge";
     public static final String WALL_TYPE_NAME = "wall";
     private final String id;
-    private final HashMap<String, BuildType> buildTypeMap = new HashMap<>();
-    private final HashMap<String, Pair<Integer, Integer>> starterPack = new HashMap<>();
+    private final List<Specialization> specializations;
+    private final HashMap<String, BuildType> buildTypes;
+    private final HashMap<String, Pair<Integer, Integer>> starterPack;
     private final List<Era> eras;
-    private final List<String> specializations;
-    private List<Item> foods;
-    private boolean corrupted;
+    //private final List<Item> foods; TODO read foods
+    public static final Culture DEFAULT_CULTURE = new Culture("default_culture", List.of(new Specialization("default_specialization")), new HashMap<>(), new HashMap<>(), List.of(new Era(1, 0, Integer.MAX_VALUE))) {
+        @Override
+        public List<BuildingType> getRandomStarterPack(RandomSource rand) {
+            return new ArrayList<>();
+        }
 
-    private Culture(String id, List<Era> eras, List<String> specializations) {
+        @Override
+        public BuildType getBuildType(String typeId) {
+            return BuildType.DEFAULT;
+        }
+    };
+
+    private Culture(String id, List<Specialization> specializations, HashMap<String, BuildType> buildTypes, HashMap<String, Pair<Integer, Integer>> starterPack, List<Era> eras) {
         this.id = id;
-        this.eras = eras;
         this.specializations = specializations;
+        this.buildTypes = buildTypes;
+        this.starterPack = starterPack;
+        this.eras = eras;
+        //this.foods = foods;
     }
 
-    public static @Nullable Culture createCulture(String cultureId, ResourceLocation fileLocation, Resource cultureJsonResource, ResourceManager resourceManager) {
-        Ouat.info("Loading culture '" + cultureId + "'...");
-        JsonObject cultureJsonObject;
-        try (Reader reader = cultureJsonResource.openAsReader()) {
-            cultureJsonObject = GsonHelper.parse(reader);
-            // Id
-            String id = cultureJsonObject.get("id").getAsString();
-            if (id == null || !id.equals(cultureId)) {
-                throw new CorruptedCultureException(cultureId, "Failed to load a culture. Culture's id '%s' does not match the culture's folder name".formatted(id, CULTURE_JSON_FILE_NAME));
+    public static @Nullable Culture readCultureFromDataPack(String detectedId, ResourceLocation jsonFileLocation, Resource jsonFileResource, ResourceManager resourceManager) {
+        Ouat.info("Loading culture '" + detectedId + "'");
+        try (Reader reader = jsonFileResource.openAsReader()) {
+            JsonObject rootJson = GsonHelper.parse(reader);
+            CultureFileHelper helper = new CultureFileHelper(detectedId, CULTURE_JSON_FILE_NAME, jsonFileLocation, "culture");
+            /* Reading mandatory id to avoid conflicts with other cultures */
+            if (!helper.getString(rootJson, "id").equals(detectedId)) {
+                helper.throwInvalidField("id", "It should match the name of the data pack culture's folder.");
             }
-            // Eras
-            List<Culture.Era> eras = readEras(cultureJsonObject, cultureId);
-            // Specializations
-            List<String> specializationsIds = readSpecializationsIds(cultureJsonObject, cultureId);
-
-            Culture culture = new Culture(cultureId, eras, specializationsIds);
-            // Mandatory BuildType
-            culture.addBuildType(new RoadBuildType(ROAD_TYPE_NAME));
-            culture.addBuildType(new RoadBuildType(WIDE_ROAD_TYPE_NAME));
-            //culture.addBuildType(new SliceBuildType(BRIDGE_TYPE_NAME));
-            //culture.addBuildType(new SliceBuildType(WALL_TYPE_NAME));
-
-            // BuildTypes
-            var buildResources = resourceManager.listResources(CULTURE_FOLDER_NAME + "/" + cultureId + "/builds/build_type", (resourceLocation) -> resourceLocation.getPath().endsWith(".json")).keySet();
-            buildResources.forEach((buildResource) -> {
-                BuildType buildingType = BuildingType.createFromJson(resourceManager, buildResource, cultureId);
-                if (buildingType != null) {
-                    culture.addBuildType(buildingType);
+            /* Reading Specializations */
+            List<Specialization> specializations = readSpecializations(rootJson, helper);
+            /* Reading Eras */
+            List<Era> eras = readEras(rootJson, helper);
+            /* Reading BuildTypes */
+            HashMap<String, BuildType> buildTypeMap = new HashMap<>();
+            /* Reading Buildings */
+            var buildingsRls = resourceManager.listResources(CULTURE_FOLDER_NAME + "/" + detectedId + "/buildings", (rl) -> rl.getPath().endsWith(".json")).keySet();
+            for (ResourceLocation buildingRL : buildingsRls) {
+                String rlPath = buildingRL.getPath();
+                String typeId = rlPath.substring(rlPath.lastIndexOf('/') + 1, rlPath.lastIndexOf('.'));
+                if (buildTypeMap.containsKey(typeId)) {
+                    throw new CorruptedCultureException(detectedId, "Duplicated building type '" + typeId + "'.");
                 }
-            });
-
-            // BuildVariants
-            buildResources = resourceManager.listResources(CULTURE_FOLDER_NAME + "/" + cultureId + "/builds/build_variant", (resourceLocation) -> resourceLocation.getPath().endsWith(".json")).keySet();
-            buildResources.forEach((buildResource) -> {
-                Triplet<String, BuildVariant, String> variant = BuildVariant.createFromDataPack(resourceManager, buildResource, cultureId);
-                if (variant != null) {
-                    culture.addBuildVariant(variant.getA(), variant.getB(), variant.getC());
+                buildTypeMap.put(typeId, BuildingType.createFromDataPack(detectedId, buildingRL, resourceManager));
+            }
+            /* Reading Roads */
+            var roadsRls = resourceManager.listResources(CULTURE_FOLDER_NAME + "/" + detectedId + "/roads", (rl) -> rl.getPath().endsWith(".json")).keySet();
+            for (ResourceLocation roadRl : roadsRls) {
+                String rlPath = roadRl.getPath();
+                String typeId = rlPath.substring(rlPath.lastIndexOf('/') + 1, rlPath.lastIndexOf('.'));
+                if (buildTypeMap.containsKey(typeId)) {
+                    throw new CorruptedCultureException(detectedId, "Duplicated building type '" + typeId + "'.");
                 }
-            });
-
-            // Removing any BuildType that don't have any variant since they can't be built.
-            culture.dropBuildTypeWithoutVariant();
-
-            // Load the starter pack
-            JsonElement elem = CultureManager.tryGet(cultureId, cultureJsonObject, "Culture", "starter_pack", CULTURE_JSON_FILE_NAME, fileLocation);
-            JsonArray array = elem.getAsJsonArray();
-            for(JsonElement arrayElem : array) {
-                JsonObject subObject = arrayElem.getAsJsonObject();
-                String buildTypeId = CultureManager.tryGet(cultureId, subObject, "Culture", "build_type", " in an object in the section 'starter_pack'", CULTURE_JSON_FILE_NAME, fileLocation).getAsString();
-                if (!culture.buildTypeMap.containsKey(buildTypeId)){
-                    throw new CorruptedCultureException(cultureId, "Failed to load a culture. The build_type '%s' in the starter pack is unknown, please check this file: %s".formatted(buildTypeId, CULTURE_JSON_FILE_NAME));
+                buildTypeMap.put(typeId, RoadType.createFromDataPack(detectedId, roadRl, resourceManager));
+            }
+            /* Reading starter pack */
+            JsonArray packArray = helper.getJsonArray(rootJson, "buildings_starter_pack");
+            HashMap<String, Pair<Integer, Integer>> starterPack = new HashMap<>();
+            String loc = "in buildings_starter_pack[]";
+            for (JsonElement je : packArray) {
+                JsonObject elemJson = helper.asJsonObject(je, "buildings_starter_pack[] element", loc);
+                String buildingTypeId = helper.getString(elemJson, "id", loc);
+                if (starterPack.containsKey(buildingTypeId)) {
+                    helper.throwInvalidField("id", loc, "Duplicated building type id '" + buildingTypeId + "' in the starter pack.");
                 }
-                int min = CultureManager.tryGet(cultureId, subObject, "Culture", "min", " in an object in the section 'starter_pack'", CULTURE_JSON_FILE_NAME, fileLocation).getAsInt();
-                int max = CultureManager.tryGet(cultureId, subObject, "Culture", "max", " in an object in the section 'starter_pack'", CULTURE_JSON_FILE_NAME, fileLocation).getAsInt();
+                if (!buildTypeMap.containsKey(buildingTypeId)) {
+                    helper.throwInvalidField("id", "Unknown building type id '" + buildingTypeId + "' in the starter pack. Maybe a typo ?");
+                }
+                int min = helper.getPositiveInt(elemJson, "min", loc);
+                int max = helper.getPositiveInt(elemJson, "max", loc);
                 if (max < min) {
-                    throw new CorruptedCultureException(cultureId, "Failed to load a culture. Check the values of the minimum and maximum number of the build_type '%s' in the starter pack in this file: %s".formatted(buildTypeId, fileLocation));
+                    helper.throwInvalidField("max", loc, "It should be >= than 'min' field.");
                 }
-                culture.addStarterPackBuild(buildTypeId, min, max);
+                starterPack.put(buildingTypeId, new Pair<>(min, max));
             }
-            return culture;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (CorruptedCultureException e){
-            Ouat.error(e.getMessage());
+            if (starterPack.isEmpty()) {
+                helper.throwInvalidField("buildings_starter_pack", "It can't be empty. Each town should have at least one building when spawning.");
+            }
+            /* Finished reading all the culture's files */
+            return new Culture(detectedId, specializations, buildTypeMap, starterPack, eras);
+        } catch (IOException ioException) {
+            throw new CorruptedCultureException(detectedId, "Could not open the culture json file.");
+        } catch (CorruptedCultureException cce) {
+            Ouat.error(cce.getMessage());
+            // For debug throw cce;
             return null;
         }
     }
 
-    private static List<Culture.Era> readEras(JsonObject cultureJsonObject, String cultureId) throws CorruptedCultureException {
-        List<Culture.Era> eras = new ArrayList<>();
-        var eraArray = cultureJsonObject.getAsJsonArray("eras");
-        if (eraArray == null) {
-            throw new CorruptedCultureException(cultureId, CULTURE_JSON_FILE_NAME, "eras", "Missing eras definition");
+    private static List<Specialization> readSpecializations(JsonObject rootJson, CultureFileHelper helper) throws CorruptedCultureException {
+        List<Specialization> specializations = new ArrayList<>();
+        JsonArray array = helper.getJsonArray(rootJson, "specializations");
+        Set<String> ids = new HashSet<>();
+        String loc = "in specializations[]";
+        for (JsonElement je : array) {
+            String id = helper.getString(helper.asJsonObject(je, "specializations[] element", loc), "id", loc);
+            if (id.isBlank()) {
+                helper.throwInvalidField("id", loc, "Blank string detected !");
+            }
+            if (!ids.add(id)) {
+                helper.throwInvalidField("id", loc, "Duplicated id '" + id + "'.");
+            }
+            ids.add(id);
+            specializations.add(new Specialization(id));
         }
-        int eraIndex = 1;
-        for (int i = 0; i < eraArray.size(); ++i) {
-            var jsonObject = eraArray.get(i).getAsJsonObject();
-            int xpNeeded = jsonObject.get("required_experience").getAsInt();
-            if (xpNeeded < 0) { // Error : required xp can not be negative
-                throw new CorruptedCultureException(cultureId, CULTURE_JSON_FILE_NAME, "era required_experience", "Era required_experience can not be negative");
-            }
-            int maxClutter = jsonObject.get("max_buildings_weight").getAsInt();
-            if (maxClutter <= 0) { // Error : max clutter can not be null or negative
-                throw new CorruptedCultureException(cultureId, CULTURE_JSON_FILE_NAME, "era max_buildings_weight", "max_buildings_weight can not be negative");
-            }
-            eras.add(new Culture.Era(eraIndex, xpNeeded, maxClutter));
-            ++eraIndex;
+        if (specializations.isEmpty()) {
+            helper.throwInvalidField("specializations", "It can't be empty. Each culture should have at least one specialization.");
+        }
+        return specializations;
+    }
+
+    private static List<Era> readEras(JsonObject rootJson, CultureFileHelper helper) throws CorruptedCultureException {
+        List<Era> eras = new ArrayList<>();
+        JsonArray array = helper.getJsonArray(rootJson, "eras");
+        String loc = "in eras[]";
+        int i = 1;
+        for (JsonElement je : array) {
+            JsonObject elemJson = helper.asJsonObject(je, "eras[] element", loc);
+            int requiredExperience = helper.getPositiveInt(elemJson, "required_experience", loc);
+            int maxBuildingsWeight = helper.getPositiveInt(elemJson, "max_buildings_weight", loc);
+            // TODO verify that required_experience and max_buildings_weight is ascending
+            eras.add(new Era(i, requiredExperience, maxBuildingsWeight));
+            ++i;
+        }
+        if (eras.isEmpty()) {
+            helper.throwInvalidField("eras", "It can't be empty. Each culture should have at least one era.");
         }
         return eras;
     }
 
-    private static List<String> readSpecializationsIds(JsonObject cultureJsonObject, String cultureId) throws CorruptedCultureException {
-        List<String> specializationsIds = new ArrayList<>();
-        var specializations = cultureJsonObject.getAsJsonArray("specializations");
-        if (specializations == null) {
-            throw new CorruptedCultureException(cultureId, CULTURE_JSON_FILE_NAME, "specializations", "Missing culture's specializations definition");
-        }
-        specializations.forEach((jsonElement -> {
-            String specializationId = getSpecializationId(cultureId, jsonElement);
-            specializationsIds.forEach((id) -> {
-                if (id.equals(specializationId)) { // Error : duplicate orientation id
-                    throw new CorruptedCultureException(cultureId, CULTURE_JSON_FILE_NAME, "specializations", "Multiple specializations share the same id");
-                }
-            });
-            specializationsIds.add(specializationId);
-        }));
-        return specializationsIds;
-    }
-
-    @NotNull
-    private static String getSpecializationId(String cultureId, JsonElement jsonElement) throws CorruptedCultureException {
-        var jsonObject = jsonElement.getAsJsonObject();
-        String specializationId = jsonObject.get("id").getAsString();
-        if (specializationId == null ) { // Error : missing orientation id
-            throw new CorruptedCultureException(cultureId, CULTURE_JSON_FILE_NAME, "specializations", "Missing a specialization id");
-        }
-        if (specializationId.isBlank()) { // Error : invalid orientation id
-            throw new CorruptedCultureException(cultureId, CULTURE_JSON_FILE_NAME, "specializations", "Invalid specialization id");
-        }
-        return specializationId;
-    }
-
-    private void addBuildType(@NotNull BuildType type) {
-        buildTypeMap.put(type.getId(), type);
-    }
-
-    public BuildType getBuildType(String buildTypeId){
+    public BuildType getBuildType(String typeId) {
         //TODO return default build type in case of invalid parameter
-        return buildTypeMap.get(buildTypeId);
-    }
-
-    private void dropBuildTypeWithoutVariant(){
-        if (buildTypeMap.entrySet().removeIf(entry -> {
-            boolean valid = entry.getValue().isValid(id);
-            return !valid;
-        })) {
-            Ouat.error("Culture [%s]: Removed one or more build types as they don't have any build_variant.".formatted(id));
-        }
-    }
-
-    public void markCorrupted() {
-        corrupted = true;
-    }
-
-    private void addBuildVariant(@NotNull String buildTypeId, @NotNull BuildVariant variant, @NotNull String shape) {
-        BuildType type = buildTypeMap.get(buildTypeId);
-        if (type != null) {
-            type.addVariant(variant, shape, id);
-        } else {
-            Ouat.error("Culture [%s]: Failed to register the build_variant '%s'. Its associated build_type '%s' is not defined for this culture.".formatted(id, variant.getId(), buildTypeId));
-        }
-    }
-
-    private void addStarterPackBuild(String buildTypeId, int min, int max){
-        starterPack.put(buildTypeId, new Pair<>(min, max));
+        return buildTypes.get(typeId);
     }
 
     /**
-     * Returns a list that contains all the BuildTypes that should be built in a random index.
-     * @param rand RandomSource used to roll the number of each BuildType.
-     * @return The list of BuildType to build.
+     * Returns a random list of buildings that should spawn in a naturally generated hamlet.
+     *
+     * @param rand RandomSource used to roll the number of each BuildingType.
+     * @return The list of BuildingTypes to build.
      */
     public List<BuildingType> getRandomStarterPack(RandomSource rand) {
         List<BuildingType> types = new ArrayList<>();
-        for (String buildTypeName: starterPack.keySet()) {
-            Pair<Integer, Integer> range = starterPack.get(buildTypeName);
-            BuildType type = buildTypeMap.get(buildTypeName);
-            if (type instanceof BuildingType buildingType) {
-                int times = rand.nextIntBetweenInclusive(range.getA(), range.getB());
+        for (String typeId : starterPack.keySet()) {
+            Pair<Integer, Integer> minMax = starterPack.get(typeId);
+            BuildType buildType = buildTypes.get(typeId);
+            if (buildType instanceof BuildingType buildingType) {
+                int times = rand.nextIntBetweenInclusive(minMax.getA(), minMax.getB());
                 for (int i = 0; i < times; ++i) {
                     types.add(buildingType);
                 }
             } else {
-                //throw new CorruptedCultureException(id, "Wrong build type in the culture's starterpack : '%s' is not a build from this culture's datapack.".formatted(buildTypeName));
-                Ouat.error(new CorruptedCultureException(id, "Wrong build type in the culture's starterpack : '%s' is not a build from this culture's datapack.".formatted(buildTypeName)).getMessage());
+                // No throw but potentially wrongly generated town
+                Ouat.error(new CorruptedCultureException(id, "The buildings starter pack contains an invalid building type : '%s'.".formatted(typeId)).getMessage());
             }
+        }
+        if (types.isEmpty()) {
+            // No throw but potentially wrongly generated town
+            Ouat.error(new CorruptedCultureException(id, "This culture's staterpack is empty.").getMessage());
         }
         Collections.shuffle(types); // So that the builds do not always spawn in the same sequence
         return types;
@@ -233,7 +203,7 @@ public class Culture {
         return eras;
     }
 
-    public List<String> getSpecializations() {
+    public List<Specialization> getSpecializations() {
         return specializations;
     }
 
@@ -246,8 +216,6 @@ public class Culture {
     }
 
     public List<BuildType> getBuildTypes() {
-        return buildTypeMap.values().stream().toList();
+        return buildTypes.values().stream().toList();
     }
-
-    public record Era(int index, int requiredXp, int buildingsWeight) {}
 }

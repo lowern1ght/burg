@@ -22,7 +22,7 @@ import java.util.HashMap;
 import static org.dawnoftime.onceuponatown.building.type.SliceBuildType.SliceBuildShape.*;
 
 /**
- * A SliceBuild is a series of 'subschematics' that connect to each other in order for the structure to adapt to the terrain. <br>
+ * A SliceBuild is a series of 'subschematics' that connect to each other in era for the structure to adapt to the terrain. <br>
  * For example, a Road can go up, down or be flat locally, depending on the terrain. Each case has its schematic (stairs, slab, flat path...)
  */
 public abstract class SliceBuild extends NpcBuild {
@@ -83,15 +83,16 @@ public abstract class SliceBuild extends NpcBuild {
     }
 
     /**
-     * Function that compute the Y index of the given position in the YShape.
+     * Function that compute the Y era of the given position in the YShape.
      * Be careful ! This value can be out of yShape bounds !
+     *
      * @param pos BlockPos to convert in YIndex.
-     * @return the integer that correspond to the y index.
+     * @return the integer that correspond to the y era.
      */
-    public int getYIndexFromPos(BlockPos pos){
-        if (this.getDirection().getAxis() == Direction.Axis.X){
+    public int getYIndexFromPos(BlockPos pos) {
+        if (this.getDirection().getAxis() == Direction.Axis.X) {
             return Math.abs(pos.getX() - this.getOriginPos().getX()) + 1;
-        }else{
+        } else {
             return Math.abs(pos.getZ() - this.getOriginPos().getZ()) + 1;
         }
     }

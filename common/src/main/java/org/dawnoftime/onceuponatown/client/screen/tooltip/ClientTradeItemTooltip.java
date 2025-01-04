@@ -47,13 +47,13 @@ public class ClientTradeItemTooltip implements ClientTooltipComponent {
     public int getWidth(@NotNull Font font) {
         int i = 0;
         if (!this.a.isEmpty()) {
-            i+= 18;
+            i += 18;
         }
         if (!this.b.isEmpty()) {
-            i+= 18;
+            i += 18;
         }
         if (!this.c.isEmpty()) {
-            i+= 18;
+            i += 18;
         }
         return i - 4;
     }

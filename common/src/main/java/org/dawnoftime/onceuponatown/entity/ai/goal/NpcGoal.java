@@ -19,8 +19,10 @@ public abstract class NpcGoal extends Goal {
     private int expirationTime = Integer.MAX_VALUE;
     private long nextAvailableTime = 0;
     private boolean timeLimitedGoal = false;
-    private Consumer<NpcGoal> onStart = goal -> {};
-    private Consumer<NpcGoal> onStop = goal -> {};
+    private Consumer<NpcGoal> onStart = goal -> {
+    };
+    private Consumer<NpcGoal> onStop = goal -> {
+    };
     protected SimpleStateMachine stateMachine;
 
     protected NpcGoal(Npc npc) {

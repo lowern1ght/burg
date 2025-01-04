@@ -33,9 +33,9 @@ public class TradeMenu extends NpcBaseMenu {
 
     public TradeMenu(int containerId, Inventory playerInventory, FriendlyByteBuf friendlyByteBuf) {
         this(containerId, playerInventory, new ClientSideInteractingNpc.Builder(
-                        (Npc)(playerInventory.player.level().getEntity(friendlyByteBuf.readInt())), playerInventory.player)
-                        .merchantDeals(TradeUtils.createMerchantDealsFromStream(friendlyByteBuf))
-                        .build());
+                (Npc) (playerInventory.player.level().getEntity(friendlyByteBuf.readInt())), playerInventory.player)
+                .merchantDeals(TradeUtils.createMerchantDealsFromStream(friendlyByteBuf))
+                .build());
     }
 
     public TradeMenu(int containerId, Inventory playerInventory, InteractingNpc npc) {
@@ -46,12 +46,12 @@ public class TradeMenu extends NpcBaseMenu {
         this.addSlot(new Slot(this.tradeContainer, INPUT_A_SLOT, INPUT_A_X, ROW_Y));
         this.addSlot(new Slot(this.tradeContainer, INPUT_B_SLOT, INPUT_B_X, ROW_Y));
         this.addSlot(new TradeResultSlot(playerInventory.player, npc, this.tradeContainer, RESULT_SLOT, RESULT_X, ROW_Y));
-        for(int i = 0; i < 3; ++i) { // Inventory
-            for(int j = 0; j < 9; ++j) {
+        for (int i = 0; i < 3; ++i) { // Inventory
+            for (int j = 0; j < 9; ++j) {
                 this.addSlot(new Slot(playerInventory, j + i * 9 + 9, 113 + j * 18, 92 + i * 18));
             }
         }
-        for(int k = 0; k < 9; ++k) { // Hot bar
+        for (int k = 0; k < 9; ++k) { // Hot bar
             this.addSlot(new Slot(playerInventory, k, 113 + k * 18, 150));
         }
     }
@@ -114,7 +114,7 @@ public class TradeMenu extends NpcBaseMenu {
     }
 
     private void playThankYouSound() {
-        interactingNpc.getNpc().playSound(SoundEvents.VILLAGER_YES, 1.0F,1.0F);
+        interactingNpc.getNpc().playSound(SoundEvents.VILLAGER_YES, 1.0F, 1.0F);
     }
 
     @Override
@@ -168,7 +168,7 @@ public class TradeMenu extends NpcBaseMenu {
 
     private void moveFromInventoryToPaymentSlot(int pPaymentSlotIndex, ItemStack pPaymentSlot) {
         if (!pPaymentSlot.isEmpty()) {
-            for(int i = INV_SLOT_START; i < HOT_BAR_SLOT_END + 1; ++i) {
+            for (int i = INV_SLOT_START; i < HOT_BAR_SLOT_END + 1; ++i) {
                 ItemStack itemstack = this.slots.get(i).getItem();
                 if (!itemstack.isEmpty() && ItemStack.isSameItemSameTags(pPaymentSlot, itemstack)) {
                     ItemStack itemstack1 = this.tradeContainer.getItem(pPaymentSlotIndex);
@@ -229,6 +229,7 @@ public class TradeMenu extends NpcBaseMenu {
 
         /**
          * Typically increases an internal count, then calls {@code onCrafting(item)}.
+         *
          * @param pStack the output - ie, iron ingots, and pickaxes, not ore and wood.
          */
         @Override
@@ -238,7 +239,6 @@ public class TradeMenu extends NpcBaseMenu {
         }
 
         /**
-         *
          * @param pStack the output - ie, iron ingots, and pickaxes, not ore and wood.
          */
         @Override

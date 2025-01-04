@@ -1,0 +1,58 @@
+{
+  "id": "market",
+  "category": "special",
+  "weight": 30,
+  "levels": [
+    {
+      "required_era": 1
+    }
+  ],
+  "item": "minecraft:emerald",
+  "variants": [
+    {
+      "name": "merchant_house",
+      "size": {
+        "x": 15,
+        "y": 13,
+        "z": 12
+      },
+      "levels": [
+        {
+          "schematic": "merchant_house",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "wandering_trader",
+      "size": {
+        "x": 20,
+        "y": 14,
+        "z": 16
+      },
+      "levels": [
+        {
+          "schematic": "wandering_house",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "outdoor",
+      "size": {
+        "x": 25,
+        "y": 8,
+        "z": 18
+      },
+      "levels": [
+        {
+          "schematic": "market_outdoor",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

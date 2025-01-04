@@ -14,7 +14,9 @@ import org.dawnoftime.onceuponatown.entity.ai.SimpleStateMachine;
 
 import java.util.EnumSet;
 
-/** Build structure goal made with a FMS (finite sate machine) **/
+/**
+ * Build structure goal made with a FMS (finite sate machine)
+ **/
 public class BuilderWorkGoalOld extends Goal {
     public static final float BUILDER_SPEED = 0.50F;
     public static final double MAX_REACH_DIST = 16D;
@@ -22,20 +24,29 @@ public class BuilderWorkGoalOld extends Goal {
     private final Npc builder;
     private ConstructionProject project;
     private SimpleStateMachine simpleStateMachine;
-    /** Ticks between each attempt to place a block.
-     *  During this time, the builder try to go to the next block position
-     *  Note that the builder may not be able to place the block at the end
-     *  of the cooldown, for example when the targeted block is too far away.
-     *  In this case, the cooldown does not reset until the builder succeed to place the block.
+    /**
+     * Ticks between each attempt to place a block.
+     * During this time, the builder try to go to the next block position
+     * Note that the builder may not be able to place the block at the end
+     * of the cooldown, for example when the targeted block is too far away.
+     * In this case, the cooldown does not reset until the builder succeed to place the block.
      **/
     private int placeAttemptCooldown;
-    /** Ticks before the builder will stop building and simulate looking at the building plan **/
+    /**
+     * Ticks before the builder will stop building and simulate looking at the building plan
+     **/
     private int nextPlanCheckCooldown;
-    /** Ticks before the builder will stop looking at the plan and continue building */
+    /**
+     * Ticks before the builder will stop looking at the plan and continue building
+     */
     private int stopCheckingPlanCooldown;
-    /** Ticks during which the builder isn't moving for whatever reason **/
+    /**
+     * Ticks during which the builder isn't moving for whatever reason
+     **/
     private int motionLessTicks;
-    /** If the last try to place a block was successful **/
+    /**
+     * If the last try to place a block was successful
+     **/
     private boolean successPlacingLastBlock;
 
     public BuilderWorkGoalOld(Npc builder) {
@@ -58,7 +69,7 @@ public class BuilderWorkGoalOld extends Goal {
     public void start() {
         setBuildingSite();
         buildStateMachine();
-        this.stopCheckingPlanCooldown =  this.builder.getRandom().nextInt(adjustedTickDelay(20 * 2), adjustedTickDelay(20 * 6));
+        this.stopCheckingPlanCooldown = this.builder.getRandom().nextInt(adjustedTickDelay(20 * 2), adjustedTickDelay(20 * 6));
         this.builder.getNavigation().setMaxVisitedNodesMultiplier(10.0F);
     }
 
@@ -67,7 +78,7 @@ public class BuilderWorkGoalOld extends Goal {
     }
 
     public void reset() {
-        this.placeAttemptCooldown =  this.nextPlanCheckCooldown =  this.stopCheckingPlanCooldown = 0;
+        this.placeAttemptCooldown = this.nextPlanCheckCooldown = this.stopCheckingPlanCooldown = 0;
         this.motionLessTicks = 0;
         this.successPlacingLastBlock = false;
         this.simpleStateMachine.reset();
@@ -78,7 +89,7 @@ public class BuilderWorkGoalOld extends Goal {
         this.builder.getNavigation().resetMaxVisitedNodesMultiplier();
         this.builder.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
         this.builder.setItemInHand(InteractionHand.OFF_HAND, ItemStack.EMPTY);
-        this.builder.playSound(SoundEvents.VILLAGER_CELEBRATE,2.0F,0.9F);
+        this.builder.playSound(SoundEvents.VILLAGER_CELEBRATE, 2.0F, 0.9F);
     }
 
     private void buildStateMachine() {
@@ -171,7 +182,7 @@ public class BuilderWorkGoalOld extends Goal {
         int x = getNextBuildPos().getX();
         int y = getNextBuildPos().getY();
         int z = getNextBuildPos().getZ();
-        if (this.builder.distanceToSqr(x, y, z) > (MAX_REACH_DIST / 2 )) {
+        if (this.builder.distanceToSqr(x, y, z) > (MAX_REACH_DIST / 2)) {
             this.builder.getNavigation().moveTo(x, y, z, BUILDER_SPEED);
         } else {
             this.builder.getNavigation().stop();

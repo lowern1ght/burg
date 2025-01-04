@@ -1,0 +1,28 @@
+{
+  "id": "church",
+  "category": "work",
+  "weight": 10,
+  "levels": [
+    {
+      "required_era": 1
+    }
+  ],
+  "item": "minecraft:bell",
+  "variants": [
+    {
+      "name": "variant1",
+      "size": {
+        "x": 15,
+        "y": 19,
+        "z": 24
+      },
+      "levels": [
+        {
+          "schematic": "church",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

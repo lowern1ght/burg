@@ -1,0 +1,28 @@
+{
+  "id": "barracks",
+  "category": "work",
+  "weight": 10,
+  "levels": [
+    {
+      "required_era": 1
+    }
+  ],
+  "item": "minecraft:target",
+  "variants": [
+    {
+      "name": "bow_training_camp",
+      "size": {
+        "x": 25,
+        "y": 8,
+        "z": 39
+      },
+      "levels": [
+        {
+          "schematic": "bow_training_camp",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,8 +1,5 @@
 package org.dawnoftime.onceuponatown.menu;
 
-import org.dawnoftime.onceuponatown.entity.Npc;
-import org.dawnoftime.onceuponatown.registry.ItemRegistry;
-import org.dawnoftime.onceuponatown.trade.SellDeal;
 import net.minecraft.core.NonNullList;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.Container;
@@ -10,6 +7,8 @@ import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import org.dawnoftime.onceuponatown.entity.Npc;
+import org.dawnoftime.onceuponatown.trade.SellDeal;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -44,7 +43,7 @@ public class SellContainer implements Container {
     }
 
     public boolean isEmpty() {
-        for(ItemStack stack : this.itemStacks) {
+        for (ItemStack stack : this.itemStacks) {
             if (!stack.isEmpty()) {
                 return false;
             }
@@ -78,7 +77,7 @@ public class SellContainer implements Container {
     }
 
     public void setItem(int index, ItemStack stack) {
-        //ModLogger.info(String.valueOf(index));
+        //ModLogger.info(String.valueOf(era));
         this.itemStacks.set(index, stack);
         if (!stack.isEmpty() && stack.getCount() > this.getMaxStackSize()) {
             stack.setCount(this.getMaxStackSize());
@@ -177,7 +176,7 @@ public class SellContainer implements Container {
             if (available == 0) continue;
             int timesSellable = available / wantedItem.getCount();
 
-            int maxShards = ItemRegistry.REGISTRY.EMERALD_SHARD.get().getMaxStackSize() - valueShards;
+            int maxShards = 0;//ItemRegistry.REGISTRY.EMERALD_SHARD.get().getMaxStackSize() - valueShards;
             int maxEmeralds = Items.EMERALD.getMaxStackSize() - valueEmeralds;
             int maxBlocks = Items.EMERALD_BLOCK.getMaxStackSize() - valueEmeraldBlocks;
 
@@ -204,7 +203,7 @@ public class SellContainer implements Container {
                         int decrement = Math.min(totalShrinkable, stack.getCount());
                         stack.shrink(decrement);
                         if (stack.isEmpty()) {
-                        stack = ItemStack.EMPTY;
+                            stack = ItemStack.EMPTY;
                         }
                         totalShrinkable = totalShrinkable - decrement;
                     }
@@ -230,7 +229,7 @@ public class SellContainer implements Container {
             }
         }
 
-        ItemStack shards = (valueShards <= 0) ? ItemStack.EMPTY : new ItemStack(ItemRegistry.REGISTRY.EMERALD_SHARD.get(), valueShards);
+        ItemStack shards = ItemStack.EMPTY;// (valueShards <= 0) ? ItemStack.EMPTY : new ItemStack(ItemRegistry.REGISTRY.EMERALD_SHARD.get(), valueShards);
         ItemStack emeralds = (valueEmeralds <= 0) ? ItemStack.EMPTY : new ItemStack(Items.EMERALD, valueEmeralds);
         ItemStack emeraldBlocks = (valueEmeraldBlocks <= 0) ? ItemStack.EMPTY : new ItemStack(Items.EMERALD_BLOCK, valueEmeraldBlocks);
         this.itemStacks.set(VALUE_SHARDS_SLOT, shards);
@@ -244,7 +243,7 @@ public class SellContainer implements Container {
         if (!this.hasConcludedTrade) {
             if (this.npc instanceof Npc) {
                 Npc entity = npc.getNpc();
-                entity.playSound(SoundEvents.VILLAGER_YES, 1.0F,1.0F);
+                entity.playSound(SoundEvents.VILLAGER_YES, 1.0F, 1.0F);
             }
             this.hasConcludedTrade = true;
             for (int i = GOOD_1_SLOT; i <= GOOD_8_SLOT; ++i) {
@@ -256,6 +255,7 @@ public class SellContainer implements Container {
             updateValue();
         }
     }
+
     public void clearContent() {
         this.itemStacks.clear();
     }

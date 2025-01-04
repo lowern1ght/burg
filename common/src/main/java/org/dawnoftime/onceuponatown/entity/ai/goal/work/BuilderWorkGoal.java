@@ -63,7 +63,7 @@ public class BuilderWorkGoal extends NpcGoal {
         if (project == null) {
             project = getTownConstructionProject();
         }
-        readingPlanCountdown =  npc.getRandom().nextInt(adjustedTickDelay(20 * 2), adjustedTickDelay(20 * 6));
+        readingPlanCountdown = npc.getRandom().nextInt(adjustedTickDelay(20 * 2), adjustedTickDelay(20 * 6));
     }
 
     public void stop() {
@@ -71,7 +71,7 @@ public class BuilderWorkGoal extends NpcGoal {
         project = null;
         npc.freeHands();
         if (project.isCompleted()) {
-            npc.playSound(SoundEvents.VILLAGER_CELEBRATE,2.0F,0.9F);
+            npc.playSound(SoundEvents.VILLAGER_CELEBRATE, 2.0F, 0.9F);
         }
     }
 

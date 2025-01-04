@@ -13,7 +13,6 @@ import net.minecraft.world.item.ItemStack;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.screen.tooltip.TradeItemTooltip;
 import org.dawnoftime.onceuponatown.menu.TradeMenu;
-
 import org.dawnoftime.onceuponatown.network.C2SSelectTradePacket;
 import org.dawnoftime.onceuponatown.trade.MerchantDeal;
 import org.jetbrains.annotations.NotNull;
@@ -52,7 +51,7 @@ public class TradeScreen extends NpcBaseScreen<TradeMenu> {
     public TradeScreen(TradeMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, Component.literal("Trade"), NpcTab.BUY);
         imageWidth = 281;
-        imageHeight = 193  ;
+        imageHeight = 193;
         npc = menu.getNpcInteraction().getNpc();
     }
 
@@ -60,7 +59,7 @@ public class TradeScreen extends NpcBaseScreen<TradeMenu> {
         leftPos = ((this.width - MAIN_BLIT_WIDTH) / 2) + 8; // Replaces super.init();
         topPos = ((this.height - MAIN_BLIT_HEIGHT) / 2); // Replaces super.init();
         createDealButtons();
-        addRenderableWidget(new ReleaseFocusButton.Builder(Component.literal("Buy"),(button -> {
+        addRenderableWidget(new ReleaseFocusButton.Builder(Component.literal("Buy"), (button -> {
             isSelling = !isSelling;
             button.setMessage(Component.literal(isSelling ? "Sell" : "Buy"));
 
@@ -73,7 +72,7 @@ public class TradeScreen extends NpcBaseScreen<TradeMenu> {
         int buttonIndex = 0;
         for (int i = 0; i < OFFERS_GRID_ROWS; ++i) {
             x = startX;
-            for(int j = 0; j < OFFERS_GRID_COLUMNS; ++j) {
+            for (int j = 0; j < OFFERS_GRID_COLUMNS; ++j) {
                 this.dealButtons[buttonIndex] = this.addRenderableWidget(new DealButton(x, y, buttonIndex, (pressedButton) -> {
                     if (pressedButton instanceof DealButton button) {
                         this.activeDeal = button.getIndex() + (this.scrollOff * OFFERS_GRID_COLUMNS);
@@ -97,12 +96,12 @@ public class TradeScreen extends NpcBaseScreen<TradeMenu> {
     }
 
     private int availableScrolls() {
-        return Mth.ceil((((double)this.menu.getDeals().size() - (double) OFFERS_GRID_CAPACITY) / OFFERS_GRID_ROWS));
+        return Mth.ceil((((double) this.menu.getDeals().size() - (double) OFFERS_GRID_CAPACITY) / OFFERS_GRID_ROWS));
     }
 
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
         if (this.canScroll()) {
-            this.scrollOff = Mth.clamp((int)((double)this.scrollOff - delta), 0, availableScrolls());
+            this.scrollOff = Mth.clamp((int) ((double) this.scrollOff - delta), 0, availableScrolls());
         }
         return true;
     }
@@ -110,8 +109,8 @@ public class TradeScreen extends NpcBaseScreen<TradeMenu> {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         this.isDragging = false;
         if (this.canScroll()
-                && mouseX > (double)(leftPos + SCROLLER_X) && mouseX < (double)(leftPos + SCROLLER_X + SCROLLER_WIDTH)
-                && mouseY > (double)(topPos + SCROLL_BAR_TOP) && mouseY <= (double)(topPos + SCROLL_BAR_TOP + SCROLL_BAR_HEIGHT + 1)) {
+                && mouseX > (double) (leftPos + SCROLLER_X) && mouseX < (double) (leftPos + SCROLLER_X + SCROLLER_WIDTH)
+                && mouseY > (double) (topPos + SCROLL_BAR_TOP) && mouseY <= (double) (topPos + SCROLL_BAR_TOP + SCROLL_BAR_HEIGHT + 1)) {
             this.isDragging = true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
@@ -122,9 +121,9 @@ public class TradeScreen extends NpcBaseScreen<TradeMenu> {
             int j = this.topPos + SCROLL_BAR_TOP;
             int k = j + SCROLL_BAR_HEIGHT;
             int l = availableScrolls();
-            float f = ((float) mouseY - (float)j - 13.5F) / ((float)(k - j) - 27.0F);
-            f = f * (float)l + 0.5F;
-            this.scrollOff = Mth.clamp((int)f, 0, l);
+            float f = ((float) mouseY - (float) j - 13.5F) / ((float) (k - j) - 27.0F);
+            f = f * (float) l + 0.5F;
+            this.scrollOff = Mth.clamp((int) f, 0, l);
             return true;
         } else {
             return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
@@ -135,7 +134,7 @@ public class TradeScreen extends NpcBaseScreen<TradeMenu> {
         renderBackground(graphics);
         super.renderBg(graphics, partialTick, mouseX, mouseY);
         graphics.pose().translate(0.0F, 0.0F, 100.0F);
-        graphics.blit(TEXTURE, this.leftPos, this.topPos,0, 0, MAIN_BLIT_WIDTH, MAIN_BLIT_HEIGHT, this.imageWidth, this.imageHeight);
+        graphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, MAIN_BLIT_WIDTH, MAIN_BLIT_HEIGHT, this.imageWidth, this.imageHeight);
         renderTabs(graphics);
     }
 
@@ -179,12 +178,12 @@ public class TradeScreen extends NpcBaseScreen<TradeMenu> {
         }
         List<MerchantDeal> deals = this.menu.getDeals();
         if (!deals.isEmpty()) {
-            int startX  = leftPos + OFFERS_GRID_X + 1;
+            int startX = leftPos + OFFERS_GRID_X + 1;
             int x = startX;
             int y = topPos + OFFERS_GRID_Y + 2;
 
             int index = 0;
-            for(MerchantDeal deal : deals) {
+            for (MerchantDeal deal : deals) {
                 if (!this.canScroll() || index >= (this.scrollOff * OFFERS_GRID_COLUMNS) && index < OFFERS_GRID_CAPACITY + (this.scrollOff * OFFERS_GRID_COLUMNS)) {
                     ItemStack result = deal.getResult();
                     graphics.pose().pushPose();
@@ -244,7 +243,7 @@ public class TradeScreen extends NpcBaseScreen<TradeMenu> {
                 }
                 graphics.blit(TEXTURE, getX(), getY(), offsetX, offsetY, this.width, this.height, TradeScreen.this.imageWidth, TradeScreen.this.imageHeight);
                 if (isHoveredOrFocused()) {
-                    renderToolTip(graphics,mouseX,mouseY);
+                    renderToolTip(graphics, mouseX, mouseY);
                 }
             }
         }

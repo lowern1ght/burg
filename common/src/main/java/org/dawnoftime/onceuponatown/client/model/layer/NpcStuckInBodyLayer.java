@@ -22,9 +22,9 @@ public abstract class NpcStuckInBodyLayer<T extends Npc, M extends NpcModel<T>> 
 
     public void render(PoseStack pPoseStack, MultiBufferSource pBuffer, int pPackedLight, T pLivingEntity, float pLimbSwing, float pLimbSwingAmount, float pPartialTicks, float pAgeInTicks, float pNetHeadYaw, float pHeadPitch) {
         int i = this.numStuck(pLivingEntity);
-        RandomSource randomsource = RandomSource.create((long)pLivingEntity.getId());
+        RandomSource randomsource = RandomSource.create((long) pLivingEntity.getId());
         if (i > 0) {
-            for(int j = 0; j < i; ++j) {
+            for (int j = 0; j < i; ++j) {
                 pPoseStack.pushPose();
                 ModelPart modelpart = this.getParentModel().getRandomModelPart(randomsource);
                 ModelPart.Cube modelpart$cube = modelpart.getRandomCube(randomsource);

@@ -79,8 +79,8 @@ public class ConstructionProject {
         // 4. Add schematic blocks in blocksToAdd only if position is not listed in toKeep
         // 5. Add schematic entities in entitiesToAdd
         List<ProjectStep> projectSteps = new ArrayList<>();
-        if(!level.isClientSide()){
-            if(level instanceof ServerLevel serverLevel){
+        if (!level.isClientSide()) {
+            if (level instanceof ServerLevel serverLevel) {
                 SchematicContent schematic = build.getSchematicContent(serverLevel.getServer().getResourceManager());
                 Vec3i planDimensions = schematic.getDimensions();
                 BlockPos firstCorner = build.getOriginPos();
@@ -121,7 +121,7 @@ public class ConstructionProject {
                 List<EntityInfo> entitiesToAdd = new ArrayList<>();
 
                 blocksToRemove.forEach((blockPos -> projectSteps.add(new ProjectStep(StepType.REMOVE_BLOCK, blockPos, null, null, null, null))));
-                blocksToAdd.forEach((blockInfo -> projectSteps.add(new ProjectStep(StepType.PLACE_BLOCK, blockInfo.pos(), blockInfo.state(),blockInfo.nbt(), null, null))));
+                blocksToAdd.forEach((blockInfo -> projectSteps.add(new ProjectStep(StepType.PLACE_BLOCK, blockInfo.pos(), blockInfo.state(), blockInfo.nbt(), null, null))));
             }
         }
         // TODO The project list is empty on Client side. Do we need to send some packet or is it OK ?
@@ -180,7 +180,7 @@ public class ConstructionProject {
                     f += entity.mirror(this.build.getMirror()) - entity.getYRot();
                     entity.moveTo(nextStepEntityPos.x, nextStepEntityPos.y, nextStepEntityPos.z, f, entity.getXRot());
                     if (entity instanceof Mob mob) {
-                        mob.finalizeSpawn((ServerLevelAccessor) level, level.getCurrentDifficultyAt(BlockPos.containing(nextStepEntityPos)), MobSpawnType.STRUCTURE,null, newTag);
+                        mob.finalizeSpawn((ServerLevelAccessor) level, level.getCurrentDifficultyAt(BlockPos.containing(nextStepEntityPos)), MobSpawnType.STRUCTURE, null, newTag);
                     }
                     ((ServerLevelAccessor) level).addFreshEntityWithPassengers(entity);
                     success = true;
@@ -251,5 +251,6 @@ public class ConstructionProject {
         PLACE_BLOCK,
         REMOVE_BLOCK,
         PLACE_ENTITY,
-        REMOVE_ENTITY}
+        REMOVE_ENTITY
+    }
 }

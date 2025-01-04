@@ -17,11 +17,11 @@ public abstract class EntityRegistry {
             .clientTrackingRange(10));
 
     public final Supplier<EntityType<NpcFishingHook>> NPC_FISHING_HOOK = register("npc_fishing_hook", () -> EntityType.Builder
-            .<NpcFishingHook>of(NpcFishingHook::new, MobCategory.MISC)
-            .noSave()
-            .sized(0.25F, 0.25F)
-            .clientTrackingRange(4)
-            .updateInterval(5)
+                    .<NpcFishingHook>of(NpcFishingHook::new, MobCategory.MISC)
+                    .noSave()
+                    .sized(0.25F, 0.25F)
+                    .clientTrackingRange(4)
+                    .updateInterval(5)
             //.build(Ouat.createOuatResource("npc_fishing_hook").toString())
     );
 

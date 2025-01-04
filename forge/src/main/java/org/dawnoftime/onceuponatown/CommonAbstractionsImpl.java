@@ -30,8 +30,8 @@ import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.registries.ForgeRegistries;
-import org.dawnoftime.onceuponatown.network.PacketHandler;
 import org.dawnoftime.onceuponatown.network.IOuatPacket;
+import org.dawnoftime.onceuponatown.network.PacketHandler;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -64,12 +64,13 @@ public class CommonAbstractionsImpl implements CommonAbstractions {
     }
 
     @Override
-    public boolean canLivingConvert(LivingEntity entity, EntityType<? extends LivingEntity> outcome){
-        return ForgeEventFactory.canLivingConvert(entity, outcome, (timer) -> {});
+    public boolean canLivingConvert(LivingEntity entity, EntityType<? extends LivingEntity> outcome) {
+        return ForgeEventFactory.canLivingConvert(entity, outcome, (timer) -> {
+        });
     }
 
     @Override
-    public void onLivingConvert(LivingEntity entity, LivingEntity outcome){
+    public void onLivingConvert(LivingEntity entity, LivingEntity outcome) {
         ForgeEventFactory.onLivingConvert(entity, outcome);
     }
 
@@ -84,7 +85,7 @@ public class CommonAbstractionsImpl implements CommonAbstractions {
     }
 
     @Override
-    public AbstractArrow getArrow(Level level, LivingEntity entity, ItemStack itemStackInHand){
+    public AbstractArrow getArrow(Level level, LivingEntity entity, ItemStack itemStackInHand) {
         AbstractArrow arrow = new Arrow(level, entity);
         if (itemStackInHand.getItem() instanceof BowItem bowItem) {
             return bowItem.customArrow(arrow);

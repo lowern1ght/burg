@@ -60,13 +60,21 @@ public class SellDeal {
         return tag;
     }
 
-    public ItemStack getGood() {return this.good;}
+    public ItemStack getGood() {
+        return this.good;
+    }
 
-    public ItemStack getValueShards() {return this.valueShards;}
+    public ItemStack getValueShards() {
+        return this.valueShards;
+    }
 
-    public ItemStack getValueEmeralds() {return this.valueEmeralds;}
+    public ItemStack getValueEmeralds() {
+        return this.valueEmeralds;
+    }
 
-    public ItemStack getValueBlocks() {return this.valueBlocks;}
+    public ItemStack getValueBlocks() {
+        return this.valueBlocks;
+    }
 
     public static class Builder {
         private ItemStack good;

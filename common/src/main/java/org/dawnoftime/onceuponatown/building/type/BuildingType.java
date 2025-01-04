@@ -1,6 +1,5 @@
 package org.dawnoftime.onceuponatown.building.type;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import net.minecraft.resources.ResourceLocation;
@@ -8,90 +7,54 @@ import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.Items;
-import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.Utils;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
-import org.dawnoftime.onceuponatown.culture.Specialization;
-import org.jetbrains.annotations.Nullable;
+import org.dawnoftime.onceuponatown.culture.CultureFileHelper;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 public class BuildingType extends BuildType {
-    public final BuildingPurpose purpose;
-    private final HashMap<Specialization, Integer> specializationsGain = new HashMap<>();
     private final Item iconItem;
 
-    protected BuildingType(String buildTypeId, int weight, List<BuildLevel> levels, BuildingPurpose purpose, Item iconItem) {
-        super(buildTypeId, weight, levels);
+    private BuildingType(String buildingTypeId, int weight, List<BuildLevel> levels, BuildingPurpose purpose, Item iconItem, List<BuildVariant> variants, String cultureId) {
+        super(buildingTypeId, weight, levels, purpose);
         this.iconItem = iconItem;
-        this.purpose = purpose;
+        variants.forEach((variant) -> addVariant(variant, null, cultureId));
     }
 
-    public static @Nullable BuildingType createFromJson(ResourceManager resourceManager, ResourceLocation buildingRl, String cultureId) {
+    public static @NotNull BuildingType createFromDataPack(String cultureId, ResourceLocation buildingRl, ResourceManager resourceManager) {
+        String path = buildingRl.getPath();
+        String buildingTypeId = path.substring(path.lastIndexOf('/') + 1, path.lastIndexOf('.'));
+        CultureFileHelper helper = new CultureFileHelper(cultureId, buildingTypeId + ".json", buildingRl, "building type");
         try (Reader reader = resourceManager.getResource(buildingRl).orElseThrow().openAsReader()) {
-            String fileName = buildingRl.toDebugFileName();
-            String path = buildingRl.getPath();
-            String buildTypeId = path.substring(path.lastIndexOf('/') + 1, path.lastIndexOf('.'));
-            JsonObject buildTypeJson = GsonHelper.parse(reader);
-            // Id
-            String id = buildTypeJson.get("id").getAsString();
-            if (id == null || !id.equals(buildTypeId)) {
-                throw new CorruptedCultureException(cultureId, "BuildingType id '%s' does not match its json file name ('%s')".formatted(id, buildTypeId));
-            }
-            // Purpose
-            String purposeId = buildTypeJson.get("category").getAsString().toUpperCase();
+            JsonObject rootJson = GsonHelper.parse(reader);
+            /* Reading data shared by all types (roads, buildings...) : id, weight, levels... */
+            BuildTypeCommonJsonData commonData = readJsonCommonData(cultureId, buildingTypeId, rootJson, helper, resourceManager);
+            /* Reading building purpose */
+            String purposeId = helper.getString(rootJson, "category").toUpperCase();
             BuildingPurpose purpose = null;
             try {
                 purpose = BuildingPurpose.valueOf(purposeId);
             } catch (Exception e) {
-                throw new CorruptedCultureException(cultureId, "BuildingType '%s' has undefined or wrong building category".formatted(id));
+                helper.throwInvalidField("category", "Unknown building category.");
             }
-            // Icon item
-            JsonElement iconItemJson = buildTypeJson.get("icon");
-            Item iconItem;
-            if (iconItemJson != null) {
-                iconItem = Ouat.COMMON.getItem(new ResourceLocation(iconItemJson.getAsString()));
-            } else {
-                iconItem = Items.OAK_PLANKS;
-            }
-            // Clutter
-            int clutter = buildTypeJson.get("weight").getAsInt();
-            if (clutter < 0) {
-                throw new CorruptedCultureException(cultureId, fileName, "building type weight", "weight can not be negative");
-            }
-            // Levels
-            List<BuildLevel> levels = new ArrayList<>();
-            var levelArray = buildTypeJson.getAsJsonArray("levels");
-            if (levelArray == null) {
-                throw new CorruptedCultureException(cultureId, fileName, "building type levels", "Missing levels definition");
-            }
-            int levelIndex = 1;
-            for (int i = 0; i < levelArray.size(); ++i) {
-                var jsonObject = levelArray.get(i).getAsJsonObject();
-                int eraNeeded = jsonObject.get("required_era").getAsInt();
-                if (eraNeeded < 0) { // Error : can not be negative
-                    throw new CorruptedCultureException(cultureId, fileName, "building type level required_era", "required_era can not be negative");
-                }
-                /*
-                int xpGain = jsonObject.get("xp_gain").getAsInt();
-                if (xpGain <= 0) { // Error : can not be null or negative
-                    throw new CorruptedCultureException(cultureId, fileName, "building type level xp_gain", "xp_gain can not be negative");
-                }
-                 */
-                ++levelIndex;
-            }
-            return new BuildingType(buildTypeId, clutter, levels, purpose, iconItem);
-        } catch (IOException e) {
-
-            throw new CorruptedCultureException(cultureId, "Could not read a build_type json file. Check the file at : " + buildingRl);
+            /* Reading icon item */
+            Item iconItem = helper.getItem(rootJson, "item");
+            /* Removing variant shape since it's not used by buildings */
+            List<BuildVariant> variants = new ArrayList<>();
+            commonData.variants().forEach((id, pair) -> variants.add(pair.getA()));
+            /* Finished reading building type */
+            return new BuildingType(buildingTypeId, commonData.weight(), commonData.levels(), purpose, iconItem, variants, cultureId);
+        } catch (NoSuchElementException | IOException | JsonParseException e) {
+            throw new CorruptedCultureException(cultureId, "Could not read building type file '" + buildingTypeId + "'.json, supposed to be located at " + Utils.serverRlToDebug(buildingRl) + ". " + e.getMessage());
         }
     }
-
 
     public BuildVariant getRandomVariant(RandomSource rand) {
         BuildVariant[] variants = this.getBuildVariants().values().toArray(new BuildVariant[0]);

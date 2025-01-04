@@ -1,0 +1,28 @@
+{
+  "id": "cemetery",
+  "category": "decoration",
+  "weight": 0,
+  "levels": [
+    {
+      "required_era": 1
+    }
+  ],
+  "item": "minecraft:bone",
+  "variants": [
+    {
+      "name": "variant1",
+      "size": {
+        "x": 8,
+        "y": 11,
+        "z": 9
+      },
+      "levels": [
+        {
+          "schematic": "small_house",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

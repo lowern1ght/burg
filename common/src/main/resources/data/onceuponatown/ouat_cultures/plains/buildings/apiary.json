@@ -1,0 +1,28 @@
+{
+  "id": "apiary",
+  "category": "work",
+  "weight": 10,
+  "levels": [
+    {
+      "required_era": 1
+    }
+  ],
+  "item": "minecraft:honeycomb",
+  "variants": [
+    {
+      "name": "variant1",
+      "size": {
+        "x": 18,
+        "y": 11,
+        "z": 15
+      },
+      "levels": [
+        {
+          "schematic": "beekeeper_house",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -15,7 +15,7 @@ import org.dawnoftime.onceuponatown.client.model.layer.NpcClothesLayer;
 import org.dawnoftime.onceuponatown.entity.Npc;
 
 public class NpcRenderer extends HumanoidMobRenderer<Npc, NpcModel<Npc>> {
-    private static final ResourceLocation NPC_BASE_SKIN = Ouat.modResource("cultures/plains/skins/underclothes.png");
+    private static final ResourceLocation NPC_BASE_SKIN = Ouat.modResource("textures/entity/npc/default_skin.png");
 
     public NpcRenderer(EntityRendererProvider.Context context) {
         super(context, new NpcModel<>(context.bakeLayer(NpcModel.LAYER_LOCATION)), 0.5F);
@@ -23,7 +23,7 @@ public class NpcRenderer extends HumanoidMobRenderer<Npc, NpcModel<Npc>> {
         // TODO : make an armor that fit well the npc body, especially the head
         this.addLayer(new HumanoidArmorLayer<>(this, new HumanoidArmorModel<>(context.bakeLayer(ModelLayers.PLAYER_INNER_ARMOR)), new HumanoidArmorModel<>(context.bakeLayer(ModelLayers.PLAYER_OUTER_ARMOR)), context.getModelManager()));
         //this.addLayer(new CrossedArmsItemLayer<>(this, pContext.getItemInHandRenderer()));
-        this.addLayer(new NpcArrowLayer<>( context, this));
+        this.addLayer(new NpcArrowLayer<>(context, this));
     }
 
     public void render(Npc npc, float entityYaw, float partialTicks, PoseStack matrixStack, MultiBufferSource buffer, int packedLight) {
@@ -42,6 +42,7 @@ public class NpcRenderer extends HumanoidMobRenderer<Npc, NpcModel<Npc>> {
     }
 
     public ResourceLocation getTextureLocation(Npc npc) {
+        //TODO return the culture specific base skin
         return NPC_BASE_SKIN;
     }
 }

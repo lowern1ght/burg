@@ -69,7 +69,7 @@ public abstract class BaseCCScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        if(scrollMaxOffset == 0){
+        if (scrollMaxOffset == 0) {
             return false;
         }
         if (delta < 0 && scrollOffset < scrollMaxOffset) {
@@ -85,13 +85,13 @@ public abstract class BaseCCScreen extends Screen {
         for (int i = 0; i < widgets.size(); i++) {
             AbstractWidget[] rowWidgets = widgets.get(i);
             int widgetY = i * WIDGET_HEIGHT - scrollOffset;
-            if(widgetY + WIDGET_HEIGHT > 0 && widgetY < WIDGET_ZONE_HEIGHT){
-                for (AbstractWidget widget : rowWidgets){
+            if (widgetY + WIDGET_HEIGHT > 0 && widgetY < WIDGET_ZONE_HEIGHT) {
+                for (AbstractWidget widget : rowWidgets) {
                     widget.visible = true;
                     widget.setY(posY + WIDGET_ZONE_Y + widgetY);
                 }
-            }else{
-                for (AbstractWidget widget : rowWidgets){
+            } else {
+                for (AbstractWidget widget : rowWidgets) {
                     widget.visible = false;
                 }
             }
@@ -102,10 +102,11 @@ public abstract class BaseCCScreen extends Screen {
 
     /**
      * Adds a row to the screen that contains only a button.
+     *
      * @param buttonTextComponent Component that will be displayed on the button.
-     * @param onPress OnPress effect of the button.
+     * @param onPress             OnPress effect of the button.
      */
-    protected void createButton(Component buttonTextComponent, Button.OnPress onPress){
+    protected void createButton(Component buttonTextComponent, Button.OnPress onPress) {
         Button button = Button.builder(buttonTextComponent, onPress).bounds(posX + WIDGET_ZONE_X, 0, WIDGET_ZONE_WIDTH, WIDGET_HEIGHT).build();
         widgets.add(new AbstractWidget[]{button});
         this.addRenderableWidget(button);
@@ -113,11 +114,12 @@ public abstract class BaseCCScreen extends Screen {
 
     /**
      * Adds a row to the screen that an editBox, with a confirm button next to it.
+     *
      * @param editBoxHintComponent Component that will be displayed in the editBox to help the user knowing what to write.
-     * @param onPressConfirm OnPress effect of the confirm button.
+     * @param onPressConfirm       OnPress effect of the confirm button.
      */
-    protected void createEditBoxAndConfirm(Component editBoxHintComponent, Button.OnPress onPressConfirm){
-        EditBox editBox = new EditBox(this.font, posX + WIDGET_ZONE_X + 1, 0, WIDGET_ZONE_WIDTH - WIDGET_HEIGHT - 2, WIDGET_HEIGHT - 2, Component.empty()){
+    protected void createEditBoxAndConfirm(Component editBoxHintComponent, Button.OnPress onPressConfirm) {
+        EditBox editBox = new EditBox(this.font, posX + WIDGET_ZONE_X + 1, 0, WIDGET_ZONE_WIDTH - WIDGET_HEIGHT - 2, WIDGET_HEIGHT - 2, Component.empty()) {
             // We must edit the setY function because for some reason, MC devs decided that the actual border of this widget should be out of its size...
             @Override
             public void setY(int y) {
@@ -145,7 +147,7 @@ public abstract class BaseCCScreen extends Screen {
         public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
             super.render(guiGraphics, mouseX, mouseY, partialTick);
             if (this.visible) {
-               guiGraphics.blit(BACKGROUND_TEXTURE, this.getX(), this.getY(), uOffset, vOffset, this.getWidth(), this.getHeight(), TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT);
+                guiGraphics.blit(BACKGROUND_TEXTURE, this.getX(), this.getY(), uOffset, vOffset, this.getWidth(), this.getHeight(), TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT);
             }
         }
     }

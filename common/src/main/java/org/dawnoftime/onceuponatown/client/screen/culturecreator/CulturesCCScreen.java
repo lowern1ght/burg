@@ -16,7 +16,7 @@ public class CulturesCCScreen extends BaseCCScreen {
 
     @Override
     public void initWidgets() {
-        for (String culture : cultures){
+        for (String culture : cultures) {
             this.createButton(Component.literal(culture), btn -> {
 
             });

@@ -1,0 +1,54 @@
+{
+  "id": "wheat_farm",
+  "category": "work",
+  "weight": 10,
+  "levels": [
+    {
+      "required_era": 1,
+      "dwelling_slots": 3,
+      "working_slots": [
+        {
+          "profession": "farmer",
+          "max_level": 1
+        },
+        {
+          "profession": "farmer",
+          "max_level": 1
+        }
+      ]
+    }
+  ],
+  "item": "minecraft:wheat",
+  "variants": [
+    {
+      "name": "small",
+      "size": {
+        "x": 17,
+        "y": 11,
+        "z": 10
+      },
+      "levels": [
+        {
+          "schematic": "wheat_farm_small",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "oak_frame",
+      "size": {
+        "x": 9,
+        "y": 4,
+        "z": 7
+      },
+      "levels": [
+        {
+          "schematic": "wheat_farm_oak_frame",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

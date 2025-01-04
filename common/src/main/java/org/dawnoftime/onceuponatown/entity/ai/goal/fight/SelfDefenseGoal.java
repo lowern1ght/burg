@@ -26,14 +26,14 @@ public class SelfDefenseGoal extends MeleeAttackGoal {
     @Override
     public void start() {
         super.start();
-        Npc npc = (Npc)this.mob;
+        Npc npc = (Npc) this.mob;
         npc.holdInMainHand(npc.getMeleeWeapon());
     }
 
     @Override
     public void stop() {
         super.stop();
-        ((Npc)this.mob).freeMainHand();
+        ((Npc) this.mob).freeMainHand();
     }
 
     private boolean isHurtEnough() {

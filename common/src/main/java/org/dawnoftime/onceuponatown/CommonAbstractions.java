@@ -71,15 +71,18 @@ public interface CommonAbstractions {
 
     /**
      * Function that returns an ArmPose if the item in hand has a custom animation. Returns null otherwise.
+     *
      * @param entity LivingEntity that is holding the ItemStack.
-     * @param hand Hand in which the ItemStack is hold.
-     * @param stack ItemStack of the Item being used by the entity.
+     * @param hand   Hand in which the ItemStack is hold.
+     * @param stack  ItemStack of the Item being used by the entity.
      * @return An ArmPose if a custom animation is defined for this item (modded items).
      */
-    @Nullable HumanoidModel.ArmPose getItemCustomArmPose(LivingEntity entity, InteractionHand hand, ItemStack stack);
+    @Nullable
+    HumanoidModel.ArmPose getItemCustomArmPose(LivingEntity entity, InteractionHand hand, ItemStack stack);
 
     /**
      * Function used to check whether an item can be used as a fishing rod, for example to render the position of the arms correctly.
+     *
      * @param itemStack to be checked.
      * @return True if this item can be used to fish.
      */
@@ -87,6 +90,7 @@ public interface CommonAbstractions {
 
     /**
      * Function used by the culture creator to get the path of the export folders.
+     *
      * @return The File corresponding to the folder .minecraft/config.
      */
     File getConfigFolder();

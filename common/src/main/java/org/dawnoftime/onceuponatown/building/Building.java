@@ -15,8 +15,8 @@ import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.structure.pieces.BuildingPiece;
 import org.dawnoftime.onceuponatown.town.generation.MapBlock;
 import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
-import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
 import org.dawnoftime.onceuponatown.town.generation.TownMapUtils.Corner;
+import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashSet;
@@ -129,7 +129,7 @@ public class Building extends NpcBuild {
     }
 
     public ResourceLocation getSchematicResourceLocation() {
-        return variant.getSchematicResourceLocation(this.getLevel());
+        return variant.getSchematicRl(this.getLevel());
     }
 
     @Override

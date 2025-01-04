@@ -20,7 +20,8 @@ public class S2COpenCulturesCCScreenPacket implements IOuatPacket {
     private static final ResourceLocation ID = modResource("s2c_open_cultures_screen_cc");
 
     private final List<String> cultureIds;
-    private S2COpenCulturesCCScreenPacket(List<String> cultureIds){
+
+    private S2COpenCulturesCCScreenPacket(List<String> cultureIds) {
         this.cultureIds = cultureIds;
     }
 

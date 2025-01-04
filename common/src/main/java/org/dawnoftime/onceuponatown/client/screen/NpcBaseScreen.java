@@ -1,6 +1,5 @@
 package org.dawnoftime.onceuponatown.client.screen;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -39,7 +38,8 @@ public abstract class NpcBaseScreen<T extends AbstractContainerMenu> extends Abs
     private static final int MAX_TABS = 10;
     private static final int[] TABS_X = {-32, -32, -32, -32, -32, 280, 280, 280, 280, 280};
     private static final int[] TABS_Y = {3, 30, 57, 84, 111, 3, 30, 57, 84, 111};
-    private final List<DrawnTab> drawnTabs = new ArrayList<>();;
+    private final List<DrawnTab> drawnTabs = new ArrayList<>();
+    ;
     private final NpcTab activeTab;
     protected Npc npc;
 
@@ -79,7 +79,7 @@ public abstract class NpcBaseScreen<T extends AbstractContainerMenu> extends Abs
         if (this.npc != null) {
             renderNpcDoll(graphics, mouseX, mouseY);
         }
-        graphics.pose().translate(0,0,100);
+        graphics.pose().translate(0, 0, 100);
         graphics.blit(CITIZEN_HEADER_TEXTURE, this.leftPos, this.topPos - NPC_HEADER_TEXTURE_HEIGHT + 7 + 48, 0, 48, NPC_HEADER_TEXTURE_WIDTH, 8, NPC_HEADER_TEXTURE_WIDTH, NPC_HEADER_TEXTURE_HEIGHT);
         graphics.drawString(this.font, Component.literal(npcDescription), leftPos + 54, topPos - 48, 4210752, false);
         graphics.blit(CITIZEN_HEADER_TEXTURE, this.leftPos + 54, this.topPos - 35, 0, 56, 9, 9, NPC_HEADER_TEXTURE_WIDTH, NPC_HEADER_TEXTURE_HEIGHT);
@@ -94,17 +94,17 @@ public abstract class NpcBaseScreen<T extends AbstractContainerMenu> extends Abs
             TODO: FIX THIS HORROR !!!
          */
         int b = switch (this.minecraft.options.guiScale().get()) {
-                case 1 -> -450;
-                case 2 -> -110;
-                case 3 -> -10;
-                case 4 -> 35;
-                case 5 -> 45;
-                case 6 -> 35;
-                default -> 30;
-            };
+            case 1 -> -450;
+            case 2 -> -110;
+            case 3 -> -10;
+            case 4 -> 35;
+            case 5 -> 45;
+            case 6 -> 35;
+            default -> 30;
+        };
         int f = 30;
-        float lookAtY = this.topPos + b - (float)Math.log((mouseY)) * f;
-        InventoryScreen.renderEntityInInventoryFollowsMouse(graphics,leftPos + CITIZEN_DOLL_X ,topPos + CITIZEN_DOLL_Y, CITIZEN_DOLL_SCALE, lookAtX, lookAtY, this.npc);
+        float lookAtY = this.topPos + b - (float) Math.log((mouseY)) * f;
+        InventoryScreen.renderEntityInInventoryFollowsMouse(graphics, leftPos + CITIZEN_DOLL_X, topPos + CITIZEN_DOLL_Y, CITIZEN_DOLL_SCALE, lookAtX, lookAtY, this.npc);
     }
 
     protected void renderTabs(GuiGraphics graphics) {
@@ -114,10 +114,10 @@ public abstract class NpcBaseScreen<T extends AbstractContainerMenu> extends Abs
     private void renderTab(GuiGraphics graphics, NpcTab tab, int tabX, int tabY) {
         int inactiveTabFoldOffsetX = 2;
         if (this.activeTab == tab) {
-            graphics.blit(EMPTY_TABS_TEXTURE, this.leftPos + tabX , this.topPos + tabY, ACTIVE_TAB_OFFSET_X, ACTIVE_TAB_OFFSET_Y, ACTIVE_TAB_WIDTH, ACTIVE_TAB_HEIGHT, EMPTY_TABS_TEXTURE_WIDTH, EMPTY_TABS_TEXTURE_HEIGHT);
+            graphics.blit(EMPTY_TABS_TEXTURE, this.leftPos + tabX, this.topPos + tabY, ACTIVE_TAB_OFFSET_X, ACTIVE_TAB_OFFSET_Y, ACTIVE_TAB_WIDTH, ACTIVE_TAB_HEIGHT, EMPTY_TABS_TEXTURE_WIDTH, EMPTY_TABS_TEXTURE_HEIGHT);
             graphics.blit(tab.iconTexture, this.leftPos + tabX + tab.iconOffsetX - 1, this.topPos + tabY + tab.iconOffsetY, 0, 0, tab.iconWidth, tab.iconHeight, tab.iconWidth, tab.iconHeight);
         } else {
-            graphics.blit(EMPTY_TABS_TEXTURE, this.leftPos + tabX + inactiveTabFoldOffsetX , this.topPos + tabY, INACTIVE_TAB_OFFSET_X, INACTIVE_TAB_OFFSET_Y, INACTIVE_TAB_WIDTH, INACTIVE_TAB_HEIGHT, EMPTY_TABS_TEXTURE_WIDTH, EMPTY_TABS_TEXTURE_HEIGHT);
+            graphics.blit(EMPTY_TABS_TEXTURE, this.leftPos + tabX + inactiveTabFoldOffsetX, this.topPos + tabY, INACTIVE_TAB_OFFSET_X, INACTIVE_TAB_OFFSET_Y, INACTIVE_TAB_WIDTH, INACTIVE_TAB_HEIGHT, EMPTY_TABS_TEXTURE_WIDTH, EMPTY_TABS_TEXTURE_HEIGHT);
             graphics.blit(tab.iconTexture, this.leftPos + tabX + tab.iconOffsetX, this.topPos + tabY + tab.iconOffsetY, 0, 0, tab.iconWidth, tab.iconHeight, tab.iconWidth, tab.iconHeight);
         }
     }
@@ -125,10 +125,10 @@ public abstract class NpcBaseScreen<T extends AbstractContainerMenu> extends Abs
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         for (DrawnTab drawnTab : this.drawnTabs) {
             if ((drawnTab.tab != this.activeTab)
-            && (mouseX >= leftPos + drawnTab.x)
-            && (mouseX <= leftPos + drawnTab.x + INACTIVE_TAB_WIDTH + 2)
-            && (mouseY >= topPos + drawnTab.y)
-            && (mouseY <= topPos+ drawnTab.y + INACTIVE_TAB_HEIGHT)) {
+                    && (mouseX >= leftPos + drawnTab.x)
+                    && (mouseX <= leftPos + drawnTab.x + INACTIVE_TAB_WIDTH + 2)
+                    && (mouseY >= topPos + drawnTab.y)
+                    && (mouseY <= topPos + drawnTab.y + INACTIVE_TAB_HEIGHT)) {
                 Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
                 Ouat.CLIENT.sendToServer(new C2SChangeNpcTabPacket(drawnTab.tab.ordinal()));
             }
@@ -136,14 +136,15 @@ public abstract class NpcBaseScreen<T extends AbstractContainerMenu> extends Abs
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
-    private record DrawnTab(int index, NpcTab tab, int x, int y) {}
+    private record DrawnTab(int index, NpcTab tab, int x, int y) {
+    }
 
     public enum NpcTab {
         BUY(Ouat.modResource("textures/gui/tabs/buy_icon.png"), 14, 21, 11, 3),
         SELL(Ouat.modResource("textures/gui/tabs/sell_icon.png"), 14, 21, 11, 3),
-        QUESTS(Ouat.modResource("textures/gui/tabs/quests_icon.png"),15 ,12 ,10 ,7),
+        QUESTS(Ouat.modResource("textures/gui/tabs/quests_icon.png"), 15, 12, 10, 7),
         INFO(new ResourceLocation("textures/item/oak_sign.png"), 16, 16, 10, 5),
-        TRADE(Ouat.modResource("textures/item/emerald_pouch_full.png"), 16, 16, 10, 6);
+        TRADE(Ouat.modResource("textures/item/emerald_pouch.png"), 16, 16, 10, 6);
 
         public final ResourceLocation iconTexture;
         public final int iconWidth;

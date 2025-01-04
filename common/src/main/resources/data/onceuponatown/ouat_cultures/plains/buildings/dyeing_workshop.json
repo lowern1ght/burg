@@ -1,0 +1,28 @@
+{
+  "id": "dyeing_workshop",
+  "category": "work",
+  "weight": 10,
+  "levels": [
+    {
+      "required_era": 1
+    }
+  ],
+  "item": "minecraft:yellow_dye",
+  "variants": [
+    {
+      "name": "leather_shop",
+      "size": {
+        "x": 14,
+        "y": 9,
+        "z": 9
+      },
+      "levels": [
+        {
+          "schematic": "leather_shop",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,11 +1,11 @@
 package org.dawnoftime.onceuponatown.network;
 
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkEvent;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
-import net.minecraft.resources.ResourceLocation;
 import org.apache.logging.log4j.util.TriConsumer;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.network.culturecreator.C2SRequestCultureCCPacket;
@@ -17,7 +17,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class PacketHandler {
-    public static final SimpleChannel CHANNEL =  NetworkRegistry.newSimpleChannel(new ResourceLocation(Ouat.MOD_ID, "channel"), () -> "0", "0"::equals, "0"::equals);
+    public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(new ResourceLocation(Ouat.MOD_ID, "channel"), () -> "0", "0"::equals, "0"::equals);
 
     public static void init() {
         int i = 0;
@@ -38,7 +38,7 @@ public class PacketHandler {
     private static <T> BiConsumer<T, Supplier<NetworkEvent.Context>> makeC2SHandler(TriConsumer<T, MinecraftServer, ServerPlayer> handler) {
         return (m, contextSupplier) -> {
             ServerPlayer player = contextSupplier.get().getSender();
-            if(player != null){
+            if (player != null) {
                 handler.accept(m, player.getServer(), contextSupplier.get().getSender());
                 contextSupplier.get().setPacketHandled(true);
             }

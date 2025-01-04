@@ -13,6 +13,7 @@ public class ConstructionUtils {
 
     /**
      * Sort the list of blocks in the structure
+     *
      * @param blockList The list of blocks in the structure
      */
     public static void sortBlocks(List<BlockInfo> blockList) {

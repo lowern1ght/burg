@@ -13,5 +13,6 @@ public class Specialization {
         this.id = id;
     }
 
-    private record Step(int scoreNeeded, List<BuildingType> unlockedBuildings) {}
+    private record Step(int scoreNeeded, List<BuildingType> unlockedBuildings) {
+    }
 }

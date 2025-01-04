@@ -1,0 +1,89 @@
+{
+  "id": "big_house",
+  "category": "dwelling",
+  "weight": 7,
+  "levels": [
+    {
+      "required_era": 1,
+      "dwelling_slots": 4
+    }
+  ],
+  "item": "minecraft:red_bed",
+  "variants": [
+    {
+      "name": "standard",
+      "size": {
+        "x": 13,
+        "y": 11,
+        "z": 11
+      },
+      "levels": [
+        {
+          "schematic": "big_house",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "double_deck",
+      "size": {
+        "x": 7,
+        "y": 13,
+        "z": 15
+      },
+      "levels": [
+        {
+          "schematic": "big_house_double_deck",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "front",
+      "size": {
+        "x": 9,
+        "y": 11,
+        "z": 8
+      },
+      "levels": [
+        {
+          "schematic": "big_house_front",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "stand",
+      "size": {
+        "x": 15,
+        "y": 11,
+        "z": 10
+      },
+      "levels": [
+        {
+          "schematic": "big_house_stand",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "medium_house",
+      "size": {
+        "x": 11,
+        "y": 11,
+        "z": 10
+      },
+      "levels": [
+        {
+          "schematic": "medium_house",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

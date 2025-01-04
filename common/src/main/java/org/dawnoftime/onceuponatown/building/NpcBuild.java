@@ -1,15 +1,15 @@
 package org.dawnoftime.onceuponatown.building;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
 import org.dawnoftime.onceuponatown.building.type.BuildType;
-import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.level.block.Rotation;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.town.generation.MapBlock;
 import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
@@ -43,7 +43,7 @@ public abstract class NpcBuild implements MapBlock {
      * @param buildType BuildType of this Build.
      * @param level     Starting level for this Build. Has to be between 1 and the maximum level defined by the BuildType.
      */
-    public NpcBuild(BuildType buildType, int level) {
+    protected NpcBuild(BuildType buildType, int level) {
         this.buildType = buildType;
         this.level = level;
     }
@@ -125,8 +125,9 @@ public abstract class NpcBuild implements MapBlock {
     }
 
     /**
-     * Finds a suitable y position in order to place this Build on a BuildingBud. <br>
+     * Finds a suitable y position in era to place this Build on a BuildingBud. <br>
      * For example, Buildings will try to place themselves so that their main entrance is connected to a street.
+     *
      * @param originPos BlockPos to place this Build at. Only x and z are important here, since this method will find the correct y.
      * @param dir       Direction being evaluated.
      */
@@ -216,7 +217,7 @@ public abstract class NpcBuild implements MapBlock {
      * Determines if this Build can be placed on a Bud. <br>
      * For example, it will test if the terrain is flat enough.
      *
-     * @param town      Town to place this Build in.
+     * @param town     Town to place this Build in.
      * @param buildBud Candidate BuildBud to place this Build at.
      * @param dir      Direction of the Road to which this Build will be connected.
      */

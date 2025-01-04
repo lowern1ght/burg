@@ -26,7 +26,7 @@ public record C2SSelectTradePacket(int dealIndex) implements IOuatPacket {
     @Override
     public ResourceLocation getFabricId() {
         return ID;
-}
+    }
 
     public void handle(MinecraftServer server, ServerPlayer player) {
         AbstractContainerMenu containerMenu = player.containerMenu;

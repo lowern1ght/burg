@@ -41,10 +41,10 @@ public class DirtTowerEscapeGoal extends NpcGoal {
         BlockPos bellowPos = npc.blockPosition().below();
 
         npc.getLookControl().setLookAt(bellowPos.getX(), bellowPos.getY(), bellowPos.getZ());
-        if(npc.onGround() && standingStill){
+        if (npc.onGround() && standingStill) {
             npc.getJumpControl().jump();
         }
-        if(!npc.level().getBlockState(bellowPos).isSolid() && standingStill) {
+        if (!npc.level().getBlockState(bellowPos).isSolid() && standingStill) {
             npc.swing(InteractionHand.MAIN_HAND);
             npc.level().setBlock(bellowPos, Blocks.DIRT.defaultBlockState(), 2);
             npc.playSound(Blocks.DIRT.defaultBlockState().getSoundType().getPlaceSound());
