@@ -20,7 +20,9 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.NpcBuild;
+import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
+import org.dawnoftime.onceuponatown.construction.BlockInfo;
 import org.dawnoftime.onceuponatown.construction.ConstructionProject;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 import org.dawnoftime.onceuponatown.culture.Culture;
@@ -198,12 +200,20 @@ public class Town extends ProtoTown {
         }
     }
 
-    void softDelete() {
+    void unregister() {
 
     }
 
-    void hardDelete() {
-
+    void destroy() {
+        var builds = getBuilds();
+        for (NpcBuild build : builds) {
+            BlockPos.MutableBlockPos cursor = new BlockPos(0, 0, 0).mutable();
+            SchematicContent schema = build.getSchematicContent(level.getServer().getResourceManager());
+            for (BlockInfo block : schema.getBlocks()) {
+                cursor.set(build.getOriginPos().getX(), build.getOriginPos().getY(), build.getOriginPos().getZ());
+                level.destroyBlock(cursor.move(block.pos()),false);
+            }
+        }
     }
 
     private void collectProduction() {

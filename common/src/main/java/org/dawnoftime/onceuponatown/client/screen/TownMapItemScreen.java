@@ -108,7 +108,7 @@ public class TownMapItemScreen extends Screen {
     }
 
     private MapElement createBuildingMapElement(CompoundTag tag, BlockPos NWCorner) {
-        var nameAndLevel = Ouat.translatable(tag.getString("BuildType")).append(" ")
+        var nameAndLevel = Ouat.translatable("building", tag.getString("BuildType")).append(" ")
                 .append(Component.literal(Utils.intToRoman(tag.getInt("Level"))).withStyle(ChatFormatting.YELLOW));
         var originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
         var direction = Component.translatable("direction").append(" : " + tag.getString("Direction")).withStyle(ChatFormatting.GRAY);

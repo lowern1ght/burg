@@ -15,4 +15,8 @@ public class Specialization {
 
     private record Step(int scoreNeeded, List<BuildingType> unlockedBuildings) {
     }
+
+    public String getId() {
+        return id;
+    }
 }

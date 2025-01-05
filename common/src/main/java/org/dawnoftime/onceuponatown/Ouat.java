@@ -25,8 +25,8 @@ public class Ouat {
         return new ResourceLocation(MOD_ID, name);
     }
 
-    public static MutableComponent translatable(String key, Object... args) {
-        return Component.translatable(MOD_ABBREVIATION + "." + key, args);
+    public static MutableComponent translatable(String prefix, String key, Object... args) {
+        return Component.translatable(MOD_ID + "." + prefix + "." + key, args);
     }
 
     /**
