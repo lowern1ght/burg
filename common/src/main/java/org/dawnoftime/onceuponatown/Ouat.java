@@ -26,7 +26,11 @@ public class Ouat {
     }
 
     public static MutableComponent translatable(String prefix, String key, Object... args) {
-        return Component.translatable(MOD_ID + "." + prefix + "." + key, args);
+        return translatable(prefix + "." + key, args);
+    }
+
+    public static MutableComponent translatable(String key, Object... args) {
+        return Component.translatable(MOD_ID + "." + key, args);
     }
 
     /**
@@ -60,11 +64,12 @@ public class Ouat {
      * Sends a chat message to a specific player.
      *
      * @param player The player who will receive the message.
-     * @param translationKey The translation key for the message, defined in the language files.
+     * @param prefix The translation prefix for the message.
+     * @param key The translation key for the message, defined in the language files.
      * @param args Optional arguments for message formatting, replacing placeholders in the translation key.
      */
-    public static void clientChat(Player player, String translationKey, Object... args) {
-        Component message = Ouat.translatable(translationKey, args);
+    public static void clientChat(Player player, String prefix, String key, Object... args) {
+        Component message = Ouat.translatable(prefix, key, args);
         COMMON.sendToClient(player, S2CPlayerChatMessagePacket.create(message));
     }
 

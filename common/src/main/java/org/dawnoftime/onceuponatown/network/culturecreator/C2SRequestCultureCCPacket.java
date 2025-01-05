@@ -37,11 +37,11 @@ public record C2SRequestCultureCCPacket(String cultureId) implements IOuatPacket
                 .resolve(MOD_ID)
                 .resolve(cultureId);
         try {
-            Ouat.clientChat(player, "cc_error_culture_folder");
+            Ouat.clientChat(player, "cc", "error_culture_folder");
             Files.createDirectories(newCultureFolder);
             Ouat.COMMON.sendToClient(player, S2COpenCultureCCScreenPacket.create(cultureId));
         } catch (IOException e) {
-            Ouat.clientChat(player, "cc_error_culture_folder");
+            Ouat.clientChat(player, "cc", "error_culture_folder");
             Ouat.debug("An error occurred while reading a culture file : " + e);
         }
     }

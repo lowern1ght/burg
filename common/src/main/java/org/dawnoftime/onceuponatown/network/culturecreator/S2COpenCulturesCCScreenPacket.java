@@ -36,7 +36,7 @@ public class S2COpenCulturesCCScreenPacket implements IOuatPacket {
                     cultureIds.add(subDir.getFileName().toString());
                 }
             }catch (IOException e) {
-                Ouat.clientChat(player, "cc_error_cultures_folder");
+                Ouat.clientChat(player, "cc", "error_cultures_folder");
                 Ouat.debug("An error occurred while reading a culture file : " + e);
             }
         }
