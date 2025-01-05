@@ -3,7 +3,6 @@ package org.dawnoftime.onceuponatown.network.culturecreator;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.screen.culturecreator.CulturesCCScreen;
@@ -64,9 +63,7 @@ public class S2COpenCulturesCCScreenPacket implements IOuatPacket {
 
     public static class Handler {
         public static void handle(S2COpenCulturesCCScreenPacket packet) {
-            Minecraft.getInstance().execute(() -> {
-                Minecraft.getInstance().setScreen(new CulturesCCScreen(packet));
-            });
+            Minecraft.getInstance().execute(() -> Minecraft.getInstance().setScreen(new CulturesCCScreen(packet)));
         }
     }
 }
