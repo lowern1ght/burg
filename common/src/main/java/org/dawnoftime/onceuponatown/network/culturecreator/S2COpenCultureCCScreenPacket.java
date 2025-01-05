@@ -8,16 +8,13 @@ import net.minecraft.resources.ResourceLocation;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.network.IOuatPacket;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
-import static org.dawnoftime.onceuponatown.culture.CultureManager.CULTURE_JSON_FILE_NAME;
+import static org.dawnoftime.onceuponatown.culture.ServerCultures.CULTURE_JSON_FILE_NAME;
 
 public class S2COpenCultureCCScreenPacket implements IOuatPacket {
     private static final ResourceLocation ID = modResource("s2c_open_culture_screen_cc");
@@ -60,7 +57,7 @@ public class S2COpenCultureCCScreenPacket implements IOuatPacket {
     public static class Handler {
         public static void handle(S2COpenCultureCCScreenPacket packet) {
             Minecraft.getInstance().execute(() -> {
-                Minecraft.getInstance().setScreen(new CultureCCScreen(packet));
+                //Minecraft.getInstance().setScreen(new CultureCCScreen(packet));
             });
         }
     }

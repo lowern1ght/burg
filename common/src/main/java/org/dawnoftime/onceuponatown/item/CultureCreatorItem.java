@@ -21,7 +21,7 @@ public class CultureCreatorItem extends Item {
         ItemStack stack = player.getItemInHand(hand);
         if (!level.isClientSide()) {
             //TODO Add condition to check if the user is ADMIN !
-            Ouat.COMMON.sendToClient(player, S2COpenCulturesCCScreenPacket.create());
+            Ouat.COMMON.sendToClient(player, S2COpenCulturesCCScreenPacket.create(player));
         }
         return InteractionResultHolder.pass(stack);
     }

@@ -3,6 +3,8 @@ package org.dawnoftime.onceuponatown.network.culturecreator;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.screen.culturecreator.CulturesCCScreen;
 import org.dawnoftime.onceuponatown.network.IOuatPacket;
@@ -25,7 +27,7 @@ public class S2COpenCulturesCCScreenPacket implements IOuatPacket {
         this.cultureIds = cultureIds;
     }
 
-    public static S2COpenCulturesCCScreenPacket create(){
+    public static S2COpenCulturesCCScreenPacket create(Player player){
         Path targetDir = Ouat.COMMON.getConfigFolder().toPath().resolve(MOD_ID);
         List<String> cultureIds = new ArrayList<>();
         if (Files.isDirectory(targetDir)) {
@@ -34,7 +36,8 @@ public class S2COpenCulturesCCScreenPacket implements IOuatPacket {
                     cultureIds.add(subDir.getFileName().toString());
                 }
             }catch (IOException e) {
-                Ouat.error("An unexpected error occurred while reading the culture folders : " + e);
+                Ouat.clientChat(player, "cc_error_cultures_folder");
+                Ouat.debug("An error occurred while reading a culture file : " + e);
             }
         }
         return new S2COpenCulturesCCScreenPacket(cultureIds);

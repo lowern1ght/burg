@@ -30,6 +30,7 @@ public class PacketHandler {
         CHANNEL.registerMessage(i++, C2SRequestCultureCCPacket.class, C2SRequestCultureCCPacket::encode, C2SRequestCultureCCPacket::decode, makeC2SHandler(C2SRequestCultureCCPacket::handle));
 
         // Server to Client packets
+        CHANNEL.registerMessage(i++, S2CPlayerChatMessagePacket.class, S2CPlayerChatMessagePacket::encode, S2CPlayerChatMessagePacket::decode, makeS2CHandler(S2CPlayerChatMessagePacket.Handler::handle));
         CHANNEL.registerMessage(i++, S2COpenTownMapScreenPacket.class, S2COpenTownMapScreenPacket::encode, S2COpenTownMapScreenPacket::decode, makeS2CHandler(S2COpenTownMapScreenPacket.Handler::handle));
         CHANNEL.registerMessage(i++, S2COpenCulturesCCScreenPacket.class, S2COpenCulturesCCScreenPacket::encode, S2COpenCulturesCCScreenPacket::decode, makeS2CHandler(S2COpenCulturesCCScreenPacket.Handler::handle));
         CHANNEL.registerMessage(i++, S2COpenCultureCCScreenPacket.class, S2COpenCultureCCScreenPacket::encode, S2COpenCultureCCScreenPacket::decode, makeS2CHandler(S2COpenCultureCCScreenPacket.Handler::handle));
