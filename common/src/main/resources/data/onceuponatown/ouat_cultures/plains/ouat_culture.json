@@ -43,38 +43,63 @@
   "buildings_starter_pack": [
     {
       "id": "apiary",
-      "min": 0,
+      "min": 1,
+      "max": 1
+    },
+    {
+      "id": "training_camp",
+      "min": 1,
+      "max": 1
+    },
+    {
+      "id": "dyeing_workshop",
+      "min": 1,
       "max": 1
     },
     {
       "id": "barracks",
       "min": 1,
-      "max": 1
+      "max": 2
     },
     {
       "id": "big_house",
-      "min": 0,
-      "max": 1
+      "min": 1,
+      "max": 3
+    },
+    {
+      "id": "medium_house",
+      "min": 1,
+      "max": 2
+    },
+    {
+      "id": "small_house",
+      "min": 3,
+      "max": 5
     },
     {
       "id": "cowshed",
-      "min": 0,
-      "max": 1
+      "min": 1,
+      "max": 2
     },
     {
       "id": "fisherman_hut",
       "min": 1,
-      "max": 1
+      "max": 2
     },
     {
       "id": "garden",
-      "min": 0,
-      "max": 1
+      "min": 2,
+      "max": 4
+    },
+    {
+      "id": "pile_of_resources",
+      "min": 2,
+      "max": 4
     },
     {
       "id": "lumberjack_cabin",
-      "min": 1,
-      "max": 1
+      "min": 2,
+      "max": 2
     },
     {
       "id": "market",
@@ -88,13 +113,13 @@
     },
     {
       "id": "watchtower",
-      "min": 1,
-      "max": 1
+      "min": 2,
+      "max": 2
     },
     {
       "id": "wheat_farm",
-      "min": 0,
-      "max": 1
+      "min": 2,
+      "max": 2
     }
   ],
   "foods": [

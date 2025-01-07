@@ -10,30 +10,30 @@
   "item": "minecraft:grass",
   "variants": [
     {
-      "name": "bench",
+      "name": "lone_garden",
       "size": {
         "x": 14,
-        "y": 8,
+        "y": 7,
         "z": 13
       },
       "levels": [
         {
-          "schematic": "garden_bench",
+          "schematic": "lone_garden",
           "waypoints": [
           ]
         }
       ]
     },
     {
-      "name": "wheat_pile",
+      "name": "fountain_place",
       "size": {
-        "x": 10,
-        "y": 8,
-        "z": 6
+        "x": 13,
+        "y": 6,
+        "z": 13
       },
       "levels": [
         {
-          "schematic": "garden_wheat_pile",
+          "schematic": "fountain_place",
           "waypoints": [
           ]
         }

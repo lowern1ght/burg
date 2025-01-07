@@ -10,15 +10,30 @@
   "item": "minecraft:pumpkin_pie",
   "variants": [
     {
-      "name": "variant1",
+      "name": "big_inn",
       "size": {
-        "x": 25,
-        "y": 12,
-        "z": 21
+        "x": 22,
+        "y": 13,
+        "z": 27
       },
       "levels": [
         {
           "schematic": "big_inn",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "emerald_hotel",
+      "size": {
+        "x": 35,
+        "y": 26,
+        "z": 45
+      },
+      "levels": [
+        {
+          "schematic": "emerald_hotel",
           "waypoints": [
           ]
         }

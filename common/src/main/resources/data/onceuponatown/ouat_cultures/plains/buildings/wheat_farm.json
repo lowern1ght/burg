@@ -21,30 +21,15 @@
   "item": "minecraft:wheat",
   "variants": [
     {
-      "name": "small",
+      "name": "small_farm",
       "size": {
-        "x": 17,
+        "x": 19,
         "y": 11,
-        "z": 10
+        "z": 12
       },
       "levels": [
         {
-          "schematic": "wheat_farm_small",
-          "waypoints": [
-          ]
-        }
-      ]
-    },
-    {
-      "name": "oak_frame",
-      "size": {
-        "x": 9,
-        "y": 4,
-        "z": 7
-      },
-      "levels": [
-        {
-          "schematic": "wheat_farm_oak_frame",
+          "schematic": "small_farm",
           "waypoints": [
           ]
         }

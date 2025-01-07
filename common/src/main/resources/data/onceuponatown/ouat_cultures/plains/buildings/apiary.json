@@ -12,13 +12,13 @@
     {
       "name": "variant1",
       "size": {
-        "x": 18,
+        "x": 20,
         "y": 11,
-        "z": 15
+        "z": 17
       },
       "levels": [
         {
-          "schematic": "beekeeper_house",
+          "schematic": "beekeeper",
           "waypoints": [
           ]
         }

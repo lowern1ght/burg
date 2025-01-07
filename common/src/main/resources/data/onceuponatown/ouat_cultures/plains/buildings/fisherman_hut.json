@@ -17,15 +17,15 @@
   "item": "minecraft:fishing_rod",
   "variants": [
     {
-      "name": "fishery",
+      "name": "fishery_hut",
       "size": {
-        "x": 16,
+        "x": 18,
         "y": 8,
-        "z": 14
+        "z": 16
       },
       "levels": [
         {
-          "schematic": "fishery",
+          "schematic": "fishery_hut",
           "waypoints": [
           ]
         }

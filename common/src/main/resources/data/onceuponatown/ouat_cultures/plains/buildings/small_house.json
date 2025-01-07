@@ -11,11 +11,11 @@
   "item": "minecraft:white_bed",
   "variants": [
     {
-      "name": "variant1",
+      "name": "regular1",
       "size": {
-        "x": 8,
-        "y": 11,
-        "z": 9
+        "x": 10,
+        "y": 10,
+        "z": 10
       },
       "levels": [
         {
@@ -26,15 +26,15 @@
       ]
     },
     {
-      "name": "variant2",
+      "name": "regular2",
       "size": {
-        "x": 10,
-        "y": 10,
-        "z": 10
+        "x": 12,
+        "y": 9,
+        "z": 12
       },
       "levels": [
         {
-          "schematic": "small_house2",
+          "schematic": "small_house_2",
           "waypoints": [
           ]
         }
@@ -43,28 +43,13 @@
     {
       "name": "fancy",
       "size": {
-        "x": 14,
+        "x": 16,
         "y": 11,
-        "z": 10
+        "z": 12
       },
       "levels": [
         {
           "schematic": "small_house_fancy",
-          "waypoints": [
-          ]
-        }
-      ]
-    },
-    {
-      "name": "garden",
-      "size": {
-        "x": 14,
-        "y": 9,
-        "z": 8
-      },
-      "levels": [
-        {
-          "schematic": "small_house_garden",
           "waypoints": [
           ]
         }

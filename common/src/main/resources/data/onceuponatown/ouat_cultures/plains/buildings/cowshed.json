@@ -10,11 +10,11 @@
   "item": "minecraft:milk_bucket",
   "variants": [
     {
-      "name": "variant1",
+      "name": "cowshed",
       "size": {
-        "x": 16,
-        "y": 12,
-        "z": 11
+        "x": 14,
+        "y": 7,
+        "z": 16
       },
       "levels": [
         {
@@ -25,30 +25,30 @@
       ]
     },
     {
-      "name": "variant2",
+      "name": "cowshed_house",
       "size": {
-        "x": 12,
-        "y": 13,
-        "z": 15
+        "x": 18,
+        "y": 12,
+        "z": 14
       },
       "levels": [
         {
-          "schematic": "cowshed2",
+          "schematic": "cowshed_house",
           "waypoints": [
           ]
         }
       ]
     },
     {
-      "name": "small",
+      "name": "cowshed_house_2",
       "size": {
-        "x": 11,
-        "y": 7,
-        "z": 14
+        "x": 14,
+        "y": 12,
+        "z": 17
       },
       "levels": [
         {
-          "schematic": "cowshed_small",
+          "schematic": "cowshed_house_2",
           "waypoints": [
           ]
         }
