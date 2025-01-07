@@ -10,7 +10,7 @@
   "item": "minecraft:barrel",
   "variants": [
     {
-      "name": "lone_ressources",
+      "name": "lone_resources",
       "size": {
         "x": 16,
         "y": 4,
@@ -18,7 +18,22 @@
       },
       "levels": [
         {
-          "schematic": "lone_ressources",
+          "schematic": "lone_resources",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "lone_resources_2",
+      "size": {
+        "x": 16,
+        "y": 8,
+        "z": 13
+      },
+      "levels": [
+        {
+          "schematic": "lone_resources_2",
           "waypoints": [
           ]
         }

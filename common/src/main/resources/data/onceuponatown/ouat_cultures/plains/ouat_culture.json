@@ -44,7 +44,7 @@
     {
       "id": "apiary",
       "min": 1,
-      "max": 1
+      "max": 2
     },
     {
       "id": "training_camp",
@@ -74,7 +74,7 @@
     {
       "id": "small_house",
       "min": 3,
-      "max": 5
+      "max": 3
     },
     {
       "id": "cowshed",
@@ -89,12 +89,12 @@
     {
       "id": "garden",
       "min": 2,
-      "max": 4
+      "max": 3
     },
     {
       "id": "pile_of_resources",
       "min": 2,
-      "max": 4
+      "max": 3
     },
     {
       "id": "lumberjack_cabin",
@@ -118,6 +118,11 @@
     },
     {
       "id": "wheat_farm",
+      "min": 2,
+      "max": 2
+    },
+    {
+      "id": "well",
       "min": 2,
       "max": 2
     }
