@@ -12,28 +12,13 @@
     {
       "name": "big_church",
       "size": {
-        "x": 22,
-        "y": 32,
-        "z": 38
+        "x": 14,
+        "y": 27,
+        "z": 12
       },
       "levels": [
         {
-          "schematic": "big_church",
-          "waypoints": [
-          ]
-        }
-      ]
-    },
-    {
-      "name": "priest_house",
-      "size": {
-        "x": 17,
-        "y": 16,
-        "z": 16
-      },
-      "levels": [
-        {
-          "schematic": "priest_house",
+          "schematic": "watchtower",
           "waypoints": [
           ]
         }
