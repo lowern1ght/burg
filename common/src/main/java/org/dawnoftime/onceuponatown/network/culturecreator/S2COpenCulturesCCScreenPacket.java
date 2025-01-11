@@ -3,6 +3,7 @@ package org.dawnoftime.onceuponatown.network.culturecreator;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.screen.culturecreator.CulturesCCScreen;
@@ -35,7 +36,9 @@ public class S2COpenCulturesCCScreenPacket implements IOuatPacket {
                     cultureIds.add(subDir.getFileName().toString());
                 }
             }catch (IOException e) {
-                Ouat.clientChat(player, "cc", "error_cultures_folder");
+                if(player instanceof ServerPlayer serverPlayer){
+                    Ouat.clientChat(serverPlayer, "cc", "error_cultures_folder");
+                }
                 Ouat.debug("An error occurred while reading a culture file : " + e);
             }
         }

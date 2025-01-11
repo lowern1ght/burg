@@ -3,11 +3,10 @@ package org.dawnoftime.onceuponatown;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.server.level.ServerPlayer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.dawnoftime.onceuponatown.client.ClientAbstractions;
-import org.dawnoftime.onceuponatown.network.S2CPlayerChatMessagePacket;
 
 import java.util.ServiceLoader;
 
@@ -68,9 +67,8 @@ public class Ouat {
      * @param key The translation key for the message, defined in the language files.
      * @param args Optional arguments for message formatting, replacing placeholders in the translation key.
      */
-    public static void clientChat(Player player, String prefix, String key, Object... args) {
-        Component message = Ouat.translatable(prefix, key, args);
-        COMMON.sendToClient(player, S2CPlayerChatMessagePacket.create(message));
+    public static void clientChat(ServerPlayer player, String prefix, String key, Object... args) {
+        player.sendSystemMessage(Ouat.translatable(prefix, key, args));
     }
 
     /**

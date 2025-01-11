@@ -71,7 +71,7 @@ public class Road extends SliceBuild {
                 }
             }
             // If the road will stop growing, it should stop directly at the end of the adjacent Build.
-            int bonusSize = canGrow ? DEFAULT_ROAD_LENGTH : 0;
+            int bonusSize = canGrow ? MINI_ROAD_LENGTH : 0;
             int dirGrowth = this.getGrowthSize(town, bonusSize);
             if(dirGrowth > 0){
                 // Updating the originPos of the Road depending on the growth.
