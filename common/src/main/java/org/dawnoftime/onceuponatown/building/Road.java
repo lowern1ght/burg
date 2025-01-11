@@ -75,14 +75,14 @@ public class Road extends SliceBuild {
             int dirGrowth = this.getGrowthSize(town, bonusSize);
             if(dirGrowth > 0){
                 // Updating the originPos of the Road depending on the growth.
-                if (this.getDirection() == Direction.NORTH || this.getDirection() == Direction.WEST) {
-                    this.setOriginPos(this.getOriginPos().relative(this.getDirection(), dirGrowth));
+                if (this.getDirection() == Direction.SOUTH || this.getDirection() == Direction.EAST) {
+                    this.setOriginPos(this.getOriginPos().relative(this.getDirection().getOpposite(), dirGrowth));
                 }
                 // Updating the Road size which will also update the shape.
                 this.extendLength(dirGrowth);
+                // Lastly, special Buds will be added to the Town : bridge or stairs
+                town.updateTownMap(this);
             }
-            // Lastly, special Buds will be added to the Town : bridge or stairs
-            town.updateTownMap(this);
         }
     }
 
