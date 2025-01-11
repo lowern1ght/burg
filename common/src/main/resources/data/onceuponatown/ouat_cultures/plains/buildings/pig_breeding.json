@@ -12,13 +12,13 @@
     {
       "name": "variant1",
       "size": {
-        "x": 8,
-        "y": 11,
-        "z": 9
+        "x": 24,
+        "y": 9,
+        "z": 24
       },
       "levels": [
         {
-          "schematic": "small_house",
+          "schematic": "pig_field",
           "waypoints": [
           ]
         }

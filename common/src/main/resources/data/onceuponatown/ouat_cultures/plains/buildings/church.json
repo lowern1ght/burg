@@ -10,15 +10,15 @@
   "item": "minecraft:bell",
   "variants": [
     {
-      "name": "variant1",
+      "name": "big_church",
       "size": {
-        "x": 15,
-        "y": 19,
-        "z": 24
+        "x": 22,
+        "y": 32,
+        "z": 38
       },
       "levels": [
         {
-          "schematic": "church",
+          "schematic": "big_church",
           "waypoints": [
           ]
         }

@@ -10,30 +10,15 @@
   "item": "minecraft:bow",
   "variants": [
     {
-      "name": "soldier_house",
+      "name": "big_church",
       "size": {
-        "x": 13,
-        "y": 13,
-        "z": 13
+        "x": 14,
+        "y": 27,
+        "z": 12
       },
       "levels": [
         {
-          "schematic": "soldier_house",
-          "waypoints": [
-          ]
-        }
-      ]
-    },
-    {
-      "name": "soldier_house2",
-      "size": {
-        "x": 11,
-        "y": 11,
-        "z": 11
-      },
-      "levels": [
-        {
-          "schematic": "soldier_house2",
+          "schematic": "watchtower",
           "waypoints": [
           ]
         }

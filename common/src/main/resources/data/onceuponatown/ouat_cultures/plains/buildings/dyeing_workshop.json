@@ -12,9 +12,9 @@
     {
       "name": "leather_shop",
       "size": {
-        "x": 14,
+        "x": 16,
         "y": 9,
-        "z": 9
+        "z": 11
       },
       "levels": [
         {

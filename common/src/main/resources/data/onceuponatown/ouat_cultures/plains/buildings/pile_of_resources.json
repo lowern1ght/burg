@@ -10,15 +10,45 @@
   "item": "minecraft:barrel",
   "variants": [
     {
-      "name": "variant1",
+      "name": "lone_resources",
       "size": {
-        "x": 14,
+        "x": 16,
         "y": 4,
-        "z": 11
+        "z": 13
       },
       "levels": [
         {
-          "schematic": "pile_of_resources",
+          "schematic": "lone_resources",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "lone_resources_2",
+      "size": {
+        "x": 16,
+        "y": 8,
+        "z": 13
+      },
+      "levels": [
+        {
+          "schematic": "lone_resources_2",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "wild_spot",
+      "size": {
+        "x": 12,
+        "y": 7,
+        "z": 8
+      },
+      "levels": [
+        {
+          "schematic": "wild_spot",
           "waypoints": [
           ]
         }

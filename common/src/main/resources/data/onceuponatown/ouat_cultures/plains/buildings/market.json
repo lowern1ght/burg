@@ -10,45 +10,30 @@
   "item": "minecraft:emerald",
   "variants": [
     {
-      "name": "merchant_house",
+      "name": "merchant_shop",
       "size": {
-        "x": 15,
+        "x": 17,
         "y": 13,
-        "z": 12
-      },
-      "levels": [
-        {
-          "schematic": "merchant_house",
-          "waypoints": [
-          ]
-        }
-      ]
-    },
-    {
-      "name": "wandering_trader",
-      "size": {
-        "x": 20,
-        "y": 14,
         "z": 16
       },
       "levels": [
         {
-          "schematic": "wandering_house",
+          "schematic": "merchant_shop",
           "waypoints": [
           ]
         }
       ]
     },
     {
-      "name": "outdoor",
+      "name": "small_market",
       "size": {
         "x": 25,
-        "y": 8,
+        "y": 9,
         "z": 18
       },
       "levels": [
         {
-          "schematic": "market_outdoor",
+          "schematic": "small_market",
           "waypoints": [
           ]
         }

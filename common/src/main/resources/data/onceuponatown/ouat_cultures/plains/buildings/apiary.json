@@ -10,15 +10,30 @@
   "item": "minecraft:honeycomb",
   "variants": [
     {
-      "name": "variant1",
+      "name": "house",
       "size": {
-        "x": 18,
+        "x": 20,
         "y": 11,
-        "z": 15
+        "z": 17
       },
       "levels": [
         {
-          "schematic": "beekeeper_house",
+          "schematic": "beekeeper",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "field",
+      "size": {
+        "x": 22,
+        "y": 9,
+        "z": 21
+      },
+      "levels": [
+        {
+          "schematic": "bee_field",
           "waypoints": [
           ]
         }

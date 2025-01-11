@@ -7,18 +7,33 @@
       "required_era": 1
     }
   ],
-  "item": "minecraft:target",
+  "item": "minecraft:shield",
   "variants": [
     {
-      "name": "bow_training_camp",
+      "name": "soldier_house",
       "size": {
-        "x": 25,
-        "y": 8,
-        "z": 39
+        "x": 15,
+        "y": 13,
+        "z": 16
       },
       "levels": [
         {
-          "schematic": "bow_training_camp",
+          "schematic": "soldier_house",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "soldier_house_2",
+      "size": {
+        "x": 14,
+        "y": 15,
+        "z": 13
+      },
+      "levels": [
+        {
+          "schematic": "soldier_house_2",
           "waypoints": [
           ]
         }
