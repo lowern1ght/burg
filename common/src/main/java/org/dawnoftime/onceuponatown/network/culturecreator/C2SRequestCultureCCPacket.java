@@ -32,17 +32,17 @@ public record C2SRequestCultureCCPacket(String cultureId) implements IOuatPacket
     }
 
     public void handle(MinecraftServer server, ServerPlayer player) {
-        Path newCultureFolder = Ouat.COMMON.getConfigFolder()
-                .toPath()
-                .resolve(MOD_ID)
-                .resolve(cultureId);
         try {
-            Ouat.clientChat(player, "cc", "error_culture_folder");
+            Path newCultureFolder = Ouat.COMMON.getConfigFolder()
+                    .toPath()
+                    .resolve(MOD_ID)
+                    .resolve(cultureId);
             Files.createDirectories(newCultureFolder);
             Ouat.COMMON.sendToClient(player, S2COpenCultureCCScreenPacket.create(cultureId));
+            Ouat.clientChat(player, "cc", "error_culture_folder"); // TODO Remove this.
         } catch (IOException e) {
-            Ouat.clientChat(player, "cc", "error_culture_folder");
-            Ouat.debug("An error occurred while reading a culture file : " + e);
+            Ouat.clientChat(player, "cc", "error_culture_folder", cultureId);
+            Ouat.debug("An error occurred while reading a culture file of '" + cultureId + "' : " + e);
         }
     }
 }

@@ -1,6 +1,6 @@
 package org.dawnoftime.onceuponatown.client.screen.culturecreator;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.Util;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
@@ -9,8 +9,12 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.client.screen.widgets.EditBoxIconButton;
+import org.dawnoftime.onceuponatown.client.screen.widgets.IconButton;
 import org.jetbrains.annotations.NotNull;
 
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,6 +50,9 @@ public abstract class BaseCCScreen extends Screen {
     private static final int WIDGET_ZONE_WIDTH = 213;
     private static final int WIDGET_ZONE_HEIGHT = 139;
     private static final int WIDGET_HEIGHT = 20;
+    private static final int FOLDER_BUTTON_X = 224;
+    private static final int FOLDER_BUTTON_Y = 6;
+    private static final int FOLDER_BUTTON_SIDE_LENGTH = 10;
 
     private int posX;
     private int posY;
@@ -53,9 +60,12 @@ public abstract class BaseCCScreen extends Screen {
     private int scrollMaxOffset;
     boolean scrolling = false;
     protected final List<AbstractWidget[]> widgets = new ArrayList<>();
+    private IconButton folderButton;
+    protected final String[] foldersHierarchy;
 
-    public BaseCCScreen(Component title) {
+    public BaseCCScreen(Component title, String[] foldersHierarchy) {
         super(title);
+        this.foldersHierarchy = foldersHierarchy;
     }
 
     @Override
@@ -64,6 +74,22 @@ public abstract class BaseCCScreen extends Screen {
         posY = (height - TEXTURE_TOTAL_HEIGHT) / 2;
         // Since this function is also called on resize, we have to reset the widgets.
         widgets.clear();
+        try{
+            // Creates the button to open the file explorer at the current level.
+            Path folderPath = this.getDirectoryPath();
+            folderButton = new IconButton(posX + FOLDER_BUTTON_X, posY + FOLDER_BUTTON_Y, FOLDER_BUTTON_SIDE_LENGTH, GUI_TEXTURE, 83, 186, TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT, btn -> {
+                Util.getPlatform().openUri(folderPath.toUri());
+                btn.setFocused(false);
+            });
+            this.addWidget(folderButton);
+        } catch (InvalidPathException e) {
+            // Impossible to access the export folder. We close the GUI
+            this.onClose();
+            if (this.minecraft != null && this.minecraft.player != null){
+                this.minecraft.player.sendSystemMessage(Ouat.translatable("cc", "error_cultures_folder"));
+            }
+        }
+        // Finally, create the widgets specific to the screen.
         this.initWidgets();
         this.updateWidgetPositions();
         scrollMaxOffset = Math.max(widgets.size() * WIDGET_HEIGHT - WIDGET_ZONE_HEIGHT, 0);
@@ -77,6 +103,7 @@ public abstract class BaseCCScreen extends Screen {
         guiGraphics.enableScissor(posX + WIDGET_ZONE_X, posY + WIDGET_ZONE_Y, posX + WIDGET_ZONE_X + WIDGET_ZONE_WIDTH, posY + WIDGET_ZONE_Y + WIDGET_ZONE_HEIGHT);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
         guiGraphics.disableScissor();
+        this.folderButton.render(guiGraphics, mouseX, mouseY, partialTick);
         this.renderScrollBar(guiGraphics);
         this.renderNavigationButtons(guiGraphics);
     }
@@ -174,6 +201,14 @@ public abstract class BaseCCScreen extends Screen {
         return mouseX >= (double) xStart && mouseX < (double) (xStart + width) && mouseY >= (double) yStart && mouseY < (double) (yStart + height);
     }
 
+    private Path getDirectoryPath() throws InvalidPathException {
+        Path path = Ouat.COMMON.getConfigFolder().toPath();
+        for (String folder : foldersHierarchy){
+            path = path.resolve(folder);
+        }
+        return path;
+    }
+
     public abstract void initWidgets();
 
     /**
@@ -203,29 +238,10 @@ public abstract class BaseCCScreen extends Screen {
             }
         };
         editBox.setHint(editBoxHintComponent);
-        IconButton button = new IconButton(posX + WIDGET_ZONE_X + WIDGET_ZONE_WIDTH - WIDGET_HEIGHT, 0, WIDGET_HEIGHT, 83, 166, onPressConfirm);
+        EditBoxIconButton button = new EditBoxIconButton(editBox, posX + WIDGET_ZONE_X + WIDGET_ZONE_WIDTH - WIDGET_HEIGHT, 0, WIDGET_HEIGHT, GUI_TEXTURE, 83, 166, TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT, onPressConfirm);
         widgets.add(new AbstractWidget[]{editBox, button});
         this.addRenderableWidget(editBox);
         this.addRenderableWidget(button);
-    }
-
-    private static class IconButton extends Button {
-        private final int uOffset;
-        private final int vOffset;
-
-        private IconButton(int x, int y, int size, int uOffset, int vOffset, Button.OnPress onPress) {
-            super(x, y, size, size, Component.empty(), onPress, DEFAULT_NARRATION);
-            this.uOffset = uOffset;
-            this.vOffset = vOffset;
-        }
-
-        @Override
-        public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-            super.render(guiGraphics, mouseX, mouseY, partialTick);
-            if (this.visible) {
-                guiGraphics.blit(GUI_TEXTURE, this.getX(), this.getY(), uOffset, vOffset, this.getWidth(), this.getHeight(), TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT);
-            }
-        }
     }
 
     /* TODO Faire ça pour l'export des schematics.

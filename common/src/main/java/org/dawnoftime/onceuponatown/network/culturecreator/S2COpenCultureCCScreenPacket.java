@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.client.screen.culturecreator.CultureCCScreen;
 import org.dawnoftime.onceuponatown.network.IOuatPacket;
 
 import java.io.IOException;
@@ -20,6 +21,7 @@ public class S2COpenCultureCCScreenPacket implements IOuatPacket {
     private static final ResourceLocation ID = modResource("s2c_open_culture_screen_cc");
 
     private final String cultureId;
+
     private S2COpenCultureCCScreenPacket(String cultureId){
         this.cultureId = cultureId;
     }
@@ -57,8 +59,12 @@ public class S2COpenCultureCCScreenPacket implements IOuatPacket {
     public static class Handler {
         public static void handle(S2COpenCultureCCScreenPacket packet) {
             Minecraft.getInstance().execute(() -> {
-                //Minecraft.getInstance().setScreen(new CultureCCScreen(packet));
+                Minecraft.getInstance().setScreen(new CultureCCScreen(packet));
             });
         }
+    }
+
+    public String getCultureId(){
+        return cultureId;
     }
 }
