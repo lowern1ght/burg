@@ -7,9 +7,11 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureType;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
@@ -18,8 +20,10 @@ import net.minecraftforge.common.extensions.IForgeMenuType;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegistryObject;
 import org.dawnoftime.onceuponatown.registry.*;
 
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
@@ -31,6 +35,7 @@ public class RegistriesImpls {
         // Create the registries.
         EntityRegistryImpl.REGISTRY = new EntityRegistryImpl();
         ItemRegistryImpl.REGISTRY = new ItemRegistryImpl();
+        BlockRegistryImpl.REGISTRY = new BlockRegistryImpl();
         MenuRegistryImpl.REGISTRY = new MenuRegistryImpl();
         StructureTypeRegistryImpl.REGISTRY = new StructureTypeRegistryImpl();
         StructurePieceRegistryImpl.REGISTRY = new StructurePieceRegistryImpl();
@@ -38,6 +43,8 @@ public class RegistriesImpls {
         // Populates the registries and register their contents.
         EntityRegistryImpl.DEFERRED_REGISTER.register(modEventBus);
         ItemRegistryImpl.DEFERRED_REGISTER.register(modEventBus);
+        BlockRegistryImpl.DEFERRED_REGISTER.register(modEventBus);
+        BlockRegistryImpl.DEFERRED_ITEM_REGISTER.register(modEventBus);
         MenuRegistryImpl.DEFERRED_REGISTER.register(modEventBus);
         StructureTypeRegistryImpl.DEFERRED_REGISTER.register(modEventBus);
         StructurePieceRegistryImpl.DEFERRED_REGISTER.register(modEventBus);
@@ -61,6 +68,20 @@ public class RegistriesImpls {
         @Override
         public <T extends Entity> Supplier<EntityType<T>> register(String name, Supplier<EntityType.Builder<T>> builder) {
             return DEFERRED_REGISTER.register(name, () -> builder.get().build(name));
+        }
+    }
+
+    public static class BlockRegistryImpl extends BlockRegistry {
+        public static final DeferredRegister<Block> DEFERRED_REGISTER = DeferredRegister.create(ForgeRegistries.BLOCKS, MOD_ID);
+        public static final DeferredRegister<Item> DEFERRED_ITEM_REGISTER = DeferredRegister.create(ForgeRegistries.ITEMS, MOD_ID);
+
+        @Override
+        public final <T extends Block, Y extends Item> Supplier<T> registerWithItem(String id, Supplier<T> block, Function<T, Y> item) {
+            RegistryObject<T> registryBlock = DEFERRED_REGISTER.register(id, block);
+            if(item != null) {
+                DEFERRED_ITEM_REGISTER.register(id, () -> item.apply(registryBlock.get()));
+            }
+            return registryBlock;
         }
     }
 
