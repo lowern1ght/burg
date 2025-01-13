@@ -3,7 +3,7 @@
     "textures": {
         "bottom": "minecraft:block/dirt",
         "side": "onceuponatown:block/dirt_path_slab_side",
-        "top": "minecraft:block/dirt_path",
+        "top": "minecraft:block/dirt_path_top",
         "particle": "#side"
     },
     "elements": [
