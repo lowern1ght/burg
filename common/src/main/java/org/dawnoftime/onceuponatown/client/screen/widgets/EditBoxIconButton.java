@@ -5,14 +5,23 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.resources.ResourceLocation;
 
 public class EditBoxIconButton extends IconButton{
-    private final EditBox editBox;
+    private EditBox editBox;
+    private final boolean naturalLanguage;
 
-    public EditBoxIconButton(EditBox editBox, int x, int y, int size, ResourceLocation texture, int uOffset, int vOffset, int textureWidth, int textureHeight, Button.OnPress onPress) {
+    public EditBoxIconButton(int x, int y, int size, ResourceLocation texture, int uOffset, int vOffset, int textureWidth, int textureHeight, boolean naturalLanguage, Button.OnPress onPress) {
         super(x, y, size, texture, uOffset, vOffset, textureWidth, textureHeight, onPress);
+        this.naturalLanguage = naturalLanguage;
+        this.active = false;
+    }
+
+    public void setEditBox(EditBox editBox) {
         this.editBox = editBox;
     }
 
     public String getContent() {
-        return this.editBox.getValue();
+        if (editBox == null) {
+            return "";
+        }
+        return naturalLanguage ? editBox.getValue().trim() : editBox.getValue().trim().replace(" ", "_").toLowerCase();
     }
 }

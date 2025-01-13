@@ -19,7 +19,7 @@ import org.slf4j.Logger;
 
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
 
-public record C2SChangeNpcTabPacket(int newTab) implements IOuatPacket {
+public record C2SChangeNpcTabPacket(int newTab) implements OuatPacket {
     public static final ResourceLocation ID = modResource("c2s_change_npc_tab");
 
     public static C2SChangeNpcTabPacket decode(FriendlyByteBuf buf) {

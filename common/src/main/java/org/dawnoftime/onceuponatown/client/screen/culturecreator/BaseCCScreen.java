@@ -1,23 +1,29 @@
 package org.dawnoftime.onceuponatown.client.screen.culturecreator;
 
 import net.minecraft.Util;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvents;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.screen.widgets.EditBoxIconButton;
 import org.dawnoftime.onceuponatown.client.screen.widgets.IconButton;
+import org.dawnoftime.onceuponatown.network.OuatPacket;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
+import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
 import static org.dawnoftime.onceuponatown.client.screen.ScreenUtils.GUI_COLOR_GREY;
 import static org.dawnoftime.onceuponatown.client.screen.ScreenUtils.drawCenteredString;
 
@@ -26,20 +32,10 @@ public abstract class BaseCCScreen extends Screen {
     private static final int TEXTURE_TOTAL_WIDTH = 240;
     private static final int TEXTURE_TOTAL_HEIGHT = 217;
     private static final int TEXTURE_TAB_HEIGHT = 166;
-    private static final int TEXTURE_SCROLL_ICON_ON_U = 67;
-    private static final int TEXTURE_SCROLL_ICON_ON_V = 166;
-    private static final int TEXTURE_SCROLL_ICON_OFF_U = 75;
-    private static final int TEXTURE_SCROLL_ICON_OFF_V = 166;
     private static final int TEXTURE_SCROLL_ICON_WIDTH = 8;
     private static final int TEXTURE_SCROLL_ICON_HEIGHT = 27;
-    private static final int TEXTURE_NAVIGATION_OFF_TOP_U = 5;
-    private static final int TEXTURE_NAVIGATION_OFF_TOP_V = 166;
-    private static final int TEXTURE_NAVIGATION_OFF_U = 5;
-    private static final int TEXTURE_NAVIGATION_OFF_V = 181;
     private static final int TEXTURE_NAVIGATION_OFF_WIDTH = 59;
     private static final int TEXTURE_NAVIGATION_OFF_HEIGHT = 15;
-    private static final int TEXTURE_NAVIGATION_ON_U = 0;
-    private static final int TEXTURE_NAVIGATION_ON_V = 196;
     private static final int TEXTURE_NAVIGATION_ON_WIDTH = 66;
     private static final int TEXTURE_NAVIGATION_ON_HEIGHT = 21;
     private static final int TITLE_OFFSET_Y = 8;
@@ -53,6 +49,8 @@ public abstract class BaseCCScreen extends Screen {
     private static final int FOLDER_BUTTON_X = 224;
     private static final int FOLDER_BUTTON_Y = 6;
     private static final int FOLDER_BUTTON_SIDE_LENGTH = 10;
+    private static final int NAVIGATION_ZONE_Y = 19;
+    private static final int MAX_NAVIGATION_NUMBER = 8;
 
     private int posX;
     private int posY;
@@ -61,34 +59,24 @@ public abstract class BaseCCScreen extends Screen {
     boolean scrolling = false;
     protected final List<AbstractWidget[]> widgets = new ArrayList<>();
     private IconButton folderButton;
-    protected final String[] foldersHierarchy;
+    protected List<NavigationTab> navigationTabList;
 
-    public BaseCCScreen(Component title, String[] foldersHierarchy) {
+    public BaseCCScreen(Component title) {
         super(title);
-        this.foldersHierarchy = foldersHierarchy;
     }
 
     @Override
     protected void init() {
+        navigationTabList = this.createNavigationMap();
         posX = (width - TEXTURE_TOTAL_WIDTH) / 2;
         posY = (height - TEXTURE_TOTAL_HEIGHT) / 2;
         // Since this function is also called on resize, we have to reset the widgets.
         widgets.clear();
-        try{
-            // Creates the button to open the file explorer at the current level.
-            Path folderPath = this.getDirectoryPath();
-            folderButton = new IconButton(posX + FOLDER_BUTTON_X, posY + FOLDER_BUTTON_Y, FOLDER_BUTTON_SIDE_LENGTH, GUI_TEXTURE, 83, 186, TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT, btn -> {
-                Util.getPlatform().openUri(folderPath.toUri());
-                btn.setFocused(false);
-            });
-            this.addWidget(folderButton);
-        } catch (InvalidPathException e) {
-            // Impossible to access the export folder. We close the GUI
-            this.onClose();
-            if (this.minecraft != null && this.minecraft.player != null){
-                this.minecraft.player.sendSystemMessage(Ouat.translatable("cc", "error_cultures_folder"));
-            }
-        }
+        // Creates the button to open the file explorer at the current level.
+        Path folderPath = this.getDirectoryPath();
+        folderButton = new IconButton(posX + FOLDER_BUTTON_X, posY + FOLDER_BUTTON_Y, FOLDER_BUTTON_SIDE_LENGTH, GUI_TEXTURE, 83, 186, TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT,
+                btn -> Util.getPlatform().openUri(folderPath.toUri()));
+        this.addWidget(folderButton);
         // Finally, create the widgets specific to the screen.
         this.initWidgets();
         this.updateWidgetPositions();
@@ -111,14 +99,34 @@ public abstract class BaseCCScreen extends Screen {
     private void renderScrollBar(@NotNull GuiGraphics guiGraphics){
         if (this.scrollbarActivated()){
             int offset = this.getScrollButtonY();
-            guiGraphics.blit(GUI_TEXTURE, posX + SCROLL_ZONE_X, posY + SCROLL_ZONE_Y + offset, TEXTURE_SCROLL_ICON_ON_U, TEXTURE_SCROLL_ICON_ON_V, TEXTURE_SCROLL_ICON_WIDTH, TEXTURE_SCROLL_ICON_HEIGHT, TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT);
+            guiGraphics.blit(GUI_TEXTURE, posX + SCROLL_ZONE_X, posY + SCROLL_ZONE_Y + offset, 67, 166, TEXTURE_SCROLL_ICON_WIDTH, TEXTURE_SCROLL_ICON_HEIGHT, TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT);
         } else {
-            guiGraphics.blit(GUI_TEXTURE, posX + SCROLL_ZONE_X, posY + SCROLL_ZONE_Y, TEXTURE_SCROLL_ICON_OFF_U, TEXTURE_SCROLL_ICON_OFF_V, TEXTURE_SCROLL_ICON_WIDTH, TEXTURE_SCROLL_ICON_HEIGHT, TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT);
+            guiGraphics.blit(GUI_TEXTURE, posX + SCROLL_ZONE_X, posY + SCROLL_ZONE_Y, 75, 166, TEXTURE_SCROLL_ICON_WIDTH, TEXTURE_SCROLL_ICON_HEIGHT, TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT);
         }
     }
 
     private void renderNavigationButtons(@NotNull GuiGraphics guiGraphics){
-
+        int navigationNumber = navigationTabList.size();
+        int start = Math.max(0, navigationNumber - MAX_NAVIGATION_NUMBER);
+        for (int i = start; i < navigationNumber; i++) {
+            int offsetY = (i - start) * TEXTURE_NAVIGATION_OFF_HEIGHT;
+            if (i == navigationNumber - 1) {
+                // Last ON button
+                int x = posX - TEXTURE_NAVIGATION_ON_WIDTH + 3;
+                int y = posY + NAVIGATION_ZONE_Y + offsetY;
+                guiGraphics.blit(GUI_TEXTURE, x, y, 0, 196, TEXTURE_NAVIGATION_ON_WIDTH, TEXTURE_NAVIGATION_ON_HEIGHT, TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT);
+                drawCenteredString(guiGraphics, font, navigationTabList.get(i).displayName(), x, y + 7, TEXTURE_NAVIGATION_ON_WIDTH, GUI_COLOR_GREY);
+            } else {
+                if (i == start) {
+                    // First OFF button
+                    guiGraphics.blit(GUI_TEXTURE, posX - TEXTURE_NAVIGATION_OFF_WIDTH, posY + NAVIGATION_ZONE_Y + offsetY, 5, 166, TEXTURE_NAVIGATION_OFF_WIDTH, TEXTURE_NAVIGATION_OFF_HEIGHT, TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT);
+                } else {
+                    // All the other OFF buttons
+                    guiGraphics.blit(GUI_TEXTURE, posX - TEXTURE_NAVIGATION_OFF_WIDTH, posY + NAVIGATION_ZONE_Y + offsetY, 5, 181, TEXTURE_NAVIGATION_OFF_WIDTH, TEXTURE_NAVIGATION_OFF_HEIGHT, TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT);
+                }
+                drawCenteredString(guiGraphics, font, navigationTabList.get(i).displayName(), posX - TEXTURE_NAVIGATION_OFF_WIDTH, posY + NAVIGATION_ZONE_Y + offsetY + 6, TEXTURE_NAVIGATION_OFF_WIDTH, GUI_COLOR_GREY);
+            }
+        }
     }
 
     private boolean scrollbarActivated() {
@@ -182,7 +190,15 @@ public abstract class BaseCCScreen extends Screen {
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        if (scrolling){
+        int navigationButtons = Math.min(navigationTabList.size() - 1, MAX_NAVIGATION_NUMBER - 1); // The last button can not be clicked.
+        if (navigationButtons > 0) {
+            if (this.inInArea(mouseX, mouseY, posX - TEXTURE_NAVIGATION_OFF_WIDTH, posY + NAVIGATION_ZONE_Y, TEXTURE_NAVIGATION_OFF_WIDTH, TEXTURE_NAVIGATION_OFF_HEIGHT * navigationButtons)) {
+                Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                int targetedButton = (int) ((mouseY - posY - NAVIGATION_ZONE_Y) / TEXTURE_NAVIGATION_OFF_HEIGHT);
+                targetedButton += Math.max(0, navigationTabList.size() - MAX_NAVIGATION_NUMBER);
+                Ouat.CLIENT.sendToServer(navigationTabList.get(targetedButton).packetSupplier().get());
+            }
+        } else if (scrolling){
             scrolling = false;
         }
         return super.mouseReleased(mouseX, mouseY, button);
@@ -202,13 +218,23 @@ public abstract class BaseCCScreen extends Screen {
     }
 
     private Path getDirectoryPath() throws InvalidPathException {
-        Path path = Ouat.COMMON.getConfigFolder().toPath();
-        for (String folder : foldersHierarchy){
-            path = path.resolve(folder);
+        Path path = Ouat.COMMON.getConfigFolder().toPath().resolve(MOD_ID);
+        for (NavigationTab navigation : navigationTabList){
+            path = path.resolve(navigation.folderName());
         }
         return path;
     }
 
+    /**
+     * Function used to initialize the value of the navigation map. This map defines the name of the lateral button, and
+     * a supplier that returns a packet that can be used to switch screen.
+     * @return A LinkedHashMap that associate a button name to a packet. The values are ordered following the button order.
+     */
+    public abstract List<NavigationTab> createNavigationMap();
+
+    /**
+     * Function that defines all the widgets in the screen, used to create or modify the culture parameters.
+     */
     public abstract void initWidgets();
 
     /**
@@ -230,19 +256,29 @@ public abstract class BaseCCScreen extends Screen {
      * @param onPressConfirm       OnPress effect of the confirm button.
      */
     protected void createEditBoxAndConfirm(Component editBoxHintComponent, Button.OnPress onPressConfirm) {
+        EditBoxIconButton button = new EditBoxIconButton(posX + WIDGET_ZONE_X + WIDGET_ZONE_WIDTH - WIDGET_HEIGHT, 0, WIDGET_HEIGHT, GUI_TEXTURE, 83, 166, TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT, false, onPressConfirm);
         EditBox editBox = new EditBox(this.font, posX + WIDGET_ZONE_X + 1, 0, WIDGET_ZONE_WIDTH - WIDGET_HEIGHT - 2, WIDGET_HEIGHT - 2, Component.empty()) {
             // We must edit the setY function because for some reason, MC devs decided that the actual border of this widget should be out of its size...
             @Override
             public void setY(int y) {
                 super.setY(y + 1);
             }
+
+            @Override
+            public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+                boolean b = super.keyPressed(keyCode, scanCode, modifiers);
+                button.active = !button.getContent().isEmpty();
+                return b;
+            }
         };
         editBox.setHint(editBoxHintComponent);
-        EditBoxIconButton button = new EditBoxIconButton(editBox, posX + WIDGET_ZONE_X + WIDGET_ZONE_WIDTH - WIDGET_HEIGHT, 0, WIDGET_HEIGHT, GUI_TEXTURE, 83, 166, TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT, onPressConfirm);
+        button.setEditBox(editBox);
         widgets.add(new AbstractWidget[]{editBox, button});
         this.addRenderableWidget(editBox);
         this.addRenderableWidget(button);
     }
+
+    public record NavigationTab(String folderName, Component displayName, Supplier<OuatPacket> packetSupplier){ }
 
     /* TODO Faire ça pour l'export des schematics.
      * Ajouter un bouton le culture creator pour l'export, qui prépare la zone...

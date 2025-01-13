@@ -11,7 +11,7 @@ import org.slf4j.Logger;
 
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
 
-public record C2SSelectTradePacket(int dealIndex) implements IOuatPacket {
+public record C2SSelectTradePacket(int dealIndex) implements OuatPacket {
     public static final ResourceLocation ID = modResource("c2s_select_trade");
 
     public static C2SSelectTradePacket decode(FriendlyByteBuf buf) {

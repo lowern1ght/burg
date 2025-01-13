@@ -17,7 +17,7 @@ import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import org.dawnoftime.onceuponatown.network.IOuatPacket;
+import org.dawnoftime.onceuponatown.network.OuatPacket;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -42,7 +42,7 @@ public interface CommonAbstractions {
      */
     void openMenu(ServerPlayer player, MenuProvider menu, Consumer<FriendlyByteBuf> buf);
 
-    void sendToClient(Player player, IOuatPacket packet);
+    void sendToClient(Player player, OuatPacket packet);
 
     /**
      * Function called to render tooltips on a GUI. Forge requires an ItemStack while Vanilla does not.

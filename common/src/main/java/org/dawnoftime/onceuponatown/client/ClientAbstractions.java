@@ -1,6 +1,6 @@
 package org.dawnoftime.onceuponatown.client;
 
-import org.dawnoftime.onceuponatown.network.IOuatPacket;
+import org.dawnoftime.onceuponatown.network.OuatPacket;
 
 public interface ClientAbstractions {
     /**
@@ -8,7 +8,7 @@ public interface ClientAbstractions {
      *
      * @param packet C2S packet to be sent.
      */
-    void sendToServer(IOuatPacket packet);
+    void sendToServer(OuatPacket packet);
 
     //TODO Import all the function from forge here somehow ?!
 }

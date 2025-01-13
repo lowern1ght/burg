@@ -30,7 +30,7 @@ import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.registries.ForgeRegistries;
-import org.dawnoftime.onceuponatown.network.IOuatPacket;
+import org.dawnoftime.onceuponatown.network.OuatPacket;
 import org.dawnoftime.onceuponatown.network.PacketHandler;
 
 import javax.annotation.Nullable;
@@ -46,7 +46,7 @@ public class CommonAbstractionsImpl implements CommonAbstractions {
     }
 
     @Override
-    public void sendToClient(Player player, IOuatPacket packet) {
+    public void sendToClient(Player player, OuatPacket packet) {
         if (!player.level().isClientSide && player instanceof ServerPlayer serverPlayer) {
             PacketHandler.CHANNEL.send(PacketDistributor.PLAYER.with(() -> serverPlayer), packet);
         }

@@ -4,7 +4,7 @@ import io.netty.buffer.Unpooled;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 
-public interface IOuatPacket {
+public interface OuatPacket {
     default FriendlyByteBuf toBuf() {
         var ret = new FriendlyByteBuf(Unpooled.buffer());
         encode(ret);

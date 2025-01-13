@@ -19,7 +19,7 @@ import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import org.dawnoftime.onceuponatown.network.IOuatPacket;
+import org.dawnoftime.onceuponatown.network.OuatPacket;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
@@ -43,7 +43,7 @@ public class CommonAbstractionsImpl implements CommonAbstractions {
     }
 
     @Override
-    public void sendToClient(Player player, IOuatPacket packet) {
+    public void sendToClient(Player player, OuatPacket packet) {
 
     }
 

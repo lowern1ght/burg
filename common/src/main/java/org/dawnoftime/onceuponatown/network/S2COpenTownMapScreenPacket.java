@@ -8,7 +8,7 @@ import org.dawnoftime.onceuponatown.client.screen.TownMapItemScreen;
 
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
 
-public record S2COpenTownMapScreenPacket(CompoundTag mapDataForGui) implements IOuatPacket {
+public record S2COpenTownMapScreenPacket(CompoundTag mapDataForGui) implements OuatPacket {
     public static final ResourceLocation ID = modResource("s2c_open_town_map_screen");
 
     public static S2COpenTownMapScreenPacket decode(FriendlyByteBuf buf) {

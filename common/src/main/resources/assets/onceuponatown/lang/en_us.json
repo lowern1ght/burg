@@ -60,6 +60,10 @@
   "onceuponatown.building.weaponsmith_forge": "Weaponsmith's forge",
   "onceuponatown.building.well": "Well",
   "onceuponatown.building.wheat_farm": "Wheat farm",
-  "onceuponatown.cc.error_cultures_folder" : "An unexpected error occurred while reading the culture export folder. Check the logs for more information.",
-  "onceuponatown.cc.error_culture_folder" : "An unexpected error occurred while reading the culture folder '%s'. Check the logs for more information."
+  "onceuponatown.cc.cultures_title" : "Select the culture to modify",
+  "onceuponatown.cc.cultures_nav" : "Cultures",
+  "onceuponatown.cc.cultures_hint_culture" : "Create a new culture...",
+  "onceuponatown.cc.cultures_error" : "An unexpected error occurred while reading the culture export folder. Check the logs for more information.",
+  "onceuponatown.cc.culture_title" : "Editing the culture : %s",
+  "onceuponatown.cc.culture_error" : "An unexpected error occurred while reading the culture folder '%s'. Check the logs for more information."
 }

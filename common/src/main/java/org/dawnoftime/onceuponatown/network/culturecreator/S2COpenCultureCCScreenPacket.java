@@ -5,9 +5,10 @@ import com.google.gson.JsonParser;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.screen.culturecreator.CultureCCScreen;
-import org.dawnoftime.onceuponatown.network.IOuatPacket;
+import org.dawnoftime.onceuponatown.network.OuatPacket;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -15,9 +16,10 @@ import java.nio.file.Path;
 
 import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
+import static org.dawnoftime.onceuponatown.culture.ServerCultures.CULTURE_FOLDER_NAME;
 import static org.dawnoftime.onceuponatown.culture.ServerCultures.CULTURE_JSON_FILE_NAME;
 
-public class S2COpenCultureCCScreenPacket implements IOuatPacket {
+public class S2COpenCultureCCScreenPacket implements OuatPacket {
     private static final ResourceLocation ID = modResource("s2c_open_culture_screen_cc");
 
     private final String cultureId;
@@ -26,13 +28,10 @@ public class S2COpenCultureCCScreenPacket implements IOuatPacket {
         this.cultureId = cultureId;
     }
 
-    public static S2COpenCultureCCScreenPacket create(String cultureId){
+    public static S2COpenCultureCCScreenPacket create(Player player, String cultureId){
         try {
-            Path jsonPath = Ouat.COMMON.getConfigFolder()
-                    .toPath()
-                    .resolve(MOD_ID)
-                    .resolve(cultureId)
-                    .resolve(CULTURE_JSON_FILE_NAME);
+            Path jsonPath = Ouat.COMMON.getConfigFolder().toPath()
+                    .resolve(MOD_ID).resolve(CULTURE_FOLDER_NAME).resolve(cultureId).resolve(CULTURE_JSON_FILE_NAME);
             String jsonContent = Files.readString(jsonPath);
             JsonObject jsonObject = JsonParser.parseString(jsonContent).getAsJsonObject();
         } catch (IOException ignored) {
