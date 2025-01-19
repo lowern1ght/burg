@@ -14,8 +14,10 @@ import net.minecraft.sounds.SoundEvents;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.screen.widgets.EditBoxIconButton;
 import org.dawnoftime.onceuponatown.client.screen.widgets.IconButton;
+import org.dawnoftime.onceuponatown.client.screen.widgets.LeftAlignTextButton;
 import org.dawnoftime.onceuponatown.network.OuatPacket;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
@@ -41,11 +43,13 @@ public abstract class BaseCCScreen extends Screen {
     private static final int TITLE_OFFSET_Y = 8;
     private static final int SCROLL_ZONE_X = 225;
     private static final int SCROLL_ZONE_Y = 20;
-    private static final int WIDGET_ZONE_X = 7;
+    private static final int WIDGET_ZONE_X = 8;
     private static final int WIDGET_ZONE_Y = 20;
-    private static final int WIDGET_ZONE_WIDTH = 213;
+    private static final int WIDGET_ZONE_WIDTH = 211;
     private static final int WIDGET_ZONE_HEIGHT = 139;
     private static final int WIDGET_HEIGHT = 20;
+    private static final int WIDGET_HEIGHT_PADDED = WIDGET_HEIGHT + 1;
+    private static final int WIDGET_PLUS_BUTTON_HEIGHT = 12;
     private static final int FOLDER_BUTTON_X = 224;
     private static final int FOLDER_BUTTON_Y = 6;
     private static final int FOLDER_BUTTON_SIDE_LENGTH = 10;
@@ -80,7 +84,7 @@ public abstract class BaseCCScreen extends Screen {
         // Finally, create the widgets specific to the screen.
         this.initWidgets();
         this.updateWidgetPositions();
-        scrollMaxOffset = Math.max(widgets.size() * WIDGET_HEIGHT - WIDGET_ZONE_HEIGHT, 0);
+        scrollMaxOffset = Math.max(widgets.size() * WIDGET_HEIGHT_PADDED - WIDGET_ZONE_HEIGHT, 0);
     }
 
     @Override
@@ -136,8 +140,8 @@ public abstract class BaseCCScreen extends Screen {
     private void updateWidgetPositions() {
         for (int i = 0; i < widgets.size(); i++) {
             AbstractWidget[] rowWidgets = widgets.get(i);
-            int widgetY = i * WIDGET_HEIGHT - scrollOffset;
-            if (widgetY + WIDGET_HEIGHT > 0 && widgetY < WIDGET_ZONE_HEIGHT) {
+            int widgetY = i * WIDGET_HEIGHT_PADDED - scrollOffset;
+            if (widgetY + WIDGET_HEIGHT_PADDED > 0 && widgetY < WIDGET_ZONE_HEIGHT) {
                 for (AbstractWidget widget : rowWidgets) {
                     widget.visible = true;
                     widget.setY(posY + WIDGET_ZONE_Y + widgetY);
@@ -220,7 +224,10 @@ public abstract class BaseCCScreen extends Screen {
     private Path getDirectoryPath() throws InvalidPathException {
         Path path = Ouat.COMMON.getConfigFolder().toPath().resolve(MOD_ID);
         for (NavigationTab navigation : navigationTabList){
-            path = path.resolve(navigation.folderName());
+            String folder = navigation.folderName();
+            if (folder != null) {
+                path = path.resolve(folder);
+            }
         }
         return path;
     }
@@ -244,7 +251,7 @@ public abstract class BaseCCScreen extends Screen {
      * @param onPress             OnPress effect of the button.
      */
     protected void createButton(Component buttonTextComponent, Button.OnPress onPress) {
-        Button button = Button.builder(buttonTextComponent, onPress).bounds(posX + WIDGET_ZONE_X, 0, WIDGET_ZONE_WIDTH, WIDGET_HEIGHT).build();
+        LeftAlignTextButton button = new LeftAlignTextButton(posX + WIDGET_ZONE_X, 0, WIDGET_ZONE_WIDTH, WIDGET_HEIGHT, buttonTextComponent, onPress);
         widgets.add(new AbstractWidget[]{button});
         this.addRenderableWidget(button);
     }
@@ -257,7 +264,30 @@ public abstract class BaseCCScreen extends Screen {
      */
     protected void createEditBoxAndConfirm(Component editBoxHintComponent, Button.OnPress onPressConfirm) {
         EditBoxIconButton button = new EditBoxIconButton(posX + WIDGET_ZONE_X + WIDGET_ZONE_WIDTH - WIDGET_HEIGHT, 0, WIDGET_HEIGHT, GUI_TEXTURE, 83, 166, TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT, false, onPressConfirm);
-        EditBox editBox = new EditBox(this.font, posX + WIDGET_ZONE_X + 1, 0, WIDGET_ZONE_WIDTH - WIDGET_HEIGHT - 2, WIDGET_HEIGHT - 2, Component.empty()) {
+        EditBox editBox = this.createButtonLinkedEditBox(posX + WIDGET_ZONE_X, WIDGET_ZONE_WIDTH - WIDGET_HEIGHT, editBoxHintComponent, button, false);
+        widgets.add(new AbstractWidget[]{editBox, button});
+        this.addRenderableWidget(editBox);
+        this.addRenderableWidget(button);
+    }
+
+    protected void createNewRawButton(Button.OnPress onPressConfirm) {
+        IconButton button = new IconButton(posX + WIDGET_ZONE_X + (WIDGET_ZONE_WIDTH / 2) - (WIDGET_PLUS_BUTTON_HEIGHT /2), (WIDGET_HEIGHT - WIDGET_PLUS_BUTTON_HEIGHT) / 2, WIDGET_PLUS_BUTTON_HEIGHT, GUI_TEXTURE, 67, 193, TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT, onPressConfirm);
+        widgets.add(new AbstractWidget[]{button});
+        this.addRenderableWidget(button);
+    }
+
+    protected void createNumberBoxAndConfirm(Component textComponent, Button.OnPress onPressConfirm) {
+        LeftAlignTextButton text = new LeftAlignTextButton(posX + WIDGET_ZONE_X, 0, WIDGET_ZONE_WIDTH - 3 * WIDGET_HEIGHT, WIDGET_HEIGHT, textComponent);
+        EditBoxIconButton button = new EditBoxIconButton(posX + WIDGET_ZONE_X + WIDGET_ZONE_WIDTH - WIDGET_HEIGHT, 0, WIDGET_HEIGHT, GUI_TEXTURE, 83, 166, TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT, false, onPressConfirm);
+        EditBox editBox = this.createButtonLinkedEditBox(posX + WIDGET_ZONE_X + WIDGET_ZONE_WIDTH - 3 * WIDGET_HEIGHT, 2 * WIDGET_HEIGHT, Component.literal("..."), button, true);
+        widgets.add(new AbstractWidget[]{text, editBox, button});
+        this.addRenderableWidget(text);
+        this.addRenderableWidget(editBox);
+        this.addRenderableWidget(button);
+    }
+
+    private EditBox createButtonLinkedEditBox(int x, int width, @Nullable Component editBoxHintComponent, EditBoxIconButton button, boolean onlyDigit) {
+        EditBox editBox = new EditBox(font, x + 1, 0, width - 2, WIDGET_HEIGHT - 2, Component.empty()) {
             // We must edit the setY function because for some reason, MC devs decided that the actual border of this widget should be out of its size...
             @Override
             public void setY(int y) {
@@ -270,15 +300,34 @@ public abstract class BaseCCScreen extends Screen {
                 button.active = !button.getContent().isEmpty();
                 return b;
             }
+
+            @Override
+            public boolean charTyped(char codePoint, int modifiers) {
+                if (onlyDigit) {
+                    if (!Character.isDigit(codePoint) && codePoint != '.' && codePoint != '-') {
+                        return false; // Block other characters
+                    }
+                }
+                return super.charTyped(codePoint, modifiers);
+            }
         };
+        if (onlyDigit) {
+            editBox.setFilter(input -> {
+                if (input.isEmpty()) return true; // Allow empty field
+                try {
+                    Double.parseDouble(input); // Check if input can be parsed as a double
+                    return true;
+                } catch (NumberFormatException e) {
+                    return false; // Reject non-numeric input
+                }
+            });
+        }
         editBox.setHint(editBoxHintComponent);
         button.setEditBox(editBox);
-        widgets.add(new AbstractWidget[]{editBox, button});
-        this.addRenderableWidget(editBox);
-        this.addRenderableWidget(button);
+        return editBox;
     }
 
-    public record NavigationTab(String folderName, Component displayName, Supplier<OuatPacket> packetSupplier){ }
+    public record NavigationTab(@Nullable String folderName, Component displayName, Supplier<OuatPacket> packetSupplier) {}
 
     /* TODO Faire ça pour l'export des schematics.
      * Ajouter un bouton le culture creator pour l'export, qui prépare la zone...

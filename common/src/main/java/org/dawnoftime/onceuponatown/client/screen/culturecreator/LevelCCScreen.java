@@ -10,11 +10,11 @@ import java.util.List;
 
 import static org.dawnoftime.onceuponatown.culture.ServerCultures.CULTURE_FOLDER_NAME;
 
-public class CultureCCScreen extends BaseCCScreen {
+public class LevelCCScreen extends BaseCCScreen {
 
     private final String cultureId;
 
-    public CultureCCScreen(S2COpenCultureCCScreenPacket packet) {
+    public LevelCCScreen(S2COpenCultureCCScreenPacket packet) {
         super(Component.literal(packet.getCultureId()));
         cultureId = packet.getCultureId();
     }
