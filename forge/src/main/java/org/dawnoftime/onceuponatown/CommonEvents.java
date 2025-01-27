@@ -15,6 +15,7 @@ import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.network.PacketHandler;
 import org.dawnoftime.onceuponatown.registry.CommandRegistry;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
+import org.dawnoftime.onceuponatown.town.LevelTowns;
 
 public class CommonEvents {
     @Mod.EventBusSubscriber(modid = Ouat.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
@@ -45,7 +46,7 @@ public class CommonEvents {
         @SubscribeEvent
         public static void onLevelTick(TickEvent.LevelTickEvent event) {
             if (event.level instanceof ServerLevel level && event.phase.equals(TickEvent.Phase.END)) {
-                //TownManager.tickTowns(level);
+                LevelTowns.of(level).tickTowns();
             }
         }
 

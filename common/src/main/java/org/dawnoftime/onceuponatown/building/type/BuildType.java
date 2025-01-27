@@ -12,9 +12,7 @@ import org.dawnoftime.onceuponatown.entity.Profession;
 import org.jetbrains.annotations.NotNull;
 import oshi.util.tuples.Pair;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 public abstract class BuildType {
     public static final BuildType DEFAULT = new BuildType("default_build_type", 0, List.of(new BuildLevel(1, 1, 0, new HashMap<>(), 0)), BuildingPurpose.MISCELLANEOUS) {
@@ -51,16 +49,33 @@ public abstract class BuildType {
         String loc = "in levels[]";
         int level = 1;
         for (JsonElement je : levelsArray) {
-            JsonObject elemJson = helper.asJsonObject(je, "levels[] element", loc);
+            JsonObject levelJson = helper.asJsonObject(je, "levels[] element", loc);
             /* Reading required era */
-            int requiredEra = helper.getPositiveInt(elemJson, "required_era", loc);
+            int requiredEra = helper.getPositiveInt(levelJson, "required_era", loc);
             // TODO read experience gain
             //int experienceGain = helper.getPositiveInt(elemJson, "experience_gain", loc);
             /* Reading optional dwelling slots */
-            JsonElement dwellingSlotsElem = elemJson.get("dwelling_slots");
-            int dwellingSlots = dwellingSlotsElem == null ? 0 : helper.getPositiveInt(elemJson, "dwelling_slots", loc);
-            // TODO read working slots
-            levels.add(new BuildLevel(level, requiredEra, 0, new HashMap<>(), dwellingSlots));
+            JsonElement dwellingSlotsElem = levelJson.get("dwelling_slots");
+            int dwellingSlots = dwellingSlotsElem == null ? 0 : helper.getPositiveInt(levelJson, "dwelling_slots", loc);
+            /* Reading working slots */
+            HashMap<Profession, Integer> workingSlots = new HashMap<>();
+            JsonElement workingSlotsElem = levelJson.get("working_slots");
+            if (workingSlotsElem != null) {
+                JsonArray workingSlotsArray = helper.getJsonArray(levelJson, "working_slots", loc);
+                Set<String> professionsIds = new HashSet<>();
+                loc = "in levels[working_slots[]]";
+                for (JsonElement el : workingSlotsArray) {
+                    JsonObject professionJson = helper.asJsonObject(el, "levels[working_slots[]] element", loc);
+                    String professionId = helper.getString(professionJson, "profession", loc);
+                    int slots = helper.getPositiveInt(professionJson, "slots", loc);
+                    if (professionsIds.contains(professionId)) {
+                        helper.throwInvalidField("profession", loc, "This profession is already defined here");
+                    }
+                    workingSlots.put(Profession.of(professionId), slots);
+                    professionsIds.add(professionId);
+                }
+            }
+            levels.add(new BuildLevel(level, requiredEra, 0, workingSlots, dwellingSlots));
             ++level;
         }
         if (levels.isEmpty()) {

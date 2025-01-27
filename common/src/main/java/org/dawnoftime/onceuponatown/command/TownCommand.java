@@ -17,7 +17,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 import org.dawnoftime.onceuponatown.Utils;
-import org.dawnoftime.onceuponatown.building.NpcBuild;
+import org.dawnoftime.onceuponatown.building.Build;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
 import org.dawnoftime.onceuponatown.building.type.BuildType;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
@@ -176,7 +176,7 @@ public class TownCommand {
             source.sendSuccess(() -> townInfo, false);
             closestTown.printDescription();
             closestTown.getBuilds().forEach((build -> source.getLevel().setBlock(build.getOriginPos(), Blocks.ORANGE_WOOL.defaultBlockState(), 2)));
-            closestTown.getBuds().forEach((bud -> source.getLevel().setBlock(bud.getRealPos(), Blocks.PURPLE_WOOL.defaultBlockState(), 2)));
+            closestTown.getBuds().forEach((bud -> source.getLevel().setBlock(bud.getPosition(), Blocks.PURPLE_WOOL.defaultBlockState(), 2)));
         } else {
             source.sendSuccess(() -> Component.literal("No towns found"), false);
         }
@@ -189,12 +189,11 @@ public class TownCommand {
         if (culture != null) {
             ServerLevel level = source.getLevel();
             BlockPos posTown = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, new BlockPos((int) pos.x, (int) pos.y, (int) pos.z));
-            Town town = new Town(level, culture, townName, posTown);
-            if (town.buildStarterPack()) {
-                LevelTowns.of(level).addTown(town);
+            Town town = LevelTowns.of(level).trySpawnTown(culture, posTown);
+            if (town != null) {
                 // Now we place the blocks.
                 BlockPos.MutableBlockPos cursor = new BlockPos(0, 0, 0).mutable();
-                for (NpcBuild build : town.getBuilds()) {
+                for (Build build : town.getBuilds()) {
                     SchematicContent schema = build.getSchematicContent(level.getServer().getResourceManager());
                     for (BlockInfo block : schema.getBlocks()) {
                         cursor.set(build.getOriginPos().getX(), build.getOriginPos().getY(), build.getOriginPos().getZ());
@@ -220,7 +219,7 @@ public class TownCommand {
 
     private static int deleteTown(CommandSourceStack source, String townName, boolean destroy) {
         Town town = getTownOrClosest(source, townName);
-        if ((destroy ? LevelTowns.of(source.getLevel()).deleteAndDemolishTown(town.getUuid()) : LevelTowns.of(source.getLevel()).deleteTown(town.getUuid()))) {
+        if ((destroy ? LevelTowns.of(source.getLevel()).deleteAndDemolishTown(town.getId()) : LevelTowns.of(source.getLevel()).deleteTown(town.getId()))) {
             source.sendSuccess(() -> Component.literal("Successfuly " + (destroy ? "demolished" : "deleted") + " town " + townName), false);
         } else {
             source.sendFailure(Component.literal("Failed to delete town"));
@@ -273,7 +272,7 @@ public class TownCommand {
             BuildType type = finalClosestTown.getCulture().getBuildType(buildTypeId);
             if (type != null) {
                 if (type instanceof BuildingType buildingType) {
-                    NpcBuild build = finalClosestTown.addBuilding(buildingType);
+                    Build build = finalClosestTown.tryAddBuilding(buildingType, level);
                     if (build != null) {
                         ServerLevel serverLevel = source.getLevel();
                         BlockPos.MutableBlockPos cursor = new BlockPos(0, 0, 0).mutable();

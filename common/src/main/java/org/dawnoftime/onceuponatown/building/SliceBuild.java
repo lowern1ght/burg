@@ -25,7 +25,7 @@ import static org.dawnoftime.onceuponatown.building.type.SliceBuildType.SliceBui
  * A SliceBuild is a series of 'subschematics' that connect to each other in era for the structure to adapt to the terrain. <br>
  * For example, a Road can go up, down or be flat locally, depending on the terrain. Each case has its schematic (stairs, slab, flat path...)
  */
-public abstract class SliceBuild extends NpcBuild {
+public abstract class SliceBuild extends Build {
     private final int width;
     protected int length;
     protected SliceProperty[] yShape;
@@ -51,8 +51,8 @@ public abstract class SliceBuild extends NpcBuild {
     }
 
     @Override
-    public CompoundTag save() {
-        CompoundTag tag = super.save();
+    public CompoundTag saveNbt() {
+        CompoundTag tag = super.saveNbt();
         tag.putInt("Width", width);
         tag.putInt("Length", length);
         ListTag tags = new ListTag();
@@ -66,11 +66,11 @@ public abstract class SliceBuild extends NpcBuild {
     @Override
     public boolean canBeBuiltOnBud(ProtoTown town, BuildBud buildBud, Direction dir) {
         // In the case of Roads, we only checks the line of block. The Map size will be defined when it's placed on the Map.
-        BlockPos testedOriginPos = buildBud.findOriginPos(this, dir);
+        BlockPos testedOriginPos = buildBud.findOriginPosOfBuild(this, dir);
         BlockPos cursor = testedOriginPos.mutable();
         // We check all the position from the Bud to the width.
         for (int offset = 0; offset < width; offset++) {
-            if (!town.isEmpty(cursor)) {
+            if (!town.isFreeAt(cursor)) {
                 return false;
             }
             cursor.relative(dir);

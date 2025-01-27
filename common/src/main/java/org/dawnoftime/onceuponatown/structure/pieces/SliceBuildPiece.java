@@ -13,7 +13,7 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
 import net.minecraft.world.level.material.FluidState;
-import org.dawnoftime.onceuponatown.building.NpcBuild;
+import org.dawnoftime.onceuponatown.building.Build;
 import org.dawnoftime.onceuponatown.building.SliceBuild;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
 import org.dawnoftime.onceuponatown.construction.BlockInfo;
@@ -29,7 +29,7 @@ public class SliceBuildPiece extends StructurePiece {
     private final String cultureId;
     private final SliceBuild sliceBuild;
     private final BlockPos originPos;
-    private final @Nullable CompoundTag townTag;
+    private @Nullable CompoundTag townTag;
 
     public SliceBuildPiece(String cultureId, SliceBuild sliceBuild, @Nullable ProtoTown protoTown) {
         super(StructurePieceRegistry.REGISTRY.SLICE_BUILD_PIECE.get(), 0, makeBoundingBox(sliceBuild.getOriginPos().getX(), sliceBuild.getOriginPos().getY(), sliceBuild.getOriginPos().getZ(), sliceBuild.getDirection(), sliceBuild.getNorthSizeX(), sliceBuild.getSizeY(), sliceBuild.getNorthSizeZ()));
@@ -38,7 +38,7 @@ public class SliceBuildPiece extends StructurePiece {
         this.sliceBuild = sliceBuild;
         // OriginPos : BE CAREFUL ! If the slice build was extended and found in the process a lower Y, this BlockPos should have the corresponding Y value !
         this.originPos = sliceBuild.getOriginPos();
-        this.townTag = (protoTown == null) ? null : protoTown.writeNBT();
+        this.townTag = (protoTown == null) ? null : protoTown.saveNbt();
     }
 
     public SliceBuildPiece(CompoundTag tag) {
@@ -46,7 +46,7 @@ public class SliceBuildPiece extends StructurePiece {
         setOrientation(Direction.NORTH); // Using our custom orientation system instead
         cultureId = tag.getString("CultureId");
         Culture culture = ServerCultures.getCultureOrDefault(cultureId);
-        sliceBuild = (SliceBuild) NpcBuild.load(culture, tag.getCompound("SliceBuild"));
+        sliceBuild = (SliceBuild) Build.load(culture, tag.getCompound("SliceBuild"));
         originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
         townTag = (tag.contains("FutureTownData")) ? tag.getCompound("FutureTownData") : null;
     }
@@ -54,7 +54,7 @@ public class SliceBuildPiece extends StructurePiece {
     @Override
     protected void addAdditionalSaveData(@NotNull StructurePieceSerializationContext context, CompoundTag tag) {
         tag.putString("CultureId", cultureId);
-        tag.put("SliceBuild", sliceBuild.save());
+        tag.put("SliceBuild", sliceBuild.saveNbt());
         tag.put("OriginPos", NbtUtils.writeBlockPos(originPos));
         if (townTag != null) {
             tag.put("FutureTownData", townTag);
@@ -79,7 +79,8 @@ public class SliceBuildPiece extends StructurePiece {
         }
         // TODO Place the schematic entities as well
         if (townTag != null) {
-            LevelTowns.of(level.getLevel()).initProtoTown(townTag);
+            LevelTowns.of(level.getLevel()).registerWorldGeneratedTown(townTag);
+            townTag = null;
         }
     }
 }

@@ -34,7 +34,7 @@ public class Culture {
     private final HashMap<String, Pair<Integer, Integer>> starterPack;
     private final List<Era> eras;
     //private final List<Item> foods; TODO read foods
-    public static final Culture DEFAULT_CULTURE = new Culture("default_culture", List.of(new Specialization("default_specialization")), new HashMap<>(), new HashMap<>(), List.of(new Era(1, 0, Integer.MAX_VALUE))) {
+    public static final Culture CORRUPTED_CULTURE = new Culture("default_culture", List.of(new Specialization("default_specialization")), new HashMap<>(), new HashMap<>(), List.of(new Era(1, 0, Integer.MAX_VALUE))) {
         @Override
         public List<BuildingType> getRandomStarterPack(RandomSource rand) {
             return new ArrayList<>();

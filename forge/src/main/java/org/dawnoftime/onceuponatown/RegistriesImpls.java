@@ -7,7 +7,6 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.MenuType;
-import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -58,8 +57,11 @@ public class RegistriesImpls {
                 //.icon(() -> TAB_ICON.get().getDefaultInstance())
                 //.displayItems((params, output) -> output.acceptAll(ForgeItemsRegistry.ITEMS_REGISTRY.getEntries().stream().filter(holder -> holder != TAB_ICON).map((itemDeferredHolder) -> itemDeferredHolder.get().getDefaultInstance()).toList()))
                 .icon(() -> new ItemStack(ItemRegistry.REGISTRY.TOWN_MAP.get()))
-                .displayItems((params, output) -> output.acceptAll(ItemRegistryImpl.DEFERRED_REGISTER.getEntries().stream().map((itemDeferredHolder) -> itemDeferredHolder.get().getDefaultInstance()).toList()))
-                .build());
+            .displayItems((params, output) -> {
+                output.acceptAll(ItemRegistryImpl.DEFERRED_REGISTER.getEntries().stream().map((itemDeferredHolder) -> itemDeferredHolder.get().getDefaultInstance()).toList());
+                output.acceptAll(BlockRegistryImpl.DEFERRED_ITEM_REGISTER.getEntries().stream().map((itemDeferredHolder) -> itemDeferredHolder.get().getDefaultInstance()).toList());
+            })
+            .build());
     }
 
     public static class EntityRegistryImpl extends EntityRegistry {

@@ -60,6 +60,52 @@
           "waypoints": []
         }
       ]
+    },
+    {
+      "name": "turn_right_a",
+      "shape": "crossroad_right",
+      "size": {
+        "x": 5,
+        "y": 4,
+        "z": 5
+      },
+      "levels": [
+        {
+          "schematic": "crossroad_simple_a1",
+          "waypoints": []
+        },
+        {
+          "schematic": "crossroad_simple_a2",
+          "waypoints": []
+        },
+        {
+          "schematic": "crossroad_simple_a3",
+          "waypoints": []
+        }
+      ]
+    },
+    {
+      "name": "turn_double_a",
+      "shape": "crossroad_double",
+      "size": {
+        "x": 5,
+        "y": 4,
+        "z": 5
+      },
+      "levels": [
+        {
+          "schematic": "crossroad_simple_a1",
+          "waypoints": []
+        },
+        {
+          "schematic": "crossroad_simple_a2",
+          "waypoints": []
+        },
+        {
+          "schematic": "crossroad_simple_a3",
+          "waypoints": []
+        }
+      ]
     }
   ]
 }

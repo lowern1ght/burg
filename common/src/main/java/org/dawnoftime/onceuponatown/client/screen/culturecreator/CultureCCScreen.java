@@ -30,7 +30,10 @@ public class CultureCCScreen extends BaseCCScreen {
     @Override
     public void initWidgets() {
         this.createButton(Component.literal("COUCOU"), btn -> {
-
         });
+        for (int i = 0; i < 20; i++) {
+            this.createButton(Component.literal("COUCOU"), btn -> {
+            });
+        }
     }
 }

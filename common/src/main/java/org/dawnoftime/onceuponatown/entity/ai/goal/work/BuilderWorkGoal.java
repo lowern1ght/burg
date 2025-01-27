@@ -212,7 +212,8 @@ public class BuilderWorkGoal extends NpcGoal {
     }
 
     private ConstructionProject getTownConstructionProject() {
-        return npc.getTown().getCurrentConstructionProject();
+        return null;
+        //return npc.getTown().getCurrentConstructionProject();
     }
 
     public void assignConstructionProject(ConstructionProject project) {

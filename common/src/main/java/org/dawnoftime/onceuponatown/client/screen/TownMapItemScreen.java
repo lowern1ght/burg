@@ -17,7 +17,7 @@ import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.Utils;
-import org.dawnoftime.onceuponatown.building.NpcBuild;
+import org.dawnoftime.onceuponatown.building.Build;
 import org.dawnoftime.onceuponatown.client.screen.tooltip.ItemAndTitleTooltip;
 import org.jetbrains.annotations.NotNull;
 import oshi.util.tuples.Triplet;
@@ -70,9 +70,9 @@ public class TownMapItemScreen extends Screen {
         Iterator<Tag> it = mapData.getList("Elements", 10).iterator();
         while (it.hasNext() && it.next() instanceof CompoundTag tag) {
             switch (tag.getByte("Category")) {
-                case NpcBuild.BUD -> mapElements.add(createBudMapElement(tag, NWCorner));
-                case NpcBuild.ROAD -> mapElements.add(createRoadMapElement(tag, NWCorner));
-                case NpcBuild.BUILDING -> mapElements.add(createBuildingMapElement(tag, NWCorner));
+                case Build.BUD -> mapElements.add(createBudMapElement(tag, NWCorner));
+                case Build.ROAD -> mapElements.add(createRoadMapElement(tag, NWCorner));
+                case Build.BUILDING -> mapElements.add(createBuildingMapElement(tag, NWCorner));
             }
         }
         mapInitialWidth = SECorner.getX() - NWCorner.getX();
@@ -80,12 +80,12 @@ public class TownMapItemScreen extends Screen {
     }
 
     private MapElement createBudMapElement(CompoundTag tag, BlockPos NWCorner) {
-        var realPos = NbtUtils.readBlockPos(tag.getCompound("RealPos"));
+        var realPos = NbtUtils.readBlockPos(tag.getCompound("Position"));
         var name = Ouat.translatable("bud");
         var position = Ouat.translatable("coordinates").append(" : ").append(realPos.toShortString()).withStyle(ChatFormatting.GRAY);
         int minX = realPos.getX() - NWCorner.getX();
         int minZ = realPos.getZ() - NWCorner.getZ();
-        return new MapElement(NpcBuild.BUD, Optional.empty(), List.of(name, position), List.of(name, position), minX, minX + 1, minZ, minZ + 1);
+        return new MapElement(Build.BUD, Optional.empty(), List.of(name, position), List.of(name, position), minX, minX + 1, minZ, minZ + 1);
     }
 
     private MapElement createRoadMapElement(CompoundTag tag, BlockPos NWCorner) {
@@ -102,7 +102,7 @@ public class TownMapItemScreen extends Screen {
         var canGrow = Component.literal("canGrow = " + tag.getBoolean("CanGrow")).withStyle(ChatFormatting.ITALIC, ChatFormatting.DARK_GRAY);
         int minX = originPos.getX() - NWCorner.getX();
         int minZ = originPos.getZ() - NWCorner.getZ();
-        return new MapElement(NpcBuild.ROAD, Optional.empty(),
+        return new MapElement(Build.ROAD, Optional.empty(),
                 List.of(nameAndLevel, CommonComponents.EMPTY, northWestCorner, direction, length, width),
                 List.of(nameAndLevel, CommonComponents.EMPTY, northWestCorner, direction, length, width, isWide, canGrow), minX, minX + sizeX, minZ, minZ + sizeZ);
     }
@@ -118,7 +118,7 @@ public class TownMapItemScreen extends Screen {
         var plotSize = Ouat.translatable("plot_size").append(" : " + sizeX + "×" + sizeZ).withStyle(ChatFormatting.GRAY);
         int minX = originPos.getX() - NWCorner.getX();
         int minZ = originPos.getZ() - NWCorner.getZ();
-        return new MapElement(NpcBuild.BUILDING,
+        return new MapElement(Build.BUILDING,
                 Optional.of(new ItemAndTitleTooltip(nameAndLevel, new ItemStack(Ouat.COMMON.getItem(new ResourceLocation(tag.getString("IconItem")))))),
                 List.of(CommonComponents.EMPTY, coordinates, direction, plotSize),
                 List.of(CommonComponents.EMPTY, coordinates, direction, plotSize), minX, minX + sizeX, minZ, minZ + sizeZ);
@@ -195,14 +195,14 @@ public class TownMapItemScreen extends Screen {
                 buildMaxZ = Math.min(mapWindowBottomBound, buildMaxZ);
 
                 boolean mouseOver = mouseX >= buildMinX && mouseX < buildMaxX && mouseY >= buildMinZ && mouseY < buildMaxZ;
-                if (mapElement.category == NpcBuild.BUD && debugView) {
+                if (mapElement.category == Build.BUD && debugView) {
                     graphics.fill(buildMinX, buildMinZ, buildMaxX, buildMaxZ, color(mouseOver ? 235 : 255, mouseOver ? HOVER_RGB : BUD_RGB));
-                } else if (mapElement.category == NpcBuild.ROAD) {
+                } else if (mapElement.category == Build.ROAD) {
                     graphics.fill(buildMinX, buildMinZ, buildMaxX, buildMaxZ, color(mouseOver ? 235 : 255, mouseOver ? HOVER_RGB : ROAD_RGB));
-                } else if (mapElement.category == NpcBuild.BUILDING) {
+                } else if (mapElement.category == Build.BUILDING) {
                     drawRectangleWithShadow(graphics, buildMinX, buildMaxX, buildMinZ, buildMaxZ, mouseOver ? 235 : alpha, mouseOver ? HOVER_RGB : BUILDING_RGB);
                 }
-                if (mouseOver && !(mapElement.category == NpcBuild.BUD && !debugView)) {
+                if (mouseOver && !(mapElement.category == Build.BUD && !debugView)) {
                     graphics.renderTooltip(font, debugView ? mapElement.debugDescription : mapElement.description, mapElement.titleWithIcon, mouseX, mouseY);
                 }
             }

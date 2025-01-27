@@ -1,6 +1,5 @@
 package org.dawnoftime.onceuponatown.entity;
 
-import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -32,15 +31,12 @@ import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.raid.Raider;
 import net.minecraft.world.item.*;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.SoundType;
-import net.minecraft.world.level.block.state.BlockState;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.entity.ai.goal.core.NpcPanicGoal;
 import org.dawnoftime.onceuponatown.entity.ai.goal.fight.SelfDefenseGoal;
 import org.dawnoftime.onceuponatown.menu.InteractingNpc;
 import org.dawnoftime.onceuponatown.menu.TradeMenu;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
-import org.dawnoftime.onceuponatown.town.Town;
 import org.dawnoftime.onceuponatown.trade.BuyDeal;
 import org.dawnoftime.onceuponatown.trade.MerchantDeal;
 import org.dawnoftime.onceuponatown.trade.SellDeal;
@@ -53,55 +49,57 @@ import java.util.List;
 import java.util.function.Predicate;
 
 public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, CrossbowAttackMob {
+    //TODO make a clean and custom client serialization
     private static final EntityDataAccessor<Boolean> DATA_IS_CHARGING_CROSSBOW = SynchedEntityData.defineId(Npc.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> DATA_CROSSING_ARMS = SynchedEntityData.defineId(Npc.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> DATA_READING = SynchedEntityData.defineId(Npc.class, EntityDataSerializers.BOOLEAN);
-    //TODO make a clean and custom client serialization
-    private static final EntityDataAccessor<CompoundTag> PROF = SynchedEntityData.defineId(Npc.class, EntityDataSerializers.COMPOUND_TAG);
+    private static final EntityDataAccessor<String> CULTURE = SynchedEntityData.defineId(Npc.class, EntityDataSerializers.STRING);
+    private static final EntityDataAccessor<String> PROFESSION = SynchedEntityData.defineId(Npc.class, EntityDataSerializers.STRING);
     public static final double DEFAULT_SPEED = 0.25D;
     public static final double RUN_SPEED_MODIFIER = 0.65D;
     public static final double SPRINT_SPEED_MODIFIER = 0.75D;
     private Player interactingPlayer;
     private Activity currentActivity;
-    private Town town;
     private int blockBreakTime;
     private int lastBreakProgress = -1;
     private NpcFishingHook fishingHook;
-    private Profession profession = Profession.BUILDER;
-    private String cultureId = "plains";
+    private Profession profession;
 
     public Npc(EntityType<Npc> entityType, Level level) {
         super(entityType, level);
-        CompoundTag clientData = new CompoundTag();
-        clientData.putString("CultureId", cultureId);
-        clientData.putString("ProfessionId", profession.getId());
-        entityData.set(PROF, clientData);
+        setCultureId("plains");
+        setProfessionId("");
     }
 
+    @Override
     protected void defineSynchedData() {
         super.defineSynchedData();
         entityData.define(DATA_IS_CHARGING_CROSSBOW, false);
-        entityData.define(DATA_CROSSING_ARMS, false);
+        entityData.define(DATA_CROSSING_ARMS, true);
         entityData.define(DATA_READING, false);
-        entityData.define(PROF, new CompoundTag());
-    }
-
-    public CompoundTag getClientData() {
-        return entityData.get(PROF);
+        entityData.define(CULTURE, "default");
+        entityData.define(PROFESSION, "");
     }
 
     public static AttributeSupplier.Builder createAttributes() {
         return Mob.createMobAttributes().add(Attributes.MOVEMENT_SPEED, DEFAULT_SPEED).add(Attributes.ATTACK_DAMAGE, 1.0D).add(Attributes.FOLLOW_RANGE, 50.0D);
     }
 
-    public void readAdditionalSaveData(@NotNull CompoundTag compoundTag) {
-        super.readAdditionalSaveData(compoundTag);
+    @Override
+    public void readAdditionalSaveData(@NotNull CompoundTag tag) {
+        super.readAdditionalSaveData(tag);
+        setCultureId(tag.getString("Culture"));
+        setProfessionId(tag.getString("Profession"));
     }
 
-    public void addAdditionalSaveData(@NotNull CompoundTag compoundTag) {
-        super.addAdditionalSaveData(compoundTag);
+    @Override
+    public void addAdditionalSaveData(@NotNull CompoundTag tag) {
+        super.addAdditionalSaveData(tag);
+        tag.putString("Culture", getCultureId());
+        tag.putString("Profession", getProfessionId());
     }
 
+    @Override
     protected void registerGoals() {
         addCoreGoals();
         addRaidGoals();
@@ -109,7 +107,11 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         addRestingGoals();
         addWorkGoals();
         addFreeTimeGoals();
-        targetSelector.addGoal(0, new HurtByTargetGoal(this));
+    }
+
+    public void clearAi() {
+        goalSelector.removeAllGoals(goal -> true);
+        addCoreGoals();
     }
 
     private void addCoreGoals() {
@@ -136,6 +138,7 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         goalSelector.addGoal(12, new LookAtPlayerGoal(this, LivingEntity.class, 10.0F));
         goalSelector.addGoal(13, new RandomLookAroundGoal(this));
 
+        targetSelector.addGoal(0, new HurtByTargetGoal(this));
     }
 
     private void addRaidGoals() {
@@ -163,6 +166,7 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         //setItemSlot(EquipmentSlot.FEET, new ItemStack(Items.IRON_BOOTS));
     }
 
+    @Override
     public void aiStep() {
         updateSwingTime();
         super.aiStep();
@@ -170,6 +174,7 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
 
     @Override
     protected void customServerAiStep() {
+        /*
         BlockPos posAboveHead = blockPosition().above(2);
         BlockState stateAboveHead = level().getBlockState(posAboveHead);
         if (stateAboveHead.isSolid()) {
@@ -194,17 +199,22 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
                 blockBreakTime = 0;
             }
         }
+
+         */
     }
 
+    @Override
     public void rideTick() {
-        super.rideTick(); //if (this.getVehicle() instanceof AbstractHorse horse && !horse.isTamed())//horse.setTamed(true);
+        super.rideTick();//if (this.getVehicle() instanceof AbstractHorse horse && !horse.isTamed())//horse.setTamed(true);
     }
 
+    @Override
     public boolean hurt(@NotNull DamageSource source, float amount) {
-        setCrossingArms(false);
+        //setCrossingArms(false);
         return super.hurt(source, amount);
     }
 
+    @Override
     public void die(@NotNull DamageSource cause) {
         super.die(cause);
         //tradingHandler.stopTrading();
@@ -370,51 +380,79 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         }
     }
 
+    public void setCultureId(String cultureId) {
+        entityData.set(CULTURE, cultureId);
+    }
+
+    public void setProfessionId(String professionId) {
+        entityData.set(PROFESSION, professionId);
+    }
+
+    @Override
     public void shootCrossbowProjectile(@NotNull LivingEntity target, @NotNull ItemStack crossbowStack, @NotNull Projectile projectile, float projectileAngle) {
         shootCrossbowProjectile(this, target, projectile, projectileAngle, 1.6F);
     }
 
+    @Override
     public void onCrossbowAttackPerformed() {
         noActionTime = 0;
     }
 
+    @Override
     protected SoundEvent getHurtSound(@NotNull DamageSource damageSource) {
         return SoundEvents.VILLAGER_HURT;
     }
 
+    @Override
     protected SoundEvent getDeathSound() {
         return SoundEvents.VILLAGER_DEATH;
     }
 
+    @Override
     protected SoundEvent getAmbientSound() {
         return null;
         //return SoundEvents.VILLAGER_AMBIENT; //return tradingHandler.isTrading() ? SoundEvents.VILLAGER_TRADE : SoundEvents.VILLAGER_AMBIENT;
     }
 
+    public String getCultureId() {
+        return entityData.get(CULTURE);
+    }
+
+    public String getProfessionId() {
+        return entityData.get(PROFESSION);
+    }
+
+    @Override
     public int getAmbientSoundInterval() {
         return 600;
     }
 
+    @Override
     protected float getStandingEyeHeight(@NotNull Pose pose, @NotNull EntityDimensions size) {
         return isBaby() ? 0.81F : 1.62F;
     }
 
+    @Override
     public double getMyRidingOffset() {
         return isBaby() ? 0.0D : -0.30D;
     }
 
+    @Override
     public AgeableMob getBreedOffspring(@NotNull ServerLevel level, @NotNull AgeableMob otherParent) {
         return EntityRegistry.REGISTRY.NPC.get().create(level);
     }
 
+    @Override
     public boolean canChangeDimensions() {
         return false; // Todo : set to true
     }
 
+    @Override
     public boolean canBeLeashed(@NotNull Player player) {
         return true;
     }
 
+    @Override
     public boolean isPersistenceRequired() {
         return true;
     }
@@ -441,24 +479,23 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         return entityData.get(DATA_IS_CHARGING_CROSSBOW);
     }
 
+    @Override
     public void setChargingCrossbow(boolean chargingCrossbow) {
         entityData.set(DATA_IS_CHARGING_CROSSBOW, chargingCrossbow);
     }
 
+    @Override
     public Player getInteractingPlayer() {
         return interactingPlayer;
     }
 
+    @Override
     public void setInteractingPlayer(@Nullable Player player) {
         interactingPlayer = player;
     }
 
     public void setFishingHook(NpcFishingHook hook) {
         fishingHook = hook;
-    }
-
-    public Town getTown() {
-        return town;
     }
 
     @Override

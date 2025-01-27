@@ -5,15 +5,11 @@
   "levels": [
     {
       "required_era": 1,
-      "dwelling_slots": 3,
+      "dwelling_slots": 2,
       "working_slots": [
         {
           "profession": "farmer",
-          "max_level": 1
-        },
-        {
-          "profession": "farmer",
-          "max_level": 1
+          "slots": 1
         }
       ]
     }

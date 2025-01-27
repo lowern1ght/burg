@@ -11,7 +11,7 @@ import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
 import org.dawnoftime.onceuponatown.building.type.BuildType;
 import org.dawnoftime.onceuponatown.culture.Culture;
-import org.dawnoftime.onceuponatown.town.generation.MapBlock;
+import org.dawnoftime.onceuponatown.town.generation.MapPart;
 import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
 import org.dawnoftime.onceuponatown.town.generation.TownMapUtils;
 import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
@@ -25,7 +25,7 @@ import org.jetbrains.annotations.Nullable;
  * Build and BuildType share the same relation as Block and BlockState do. Build is the instance in a Level, where BuildType is the description of its behavior. <br>
  * Can be upgraded by a Builder NPC, to be fancier or more interesting for the Player. <br>
  */
-public abstract class NpcBuild implements MapBlock {
+public abstract class Build implements MapPart {
     public static final byte BUD = 0; // Fast enumeration for storing in NBT
     public static final byte ROAD = 1;
     public static final byte BUILDING = 2;
@@ -43,7 +43,7 @@ public abstract class NpcBuild implements MapBlock {
      * @param buildType BuildType of this Build.
      * @param level     Starting level for this Build. Has to be between 1 and the maximum level defined by the BuildType.
      */
-    protected NpcBuild(BuildType buildType, int level) {
+    protected Build(BuildType buildType, int level) {
         this.buildType = buildType;
         this.level = level;
     }
@@ -54,7 +54,7 @@ public abstract class NpcBuild implements MapBlock {
      * @param culture The Culture this Build belongs to.
      * @param tag     NBT containing the Build's data.
      */
-    protected NpcBuild(Culture culture, CompoundTag tag) {
+    protected Build(Culture culture, CompoundTag tag) {
         this(culture.getBuildType(tag.getString("BuildType")), tag.getInt("Level"));
         originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
         direction = Direction.byName(tag.getString("Direction"));
@@ -63,7 +63,7 @@ public abstract class NpcBuild implements MapBlock {
     /**
      * Loads a Build from NBT.
      */
-    public static NpcBuild load(Culture culture, CompoundTag tag) {
+    public static Build load(Culture culture, CompoundTag tag) {
         return switch (tag.getByte("BuildCategory")) {
             case BUILDING -> new Building(culture, tag);
             case ROAD -> new Road(culture, tag);
@@ -74,7 +74,7 @@ public abstract class NpcBuild implements MapBlock {
     /**
      * Saves this Build to NBT.
      */
-    public CompoundTag save() {
+    public CompoundTag saveNbt() {
         CompoundTag tag = new CompoundTag();
         tag.putByte("BuildCategory", getBuildCategory());
         tag.putString("BuildType", buildType.getId());
@@ -84,19 +84,9 @@ public abstract class NpcBuild implements MapBlock {
         return tag;
     }
 
-    /**
-     * Adds this Build to a Town. <br>
-     * WARNING: this method assumes that all the conditions to place the Build in the Town are met. <br>
-     *
-     * @param town     Town to add this Build in.
-     * @param buildBud BuildBud used to place this Build in the Town map.
-     * @param dir      Direction this Build needs to be facing at.
-     */
-    public void addToTown(ProtoTown town, BuildBud buildBud, Direction dir) {
-        originPos = buildBud.findOriginPos(this, dir);
-        direction = dir;
-        town.addNewBuilds(this);
-        this.onAddedToTown(town);
+    public void setOriginAndDirection(BlockPos originPos, Direction direction) {
+        this.originPos = originPos;
+        this.direction = direction;
     }
 
     /**
@@ -121,8 +111,7 @@ public abstract class NpcBuild implements MapBlock {
      *
      * @param town Town to add this Build to.
      */
-    protected void onAddedToTown(ProtoTown town) {
-    }
+    public abstract void onAddedToTown(ProtoTown town);
 
     /**
      * Finds a suitable y position in era to place this Build on a BuildingBud. <br>
@@ -131,7 +120,7 @@ public abstract class NpcBuild implements MapBlock {
      * @param originPos BlockPos to place this Build at. Only x and z are important here, since this method will find the correct y.
      * @param dir       Direction being evaluated.
      */
-    public int getSuitablePlacementAltitude(BlockPos originPos, Direction dir) {
+    public int getSuitableAltitudeForPlacement(BlockPos originPos, Direction dir) {
         return originPos.getY();
     }
 
@@ -150,7 +139,7 @@ public abstract class NpcBuild implements MapBlock {
      * @return BlockPos of the given corner of this Build.
      */
     public BlockPos getCornerPos(TownMapUtils.Corner corner) {
-        return TownMapUtils.Corner.NORTH_WEST.getCornerPos(originPos, this, direction, corner);
+        return TownMapUtils.Corner.NORTH_WEST.getCornerPosOfBuild(originPos, this, direction, corner);
     }
 
     /**
@@ -231,7 +220,7 @@ public abstract class NpcBuild implements MapBlock {
     /**
      * @return NBT tag containing various elements to be displayed in GUI (BuildType, level, inhabitants...)
      */
-    public CompoundTag getDescriptionForGui() {
+    public CompoundTag getGuiDescription() {
         CompoundTag descriptionTag = new CompoundTag();
         descriptionTag.putString("BuildType", getBuildType().getId());
         descriptionTag.put("OriginPos", NbtUtils.writeBlockPos(getOriginPos()));
@@ -247,7 +236,7 @@ public abstract class NpcBuild implements MapBlock {
     protected abstract byte getBuildCategory();
 
     @Override
-    public @Nullable NpcBuild getBuild() {
+    public @Nullable Build getBuild() {
         return this;
     }
 

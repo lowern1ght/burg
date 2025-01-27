@@ -9,12 +9,10 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.StructureManager;
 import net.minecraft.world.level.WorldGenLevel;
-import net.minecraft.world.level.block.StructureBlock;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
-import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import net.minecraft.world.level.material.FluidState;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.Building;
@@ -30,7 +28,7 @@ public class BuildingPiece extends StructurePiece {
     private final ResourceLocation schematicLocation;
     private final BlockPos originPos;
     private final Direction buildingOrientation;
-    private final @Nullable CompoundTag townTag;
+    private @Nullable CompoundTag townTag;
 
     public BuildingPiece(Building building, @Nullable ProtoTown protoTown) {
         super(StructurePieceRegistry.REGISTRY.BUILDING_PIECE.get(), 0,
@@ -39,7 +37,7 @@ public class BuildingPiece extends StructurePiece {
         schematicLocation = building.getSchematicResourceLocation();
         originPos = building.getOriginPos();
         buildingOrientation = building.getDirection();
-        townTag = (protoTown == null) ? null : protoTown.writeNBT();
+        townTag = (protoTown == null) ? null : protoTown.saveNbt();
     }
 
     public BuildingPiece(CompoundTag tag) {
@@ -79,9 +77,11 @@ public class BuildingPiece extends StructurePiece {
                     // Vanilla if (SHAPE_CHECK_BLOCKS.contains(blockstate.getBlock())) {level.getChunk(blockPos).markPosForPostprocessing(blockPos);}
                 }
                 // TODO Place the schematic entities as well
-                if (townTag != null) {
-                    LevelTowns.of(level.getLevel()).initProtoTown(townTag);
-                }
+
+            }
+            if (townTag != null) {
+                LevelTowns.of(level.getLevel()).registerWorldGeneratedTown(townTag);
+                townTag = null;
             }
         } else {
             Ouat.error("Failed to place a village building during world generation. Check the file at " + schematicLocation);
