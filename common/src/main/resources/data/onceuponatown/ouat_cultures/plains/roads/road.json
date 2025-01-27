@@ -17,9 +17,9 @@
       "name": "flat_a",
       "shape": "flat",
       "size": {
-        "x": 5,
+        "x": 2,
         "y": 4,
-        "z": 2
+        "z": 5
       },
       "levels": [
         {
@@ -33,9 +33,9 @@
       "name": "flat_b",
       "shape": "flat",
       "size": {
-        "x": 5,
+        "x": 2,
         "y": 4,
-        "z": 2
+        "z": 5
       },
       "levels": [
         {
@@ -46,12 +46,28 @@
       ]
     },
     {
+      "name": "flat_c",
+      "shape": "flat",
+      "size": {
+        "x": 2,
+        "y": 4,
+        "z": 5
+      },
+      "levels": [
+        {
+          "level": 1,
+          "schematic": "road_flat_c1",
+          "waypoints": []
+        }
+      ]
+    },
+    {
       "name": "slab_a",
       "shape": "slab",
       "size": {
-        "x": 5,
+        "x": 2,
         "y": 4,
-        "z": 2
+        "z": 5
       },
       "levels": [
         {
@@ -65,9 +81,9 @@
       "name": "stairs_a",
       "shape": "stairs",
       "size": {
-        "x": 5,
+        "x": 2,
         "y": 8,
-        "z": 2
+        "z": 5
       },
       "levels": [
         {
