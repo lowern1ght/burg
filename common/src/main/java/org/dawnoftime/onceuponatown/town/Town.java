@@ -68,7 +68,7 @@ public class Town extends ProtoTown {
                  int id,
                  String name,
                  List<ConstructionProject> projects,
-                 List<Citizen> citizens,
+                 ListTag citizens,
                  HashMap<Specialization, Integer> progression,
                  TownInventory inventory,
                  long lastProductionHarvest,
@@ -79,7 +79,7 @@ public class Town extends ProtoTown {
         this.id = id;
         this.name = name;
         this.projects = projects;
-        this.citizens = citizens;
+        this.citizens = new ArrayList<>();
         this.progression = progression;
         this.inventory = inventory;
         this.lastProductionHarvest = lastProductionHarvest;
@@ -94,8 +94,16 @@ public class Town extends ProtoTown {
         } else {
             this.townInfoBar = bossEvents.get(Ouat.modResource(barId));
         }
-        for (Citizen citizen : citizens) {
-            // Reassign homes and workplaces
+        var buildings = getBuildings();
+        for (Tag tag : citizens) {
+            CompoundTag citizenTag = (CompoundTag) tag;
+            this.citizens.add(new Citizen(
+                Citizen.Status.valueOf(citizenTag.getString("Status")),
+                Profession.of(citizenTag.getString("Profession")),
+                citizenTag.hasUUID("UUID") ? citizenTag.getUUID("UUID") : null,
+                buildings.stream().filter(building -> building.toSafeString().equals(citizenTag.getString("Residence"))).findFirst().orElse(null),
+                buildings.stream().filter(building -> building.toSafeString().equals(citizenTag.getString("Workplace"))).findFirst().orElse(null)
+            ));
         }
     }
 
@@ -114,7 +122,7 @@ public class Town extends ProtoTown {
             id,
             getRandomTownName(),
             new ArrayList<>(), // Empty ConstructionProjects
-            new ArrayList<>(), // Empty Citizens
+            new ListTag(), // Empty Citizens
             new HashMap<>(), // Empty progression
             new TownInventory(),
             level.getGameTime(), // lastProductionHarvest
@@ -140,8 +148,7 @@ public class Town extends ProtoTown {
             townTag.getInt("Id"),
             townTag.getString("Name"),
             townTag.getList("Projects", Tag.TAG_COMPOUND).stream().map(projectTag -> new ConstructionProject(level, (CompoundTag) projectTag)).collect(Collectors.toList()),
-            new ArrayList<>(),
-            //townTag.getList("Citizens", Tag.TAG_COMPOUND).stream().map(citizenTag -> new Citizen((CompoundTag) citizenTag)).collect(Collectors.toList()),
+            townTag.getList("Citizens", Tag.TAG_COMPOUND),
             new HashMap<>(), // TODO Implement progression
             new TownInventory(),
             townTag.getLong("LastProductionHarvest"),
@@ -165,7 +172,7 @@ public class Town extends ProtoTown {
             id,
             getRandomTownName(),
             new ArrayList<>(), // Empty ConstructionProjects
-            new ArrayList<>(), // Empty Citizens
+            new ListTag(), // Empty Citizens
             new HashMap<>(), // Empty progression
             new TownInventory(),
             level.getGameTime(), // lastProductionHarvest
@@ -173,6 +180,17 @@ public class Town extends ProtoTown {
             0 // lastActive
         );
         if (town.buildStarterPack()) {
+            // Placing builds
+            BlockPos.MutableBlockPos cursor = new BlockPos(0, 0, 0).mutable();
+            for (Build build : town.getBuilds()) {
+                SchematicContent schema = build.getSchematicContent(level.getServer().getResourceManager());
+                for (BlockInfo block : schema.getBlocks()) {
+                    cursor.set(build.getOriginPos().getX(), build.getOriginPos().getY(), build.getOriginPos().getZ());
+                    level.setBlock(cursor.move(block.pos()), block.state(), 2);
+                    // broken return null;
+                }
+                // TODO Do the same for the entities !
+            }
             town.afterSpawnInit();
             return town;
         } else {
@@ -190,9 +208,9 @@ public class Town extends ProtoTown {
         projects.forEach(project -> projectsTag.add(project.save(new CompoundTag())));
         tag.put("Projects", projectsTag);
         // Citizens
-        //ListTag citizensTag = new ListTag();
-        //citizens.forEach(citizen -> citizensTag.add(citizen.saveNbt()));
-        // tag.put("Citizens", citizensTag);
+        ListTag citizensTag = new ListTag();
+        citizens.forEach(citizen -> citizensTag.add(citizen.saveNbt()));
+        tag.put("Citizens", citizensTag);
         // TODO Implement progression
         tag.put("Inventory", inventory.writeNBT());
         tag.putLong("LastProductionHarvest", lastProductionHarvest);
@@ -212,7 +230,7 @@ public class Town extends ProtoTown {
         int townTotalDwellingSlots = buildings.stream().mapToInt(Building::getTotalBeds).sum();
         // Adding the proper amount of Citizens
         for (int i = 0; i < townTotalDwellingSlots; i++) {
-            citizenList.add(new Citizen(null, Citizen.Status.NOT_SPAWNED, Profession.UNEMPLOYED, null, null));
+            citizenList.add(new Citizen(Citizen.Status.NOT_SPAWNED, Profession.UNEMPLOYED, null, null, null));
         }
         // Professions
         assigningJobs:
@@ -229,7 +247,7 @@ public class Town extends ProtoTown {
         }
         // Special profession : Builder
         Citizen builder = citizenList.stream().filter(Citizen::isUnemployed).findFirst()
-            .orElse(new Citizen(null, Citizen.Status.NOT_SPAWNED, null, null, null));
+            .orElse(new Citizen(Citizen.Status.NOT_SPAWNED, Profession.UNEMPLOYED, null, null, null));
         builder.profession = Profession.BUILDER;
         if (!citizenList.contains(builder)) {
             citizenList.add(builder);
@@ -252,12 +270,13 @@ public class Town extends ProtoTown {
                     continue assigningHomes;
                 }
             }
+            Ouat.error("Town %s (id:%s) failed to assign a home to citizen".formatted(name, id));
             // TODO what if unable to assign a home ?
         }
         citizens.addAll(citizenList);
     }
 
-    public void updateStatus() {
+    private void updateStatus() {
         if (!active && !visitors.isEmpty()) {
             setActive();
         } else if (active && visitors.isEmpty()) {
@@ -281,10 +300,11 @@ public class Town extends ProtoTown {
         // Builds
     }
 
-    public void tick() {
+    void tick() {
         updateVisitors();
         updateStatus();
         if (active) {
+            //Ouat.info("Ticking active town %s".formatted(name));
             handleCitizens();
         }
     }
@@ -328,20 +348,33 @@ public class Town extends ProtoTown {
         }
     }
 
-    private boolean build(BuildingType buildingType) {
-        boolean success = false;
+    public boolean build(BuildingType buildingType, int startingLevel) {
+        Building building = tryAddBuilding(buildingType, startingLevel);
+        boolean success = building != null;
+        if (success) {
+            BlockPos.MutableBlockPos cursor = new BlockPos(0, 0, 0).mutable();
+            SchematicContent schema = building.getSchematicContent(level.getServer().getResourceManager());
+            for (BlockInfo block : schema.getBlocks()) {
+                cursor.set(building.getOriginPos().getX(), building.getOriginPos().getY(), building.getOriginPos().getZ());
+                // success &= broken
+                level.setBlock(cursor.move(block.pos()), block.state(), 2);
+            }
+        }
         return success;
     }
 
-    private void demolish(Build build) {
-        BlockPos.MutableBlockPos cursor = new BlockPos(0, 0, 0).mutable();
-        SchematicContent schema = build.getSchematicContent(level.getServer().getResourceManager());
-        for (BlockInfo block : schema.getBlocks()) {
-            cursor.set(build.getOriginPos().getX(), build.getOriginPos().getY(), build.getOriginPos().getZ());
-            if (!level.destroyBlock(cursor.move(block.pos()), false)) {
-                Ouat.error("Town %s has failed to properly demolish the build %s at %s".formatted(name, build, cursor));
+    public boolean demolish(Build build) {
+        boolean success = removeBuild(build);
+        if (success) {
+            BlockPos.MutableBlockPos cursor = new BlockPos(0, 0, 0).mutable();
+            SchematicContent schema = build.getSchematicContent(level.getServer().getResourceManager());
+            for (BlockInfo block : schema.getBlocks()) {
+                cursor.set(build.getOriginPos().getX(), build.getOriginPos().getY(), build.getOriginPos().getZ());
+                // success &= broken
+                level.destroyBlock(cursor.move(block.pos()), false);
             }
         }
+        return success;
     }
 
     private boolean addProject(BuildingType buildingType) {
@@ -366,6 +399,8 @@ public class Town extends ProtoTown {
             if (uuid != null) {
                 if (level.getEntity(citizen.entityUUID) instanceof Npc npc) {
                     npc.setProfessionId(Profession.UNEMPLOYED.getId());
+                    npc.setNoAi(false);
+                    npc.setCustomName(null);
                     npc.clearAi();
                 }
             }
@@ -374,8 +409,9 @@ public class Town extends ProtoTown {
 
     void deleteAndDemolish() {
         delete();
-        for (Build build : getBuilds()) {
-            demolish(build);
+        List<Build> concurrentSafe = new ArrayList<>(getBuilds());
+        for (Build build : concurrentSafe) {
+            demolish(build); // will remove Build from this.builds list
         }
     }
 
@@ -392,14 +428,14 @@ public class Town extends ProtoTown {
 
     private void updateVisitors() {
         final List<ServerPlayer> playersInTown = level.getPlayers(player -> playerInsideBoundaries(player, 0));
-        List<ServerPlayer> toBye = new ArrayList<>(visitors);
-        toBye.removeAll(playersInTown);
-        toBye.forEach(this::byePlayer);
-        List<ServerPlayer> toGreet = new ArrayList<>(playersInTown);
-        toGreet.removeAll(visitors);
-        toGreet.forEach(this::greetPlayer);
-        visitors.removeAll(toBye);
-        visitors.addAll(toGreet);
+        List<ServerPlayer> leaving = new ArrayList<>(visitors);
+        leaving.removeAll(playersInTown);
+        leaving.forEach(this::byePlayer);
+        List<ServerPlayer> entering = new ArrayList<>(playersInTown);
+        entering.removeAll(visitors);
+        entering.forEach(this::greetPlayer);
+        visitors.removeAll(leaving);
+        visitors.addAll(entering);
     }
 
     private boolean playerInsideBoundaries(Player player, int margin) {
@@ -422,7 +458,7 @@ public class Town extends ProtoTown {
         return Ouat.translatable("town_name." + RANDOM.nextInt(1, 20)).getString();
     }
 
-    public CompoundTag getTownMapDataForGui() {
+    public CompoundTag getGuiDescription() {
         CompoundTag mapDataTag = new CompoundTag();
         mapDataTag.putString("TownName", getName());
         mapDataTag.put("NWCorner", NbtUtils.writeBlockPos(getNWCorner()));

@@ -64,17 +64,18 @@ public class Utils {
     }
 
     public static Town getNearestTown(ServerLevel level, BlockPos pos, int maxDist) {
+        maxDist *= maxDist;
         if (maxDist <= 0) {
             return null;
         }
-        Collection<Town> towns = LevelTowns.of(level).getAllTowns();
+        Collection<Town> towns = LevelTowns.of(level).getAll();
         if (towns.isEmpty()) {
             return null;
         }
         Town town = null;
         int dist;
         for (Town next : towns) {
-            dist = (int) Math.sqrt(pos.distSqr(next.getCenter()));
+            dist = (int) next.getCenter().distToCenterSqr(pos.getCenter());
             if (dist < maxDist) {
                 town = next;
                 maxDist = dist;

@@ -154,7 +154,7 @@ public class ProtoTown {
     /**
      * Recreates the 2D array representing this ProtoTown's map, by iterating over each Build.
      */
-    protected void computeTownMap() {
+    private void computeTownMap() {
         townMap = new MapPart[SECorner.getZ() - NWCorner.getZ() + 1][SECorner.getX() - NWCorner.getX() + 1];
         for (Build build : builds) {
             int xStart = this.getMapX(build.getOriginPos().getX());
@@ -201,7 +201,7 @@ public class ProtoTown {
      * @param startingLevel the initial level of the Building to add.
      * @return the freshly added Building or false if the placement was unsuccessful.
      */
-    public @Nullable Building tryAddBuilding(BuildingType type, int startingLevel) {
+    protected @Nullable Building tryAddBuilding(BuildingType type, int startingLevel) {
         // TODO What if there is no Bud left ?
         this.getBuds().sort(Comparator.comparingInt(bud -> bud.getSqrDistToTownCenter(center)));
         BuildBud[] buildBuds = this.getBuds().toArray(new BuildBud[0]);
@@ -264,9 +264,14 @@ public class ProtoTown {
     protected boolean removeBuild(Build toRemove) {
         boolean removed = builds.remove(toRemove);
         if (removed) {
-            // ? computeTownMap();
+            computeTownMap();
+            buildsWeight -= toRemove.getBuildType().getWeight();
         }
         return removed;
+    }
+
+    public @Nullable Building getBuilding(String buildingName) {
+        return getBuildings().stream().filter(building -> building.toSafeString().equals(buildingName)).findFirst().orElse(null);
     }
 
     /**

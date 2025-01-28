@@ -1,12 +1,11 @@
 package org.dawnoftime.onceuponatown.town;
 
-import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
-import org.dawnoftime.onceuponatown.Config;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -31,7 +30,7 @@ public class LevelTowns extends SavedData {
     private LevelTowns(ServerLevel level, CompoundTag tag) {
         this.level = level;
         this.nextAvailableId = tag.getInt("NextAvailableId");
-        ListTag townsTag = tag.getList("Towns", 10);
+        ListTag townsTag = tag.getList("Towns", Tag.TAG_COMPOUND);
         for (int i = 0; i < townsTag.size(); i++) {
             Town town = Town.loadNbt(level, townsTag.getCompound(i));
             // TODO check for incorrect id
@@ -51,6 +50,10 @@ public class LevelTowns extends SavedData {
         return tag;
     }
 
+    public @Nullable Town getTown(int townId) {
+        return towns.getOrDefault(townId, null);
+    }
+
     public @Nullable Town getTown(String townName) {
         for (Town town : towns.values()) {
             if (town.getName().equals(townName)) {
@@ -60,7 +63,7 @@ public class LevelTowns extends SavedData {
         return null;
     }
 
-    public @NotNull Collection<Town> getAllTowns() {
+    public @NotNull Collection<Town> getAll() {
         return towns.values();
     }
 
@@ -109,26 +112,9 @@ public class LevelTowns extends SavedData {
     }
 
     public void tickTowns() {
-        if ((level.getServer().getTickCount() % Config.TOWN_TICK_RATE_SECONDS * SharedConstants.TICKS_PER_SECOND) == 0) {
-            towns.values().forEach(Town::tick);
+        for (Town town : towns.values()) {
+            town.tick();
         }
-        /*
-        long dayTime = this.level.getDayTime();
-        if (dayTime == 0 || dayTime == 6000 || dayTime == 13000) {
-            if (!this.towns.isEmpty()) {
-                for (Town town : this.getAllTowns()) {
-                    if (dayTime == 0) {
-                        town.ringTownBell(Town.TownBellRingType.DAWN);
-                    } else if (dayTime == 6000) {
-                        town.ringTownBell(Town.TownBellRingType.NOON);
-                    } else {
-                        town.ringTownBell(Town.TownBellRingType.DUSK);
-                    }
-                }
-            }
-        }
-
-         */
     }
 
     @Override
