@@ -70,8 +70,8 @@ public class LevelTowns extends SavedData {
     /**
      * Tries to spawn a Town at the desired location. Returns null if generation was impossible.
      */
-    public Town trySpawnTown(Culture townCulture, BlockPos townPosition) {
-        Town town = Town.trySpawnAtPosition(townCulture, level, nextAvailableId, townPosition);
+    public Town trySpawnTown(Culture townCulture, BlockPos townPosition, @Nullable String townName) {
+        Town town = Town.trySpawnAtPosition(townCulture, level, nextAvailableId, townPosition, townName);
         if (town != null) {
             towns.put(nextAvailableId, town);
             ++nextAvailableId;

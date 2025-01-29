@@ -16,6 +16,7 @@ import org.dawnoftime.onceuponatown.construction.EntityInfo;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.Town;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -59,11 +60,11 @@ public class Utils {
         return s.substring(0, 1).toUpperCase() + s.substring(1);
     }
 
-    public static Town getNearestTown(ServerLevel level, BlockPos pos) {
+    public static @Nullable Town getNearestTown(ServerLevel level, BlockPos pos) {
         return getNearestTown(level, pos, Integer.MAX_VALUE);
     }
 
-    public static Town getNearestTown(ServerLevel level, BlockPos pos, int maxDist) {
+    public static @Nullable Town getNearestTown(ServerLevel level, BlockPos pos, int maxDist) {
         maxDist *= maxDist;
         if (maxDist <= 0) {
             return null;

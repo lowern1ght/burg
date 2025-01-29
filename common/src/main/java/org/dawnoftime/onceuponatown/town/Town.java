@@ -13,7 +13,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.Heightmap;
 import org.dawnoftime.onceuponatown.Config;
 import org.dawnoftime.onceuponatown.Ouat;
@@ -34,6 +33,7 @@ import org.dawnoftime.onceuponatown.registry.EntityRegistry;
 import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
 import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
 public class Town extends ProtoTown {
     private final ServerLevel level; // The Level this Town belongs to
     private final int id; // Unique Id
-    private final String name; // Not unique name
+    private String name; // Not unique name
     private final List<ConstructionProject> projects; // List of Builds under construction
     private final List<Citizen> citizens; // Citizens of this Town
     private final HashMap<Specialization, Integer> progression;
@@ -158,7 +158,7 @@ public class Town extends ProtoTown {
         return town;
     }
 
-    static Town trySpawnAtPosition(Culture culture, ServerLevel level, int id, BlockPos center) {
+    static Town trySpawnAtPosition(Culture culture, ServerLevel level, int id, BlockPos center, @Nullable String townName) {
         Town town = new Town(
             culture,
             center, // Center
@@ -170,7 +170,7 @@ public class Town extends ProtoTown {
             (x, z) -> (level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) - 1),
             level,
             id,
-            getRandomTownName(),
+            (townName != null && !townName.isBlank()) ? townName : getRandomTownName(),
             new ArrayList<>(), // Empty ConstructionProjects
             new ListTag(), // Empty Citizens
             new HashMap<>(), // Empty progression
@@ -477,7 +477,7 @@ public class Town extends ProtoTown {
     /**
      * Prints a description of this Town.
      */
-    public void printDescription() {
+    public void printConsoleDescription() {
         System.out.println("//---------------------------------------------- " + getName() + " [" + builds.size() + " Builds ] ---------------------------------------------//");
         System.out.println("UUID: " + id);
         System.out.println("Active : " + active);
@@ -496,13 +496,7 @@ public class Town extends ProtoTown {
         System.out.println("Town Center: " + Utils.blockPosToString(getCenter()));
         System.out.println("Size: " + getTownMap()[0].length + "×" + getTownMap().length);
         System.out.println("North-West corner : " + Utils.blockPosToString(getNWCorner()));
-        for (int y = 1; y <= 20; ++y) {
-            level.setBlock(getNWCorner().above(y), Blocks.RED_WOOL.defaultBlockState(), 2);
-        }
         System.out.println("South-East corner : " + Utils.blockPosToString(getSECorner()));
-        for (int y = 1; y <= 20; ++y) {
-            level.setBlock(getSECorner().above(y), Blocks.RED_WOOL.defaultBlockState(), 2);
-        }
         var buildings = getBuildings();
         System.out.println("Buildings (" + buildings.size() + ") :");
         for (Building building : buildings) {
@@ -532,6 +526,14 @@ public class Town extends ProtoTown {
 
     public int getId() {
         return id;
+    }
+
+    public boolean setName(String newName) {
+        if (newName != null && !newName.isBlank()) {
+            name = newName;
+            return true;
+        }
+        return false;
     }
 
     public String getName() {

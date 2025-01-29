@@ -41,7 +41,7 @@ public class Config {
     /** Minimum number of Buds to activate the mandatory road generation and prevent road growths stop.*/
     public static final int CRITICAL_BUDS_NUMBER = 4;
     /** Tick rate of the towns per second.*/
-    public static final int TOWN_TICK_RATE_SECONDS = 5;
+    public static final int TOWN_TICK_RATE_SECONDS = 1;
     /** Maximal amount of an item a town can have. */
     public static int MAX_TOWN_INVENTORY_STACK_SIZE = 10000;
 

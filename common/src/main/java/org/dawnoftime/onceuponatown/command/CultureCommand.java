@@ -28,6 +28,7 @@ public class CultureCommand {
 
     public static LiteralArgumentBuilder<CommandSourceStack> register() {
         return Commands.literal("culture")
+            .requires(commandSourceStack -> commandSourceStack.hasPermission(2))
             .then(Commands.literal("list")
                 .executes(context -> listCultures(context.getSource()))
             )
@@ -44,21 +45,25 @@ public class CultureCommand {
         int loadedSize = loaded.size();
         Set<String> corrupted = ServerCultures.getCorruptedCultures();
         int corruptedSize = corrupted.size();
-        if (!loaded.isEmpty()) {
+        MutableComponent message = Component.empty();
+        if (loadedSize != 0) {
             List<String> ids = new ArrayList<>();
             loaded.forEach(culture -> ids.add(culture.getId()));
             StringJoiner joiner = new StringJoiner(", ");
             ids.forEach(joiner::add);
-            source.sendSuccess(() -> Component.literal(loadedSize + " culture" + (loadedSize > 1 ? "s" : "") + " loaded :").append(Component.literal(" " + joiner)), false);
+            message.append(loadedSize + " culture" + (loadedSize > 1 ? "s" : "") + " loaded :").append(Component.literal(" " + joiner));
         }
-        if (!corrupted.isEmpty()) {
+        if (corruptedSize != 0) {
             StringJoiner joiner = new StringJoiner(", ");
             corrupted.forEach(joiner::add);
-            source.sendSuccess(() -> Component.literal(corruptedSize + " culture" + (corruptedSize > 1 ? "s" : "") + " corrupted :").withStyle(ChatFormatting.RED).append(Component.literal(" " + joiner)), false);
+            message.append(CommonComponents.NEW_LINE)
+                .append(Component.literal(corruptedSize + " culture" + (corruptedSize > 1 ? "s" : "") + " corrupted :").withStyle(ChatFormatting.RED))
+                .append(Component.literal(" " + joiner));
         }
         if (loadedSize == 0 && corruptedSize == 0) {
-            source.sendSuccess(() -> Component.literal("No cultures founded"), false);
+            message.append("No cultures founded");
         }
+        source.sendSuccess(() -> message, true);
         return 1;
     }
 
@@ -69,7 +74,7 @@ public class CultureCommand {
             var specializations = culture.getSpecializations();
             var buildTypes = culture.getBuildTypes();
             var starterPack = culture.getStarterPack();
-                // TITLE
+            // TITLE
             MutableComponent output = Component.literal("Culture ")
                 .append(Component.literal(culture.getId()).withStyle(ChatFormatting.YELLOW))
                 .append(" :")
@@ -87,7 +92,7 @@ public class CultureCommand {
                 .append(", max buildings weight :")
                 .append(Component.literal(" " + era.maxBuildingsWeight()).withStyle(ChatFormatting.GRAY))
                 .append(CommonComponents.NEW_LINE));
-                // SPECIALIZATIONS
+            // SPECIALIZATIONS
             output
                 .append(CommonComponents.NEW_LINE)
                 .append(Component.literal("Specializations").withStyle(ChatFormatting.GREEN))
@@ -96,7 +101,7 @@ public class CultureCommand {
                 .append(") :");
             specializations.forEach((spe ->
                 output.append(Component.literal(" " + spe.getId()).withStyle(ChatFormatting.DARK_AQUA))));
-                // BUILDING TYPES
+            // BUILDING TYPES
             output
                 .append(CommonComponents.NEW_LINE)
                 .append(CommonComponents.NEW_LINE)
@@ -109,11 +114,11 @@ public class CultureCommand {
                 .append(Component.literal(" " + type.getId()).withStyle(ChatFormatting.DARK_AQUA))
                 .append(" (")
                 .append(Component.literal(type.getLevels().size() + " ").withStyle(ChatFormatting.GRAY))
-                .append("level" + (type.getLevels().size() > 1 ? "s" : "" ) + ", ")
+                .append("level" + (type.getLevels().size() > 1 ? "s" : "") + ", ")
                 .append(Component.literal(type.getBuildVariants().size() + " ").withStyle(ChatFormatting.GRAY))
-                .append("variant" + (type.getBuildVariants().size() > 1 ? "s" : "" ) + ")")
+                .append("variant" + (type.getBuildVariants().size() > 1 ? "s" : "") + ")")
                 .append(CommonComponents.NEW_LINE));
-                // STARTER PACK
+            // STARTER PACK
             output
                 .append(CommonComponents.NEW_LINE)
                 .append(Component.literal("Starter pack").withStyle(ChatFormatting.GREEN))
@@ -130,9 +135,9 @@ public class CultureCommand {
                 .append(")")
                 .append(CommonComponents.NEW_LINE));
 
-            source.sendSuccess(() -> output, false);
+            source.sendSuccess(() -> output, true);
         } else if (ServerCultures.getCorruptedCultures().contains(cultureId)) {
-            source.sendFailure(Component.literal("This culture is corrupted"));
+            source.sendSuccess(() -> Component.literal("This culture is corrupted").withStyle(ChatFormatting.RED), true);
         } else {
             source.sendFailure(Component.literal("Culture not founded"));
         }
