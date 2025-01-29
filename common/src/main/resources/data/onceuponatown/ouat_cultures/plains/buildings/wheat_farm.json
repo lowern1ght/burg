@@ -1,0 +1,35 @@
+{
+  "id": "wheat_farm",
+  "category": "work",
+  "weight": 10,
+  "levels": [
+    {
+      "required_era": 1,
+      "dwelling_slots": 2,
+      "working_slots": [
+        {
+          "profession": "farmer",
+          "slots": 1
+        }
+      ]
+    }
+  ],
+  "item": "minecraft:wheat",
+  "variants": [
+    {
+      "name": "small_farm",
+      "size": {
+        "x": 19,
+        "y": 11,
+        "z": 12
+      },
+      "levels": [
+        {
+          "schematic": "small_farm",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "id": "training_camp",
+  "category": "work",
+  "weight": 20,
+  "levels": [
+    {
+      "required_era": 2
+    }
+  ],
+  "item": "minecraft:target",
+  "variants": [
+    {
+      "name": "bow_training_camp",
+      "size": {
+        "x": 26,
+        "y": 8,
+        "z": 41
+      },
+      "levels": [
+        {
+          "schematic": "bow_training_camp",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

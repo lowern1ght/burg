@@ -1,0 +1,28 @@
+{
+  "id": "pig_breeding",
+  "category": "work",
+  "weight": 10,
+  "levels": [
+    {
+      "required_era": 1
+    }
+  ],
+  "item": "minecraft:porkchop",
+  "variants": [
+    {
+      "name": "variant1",
+      "size": {
+        "x": 24,
+        "y": 9,
+        "z": 24
+      },
+      "levels": [
+        {
+          "schematic": "pig_field",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}
