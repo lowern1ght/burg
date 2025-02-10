@@ -23,6 +23,21 @@
           ]
         }
       ]
+    },
+    {
+      "name": "variant2",
+      "size": {
+        "x": 29,
+        "y": 12,
+        "z": 22
+      },
+      "levels": [
+        {
+          "schematic": "pig_farm",
+          "waypoints": [
+          ]
+        }
+      ]
     }
   ]
 }
