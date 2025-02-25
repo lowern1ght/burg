@@ -8,7 +8,7 @@ import org.dawnoftime.onceuponatown.network.culturecreator.S2COpenCultureCCScree
 import java.util.Arrays;
 import java.util.List;
 
-import static org.dawnoftime.onceuponatown.culture.ServerCultures.CULTURE_FOLDER_NAME;
+import static org.dawnoftime.onceuponatown.datapack.DataHandler.CULTURE_FOLDER_NAME;
 
 public class LevelCCScreen extends BaseCCScreen {
 

@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.dawnoftime.onceuponatown.Ouat.*;
-import static org.dawnoftime.onceuponatown.culture.ServerCultures.CULTURE_FOLDER_NAME;
+import static org.dawnoftime.onceuponatown.datapack.DataHandler.CULTURE_FOLDER_NAME;
 
 public class S2COpenCulturesCCScreenPacket implements OuatPacket {
     private static final ResourceLocation ID = modResource("s2c_open_cultures_screen_cc");

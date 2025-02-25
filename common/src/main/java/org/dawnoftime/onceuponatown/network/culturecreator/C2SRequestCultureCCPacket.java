@@ -13,7 +13,7 @@ import java.nio.file.Path;
 
 import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
-import static org.dawnoftime.onceuponatown.culture.ServerCultures.CULTURE_FOLDER_NAME;
+import static org.dawnoftime.onceuponatown.datapack.DataHandler.CULTURE_FOLDER_NAME;
 
 public record C2SRequestCultureCCPacket(String cultureId) implements OuatPacket {
     public static final ResourceLocation ID = modResource("c2s_request_culture_cc");

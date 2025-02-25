@@ -16,8 +16,8 @@ import java.nio.file.Path;
 
 import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
-import static org.dawnoftime.onceuponatown.culture.ServerCultures.CULTURE_FOLDER_NAME;
-import static org.dawnoftime.onceuponatown.culture.ServerCultures.CULTURE_JSON_FILE_NAME;
+import static org.dawnoftime.onceuponatown.datapack.DataHandler.CULTURE_FOLDER_NAME;
+import static org.dawnoftime.onceuponatown.datapack.DataHandler.CULTURE_JSON_FILE_NAME;
 
 public class S2COpenCultureCCScreenPacket implements OuatPacket {
     private static final ResourceLocation ID = modResource("s2c_open_culture_screen_cc");

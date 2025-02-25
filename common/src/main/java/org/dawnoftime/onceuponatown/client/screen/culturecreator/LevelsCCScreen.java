@@ -2,14 +2,13 @@ package org.dawnoftime.onceuponatown.client.screen.culturecreator;
 
 import net.minecraft.network.chat.Component;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.client.screen.widgets.EditBoxIconButton;
 import org.dawnoftime.onceuponatown.network.culturecreator.C2SRequestCultureCCPacket;
 import org.dawnoftime.onceuponatown.network.culturecreator.C2SRequestCulturesCCPacket;
 import org.dawnoftime.onceuponatown.network.culturecreator.S2COpenCulturesCCScreenPacket;
 
 import java.util.List;
 
-import static org.dawnoftime.onceuponatown.culture.ServerCultures.CULTURE_FOLDER_NAME;
+import static org.dawnoftime.onceuponatown.datapack.DataHandler.CULTURE_FOLDER_NAME;
 
 public class LevelsCCScreen extends BaseCCScreen {
 

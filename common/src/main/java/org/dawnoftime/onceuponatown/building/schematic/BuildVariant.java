@@ -10,7 +10,7 @@ import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.Utils;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 import org.dawnoftime.onceuponatown.culture.CultureFileHelper;
-import org.dawnoftime.onceuponatown.culture.ServerCultures;
+import org.dawnoftime.onceuponatown.datapack.DataHandler;
 import org.jetbrains.annotations.NotNull;
 import oshi.util.tuples.Pair;
 
@@ -57,7 +57,7 @@ public class BuildVariant {
             variantJson = helper.asJsonObject(el, "variant[levels[]] element", loc);
             /* Reading variant schematic id */
             String schematicName = helper.getString(variantJson, "schematic", loc);
-            ResourceLocation schematicRl = Ouat.modResource(ServerCultures.CULTURE_FOLDER_NAME + "/%s/schematics/%s.nbt".formatted(cultureId, schematicName));
+            ResourceLocation schematicRl = Ouat.modResource(DataHandler.CULTURE_FOLDER_NAME + "/%s/schematics/%s.nbt".formatted(cultureId, schematicName));
             Vec3i schematicDimensions = Utils.getSchematicDimensions(cultureId, variantId, schematicRl, resourceManager);
             if (!schematicDimensions.equals(variantDimensions)) {
                 helper.throwInvalidField("size", "in variants[]", "Schematic '" + schematicName + ".nbt' of a build variant has dimensions " + schematicDimensions.toShortString() + ", but the build variant requires dimensions " + variantDimensions.toShortString());
