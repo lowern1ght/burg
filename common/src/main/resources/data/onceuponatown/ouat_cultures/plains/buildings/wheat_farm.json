@@ -32,6 +32,21 @@
       ]
     },
     {
+      "name": "small_farm_2",
+      "size": {
+        "x": 34,
+        "y": 10,
+        "z": 26
+      },
+      "levels": [
+        {
+          "schematic": "small_farm_2",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
       "name": "small_field",
       "size": {
         "x": 25,
