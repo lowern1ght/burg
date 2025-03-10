@@ -10,7 +10,7 @@
   "item": "minecraft:leather_horse_armor",
   "variants": [
     {
-      "name": "variant1",
+      "name": "stable",
       "size": {
         "x": 24,
         "y": 12,
@@ -18,7 +18,7 @@
       },
       "levels": [
         {
-          "schematic": "",
+          "schematic": "stable",
           "waypoints": [
           ]
         }
