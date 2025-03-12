@@ -1,16 +1,16 @@
 {
   "id": "stable",
-  "category": "work",
-  "weight": 10,
+  "category": "decoration",
+  "weight": 0,
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:leather_horse_armor",
+  "item": "minecraft:blue_bed",
   "variants": [
     {
-      "name": "stable",
+      "name": "stable1",
       "size": {
         "x": 24,
         "y": 12,
