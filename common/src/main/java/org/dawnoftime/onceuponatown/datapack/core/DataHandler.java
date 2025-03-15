@@ -15,8 +15,9 @@ import java.util.List;
 import java.util.stream.StreamSupport;
 
 public abstract class DataHandler {
-    public static final String CULTURE_FOLDER_NAME = "ouat_cultures";
+    public static final String CULTURES_FOLDER_NAME = "ouat_cultures";
     public static final String CULTURE_JSON_FILE_NAME = "ouat_culture.json";
+    public static final String BUILDINGS_FOLDER_NAME = "buildings";
     public static final String ROAD_TYPE_NAME = "road";
     public static final String WIDE_ROAD_TYPE_NAME = "wide_road";
     public static final String BRIDGE_TYPE_NAME = "bridge";

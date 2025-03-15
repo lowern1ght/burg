@@ -8,12 +8,16 @@ import java.util.ArrayList;
 
 public class StringDataHandler extends DataHandler {
     private final @NotNull String key;
-    private final @Nullable String value;
+    private @Nullable String value;
 
     public StringDataHandler(@NotNull JsonObject rootJson, @NotNull String key) {
         super(rootJson);
         this.key = key;
         this.value = this.getString(rootJson, key);
+    }
+
+    public void set(String value) {
+        this.value = value;
     }
 
     public @Nullable String get(){

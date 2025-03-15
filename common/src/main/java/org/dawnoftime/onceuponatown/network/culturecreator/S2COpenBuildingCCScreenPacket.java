@@ -1,13 +1,13 @@
 package org.dawnoftime.onceuponatown.network.culturecreator;
 
-import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.client.screen.culturecreator.CultureCCScreen;
+import org.dawnoftime.onceuponatown.client.screen.culturecreator.BuildingCCScreen;
+import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
 import org.dawnoftime.onceuponatown.network.OuatPacket;
 
 import java.io.IOException;
@@ -16,42 +16,46 @@ import java.nio.file.Path;
 
 import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
-import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURES_FOLDER_NAME;
-import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURE_JSON_FILE_NAME;
+import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.*;
 
-public class S2COpenCultureCCScreenPacket implements OuatPacket {
-    private static final ResourceLocation ID = modResource("s2c_open_culture_screen_cc");
+public class S2COpenBuildingCCScreenPacket implements OuatPacket {
+    private static final ResourceLocation ID = modResource("s2c_open_building_screen_cc");
 
     private final String cultureId;
+    private final String buildingId;
 
-    private S2COpenCultureCCScreenPacket(String cultureId){
+    private S2COpenBuildingCCScreenPacket(String cultureId, String buildingId){
         this.cultureId = cultureId;
+        this.buildingId = buildingId;
     }
 
-    public static S2COpenCultureCCScreenPacket create(Player player, String cultureId){
+    public static S2COpenBuildingCCScreenPacket create(Player player, String cultureId, String buildingId){
         try {
             Path jsonPath = Ouat.COMMON.getConfigFolder().toPath()
                     .resolve(MOD_ID)
                     .resolve(CULTURES_FOLDER_NAME)
                     .resolve(cultureId)
-                    .resolve(CULTURE_JSON_FILE_NAME);
+                    .resolve(BUILDINGS_FOLDER_NAME)
+                    .resolve(buildingId + ".json");
             String jsonContent = Files.readString(jsonPath);
-            JsonObject jsonObject = JsonParser.parseString(jsonContent).getAsJsonObject();
-            // TODO Add the validation part.
+            BuildingDataHandler data = new BuildingDataHandler(JsonParser.parseString(jsonContent).getAsJsonObject());
+            // TODO Extract additional data.
         } catch (IOException ignored) {
             // An error occurred, we will create a new CULTURE_JSON_FILE_NAME
         }
-        return new S2COpenCultureCCScreenPacket(cultureId);
+        return new S2COpenBuildingCCScreenPacket(cultureId, buildingId);
     }
 
-    public static S2COpenCultureCCScreenPacket decode(FriendlyByteBuf buf) {
+    public static S2COpenBuildingCCScreenPacket decode(FriendlyByteBuf buf) {
         String cultureId = buf.readUtf();
-        return new S2COpenCultureCCScreenPacket(cultureId);
+        String buildingId = buf.readUtf();
+        return new S2COpenBuildingCCScreenPacket(cultureId, buildingId);
     }
 
     @Override
     public void encode(FriendlyByteBuf buf) {
         buf.writeUtf(cultureId);
+        buf.writeUtf(buildingId);
     }
 
     @Override
@@ -60,14 +64,18 @@ public class S2COpenCultureCCScreenPacket implements OuatPacket {
     }
 
     public static class Handler {
-        public static void handle(S2COpenCultureCCScreenPacket packet) {
+        public static void handle(S2COpenBuildingCCScreenPacket packet) {
             Minecraft.getInstance().execute(() -> {
-                Minecraft.getInstance().setScreen(new CultureCCScreen(packet));
+                Minecraft.getInstance().setScreen(new BuildingCCScreen(packet));
             });
         }
     }
 
     public String getCultureId(){
         return cultureId;
+    }
+
+    public String getBuildingId() {
+        return buildingId;
     }
 }

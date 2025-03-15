@@ -9,7 +9,7 @@ import net.minecraft.resources.ResourceLocation;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.model.NpcModel;
 import org.dawnoftime.onceuponatown.client.renderer.NpcRenderer;
-import org.dawnoftime.onceuponatown.datapack.DataHandler;
+import org.dawnoftime.onceuponatown.datapack.core.DataHandler;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.jetbrains.annotations.NotNull;
 
@@ -32,14 +32,14 @@ public class NpcClothesLayer<T extends Npc, M extends NpcModel<T>> extends Rende
 
     private void renderCultureCommonClothes(M model, PoseStack poseStack, MultiBufferSource buffer, int packedLight, T npc) {
         CompoundTag clientData = npc.getClientData();
-        String path = DataHandler.CULTURE_FOLDER_NAME + "/" + clientData.getString("CultureId") + "/clothes/jacket.png";
+        String path = DataHandler.CULTURES_FOLDER_NAME + "/" + clientData.getString("CultureId") + "/clothes/jacket.png";
         ResourceLocation resourceLocation = Ouat.modResource(path);
         renderColoredCutoutModel(model, resourceLocation, poseStack, buffer, packedLight, npc, 1.0F, 1.0F, 1.0F);
     }
 
     private void renderProfessionClothes(M model, PoseStack poseStack, MultiBufferSource buffer, int packedLight, T npc) {
         CompoundTag clientData = npc.getClientData();
-        String path = DataHandler.CULTURE_FOLDER_NAME + "/" + clientData.getString("CultureId") + "/clothes/workingSlots/" + clientData.getString("ProfessionId") + ".png";
+        String path = DataHandler.CULTURES_FOLDER_NAME + "/" + clientData.getString("CultureId") + "/clothes/workingSlots/" + clientData.getString("ProfessionId") + ".png";
         ResourceLocation resourceLocation = Ouat.modResource(path);
         renderColoredCutoutModel(model, resourceLocation, poseStack, buffer, packedLight, npc, 1.0F, 1.0F, 1.0F);
     }

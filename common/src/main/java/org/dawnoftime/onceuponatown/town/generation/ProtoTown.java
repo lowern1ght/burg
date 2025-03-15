@@ -17,7 +17,7 @@ import org.dawnoftime.onceuponatown.building.SliceBuild;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import org.dawnoftime.onceuponatown.building.type.SliceBuildType;
 import org.dawnoftime.onceuponatown.culture.Culture;
-import org.dawnoftime.onceuponatown.datapack.DataHandler;
+import org.dawnoftime.onceuponatown.datapack.core.DataHandler;
 import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
 import org.jetbrains.annotations.NotNull;
 
@@ -29,8 +29,8 @@ import java.util.UUID;
 import java.util.function.BiFunction;
 
 import static org.dawnoftime.onceuponatown.Config.DEFAULT_ROAD_LENGTH;
-import static org.dawnoftime.onceuponatown.datapack.DataHandler.ROAD_TYPE_NAME;
-import static org.dawnoftime.onceuponatown.datapack.DataHandler.WIDE_ROAD_TYPE_NAME;
+import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.ROAD_TYPE_NAME;
+import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.WIDE_ROAD_TYPE_NAME;
 import static org.dawnoftime.onceuponatown.Config.MINI_ROAD_SPACE;
 
 public class ProtoTown {

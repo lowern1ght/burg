@@ -19,8 +19,8 @@ import java.io.IOException;
 import java.io.Reader;
 import java.util.*;
 
-import static org.dawnoftime.onceuponatown.datapack.DataHandler.CULTURE_FOLDER_NAME;
-import static org.dawnoftime.onceuponatown.datapack.DataHandler.CULTURE_JSON_FILE_NAME;
+import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURES_FOLDER_NAME;
+import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURE_JSON_FILE_NAME;
 
 public class Culture {
     private final String id;
@@ -69,7 +69,7 @@ public class Culture {
             /* Reading BuildTypes */
             HashMap<String, BuildType> buildTypeMap = new HashMap<>();
             /* Reading Buildings */
-            var buildingsRls = resourceManager.listResources(CULTURE_FOLDER_NAME + "/" + detectedId + "/buildings", (rl) -> rl.getPath().endsWith(".json")).keySet();
+            var buildingsRls = resourceManager.listResources(CULTURES_FOLDER_NAME + "/" + detectedId + "/buildings", (rl) -> rl.getPath().endsWith(".json")).keySet();
             for (ResourceLocation buildingRL : buildingsRls) {
                 String rlPath = buildingRL.getPath();
                 String typeId = rlPath.substring(rlPath.lastIndexOf('/') + 1, rlPath.lastIndexOf('.'));
@@ -79,7 +79,7 @@ public class Culture {
                 buildTypeMap.put(typeId, BuildingType.createFromDataPack(detectedId, buildingRL, resourceManager));
             }
             /* Reading Roads */
-            var roadsRls = resourceManager.listResources(CULTURE_FOLDER_NAME + "/" + detectedId + "/roads", (rl) -> rl.getPath().endsWith(".json")).keySet();
+            var roadsRls = resourceManager.listResources(CULTURES_FOLDER_NAME + "/" + detectedId + "/roads", (rl) -> rl.getPath().endsWith(".json")).keySet();
             for (ResourceLocation roadRl : roadsRls) {
                 String rlPath = roadRl.getPath();
                 String typeId = rlPath.substring(rlPath.lastIndexOf('/') + 1, rlPath.lastIndexOf('.'));

@@ -8,10 +8,7 @@ import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
 import org.apache.logging.log4j.util.TriConsumer;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.network.culturecreator.C2SRequestCultureCCPacket;
-import org.dawnoftime.onceuponatown.network.culturecreator.C2SRequestCulturesCCPacket;
-import org.dawnoftime.onceuponatown.network.culturecreator.S2COpenCultureCCScreenPacket;
-import org.dawnoftime.onceuponatown.network.culturecreator.S2COpenCulturesCCScreenPacket;
+import org.dawnoftime.onceuponatown.network.culturecreator.*;
 
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -30,11 +27,16 @@ public class PacketHandler {
         CHANNEL.registerMessage(i++, C2SSelectTradePacket.class, C2SSelectTradePacket::encode, C2SSelectTradePacket::decode, makeC2SHandler(C2SSelectTradePacket::handle));
         CHANNEL.registerMessage(i++, C2SRequestCulturesCCPacket.class, C2SRequestCulturesCCPacket::encode, C2SRequestCulturesCCPacket::decode, makeC2SHandler(C2SRequestCulturesCCPacket::handle));
         CHANNEL.registerMessage(i++, C2SRequestCultureCCPacket.class, C2SRequestCultureCCPacket::encode, C2SRequestCultureCCPacket::decode, makeC2SHandler(C2SRequestCultureCCPacket::handle));
+        CHANNEL.registerMessage(i++, C2SRequestBuildingsCCPacket.class, C2SRequestBuildingsCCPacket::encode, C2SRequestBuildingsCCPacket::decode, makeC2SHandler(C2SRequestBuildingsCCPacket::handle));
+        CHANNEL.registerMessage(i++, C2SRequestBuildingCCPacket.class, C2SRequestBuildingCCPacket::encode, C2SRequestBuildingCCPacket::decode, makeC2SHandler(C2SRequestBuildingCCPacket::handle));
+        CHANNEL.registerMessage(i++, C2SSaveBuildingCCPacket.class, C2SSaveBuildingCCPacket::encode, C2SSaveBuildingCCPacket::decode, makeC2SHandler(C2SSaveBuildingCCPacket::handle));
 
         // Server to Client packets
         CHANNEL.registerMessage(i++, S2COpenTownMapScreenPacket.class, S2COpenTownMapScreenPacket::encode, S2COpenTownMapScreenPacket::decode, makeS2CHandler(S2COpenTownMapScreenPacket.Handler::handle));
         CHANNEL.registerMessage(i++, S2COpenCulturesCCScreenPacket.class, S2COpenCulturesCCScreenPacket::encode, S2COpenCulturesCCScreenPacket::decode, makeS2CHandler(S2COpenCulturesCCScreenPacket.Handler::handle));
         CHANNEL.registerMessage(i++, S2COpenCultureCCScreenPacket.class, S2COpenCultureCCScreenPacket::encode, S2COpenCultureCCScreenPacket::decode, makeS2CHandler(S2COpenCultureCCScreenPacket.Handler::handle));
+        CHANNEL.registerMessage(i++, S2COpenBuildingsCCScreenPacket.class, S2COpenBuildingsCCScreenPacket::encode, S2COpenBuildingsCCScreenPacket::decode, makeS2CHandler(S2COpenBuildingsCCScreenPacket.Handler::handle));
+        CHANNEL.registerMessage(i++, S2COpenBuildingCCScreenPacket.class, S2COpenBuildingCCScreenPacket::encode, S2COpenBuildingCCScreenPacket::decode, makeS2CHandler(S2COpenBuildingCCScreenPacket.Handler::handle));
     }
 
     private static <T> BiConsumer<T, Supplier<NetworkEvent.Context>> makeC2SHandler(TriConsumer<T, MinecraftServer, ServerPlayer> handler) {

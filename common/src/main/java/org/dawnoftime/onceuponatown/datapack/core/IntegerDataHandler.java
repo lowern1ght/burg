@@ -8,7 +8,7 @@ import java.util.ArrayList;
 
 public class IntegerDataHandler extends DataHandler {
     private final @NotNull String key;
-    private final @Nullable Integer value;
+    private @Nullable Integer value;
     private final int min;
     private final int max;
 
@@ -18,6 +18,14 @@ public class IntegerDataHandler extends DataHandler {
         this.value = this.getInt(rootJson, key);
         this.min = min;
         this.max = max;
+    }
+
+    public void set(String value) {
+        try {
+            this.value = Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            this.value = null;
+        }
     }
 
     public @Nullable Integer get(){
