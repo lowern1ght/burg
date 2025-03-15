@@ -1,0 +1,65 @@
+{
+  "id": "wheat_farm",
+  "category": "work",
+  "weight": 10,
+  "levels": [
+    {
+      "required_era": 1,
+      "dwelling_slots": 2,
+      "working_slots": [
+        {
+          "profession": "farmer",
+          "slots": 1
+        }
+      ]
+    }
+  ],
+  "item": "minecraft:wheat",
+  "variants": [
+    {
+      "name": "small_farm",
+      "size": {
+        "x": 29,
+        "y": 12,
+        "z": 24
+      },
+      "levels": [
+        {
+          "schematic": "small_farm",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "small_farm_2",
+      "size": {
+        "x": 34,
+        "y": 10,
+        "z": 26
+      },
+      "levels": [
+        {
+          "schematic": "small_farm_2",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "small_field",
+      "size": {
+        "x": 25,
+        "y": 8,
+        "z": 21
+      },
+      "levels": [
+        {
+          "schematic": "small_field",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

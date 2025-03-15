@@ -1,0 +1,14 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "onceuponatown:item/emerald_pouch"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "onceuponatown:empty_pouch": 1.0
+      },
+      "model": "onceuponatown:item/emerald_pouch_empty"
+    }
+  ]
+}
