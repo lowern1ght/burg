@@ -9,7 +9,7 @@
       "working_slots": [
         {
           "profession": "fisherman",
-          "max_level": 1
+          "slots": 1
         }
       ]
     }

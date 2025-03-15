@@ -4,13 +4,13 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.RenderLayerParent;
 import net.minecraft.client.renderer.entity.layers.RenderLayer;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.model.NpcModel;
 import org.dawnoftime.onceuponatown.client.renderer.NpcRenderer;
 import org.dawnoftime.onceuponatown.datapack.core.DataHandler;
 import org.dawnoftime.onceuponatown.entity.Npc;
+import org.dawnoftime.onceuponatown.entity.Profession;
 import org.jetbrains.annotations.NotNull;
 
 
@@ -22,6 +22,7 @@ public class NpcClothesLayer<T extends Npc, M extends NpcModel<T>> extends Rende
         super((RenderLayerParent<T, M>) renderer);// TODO I have a warning here, how can we fix it ?
     }
 
+    @Override
     public void render(@NotNull PoseStack poseStack, @NotNull MultiBufferSource buffer, int packedLight, T npc, float limbSwing, float limbSwingAmount, float partialTick, float ageInTicks, float netHeadYaw, float headPitch) {
         if (!npc.isInvisible()) {
             M model = getParentModel();
@@ -31,17 +32,22 @@ public class NpcClothesLayer<T extends Npc, M extends NpcModel<T>> extends Rende
     }
 
     private void renderCultureCommonClothes(M model, PoseStack poseStack, MultiBufferSource buffer, int packedLight, T npc) {
-        CompoundTag clientData = npc.getClientData();
-        String path = DataHandler.CULTURES_FOLDER_NAME + "/" + clientData.getString("CultureId") + "/clothes/jacket.png";
+        String cultureId = npc.getCultureId();
+        // TODO handle wrong culture id or corrupted culture
+        String path = DataHandler.CULTURES_FOLDER_NAME + "/" + cultureId + "/clothes/jacket.png";
         ResourceLocation resourceLocation = Ouat.modResource(path);
         renderColoredCutoutModel(model, resourceLocation, poseStack, buffer, packedLight, npc, 1.0F, 1.0F, 1.0F);
     }
 
     private void renderProfessionClothes(M model, PoseStack poseStack, MultiBufferSource buffer, int packedLight, T npc) {
-        CompoundTag clientData = npc.getClientData();
-        String path = DataHandler.CULTURES_FOLDER_NAME + "/" + clientData.getString("CultureId") + "/clothes/workingSlots/" + clientData.getString("ProfessionId") + ".png";
-        ResourceLocation resourceLocation = Ouat.modResource(path);
-        renderColoredCutoutModel(model, resourceLocation, poseStack, buffer, packedLight, npc, 1.0F, 1.0F, 1.0F);
+        String cultureId = npc.getCultureId();
+        String professionId = npc.getProfessionId();
+        // TODO handle wrong culture id or corrupted culture
+        if (!professionId.isBlank() && !professionId.equals(Profession.UNEMPLOYED.getId())) {
+            String path = DataHandler.CULTURES_FOLDER_NAME + "/" + cultureId + "/clothes/professions/" + professionId + ".png";
+            ResourceLocation resourceLocation = Ouat.modResource(path);
+            renderColoredCutoutModel(model, resourceLocation, poseStack, buffer, packedLight, npc, 1.0F, 1.0F, 1.0F);
+        }
     }
 
     private void renderExperienceBadge(M model, PoseStack poseStack, MultiBufferSource buffer, int packedLight, T npc) {

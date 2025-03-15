@@ -16,7 +16,7 @@ import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import org.dawnoftime.onceuponatown.building.NpcBuild;
+import org.dawnoftime.onceuponatown.building.Build;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
 
 import java.util.ArrayList;
@@ -37,12 +37,12 @@ public class ConstructionProject {
     protected final Level level;
     protected final String name;
     private final ProjectType projectType;
-    private final NpcBuild build;
+    private final Build build;
     private final List<ProjectStep> projectSteps;
     private int progress = 0;
     protected boolean completed;
 
-    private ConstructionProject(Level level, String name, ProjectType projectType, NpcBuild build, List<ProjectStep> projectSteps) {
+    private ConstructionProject(Level level, String name, ProjectType projectType, Build build, List<ProjectStep> projectSteps) {
         this.level = level;
         this.name = name;
         this.projectType = projectType;
@@ -50,27 +50,35 @@ public class ConstructionProject {
         this.projectSteps = projectSteps;
     }
 
-    public ConstructionProject newBuildProject(Level level, String name, NpcBuild build) {
+    public ConstructionProject(Level level, CompoundTag tag) {
+        this.level = level;
+        this.name = tag.getString("Name");
+        this.projectType = null;
+        this.projectSteps = null;
+        this.build = null;
+    }
+
+    public ConstructionProject newBuildProject(Level level, String name, Build build) {
         return newBuildProject(level, name, 1, build);
     }
 
-    public ConstructionProject newBuildProject(Level level, String name, int buildingLevel, NpcBuild build) {
+    public ConstructionProject newBuildProject(Level level, String name, int buildingLevel, Build build) {
         return createProject(level, name, ProjectType.NEW_BUILD, buildingLevel, build);
     }
 
-    public ConstructionProject upgradeProject(Level level, String name, NpcBuild build) {
+    public ConstructionProject upgradeProject(Level level, String name, Build build) {
         return upgradeProject(level, name, build, build.getLevel() + 1);
     }
 
-    public ConstructionProject upgradeProject(Level level, String name, NpcBuild build, int wantedLevel) {
+    public ConstructionProject upgradeProject(Level level, String name, Build build, int wantedLevel) {
         return createProject(level, name, ProjectType.UPGRADE, wantedLevel, build);
     }
 
-    public ConstructionProject repairProject(Level level, String name, NpcBuild build) {
+    public ConstructionProject repairProject(Level level, String name, Build build) {
         return createProject(level, name, ProjectType.REPAIR, build.getLevel(), build);
     }
 
-    private ConstructionProject createProject(Level level, String name, ProjectType projectType, int buildingLevel, NpcBuild build) {
+    private ConstructionProject createProject(Level level, String name, ProjectType projectType, int buildingLevel, Build build) {
 
         // 1. Create ConstructionPlan
         // 2. Scan plot. List blocks in variable existingBlocks, same with decoration entities (armor stands, paintings...)

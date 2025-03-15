@@ -1,151 +1,126 @@
 package org.dawnoftime.onceuponatown.town;
 
-import net.minecraft.SharedConstants;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.Component;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
-import org.dawnoftime.onceuponatown.Config;
-import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.Utils;
+import org.dawnoftime.onceuponatown.culture.Culture;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.UUID;
 
 public class LevelTowns extends SavedData {
     private final ServerLevel level;
-    private final HashMap<UUID, Town> towns = new HashMap<>();
+    private final HashMap<Integer, Town> towns = new HashMap<>();
+    private int nextAvailableId;
 
     public static @NotNull LevelTowns of(ServerLevel level) {
-        return level.getDataStorage().computeIfAbsent(
-                (tag) -> new LevelTowns(level, tag),
-                () -> new LevelTowns(level),
-                "ouat_towns");
+        return level.getDataStorage().computeIfAbsent((tag) -> new LevelTowns(level, tag), () -> new LevelTowns(level), "ouat_towns");
     }
 
     private LevelTowns(ServerLevel level) {
         this.level = level;
+        this.nextAvailableId = 1;
     }
 
     private LevelTowns(ServerLevel level, CompoundTag tag) {
-        this(level);
-        this.loadTowns(tag);
+        this.level = level;
+        this.nextAvailableId = tag.getInt("NextAvailableId");
+        ListTag townsTag = tag.getList("Towns", Tag.TAG_COMPOUND);
+        for (int i = 0; i < townsTag.size(); i++) {
+            Town town = Town.loadNbt(level, townsTag.getCompound(i));
+            // TODO check for incorrect id
+            // Ouat.error(new CorruptedTownException(town, "Could not load town '%s'. Another town was already loaded with the same id.".formatted(key)).getMessage());
+            towns.put(town.getId(), town);
+        }
     }
 
     @Override
-    public boolean isDirty() {
-        // TODO Improve this function !
-        return true;
-    }
-
-    @Override
-    public @NotNull CompoundTag save(@NotNull CompoundTag tag) {
-        CompoundTag townsTag = new CompoundTag();
-        for (UUID townUUID : this.towns.keySet()) {
-            townsTag.put(townUUID.toString(), this.towns.get(townUUID).writeNBT());
+    public CompoundTag save(CompoundTag tag) {
+        tag.putInt("NextAvailableId", nextAvailableId);
+        ListTag townsTag = new ListTag();
+        for (Town town : towns.values()) {
+            townsTag.add(town.saveNbt());
         }
         tag.put("Towns", townsTag);
         return tag;
     }
 
-    public void loadTowns(CompoundTag tag) {
-        CompoundTag townsTag = tag.getCompound("Towns");
-        for (String key : townsTag.getAllKeys()) {
-            Town town = new Town(this.level, townsTag.getCompound(key));
-            if (this.towns.containsKey(town.getUuid())) {
-                Ouat.error(new CorruptedTownException(town, "Impossible de register the town '%s'. A town was already loaded with the exact same UUID.".formatted(key)).getMessage());
-            } else {
-                this.towns.put(town.getUuid(), town);
-            }
-        }
+    public @Nullable Town getTown(int townId) {
+        return towns.getOrDefault(townId, null);
     }
 
     public @Nullable Town getTown(String townName) {
-        Town town = null;
-        for (Town t : towns.values()) {
-            if (t.getName().equals(townName)) {
-                town = t;
-                break;
+        for (Town town : towns.values()) {
+            if (town.getName().equals(townName)) {
+                return town;
             }
         }
-        return town;
+        return null;
     }
 
-    public void addTown(Town town) {
-        this.towns.put(town.getUuid(), town);
+    public @NotNull Collection<Town> getAll() {
+        return towns.values();
     }
 
-    public boolean removeTown(Town town) {
-        return towns.remove(town.getUuid()) != null;
-    }
-
-    public @NotNull Collection<Town> getAllTowns() {
-        return this.towns.values();
-    }
-
-    public void initProtoTown(@NotNull CompoundTag townTag) {
-        UUID townUUID = townTag.getUUID("UUID");
-        // Avoid creating the same town several times when loading the same BuildPiece in different chunks.
-        if (!this.towns.containsKey(townUUID)) {
-            Town town = new Town(this.level, townTag);
-            this.level.getServer().getPlayerList().broadcastSystemMessage(Component.literal(town.getName() + " discovered at " + Utils.blockPosToString(town.getCenter())), false);
-            this.addTown(town);
+    /**
+     * Tries to spawn a Town at the desired location. Returns null if generation was impossible.
+     */
+    public Town trySpawnTown(Culture townCulture, BlockPos townPosition, @Nullable String townName) {
+        Town town = Town.trySpawnAtPosition(townCulture, level, nextAvailableId, townPosition, townName);
+        if (town != null) {
+            towns.put(nextAvailableId, town);
+            ++nextAvailableId;
+            return town;
+        } else {
+            return null;
         }
     }
 
     /**
-     * Delete town instance, keep structures, convert npcs to wanderers
-     *
-     * @param townUUID UUID of the town to delete
+     * Registers a Town after a TownStructure has been world generated.
+     * WARNING : this method should be called only once for each TownStructure.
      */
-    public boolean deleteTown(UUID townUUID) {
-        Town town = towns.get(townUUID);
+    public void registerWorldGeneratedTown(CompoundTag protoTownTag) {
+        Town town = Town.createFromProtoTown(level, nextAvailableId, protoTownTag);
+        towns.put(nextAvailableId, town);
+        ++nextAvailableId;
+    }
+
+    public boolean deleteTown(int townId) {
+        Town town = towns.remove(townId);
         if (town != null) {
-            town.unregister();
-            return removeTown(town);
+            town.delete();
+            return true;
         } else {
             return false;
         }
     }
 
-    /**
-     * Delete town instance, destroy structures, kill npcs
-     *
-     * @param townUUID UUID of the town to delete
-     */
-    public boolean deleteAndDemolishTown(UUID townUUID) {
-        Town town = towns.get(townUUID);
+    public boolean deleteAndDemolishTown(int townId) {
+        Town town = towns.remove(townId);
         if (town != null) {
-            town.destroy();
-            return removeTown(town);
+            town.deleteAndDemolish();
+            return true;
         } else {
             return false;
         }
     }
 
     public void tickTowns() {
-        long dayTime = this.level.getDayTime();
-        if (dayTime == 0 || dayTime == 6000 || dayTime == 13000) {
-            if (!this.towns.isEmpty()) {
-                for (Town town : this.getAllTowns()) {
-                    if (dayTime == 0) {
-                        town.ringTownBell(Town.TownBellRingType.DAWN);
-                    } else if (dayTime == 6000) {
-                        town.ringTownBell(Town.TownBellRingType.NOON);
-                    } else {
-                        town.ringTownBell(Town.TownBellRingType.DUSK);
-                    }
-                }
-            }
+        for (Town town : towns.values()) {
+            town.tick();
         }
-        if ((level.getServer().getTickCount() % Config.TOWN_TICK_RATE_SECONDS * SharedConstants.TICKS_PER_SECOND) == 0) {
-            if (!this.towns.isEmpty()) {
-                this.getAllTowns().forEach(Town::tick);
-            }
-        }
+    }
+
+    @Override
+    public boolean isDirty() {
+        // TODO Improve this function !
+        return true;
     }
 }
 

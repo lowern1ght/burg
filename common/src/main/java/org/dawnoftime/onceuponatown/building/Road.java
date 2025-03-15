@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.Objects;
 
 import static org.dawnoftime.onceuponatown.Config.*;
-import static org.dawnoftime.onceuponatown.town.generation.ProtoTown.RANDOM_SOURCE;
+import static org.dawnoftime.onceuponatown.town.generation.ProtoTown.RANDOM;
 
 /**
  * Town's Roads are special Builds that automatically grow when new Buildings are placed in the Town
@@ -35,15 +35,15 @@ public class Road extends SliceBuild {
     }
 
     @Override
-    public CompoundTag save() {
-        CompoundTag tag = super.save();
+    public CompoundTag saveNbt() {
+        CompoundTag tag = super.saveNbt();
         tag.putBoolean("IsWide", isWide);
         tag.putBoolean("CanGrow", canGrow);
         return tag;
     }
 
     @Override
-    protected void onAddedToTown(ProtoTown town) {
+    public void onAddedToTown(ProtoTown town) {
         tryGrowing(town);
     }
 
@@ -67,7 +67,7 @@ public class Road extends SliceBuild {
         if (this.canGrow) {
             // Deciding if this Road will definitively stop growing after this.
             if (!isWide && town.getBuds().size() > CRITICAL_BUDS_NUMBER) {
-                if (RANDOM_SOURCE.nextFloat() < ROAD_STOP_RATE) {
+                if (RANDOM.nextFloat() < ROAD_STOP_RATE) {
                     canGrow = false;
                 }
             }
@@ -118,12 +118,12 @@ public class Road extends SliceBuild {
         while (true) {
             // While the cursor is at an empty vec3 (or the vec3 contains this block), we can extend this Road.
             //TODO Check if there is a Y difference too big : we stop and will make a tower Bud.
-            boolean a = town.isEmpty(pathLeftCursor, this);
-            boolean b = town.isEmpty(pathRightCursor, this);
-            if (town.isEmpty(pathLeftCursor, this) && town.isEmpty(pathRightCursor, this)) {
+            boolean a = town.isFreeAt(pathLeftCursor, this);
+            boolean b = town.isFreeAt(pathRightCursor, this);
+            if (town.isFreeAt(pathLeftCursor, this) && town.isFreeAt(pathRightCursor, this)) {
                 growth++;
                 emptyAdjacentBlocks++;
-                if (!town.isEmpty(adjLeftCursor) || !town.isEmpty(adjRightCursor)) {
+                if (!town.isFreeAt(adjLeftCursor) || !town.isFreeAt(adjRightCursor)) {
                     // If one of the 2 current adjacent blocks are not empty, we reset the number of empty adjacent blocks.
                     emptyAdjacentBlocks = 0;
                 }
@@ -178,13 +178,13 @@ public class Road extends SliceBuild {
         // We move the start BlockPos one block out of the Build in diagonal.
         BlockPos cornerPos = this.getCornerPos(corner).relative(corner.getRightDirection()).relative(corner.getLeftDirection());
         BlockPos.MutableBlockPos cursor = cornerPos.mutable();
-        boolean isPreviousPosEmpty = town.isEmpty(cursor);
+        boolean isPreviousPosEmpty = town.isFreeAt(cursor);
         cursor.move(corner.getLeftDirection(), -1);
         boolean isCurrentPosEmpty;
         ArrayList<BuildBud> buildBuds = new ArrayList<>();
         // We create an array that contains whenever each BlockPos is empty or not.
         for (int i = 1; i < sideLength + 2; i++) {
-            isCurrentPosEmpty = town.isEmpty(cursor);
+            isCurrentPosEmpty = town.isFreeAt(cursor);
             // We modify the value for the start and the end of the loop.
             if (i == 1) {
                 isPreviousPosEmpty &= isCurrentPosEmpty;
@@ -194,7 +194,7 @@ public class Road extends SliceBuild {
             }
             // Finally we create the Bud if needed.
             if (isCurrentPosEmpty != isPreviousPosEmpty) {
-                buildBuds.add(town.addToBuds(this.setupBud(town, cursor.immutable(), isCurrentPosEmpty, corner.getRightDirection())));
+                buildBuds.add(town.addBud(this.setupBud(town, cursor.immutable(), isCurrentPosEmpty, corner.getRightDirection())));
             }
             isPreviousPosEmpty = isCurrentPosEmpty;
             cursor.move(corner.getLeftDirection(), -1);
@@ -222,9 +222,9 @@ public class Road extends SliceBuild {
     }
 
     @Override
-    public CompoundTag getDescriptionForGui() {
-        CompoundTag descriptionTag = super.getDescriptionForGui();
-        descriptionTag.putByte("Category", NpcBuild.ROAD);
+    public CompoundTag getGuiDescription() {
+        CompoundTag descriptionTag = super.getGuiDescription();
+        descriptionTag.putByte("Category", Build.ROAD);
         descriptionTag.putBoolean("IsWide", isWide);
         descriptionTag.putBoolean("CanGrow", canGrow);
         return descriptionTag;

@@ -17,7 +17,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.util.*;
 
-import static org.dawnoftime.onceuponatown.town.generation.ProtoTown.RANDOM_SOURCE;
+import static org.dawnoftime.onceuponatown.town.generation.ProtoTown.RANDOM;
 
 public class RoadType extends SliceBuildType {
     private final HashMap<String, BuildVariant> crossroadRightVariants = new HashMap<>();
@@ -85,7 +85,7 @@ public class RoadType extends SliceBuildType {
             }
         }
         ;
-        return new ArrayList<>(keys).get(RANDOM_SOURCE.nextInt(keys.size()));
+        return new ArrayList<>(keys).get(RANDOM.nextInt(keys.size()));
     }
 
     @Override

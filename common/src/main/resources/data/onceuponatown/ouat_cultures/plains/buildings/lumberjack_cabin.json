@@ -4,7 +4,14 @@
   "weight": 10,
   "levels": [
     {
-      "required_era": 1
+      "required_era": 1,
+      "dwelling_slots": 2,
+      "working_slots": [
+        {
+          "profession": "lumberjack",
+          "slots": 1
+        }
+      ]
     }
   ],
   "item": "minecraft:oak_sapling",
@@ -20,6 +27,14 @@
         {
           "schematic": "lumberjack",
           "waypoints": [
+            {
+              "type": "tree",
+              "pos": [
+                12,
+                2,
+                4
+              ]
+            }
           ]
         }
       ]

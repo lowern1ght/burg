@@ -17,8 +17,8 @@
       "name": "flat_a",
       "shape": "flat",
       "size": {
-        "x": 5,
-        "y": 5,
+        "x": 3,
+        "y": 4,
         "z": 5
       },
       "levels": [
@@ -26,15 +26,37 @@
           "level": 1,
           "schematic": "wide_road_flat_a1",
           "waypoints": []
-        },
+        }
+      ]
+    },
+    {
+      "name": "flat_b",
+      "shape": "flat",
+      "size": {
+        "x": 3,
+        "y": 4,
+        "z": 5
+      },
+      "levels": [
         {
-          "level": 2,
-          "schematic": "wide_road_flat_a2",
+          "level": 1,
+          "schematic": "wide_road_flat_b1",
           "waypoints": []
-        },
+        }
+      ]
+    },
+    {
+      "name": "flat_c",
+      "shape": "flat",
+      "size": {
+        "x": 3,
+        "y": 4,
+        "z": 5
+      },
+      "levels": [
         {
-          "level": 3,
-          "schematic": "wide_road_flat_a3",
+          "level": 1,
+          "schematic": "wide_road_flat_c1",
           "waypoints": []
         }
       ]
@@ -43,7 +65,7 @@
       "name": "slab_a",
       "shape": "slab",
       "size": {
-        "x": 5,
+        "x": 3,
         "y": 4,
         "z": 5
       },
@@ -52,16 +74,6 @@
           "level": 1,
           "schematic": "wide_road_slab_a1",
           "waypoints": []
-        },
-        {
-          "level": 2,
-          "schematic": "wide_road_slab_a2",
-          "waypoints": []
-        },
-        {
-          "level": 3,
-          "schematic": "wide_road_slab_a3",
-          "waypoints": []
         }
       ]
     },
@@ -69,7 +81,7 @@
       "name": "stairs_a",
       "shape": "stairs",
       "size": {
-        "x": 5,
+        "x": 3,
         "y": 8,
         "z": 5
       },
@@ -77,62 +89,6 @@
         {
           "level": 1,
           "schematic": "wide_road_stairs_a1",
-          "waypoints": []
-        },
-        {
-          "level": 2,
-          "schematic": "wide_road_stairs_a2",
-          "waypoints": []
-        },
-        {
-          "level": 3,
-          "schematic": "wide_road_stairs_a3",
-          "waypoints": []
-        }
-      ]
-    },
-    {
-      "name": "turn_right_a",
-      "shape": "crossroad_right",
-      "size": {
-        "x": 5,
-        "y": 4,
-        "z": 5
-      },
-      "levels": [
-        {
-          "schematic": "crossroad_simple_a1",
-          "waypoints": []
-        },
-        {
-          "schematic": "crossroad_simple_a2",
-          "waypoints": []
-        },
-        {
-          "schematic": "crossroad_simple_a3",
-          "waypoints": []
-        }
-      ]
-    },
-    {
-      "name": "turn_double_a",
-      "shape": "crossroad_double",
-      "size": {
-        "x": 5,
-        "y": 4,
-        "z": 5
-      },
-      "levels": [
-        {
-          "schematic": "crossroad_simple_a1",
-          "waypoints": []
-        },
-        {
-          "schematic": "crossroad_simple_a2",
-          "waypoints": []
-        },
-        {
-          "schematic": "crossroad_simple_a3",
           "waypoints": []
         }
       ]

@@ -1,24 +1,24 @@
 {
   "id": "stable",
-  "category": "work",
-  "weight": 10,
+  "category": "decoration",
+  "weight": 0,
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:leather_horse_armor",
+  "item": "minecraft:blue_bed",
   "variants": [
     {
-      "name": "variant1",
+      "name": "stable1",
       "size": {
-        "x": 10,
-        "y": 10,
-        "z": 10
+        "x": 24,
+        "y": 12,
+        "z": 33
       },
       "levels": [
         {
-          "schematic": "small_house",
+          "schematic": "stable",
           "waypoints": [
           ]
         }

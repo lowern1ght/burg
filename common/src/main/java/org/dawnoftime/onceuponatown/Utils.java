@@ -16,6 +16,7 @@ import org.dawnoftime.onceuponatown.construction.EntityInfo;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.Town;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -52,22 +53,30 @@ public class Utils {
         return ROMAN_NB.get(l) + intToRoman(i - l);
     }
 
-    public static Town getNearestTown(ServerLevel level, BlockPos pos) {
+    public static String capitalize(String s) {
+        if (s == null || s.isEmpty()) {
+            return s;
+        }
+        return s.substring(0, 1).toUpperCase() + s.substring(1);
+    }
+
+    public static @Nullable Town getNearestTown(ServerLevel level, BlockPos pos) {
         return getNearestTown(level, pos, Integer.MAX_VALUE);
     }
 
-    public static Town getNearestTown(ServerLevel level, BlockPos pos, int maxDist) {
+    public static @Nullable Town getNearestTown(ServerLevel level, BlockPos pos, int maxDist) {
+        maxDist *= maxDist;
         if (maxDist <= 0) {
             return null;
         }
-        Collection<Town> towns = LevelTowns.of(level).getAllTowns();
+        Collection<Town> towns = LevelTowns.of(level).getAll();
         if (towns.isEmpty()) {
             return null;
         }
         Town town = null;
         int dist;
         for (Town next : towns) {
-            dist = (int) Math.sqrt(pos.distSqr(next.getCenter()));
+            dist = (int) next.getCenter().distToCenterSqr(pos.getCenter());
             if (dist < maxDist) {
                 town = next;
                 maxDist = dist;

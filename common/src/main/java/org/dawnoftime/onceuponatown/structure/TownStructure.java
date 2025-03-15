@@ -3,8 +3,6 @@ package org.dawnoftime.onceuponatown.structure;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
-import net.minecraft.util.Mth;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.Structure;
@@ -32,6 +30,7 @@ public class TownStructure extends Structure {
         this.cultureId = cultureId;
     }
 
+    @Override
     protected @NotNull Optional<GenerationStub> findGenerationPoint(@NotNull GenerationContext context) {
         return onTopOfChunkCenter(context, Heightmap.Types.WORLD_SURFACE_WG, (builder) -> this.generatePieces(builder, context));
     }
@@ -43,9 +42,8 @@ public class TownStructure extends Structure {
             int townHeight = chunkGenerator.getFirstOccupiedHeight(context.chunkPos().getMinBlockX(), context.chunkPos().getMinBlockZ(), Heightmap.Types.WORLD_SURFACE_WG, context.heightAccessor(), context.randomState());
             BlockPos townCenterPos = new BlockPos(context.chunkPos().getMinBlockX(), townHeight, context.chunkPos().getMinBlockZ());
             // TODO Improve the code to give names to new Towns.
-            String name = "Town " + Mth.nextInt(RandomSource.create(), 0, 100);
-            ProtoTown town = new ProtoTown(culture, name, townCenterPos, (x, z) -> chunkGenerator.getFirstOccupiedHeight(x, z, Heightmap.Types.WORLD_SURFACE_WG, context.heightAccessor(), context.randomState()));
-            if (town.buildStarterPack()) {
+            ProtoTown town = ProtoTown.create(culture, townCenterPos, (x, z) -> chunkGenerator.getFirstOccupiedHeight(x, z, Heightmap.Types.WORLD_SURFACE_WG, context.heightAccessor(), context.randomState()));
+            if (town != null) {
                 // Creates a StructurePiece for each town Build. The first one contains the data to register the Town on the future ServerLevel
                 for (int i = 0; i < town.getBuilds().size(); ++i) {
                     builder.addPiece((town.getBuilds().get(i).createStructurePiece(culture, i == 0 ? town : null)));

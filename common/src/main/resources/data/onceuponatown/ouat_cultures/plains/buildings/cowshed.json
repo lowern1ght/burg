@@ -4,7 +4,14 @@
   "weight": 10,
   "levels": [
     {
-      "required_era": 1
+      "required_era": 1,
+      "dwelling_slots": 2,
+      "working_slots": [
+        {
+          "profession": "butcher",
+          "slots": 1
+        }
+      ]
     }
   ],
   "item": "minecraft:milk_bucket",

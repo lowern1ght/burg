@@ -56,7 +56,7 @@ public class ServerCultures {
 
     public static @NotNull Culture getCultureOrDefault(String cultureId) {
         Culture culture = LOADED_CULTURES.get(cultureId);
-        return culture == null ? Culture.DEFAULT_CULTURE : culture;
+        return culture == null ? Culture.CORRUPTED_CULTURE : culture;
     }
 
     public static @Nullable Culture getCultureOrNull(String cultureId) {

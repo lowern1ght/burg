@@ -54,6 +54,21 @@
           ]
         }
       ]
+    },
+    {
+      "name": "apartments3",
+      "size": {
+        "x": 23,
+        "y": 15,
+        "z": 26
+      },
+      "levels": [
+        {
+          "schematic": "apartments_3",
+          "waypoints": [
+          ]
+        }
+      ]
     }
   ]
 }

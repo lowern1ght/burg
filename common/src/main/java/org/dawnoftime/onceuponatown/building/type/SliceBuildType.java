@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
-import static org.dawnoftime.onceuponatown.town.generation.ProtoTown.RANDOM_SOURCE;
+import static org.dawnoftime.onceuponatown.town.generation.ProtoTown.RANDOM;
 
 public class SliceBuildType extends BuildType {
     protected final HashMap<String, BuildVariant> slabVariants = new HashMap<>();
@@ -57,7 +57,7 @@ public class SliceBuildType extends BuildType {
             case STAIRS, STAIRS_INVERTED -> stairsVariants.keySet();
             default -> this.getBuildVariants().keySet();
         };
-        return new ArrayList<>(keys).get(RANDOM_SOURCE.nextInt(keys.size()));
+        return new ArrayList<>(keys).get(RANDOM.nextInt(keys.size()));
     }
 
     @Override
