@@ -28,8 +28,12 @@ public class IntegerDataHandler extends DataHandler {
         }
     }
 
-    public @Nullable Integer get(){
+    public @Nullable Integer get() {
         return this.isValid() ? value : null;
+    }
+
+    public @NotNull String asString() {
+        return this.isValid() ? value.toString() : "";
     }
 
     @Override

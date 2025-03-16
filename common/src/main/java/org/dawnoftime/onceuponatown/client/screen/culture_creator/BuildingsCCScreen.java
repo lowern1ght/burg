@@ -1,8 +1,9 @@
-package org.dawnoftime.onceuponatown.client.screen.culturecreator;
+package org.dawnoftime.onceuponatown.client.screen.culture_creator;
 
 import net.minecraft.network.chat.Component;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.client.screen.culturecreator.widgets.WidgetCC;
+import org.dawnoftime.onceuponatown.client.screen.culture_creator.widgets_cc.ButtonWidgetCC;
+import org.dawnoftime.onceuponatown.client.screen.culture_creator.widgets_cc.EditBoxAndConfirmWidgetCC;
 import org.dawnoftime.onceuponatown.network.culturecreator.C2SRequestBuildingCCPacket;
 import org.dawnoftime.onceuponatown.network.culturecreator.C2SRequestCultureCCPacket;
 import org.dawnoftime.onceuponatown.network.culturecreator.C2SRequestCulturesCCPacket;
@@ -35,10 +36,10 @@ public class BuildingsCCScreen extends BaseCCScreen {
     @Override
     public void initWidgets() {
         for (String building : buildings) {
-            this.addWidget(building, new WidgetCC.ButtonCC(posX, Component.literal(building),
+            this.addWidget(building, new ButtonWidgetCC(posX, Component.literal(building),
                     wdg -> Ouat.CLIENT.sendToServer(new C2SRequestBuildingCCPacket(cultureId, building))));
         }
-        this.addWidget("new_culture", new WidgetCC.EditBoxAndConfirm(posX, Ouat.translatable("cc", "buildings_hint_building"), font, false,
+        this.addWidget("new_culture", new EditBoxAndConfirmWidgetCC(posX, Ouat.translatable("cc", "buildings_hint_building"), font, false,
                 wdg -> Ouat.CLIENT.sendToServer(new C2SRequestBuildingCCPacket(cultureId, wdg.get()))));
     }
 }

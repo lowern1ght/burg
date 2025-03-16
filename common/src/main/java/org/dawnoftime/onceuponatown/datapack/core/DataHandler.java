@@ -1,20 +1,27 @@
 package org.dawnoftime.onceuponatown.datapack.core;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import com.google.gson.*;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
+import org.dawnoftime.onceuponatown.Ouat;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.StreamSupport;
 
+import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
+
 public abstract class DataHandler {
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+
     public static final String CULTURES_FOLDER_NAME = "ouat_cultures";
     public static final String CULTURE_JSON_FILE_NAME = "ouat_culture.json";
     public static final String BUILDINGS_FOLDER_NAME = "buildings";
@@ -100,5 +107,26 @@ public abstract class DataHandler {
             }
         }
         return null;
+    }
+
+    public void saveJson(Path jsonPath, ServerPlayer player, String cultureId) {
+        JsonObject json = this.toJson(new JsonObject());
+        try {
+            Files.createDirectories(jsonPath.getParent());
+            Files.writeString(jsonPath, GSON.toJson(json), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+        } catch (Exception e) {
+            Ouat.clientChat(player, "cc", "culture_error", cultureId);
+            Ouat.debug("An error occurred while saving a file of '" + cultureId + "' : " + e);
+        }
+    }
+
+    public static @NotNull JsonObject loadJson(Path jsonPath) {
+        try {
+            String jsonContent = Files.readString(jsonPath);
+            return JsonParser.parseString(jsonContent).getAsJsonObject();
+        } catch (Exception ignored) {
+            // An error occurred, we will create a new building.json file.
+            return new JsonObject();
+        }
     }
 }

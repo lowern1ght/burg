@@ -6,7 +6,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.client.screen.culturecreator.BuildingCCScreen;
+import org.dawnoftime.onceuponatown.client.screen.culture_creator.BuildingCCScreen;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
 import org.dawnoftime.onceuponatown.network.OuatPacket;
 
@@ -23,13 +23,19 @@ public class S2COpenBuildingCCScreenPacket implements OuatPacket {
 
     private final String cultureId;
     private final String buildingId;
+    private final String weight;
+    private final String item;
 
-    private S2COpenBuildingCCScreenPacket(String cultureId, String buildingId){
+    private S2COpenBuildingCCScreenPacket(String cultureId, String buildingId, String weight, String item){
         this.cultureId = cultureId;
         this.buildingId = buildingId;
+        this.weight = weight;
+        this.item = item;
     }
 
     public static S2COpenBuildingCCScreenPacket create(Player player, String cultureId, String buildingId){
+        String weight = "";
+        String item = "";
         try {
             Path jsonPath = Ouat.COMMON.getConfigFolder().toPath()
                     .resolve(MOD_ID)
@@ -39,23 +45,26 @@ public class S2COpenBuildingCCScreenPacket implements OuatPacket {
                     .resolve(buildingId + ".json");
             String jsonContent = Files.readString(jsonPath);
             BuildingDataHandler data = new BuildingDataHandler(JsonParser.parseString(jsonContent).getAsJsonObject());
-            // TODO Extract additional data.
-        } catch (IOException ignored) {
-            // An error occurred, we will create a new CULTURE_JSON_FILE_NAME
-        }
-        return new S2COpenBuildingCCScreenPacket(cultureId, buildingId);
+            weight = data.weight.asString();
+            item = data.item.asString();
+        } catch (IOException ignored) {}
+        return new S2COpenBuildingCCScreenPacket(cultureId, buildingId, weight, item);
     }
 
     public static S2COpenBuildingCCScreenPacket decode(FriendlyByteBuf buf) {
         String cultureId = buf.readUtf();
         String buildingId = buf.readUtf();
-        return new S2COpenBuildingCCScreenPacket(cultureId, buildingId);
+        String weight = buf.readUtf();
+        String item = buf.readUtf();
+        return new S2COpenBuildingCCScreenPacket(cultureId, buildingId, weight, item);
     }
 
     @Override
     public void encode(FriendlyByteBuf buf) {
         buf.writeUtf(cultureId);
         buf.writeUtf(buildingId);
+        buf.writeUtf(weight);
+        buf.writeUtf(item);
     }
 
     @Override
@@ -69,6 +78,14 @@ public class S2COpenBuildingCCScreenPacket implements OuatPacket {
                 Minecraft.getInstance().setScreen(new BuildingCCScreen(packet));
             });
         }
+    }
+
+    public String getWeight() {
+        return weight;
+    }
+
+    public String getItem() {
+        return item;
     }
 
     public String getCultureId(){

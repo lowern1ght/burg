@@ -16,8 +16,7 @@ import java.nio.file.StandardOpenOption;
 
 import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
-import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.BUILDINGS_FOLDER_NAME;
-import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURES_FOLDER_NAME;
+import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.*;
 
 public record C2SSaveBuildingCCPacket(String cultureId, String buildingId, String itemId, String weight) implements OuatPacket {
     public static final ResourceLocation ID = modResource("c2s_request_building_cc");
@@ -40,30 +39,15 @@ public record C2SSaveBuildingCCPacket(String cultureId, String buildingId, Strin
     }
 
     public void handle(MinecraftServer server, ServerPlayer player) {
-        JsonObject json;
         Path jsonPath = Ouat.COMMON.getConfigFolder().toPath()
                 .resolve(MOD_ID)
                 .resolve(CULTURES_FOLDER_NAME)
                 .resolve(cultureId)
                 .resolve(BUILDINGS_FOLDER_NAME)
                 .resolve(buildingId + ".json");
-        try {
-            String jsonContent = Files.readString(jsonPath);
-            json = JsonParser.parseString(jsonContent).getAsJsonObject();
-        } catch (Exception ignored) {
-            // An error occurred, we will create a new building.json file.
-            json = new JsonObject();
-        }
-        BuildingDataHandler data = new BuildingDataHandler(json);
+        BuildingDataHandler data = new BuildingDataHandler(loadJson(jsonPath));
         data.item.set(itemId);
         data.weight.set(weight);
-        JsonObject editedJson = data.toJson(new JsonObject());
-        try {
-            Files.createDirectories(jsonPath.getParent());
-            Files.writeString(jsonPath, editedJson.toString(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-        } catch (Exception e) {
-            Ouat.clientChat(player, "cc", "culture_error", cultureId);
-            Ouat.debug("An error occurred while saving a building file of '" + cultureId + "' : " + e);
-        }
+        data.saveJson(jsonPath, player, cultureId);
     }
 }
