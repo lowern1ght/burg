@@ -1,14 +1,9 @@
-package org.dawnoftime.onceuponatown.client.screen.culturecreator;
+package org.dawnoftime.onceuponatown.client.screen.culture_creator;
 
-import net.minecraft.network.chat.Component;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.network.culturecreator.C2SRequestCultureCCPacket;
-import org.dawnoftime.onceuponatown.network.culturecreator.C2SRequestCulturesCCPacket;
 import org.dawnoftime.onceuponatown.network.culturecreator.S2COpenCulturesCCScreenPacket;
 
 import java.util.List;
-
-import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURES_FOLDER_NAME;
 
 public class LevelsCCScreen extends BaseCCScreen {
 

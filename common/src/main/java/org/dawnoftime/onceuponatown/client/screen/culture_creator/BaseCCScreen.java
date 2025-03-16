@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.client.screen.culturecreator;
+package org.dawnoftime.onceuponatown.client.screen.culture_creator;
 
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
@@ -10,8 +10,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.client.screen.culturecreator.widgets.IconButton;
-import org.dawnoftime.onceuponatown.client.screen.culturecreator.widgets.WidgetCC;
+import org.dawnoftime.onceuponatown.client.screen.culture_creator.widgets.IconButton;
+import org.dawnoftime.onceuponatown.client.screen.culture_creator.widgets_cc.WidgetCC;
 import org.dawnoftime.onceuponatown.network.OuatPacket;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -241,11 +241,12 @@ public abstract class BaseCCScreen extends Screen {
      */
     public abstract void initWidgets();
 
-    protected void addWidget(String id, WidgetCC widget) {
+    protected WidgetCC addWidget(String id, WidgetCC widget) {
         widgets.put(id, widget);
         for (AbstractWidget w : widget.getWidgets()) {
             this.addRenderableWidget(w);
         }
+        return widget;
     }
 
     public record NavigationTab(@Nullable String folderName, Component displayName, Supplier<OuatPacket> packetSupplier) {}

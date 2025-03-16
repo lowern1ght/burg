@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.client.screen.culturecreator.widgets;
+package org.dawnoftime.onceuponatown.client.screen.culture_creator.widgets;
 
 
 import net.minecraft.client.gui.Font;

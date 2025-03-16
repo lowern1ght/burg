@@ -86,8 +86,10 @@
   "onceuponatown.cc.cultures_hint_culture" : "Create a new culture...",
   "onceuponatown.cc.buildings_nav" : "Buildings",
   "onceuponatown.cc.buildings_hint_building" : "Create a new building...",
-  "onceuponatown.cc.building_category" : "Building category",
   "onceuponatown.cc.building_hint_icon" : "Icon's item id...",
+  "onceuponatown.cc.building_weight" : "Weight",
+  "onceuponatown.cc.building_item_id" : "Building's icon item...",
   "onceuponatown.cc.levels_nav" : "Levels",
-  "onceuponatown.cc.level_nav" : "Level %s"
+  "onceuponatown.cc.level_nav" : "Level %s",
+  "onceuponatown.cc.variants_nav" : "Variants"
 }

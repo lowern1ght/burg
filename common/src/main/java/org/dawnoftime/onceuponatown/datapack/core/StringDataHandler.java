@@ -24,6 +24,10 @@ public class StringDataHandler extends DataHandler {
         return this.isValid() ? value : null;
     }
 
+    public @NotNull String asString() {
+        return this.isValid() ? value : "";
+    }
+
     @Override
     public JsonObject toJson(@NotNull JsonObject rootJson) {
         rootJson.addProperty(key, this.get());
