@@ -18,8 +18,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.TreeMap;
 import java.util.function.Supplier;
 
 import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
@@ -58,7 +58,7 @@ public abstract class BaseCCScreen extends Screen {
     private int scrollOffset = 0;
     private int scrollMaxOffset;
     boolean scrolling = false;
-    protected final TreeMap<String, WidgetCC> widgets = new TreeMap<>();
+    protected final LinkedHashMap<String, WidgetCC> widgets = new LinkedHashMap<>();
     private IconButton folderButton;
     protected List<NavigationTab> navigationTabList;
 
