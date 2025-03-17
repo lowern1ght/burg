@@ -45,9 +45,9 @@ public class BuildingCCScreen extends BaseCCScreen {
         this.addWidget("weight", new EditDigitWidgetCC(posX, Ouat.translatable("cc", "building_weight"), font, true))
                 .set(initWeight);
         this.addWidget("levels", new ButtonWidgetCC(posX, Ouat.translatable("cc", "levels_nav"),
-                wdg -> {}));
+                wdg -> Ouat.CLIENT.sendToServer(new C2SRequestLevelsCCPacket(cultureId, buildingId))));
         this.addWidget("variants", new ButtonWidgetCC(posX, Ouat.translatable("cc", "variants_nav"),
-                wdg -> {}));
+                wdg -> Ouat.CLIENT.sendToServer(new C2SRequestVariantsCCPacket(cultureId, buildingId))));
     }
 
     @Override

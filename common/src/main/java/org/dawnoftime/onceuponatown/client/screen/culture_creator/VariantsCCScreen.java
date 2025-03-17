@@ -3,6 +3,7 @@ package org.dawnoftime.onceuponatown.client.screen.culture_creator;
 import net.minecraft.network.chat.Component;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.screen.culture_creator.widgets_cc.ButtonWidgetCC;
+import org.dawnoftime.onceuponatown.client.screen.culture_creator.widgets_cc.EditBoxAndConfirmWidgetCC;
 import org.dawnoftime.onceuponatown.network.culturecreator.*;
 
 import java.util.List;
@@ -10,17 +11,17 @@ import java.util.List;
 import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.BUILDINGS_FOLDER_NAME;
 import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURES_FOLDER_NAME;
 
-public class LevelsCCScreen extends BaseCCScreen {
+public class VariantsCCScreen extends BaseCCScreen {
 
     private final String cultureId;
     private final String buildingId;
-    private int levelNumber;
+    private final List<String> variants;
 
-    public LevelsCCScreen(S2COpenLevelsCCScreenPacket packet) {
-        super(Ouat.translatable("cc", "levels_nav"));
+    public VariantsCCScreen(S2COpenVariantsCCScreenPacket packet) {
+        super(Ouat.translatable("cc", "variants_nav"));
         cultureId = packet.getCultureId();
         buildingId = packet.getBuildingId();
-        levelNumber = packet.getLevelNumber();
+        variants = packet.getVariantIds();
     }
 
     @Override
@@ -36,11 +37,15 @@ public class LevelsCCScreen extends BaseCCScreen {
 
     @Override
     public void initWidgets() {
-        for (int level = 1; level <= levelNumber; level++) {
-            this.addWidget(String.valueOf(level), new ButtonWidgetCC(posX, Ouat.translatable("cc", "level_nav", level), wdg -> {}));
+        for (String variant : variants) {
+            this.addWidget(variant, new ButtonWidgetCC(posX, Component.literal(variant), wdg -> {}));
 /*
                     wdg -> Ouat.CLIENT.sendToServer(new C2SRequestBuildingCCPacket(cultureId, variant))));
 */
         }
+        this.addWidget("new_culture", new EditBoxAndConfirmWidgetCC(posX, Ouat.translatable("cc", "buildings_hint_building"), font, false, wdg -> {}));
+/*
+                wdg -> Ouat.CLIENT.sendToServer(new C2SRequestBuildingCCPacket(cultureId, wdg.get()))));
+*/
     }
 }
