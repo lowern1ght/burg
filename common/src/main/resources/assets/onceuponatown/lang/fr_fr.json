@@ -92,5 +92,7 @@
     "onceuponatown.cc.level_nav": "Level %s",
     "onceuponatown.cc.variants_nav": "Variants",
     "onceuponatown.cc.building_category": "Building category",
-    "onceuponatown.cc.weight": "Weight"
+  "onceuponatown.cc.weight": "Weight",
+  "onceuponatown.buy": "Acheter",
+  "onceuponatown.sell": "Vendre"
 }

@@ -5,23 +5,23 @@ import net.minecraft.world.Container;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import org.dawnoftime.onceuponatown.trade.MerchantDeal;
+import org.dawnoftime.onceuponatown.trade.NpcOffer;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
 public class TradeContainer implements Container {
-    private final InteractingNpc interactingNpc;
+    private final TradeMenu menu;
     private final NonNullList<ItemStack> itemStacks = NonNullList.withSize(3, ItemStack.EMPTY);
     @Nullable
-    private MerchantDeal activeDeal;
+    private NpcOffer activeDeal;
     private int selectedDealIndex;
     private static final int INPUT_A = 0;
     private static final int INPUT_B = 1;
     private static final int RESULT = 2;
 
-    public TradeContainer(InteractingNpc interactingNpc) {
-        this.interactingNpc = interactingNpc;
+    public TradeContainer(TradeMenu menu) {
+        this.menu = menu;
     }
 
     public int getContainerSize() {
@@ -74,8 +74,8 @@ public class TradeContainer implements Container {
 
     }
 
-    public boolean stillValid(Player pPlayer) {
-        return this.interactingNpc.getInteractingPlayer() == pPlayer;
+    public boolean stillValid(Player player) {
+        return menu.interactingNpc.getInteractingPlayer() == player;
     }
 
     public void setChanged() {
@@ -90,14 +90,14 @@ public class TradeContainer implements Container {
         if (stackInSlotA.isEmpty() && stackInSlotB.isEmpty()) {
             this.setItem(RESULT, ItemStack.EMPTY);
         } else {
-            List<MerchantDeal> deals = this.interactingNpc.getMerchantDeals();
+            List<NpcOffer> deals = menu.getDeals();
             if (!deals.isEmpty()) {
-                MerchantDeal d = null;
+                NpcOffer d = null;
                 if (selectedDealIndex > 0 && selectedDealIndex < deals.size()) {
-                    MerchantDeal deal = deals.get(selectedDealIndex);
+                    NpcOffer deal = deals.get(selectedDealIndex);
                     d = deal.isSatisfiedBy(stackInSlotA, stackInSlotB) || deal.isSatisfiedBy(stackInSlotB, stackInSlotA) ? deal : null;
                 } else {
-                    for (MerchantDeal deal : deals) {
+                    for (NpcOffer deal : deals) {
                         if (deal.isSatisfiedBy(stackInSlotA, stackInSlotB) || deal.isSatisfiedBy(stackInSlotB, stackInSlotA)) {
                             d = deal;
                             break;
@@ -116,7 +116,7 @@ public class TradeContainer implements Container {
     }
 
     @Nullable
-    public MerchantDeal getActiveDeal() {
+    public NpcOffer getActiveDeal() {
         return this.activeDeal;
     }
 

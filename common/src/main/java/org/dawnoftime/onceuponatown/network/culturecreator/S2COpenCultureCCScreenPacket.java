@@ -7,7 +7,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.client.screen.culture_creator.CultureCCScreen;
+import org.dawnoftime.onceuponatown.client.gui.culture_creator.CultureCCScreen;
 import org.dawnoftime.onceuponatown.network.OuatPacket;
 
 import java.io.IOException;

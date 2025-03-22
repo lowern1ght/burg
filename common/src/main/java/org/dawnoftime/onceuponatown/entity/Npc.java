@@ -37,9 +37,7 @@ import org.dawnoftime.onceuponatown.entity.ai.goal.fight.SelfDefenseGoal;
 import org.dawnoftime.onceuponatown.menu.InteractingNpc;
 import org.dawnoftime.onceuponatown.menu.TradeMenu;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
-import org.dawnoftime.onceuponatown.trade.BuyDeal;
-import org.dawnoftime.onceuponatown.trade.MerchantDeal;
-import org.dawnoftime.onceuponatown.trade.SellDeal;
+import org.dawnoftime.onceuponatown.trade.NpcOffer;
 import org.dawnoftime.onceuponatown.trade.TradeUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -68,7 +66,7 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
     public Npc(EntityType<Npc> entityType, Level level) {
         super(entityType, level);
         setCultureId("plains");
-        setProfessionId("");
+        setProfessionId("unemployed");
     }
 
     @Override
@@ -234,7 +232,7 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
                  */
                 Ouat.COMMON.openMenu(serverPlayer, new SimpleMenuProvider((containerID, playerInventory, p) -> new TradeMenu(containerID, playerInventory, this), Component.literal("Buy")), buffer -> {
                     buffer.writeInt(this.getId());
-                    TradeUtils.writeMerchantDealsToStream(getMerchantDeals(), buffer);
+                    TradeUtils.writeNpcOffersToStream(getOffers(), buffer);
                 });
 
             }
@@ -243,7 +241,8 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         return super.mobInteract(player, hand);
     }
 
-    public void notifyDealMade(BuyDeal deal) {
+    @Override
+    public void notifyDealMade(NpcOffer deal) {
 
     }
 
@@ -311,47 +310,112 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         return projectileWeaponItem == Items.CROSSBOW || projectileWeaponItem == Items.BOW;
     }
 
-    public List<BuyDeal> getBuyDeals() {
-        List<BuyDeal> deals = new ArrayList<>();
-        deals.add(TradeUtils.buyDeal(Items.BROWN_MUSHROOM, 1));
-        deals.add(TradeUtils.buyDeal(Items.RED_MUSHROOM, 1));
-        deals.add(TradeUtils.buyDeal(Items.MANGROVE_PROPAGULE, 3));
-        deals.add(TradeUtils.buyDeal(Items.CHERRY_SAPLING, 2));
-        deals.add(TradeUtils.buyDeal(Items.AZALEA, 2));
-        deals.add(TradeUtils.buyDeal(Items.FEATHER, 1));
-        deals.add(TradeUtils.buyDeal(Items.DANDELION, 1, 0, 1, 26));
-        deals.add(TradeUtils.buyDeal(Items.FERN, 1, 5, 10, 42));
-        deals.add(TradeUtils.buyDeal(Items.FERN, 1, 1, 0, 2));
-        deals.add(TradeUtils.buyDeal(Items.DIAMOND_SWORD, 1));
-        return deals;
-    }
-
-    public List<SellDeal> getSellDeals() {
-        List<SellDeal> deals = new ArrayList<>();
-        deals.add(TradeUtils.sellDeal(Items.WATER_BUCKET, 1, 3, 0, 0));
-        deals.add(TradeUtils.sellDeal(Items.RABBIT, 1, 0, 5, 3));
-        deals.add(TradeUtils.sellDeal(Items.COAL, 5));
-        deals.add(TradeUtils.sellDeal(Items.EGG, 5));
-        deals.add(TradeUtils.sellDeal(Items.STICK, 5));
-        deals.add(TradeUtils.sellDeal(Items.WHITE_WOOL, 2));
-        return deals;
-    }
-
     @Override
-    public List<MerchantDeal> getMerchantDeals() {
-        List<MerchantDeal> deals = new ArrayList<>();
+    public List<NpcOffer> getOffers() {
+        List<NpcOffer> deals = new ArrayList<>();
         // Buy deals
-        deals.add(MerchantDeal.Builder.buyDeal(new ItemStack(Items.EMERALD, 2), new ItemStack(Items.BROWN_MUSHROOM, 1)).requiredB(new ItemStack(Items.OAK_PLANKS, 7)).build());
-        deals.add(MerchantDeal.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.RED_MUSHROOM, 1)).build());
-        deals.add(MerchantDeal.Builder.buyDeal(new ItemStack(Items.EMERALD, 6), new ItemStack(Items.MANGROVE_PROPAGULE, 1)).build());
-        deals.add(MerchantDeal.Builder.buyDeal(new ItemStack(Items.EMERALD, 3), new ItemStack(Items.CHERRY_SAPLING, 1)).build());
-        deals.add(MerchantDeal.Builder.buyDeal(new ItemStack(Items.EMERALD, 3), new ItemStack(Items.AZALEA, 1)).build());
-        deals.add(MerchantDeal.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.FEATHER, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.WHITE_WOOL, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.LIGHT_GRAY_WOOL, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.GRAY_WOOL, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.BLACK_WOOL, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.BROWN_WOOL, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.RED_WOOL, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.ORANGE_WOOL, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.YELLOW_WOOL, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.LIME_WOOL, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.GREEN_WOOL, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.CYAN_WOOL, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.LIGHT_BLUE_WOOL, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.BLUE_WOOL, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.PURPLE_WOOL, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.MAGENTA_WOOL, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.PINK_WOOL, 1)).build());
+
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.WHITE_BED, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.LIGHT_GRAY_BED, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.GRAY_BED, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.BLACK_BED, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.BROWN_BED, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.RED_BED, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.ORANGE_BED, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.YELLOW_BED, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.LIME_BED, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.GREEN_BED, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.CYAN_BED, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.LIGHT_BLUE_BED, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.BLUE_BED, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.PURPLE_BED, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.MAGENTA_BED, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.PINK_BED, 1)).build());
+
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.WHITE_BANNER, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.LIGHT_GRAY_BANNER, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.GRAY_BANNER, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.BLACK_BANNER, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.BROWN_BANNER, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.RED_BANNER, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.ORANGE_BANNER, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.YELLOW_BANNER, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.LIME_BANNER, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.GREEN_BANNER, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.CYAN_BANNER, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.LIGHT_BLUE_BANNER, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.BLUE_BANNER, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.PURPLE_BANNER, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.MAGENTA_BANNER, 1)).build());
+        deals.add(NpcOffer.Builder.buyDeal(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.PINK_BANNER, 1)).build());
+
         // Sell deals
-        deals.add(MerchantDeal.Builder.sellDeal(new ItemStack(Items.WHITE_WOOL, 1), new ItemStack(Items.EMERALD, 2)).build());
-        deals.add(MerchantDeal.Builder.sellDeal(new ItemStack(Items.COAL, 16), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(MerchantDeal.Builder.sellDeal(new ItemStack(Items.RABBIT, 4), new ItemStack(Items.EMERALD, 3)).build());
-        deals.add(MerchantDeal.Builder.sellDeal(new ItemStack(Items.WATER_BUCKET, 1), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.WHITE_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.LIGHT_GRAY_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.GRAY_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.BLACK_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.BROWN_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.RED_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.ORANGE_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.YELLOW_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.LIME_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.GREEN_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.CYAN_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.LIGHT_BLUE_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.BLUE_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.PURPLE_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.MAGENTA_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.PINK_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
+
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.WHITE_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.LIGHT_GRAY_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.GRAY_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.BLACK_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.BROWN_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.RED_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.ORANGE_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.YELLOW_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.LIME_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.GREEN_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.CYAN_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.LIGHT_BLUE_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.BLUE_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.PURPLE_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.MAGENTA_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.PINK_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
+
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.WHITE_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.LIGHT_GRAY_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.GRAY_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.BLACK_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.BROWN_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.RED_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.ORANGE_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.YELLOW_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.LIME_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.GREEN_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.CYAN_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.LIGHT_BLUE_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.BLUE_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.PURPLE_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.MAGENTA_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
+        deals.add(NpcOffer.Builder.sellDeal(new ItemStack(Items.PINK_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
         return deals;
     }
 

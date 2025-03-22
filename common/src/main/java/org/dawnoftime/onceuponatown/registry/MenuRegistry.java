@@ -4,18 +4,12 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.MenuType;
-import org.dawnoftime.onceuponatown.menu.BuyMenu;
-import org.dawnoftime.onceuponatown.menu.SellMenu;
 import org.dawnoftime.onceuponatown.menu.TradeMenu;
 
 import java.util.function.Supplier;
 
 public abstract class MenuRegistry {
     public static MenuRegistry REGISTRY;
-
-    public final Supplier<MenuType<BuyMenu>> BUY_MENU = register("buy_menu", BuyMenu::new);
-
-    public final Supplier<MenuType<SellMenu>> SELL_MENU = register("sell_menu", SellMenu::new);
 
     public final Supplier<MenuType<TradeMenu>> TRADE_MENU = register("trade_menu", TradeMenu::new);
 

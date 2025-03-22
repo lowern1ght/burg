@@ -9,6 +9,9 @@ import net.minecraftforge.network.simple.SimpleChannel;
 import org.apache.logging.log4j.util.TriConsumer;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.network.culturecreator.*;
+import org.dawnoftime.onceuponatown.network.inventory.C2SChangeNpcTabPacket;
+import org.dawnoftime.onceuponatown.network.inventory.C2SSelectTradePacket;
+import org.dawnoftime.onceuponatown.network.inventory.C2SSetTradeModePacket;
 
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -21,10 +24,10 @@ public class PacketHandler {
         int i = 0;
 
         // Client to Server packets
-        CHANNEL.registerMessage(i++, C2SSelectBuyDealPacket.class, C2SSelectBuyDealPacket::encode, C2SSelectBuyDealPacket::decode, makeC2SHandler(C2SSelectBuyDealPacket::handle));
-        CHANNEL.registerMessage(i++, C2SSellScreenPacket.class, C2SSellScreenPacket::encode, C2SSellScreenPacket::decode, makeC2SHandler(C2SSellScreenPacket::handle));
         CHANNEL.registerMessage(i++, C2SChangeNpcTabPacket.class, C2SChangeNpcTabPacket::encode, C2SChangeNpcTabPacket::decode, makeC2SHandler(C2SChangeNpcTabPacket::handle));
         CHANNEL.registerMessage(i++, C2SSelectTradePacket.class, C2SSelectTradePacket::encode, C2SSelectTradePacket::decode, makeC2SHandler(C2SSelectTradePacket::handle));
+        CHANNEL.registerMessage(i++, C2SSetTradeModePacket.class, C2SSetTradeModePacket::encode, C2SSetTradeModePacket::decode, makeC2SHandler(C2SSetTradeModePacket::handle));
+
         CHANNEL.registerMessage(i++, C2SRequestCulturesCCPacket.class, C2SRequestCulturesCCPacket::encode, C2SRequestCulturesCCPacket::decode, makeC2SHandler(C2SRequestCulturesCCPacket::handle));
         CHANNEL.registerMessage(i++, C2SRequestCultureCCPacket.class, C2SRequestCultureCCPacket::encode, C2SRequestCultureCCPacket::decode, makeC2SHandler(C2SRequestCultureCCPacket::handle));
         CHANNEL.registerMessage(i++, C2SRequestBuildingsCCPacket.class, C2SRequestBuildingsCCPacket::encode, C2SRequestBuildingsCCPacket::decode, makeC2SHandler(C2SRequestBuildingsCCPacket::handle));

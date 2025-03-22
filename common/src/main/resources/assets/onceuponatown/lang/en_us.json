@@ -91,5 +91,7 @@
   "onceuponatown.cc.building_item_id" : "Building's icon item...",
   "onceuponatown.cc.levels_nav" : "Levels",
   "onceuponatown.cc.level_nav" : "Level %s",
-  "onceuponatown.cc.variants_nav" : "Variants"
+  "onceuponatown.cc.variants_nav": "Variants",
+  "onceuponatown.buy": "Buy",
+  "onceuponatown.sell": "Sell"
 }

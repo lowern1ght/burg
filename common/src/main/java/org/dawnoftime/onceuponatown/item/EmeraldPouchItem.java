@@ -12,7 +12,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.client.screen.tooltip.SingleItemTooltip;
+import org.dawnoftime.onceuponatown.client.gui.tooltip.SingleItemTooltip;
 
 import java.util.Optional;
 
