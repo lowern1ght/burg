@@ -13,18 +13,20 @@ import java.nio.file.Path;
 
 import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
+import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.BUILDINGS_FOLDER_NAME;
 import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURES_FOLDER_NAME;
 
-public record C2SRequestCultureCCPacket(String cultureId) implements OuatPacket {
-    public static final ResourceLocation ID = modResource("c2s_request_culture_cc");
+public record C2SRequestVariantsCCPacket(String cultureId, String buildingId) implements OuatPacket {
+    public static final ResourceLocation ID = modResource("c2s_request_variants_cc");
 
-    public static C2SRequestCultureCCPacket decode(FriendlyByteBuf buf) {
-        return new C2SRequestCultureCCPacket(buf.readUtf());
+    public static C2SRequestVariantsCCPacket decode(FriendlyByteBuf buf) {
+        return new C2SRequestVariantsCCPacket(buf.readUtf(), buf.readUtf());
     }
 
     @Override
     public void encode(FriendlyByteBuf buf) {
         buf.writeUtf(cultureId);
+        buf.writeUtf(buildingId);
     }
 
     @Override
@@ -33,16 +35,6 @@ public record C2SRequestCultureCCPacket(String cultureId) implements OuatPacket 
     }
 
     public void handle(MinecraftServer server, ServerPlayer player) {
-        try {
-            Path newCultureFolder = Ouat.COMMON.getConfigFolder().toPath()
-                    .resolve(MOD_ID)
-                    .resolve(CULTURES_FOLDER_NAME)
-                    .resolve(cultureId);
-            Files.createDirectories(newCultureFolder);
-            Ouat.COMMON.sendToClient(player, S2COpenCultureCCScreenPacket.create(player, cultureId));
-        } catch (IOException e) {
-            Ouat.clientChat(player, "cc", "culture_error", cultureId);
-            Ouat.debug("An error occurred while reading a culture file of '" + cultureId + "' : " + e);
-        }
+        Ouat.COMMON.sendToClient(player, S2COpenVariantsCCScreenPacket.create(player, cultureId, buildingId));
     }
 }

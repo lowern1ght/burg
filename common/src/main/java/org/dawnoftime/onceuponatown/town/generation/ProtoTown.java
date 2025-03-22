@@ -26,8 +26,9 @@ import java.util.function.BiFunction;
 
 import static org.dawnoftime.onceuponatown.Config.DEFAULT_ROAD_LENGTH;
 import static org.dawnoftime.onceuponatown.Config.MINI_ROAD_SPACE;
-import static org.dawnoftime.onceuponatown.culture.Culture.ROAD_TYPE_NAME;
-import static org.dawnoftime.onceuponatown.culture.Culture.WIDE_ROAD_TYPE_NAME;
+import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.ROAD_TYPE_NAME;
+import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.WIDE_ROAD_TYPE_NAME;
+
 
 /**
  * Base Town class. Handles a Town's infrastructure (Roads, Buildings...) : provides methods to add new Builds, grow Roads, etc <br>
@@ -111,7 +112,7 @@ public class ProtoTown {
             return false;
         }
         List<BuildingType> starterPack = culture.getRandomStarterPack(RANDOM);
-        SliceBuildType wideRoad = (SliceBuildType) culture.getBuildType(Culture.WIDE_ROAD_TYPE_NAME);
+        SliceBuildType wideRoad = (SliceBuildType) culture.getBuildType(WIDE_ROAD_TYPE_NAME);
 
         // First let's put the main vertical wide road, with length of 2 * mini_size + big_width.
         // Since a road can only grow in one direction, we split it in 2 parts.

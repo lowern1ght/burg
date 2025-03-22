@@ -6,7 +6,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.client.screen.culturecreator.CulturesCCScreen;
+import org.dawnoftime.onceuponatown.client.screen.culture_creator.CulturesCCScreen;
 import org.dawnoftime.onceuponatown.network.OuatPacket;
 
 import java.io.IOException;
@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.dawnoftime.onceuponatown.Ouat.*;
-import static org.dawnoftime.onceuponatown.culture.ServerCultures.CULTURE_FOLDER_NAME;
+import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURES_FOLDER_NAME;
 
 public class S2COpenCulturesCCScreenPacket implements OuatPacket {
     private static final ResourceLocation ID = modResource("s2c_open_cultures_screen_cc");
@@ -29,7 +29,9 @@ public class S2COpenCulturesCCScreenPacket implements OuatPacket {
     }
 
     public static S2COpenCulturesCCScreenPacket create(Player player){
-        Path targetDir = Ouat.COMMON.getConfigFolder().toPath().resolve(MOD_ID).resolve(CULTURE_FOLDER_NAME);
+        Path targetDir = Ouat.COMMON.getConfigFolder().toPath()
+                .resolve(MOD_ID)
+                .resolve(CULTURES_FOLDER_NAME);
         List<String> cultureIds = new ArrayList<>();
         try {
             Files.createDirectories(targetDir);

@@ -23,6 +23,21 @@
           ]
         }
       ]
+    },
+    {
+      "name": "sword_training_camp",
+      "size": {
+        "x": 39,
+        "y": 9,
+        "z": 29
+      },
+      "levels": [
+        {
+          "schematic": "sword_training_camp",
+          "waypoints": [
+          ]
+        }
+      ]
     }
   ]
 }

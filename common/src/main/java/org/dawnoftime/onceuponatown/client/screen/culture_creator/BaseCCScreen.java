@@ -1,25 +1,24 @@
-package org.dawnoftime.onceuponatown.client.screen.culturecreator;
+package org.dawnoftime.onceuponatown.client.screen.culture_creator;
 
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.client.screen.widgets.EditBoxIconButton;
-import org.dawnoftime.onceuponatown.client.screen.widgets.IconButton;
+import org.dawnoftime.onceuponatown.client.screen.culture_creator.widgets.IconButton;
+import org.dawnoftime.onceuponatown.client.screen.culture_creator.widgets_cc.WidgetCC;
 import org.dawnoftime.onceuponatown.network.OuatPacket;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -28,9 +27,9 @@ import static org.dawnoftime.onceuponatown.client.screen.ScreenUtils.GUI_COLOR_G
 import static org.dawnoftime.onceuponatown.client.screen.ScreenUtils.drawCenteredString;
 
 public abstract class BaseCCScreen extends Screen {
-    private static final ResourceLocation GUI_TEXTURE = Ouat.modResource("textures/gui/culture_creator.png");
-    private static final int TEXTURE_TOTAL_WIDTH = 240;
-    private static final int TEXTURE_TOTAL_HEIGHT = 217;
+    public static final ResourceLocation GUI_TEXTURE = Ouat.modResource("textures/gui/culture_creator.png");
+    public static final int TEXTURE_TOTAL_WIDTH = 240;
+    public static final int TEXTURE_TOTAL_HEIGHT = 217;
     private static final int TEXTURE_TAB_HEIGHT = 166;
     private static final int TEXTURE_SCROLL_ICON_WIDTH = 8;
     private static final int TEXTURE_SCROLL_ICON_HEIGHT = 27;
@@ -41,23 +40,25 @@ public abstract class BaseCCScreen extends Screen {
     private static final int TITLE_OFFSET_Y = 8;
     private static final int SCROLL_ZONE_X = 225;
     private static final int SCROLL_ZONE_Y = 20;
-    private static final int WIDGET_ZONE_X = 7;
+    public static final int WIDGET_ZONE_X = 8;
     private static final int WIDGET_ZONE_Y = 20;
-    private static final int WIDGET_ZONE_WIDTH = 213;
+    public static final int WIDGET_ZONE_WIDTH = 211;
     private static final int WIDGET_ZONE_HEIGHT = 139;
-    private static final int WIDGET_HEIGHT = 20;
+    public static final int WIDGET_HEIGHT = 20;
+    private static final int WIDGET_HEIGHT_PADDED = WIDGET_HEIGHT + 1;
+    private static final int WIDGET_PLUS_BUTTON_HEIGHT = 12;
     private static final int FOLDER_BUTTON_X = 224;
     private static final int FOLDER_BUTTON_Y = 6;
     private static final int FOLDER_BUTTON_SIDE_LENGTH = 10;
     private static final int NAVIGATION_ZONE_Y = 19;
     private static final int MAX_NAVIGATION_NUMBER = 8;
 
-    private int posX;
+    int posX;
     private int posY;
     private int scrollOffset = 0;
     private int scrollMaxOffset;
     boolean scrolling = false;
-    protected final List<AbstractWidget[]> widgets = new ArrayList<>();
+    protected final LinkedHashMap<String, WidgetCC> widgets = new LinkedHashMap<>();
     private IconButton folderButton;
     protected List<NavigationTab> navigationTabList;
 
@@ -80,7 +81,7 @@ public abstract class BaseCCScreen extends Screen {
         // Finally, create the widgets specific to the screen.
         this.initWidgets();
         this.updateWidgetPositions();
-        scrollMaxOffset = Math.max(widgets.size() * WIDGET_HEIGHT - WIDGET_ZONE_HEIGHT, 0);
+        scrollMaxOffset = Math.max(widgets.size() * WIDGET_HEIGHT_PADDED - WIDGET_ZONE_HEIGHT, 0);
     }
 
     @Override
@@ -134,16 +135,16 @@ public abstract class BaseCCScreen extends Screen {
     }
 
     private void updateWidgetPositions() {
-        for (int i = 0; i < widgets.size(); i++) {
-            AbstractWidget[] rowWidgets = widgets.get(i);
-            int widgetY = i * WIDGET_HEIGHT - scrollOffset;
-            if (widgetY + WIDGET_HEIGHT > 0 && widgetY < WIDGET_ZONE_HEIGHT) {
-                for (AbstractWidget widget : rowWidgets) {
+        String[] widgetIds = widgets.keySet().toArray(new String[0]);
+        for (int i = 0; i < widgetIds.length; i++) {
+            int widgetY = i * WIDGET_HEIGHT_PADDED - scrollOffset;
+            if (widgetY + WIDGET_HEIGHT_PADDED > 0 && widgetY < WIDGET_ZONE_HEIGHT) {
+                for (AbstractWidget widget : widgets.get(widgetIds[i]).getWidgets()) {
                     widget.visible = true;
                     widget.setY(posY + WIDGET_ZONE_Y + widgetY);
                 }
             } else {
-                for (AbstractWidget widget : rowWidgets) {
+                for (AbstractWidget widget : widgets.get(widgetIds[i]).getWidgets()) {
                     widget.visible = false;
                 }
             }
@@ -220,7 +221,10 @@ public abstract class BaseCCScreen extends Screen {
     private Path getDirectoryPath() throws InvalidPathException {
         Path path = Ouat.COMMON.getConfigFolder().toPath().resolve(MOD_ID);
         for (NavigationTab navigation : navigationTabList){
-            path = path.resolve(navigation.folderName());
+            String folder = navigation.folderName();
+            if (folder != null) {
+                path = path.resolve(folder);
+            }
         }
         return path;
     }
@@ -237,48 +241,15 @@ public abstract class BaseCCScreen extends Screen {
      */
     public abstract void initWidgets();
 
-    /**
-     * Adds a row to the screen that contains only a button.
-     *
-     * @param buttonTextComponent Component that will be displayed on the button.
-     * @param onPress             OnPress effect of the button.
-     */
-    protected void createButton(Component buttonTextComponent, Button.OnPress onPress) {
-        Button button = Button.builder(buttonTextComponent, onPress).bounds(posX + WIDGET_ZONE_X, 0, WIDGET_ZONE_WIDTH, WIDGET_HEIGHT).build();
-        widgets.add(new AbstractWidget[]{button});
-        this.addRenderableWidget(button);
+    protected WidgetCC addWidget(String id, WidgetCC widget) {
+        widgets.put(id, widget);
+        for (AbstractWidget w : widget.getWidgets()) {
+            this.addRenderableWidget(w);
+        }
+        return widget;
     }
 
-    /**
-     * Adds a row to the screen that an editBox, with a confirm button next to it.
-     *
-     * @param editBoxHintComponent Component that will be displayed in the editBox to help the user knowing what to write.
-     * @param onPressConfirm       OnPress effect of the confirm button.
-     */
-    protected void createEditBoxAndConfirm(Component editBoxHintComponent, Button.OnPress onPressConfirm) {
-        EditBoxIconButton button = new EditBoxIconButton(posX + WIDGET_ZONE_X + WIDGET_ZONE_WIDTH - WIDGET_HEIGHT, 0, WIDGET_HEIGHT, GUI_TEXTURE, 83, 166, TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT, false, onPressConfirm);
-        EditBox editBox = new EditBox(this.font, posX + WIDGET_ZONE_X + 1, 0, WIDGET_ZONE_WIDTH - WIDGET_HEIGHT - 2, WIDGET_HEIGHT - 2, Component.empty()) {
-            // We must edit the setY function because for some reason, MC devs decided that the actual border of this widget should be out of its size...
-            @Override
-            public void setY(int y) {
-                super.setY(y + 1);
-            }
-
-            @Override
-            public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-                boolean b = super.keyPressed(keyCode, scanCode, modifiers);
-                button.active = !button.getContent().isEmpty();
-                return b;
-            }
-        };
-        editBox.setHint(editBoxHintComponent);
-        button.setEditBox(editBox);
-        widgets.add(new AbstractWidget[]{editBox, button});
-        this.addRenderableWidget(editBox);
-        this.addRenderableWidget(button);
-    }
-
-    public record NavigationTab(String folderName, Component displayName, Supplier<OuatPacket> packetSupplier){ }
+    public record NavigationTab(@Nullable String folderName, Component displayName, Supplier<OuatPacket> packetSupplier) {}
 
     /* TODO Faire ça pour l'export des schematics.
      * Ajouter un bouton le culture creator pour l'export, qui prépare la zone...

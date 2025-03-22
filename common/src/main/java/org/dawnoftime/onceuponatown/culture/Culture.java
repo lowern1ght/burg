@@ -19,21 +19,17 @@ import java.io.IOException;
 import java.io.Reader;
 import java.util.*;
 
-import static org.dawnoftime.onceuponatown.culture.ServerCultures.CULTURE_FOLDER_NAME;
-import static org.dawnoftime.onceuponatown.culture.ServerCultures.CULTURE_JSON_FILE_NAME;
+import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURES_FOLDER_NAME;
+import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURE_JSON_FILE_NAME;
 
 public class Culture {
-    // TODO manage default culture in case of corrupted culture files or town files
-    public static final String ROAD_TYPE_NAME = "road";
-    public static final String WIDE_ROAD_TYPE_NAME = "wide_road";
-    public static final String BRIDGE_TYPE_NAME = "bridge";
-    public static final String WALL_TYPE_NAME = "wall";
     private final String id;
     private final List<Specialization> specializations;
     private final HashMap<String, BuildType> buildTypes;
     private final HashMap<String, Pair<Integer, Integer>> starterPack;
     private final List<Era> eras;
     //private final List<Item> foods; TODO read foods
+    // TODO manage default culture in case of corrupted culture files or town files
     public static final Culture CORRUPTED_CULTURE = new Culture("default_culture", List.of(new Specialization("default_specialization")), new HashMap<>(), new HashMap<>(), List.of(new Era(1, 0, Integer.MAX_VALUE))) {
         @Override
         public List<BuildingType> getRandomStarterPack(RandomSource rand) {
@@ -73,7 +69,7 @@ public class Culture {
             /* Reading BuildTypes */
             HashMap<String, BuildType> buildTypeMap = new HashMap<>();
             /* Reading Buildings */
-            var buildingsRls = resourceManager.listResources(CULTURE_FOLDER_NAME + "/" + detectedId + "/buildings", (rl) -> rl.getPath().endsWith(".json")).keySet();
+            var buildingsRls = resourceManager.listResources(CULTURES_FOLDER_NAME + "/" + detectedId + "/buildings", (rl) -> rl.getPath().endsWith(".json")).keySet();
             for (ResourceLocation buildingRL : buildingsRls) {
                 String rlPath = buildingRL.getPath();
                 String typeId = rlPath.substring(rlPath.lastIndexOf('/') + 1, rlPath.lastIndexOf('.'));
@@ -83,7 +79,7 @@ public class Culture {
                 buildTypeMap.put(typeId, BuildingType.createFromDataPack(detectedId, buildingRL, resourceManager));
             }
             /* Reading Roads */
-            var roadsRls = resourceManager.listResources(CULTURE_FOLDER_NAME + "/" + detectedId + "/roads", (rl) -> rl.getPath().endsWith(".json")).keySet();
+            var roadsRls = resourceManager.listResources(CULTURES_FOLDER_NAME + "/" + detectedId + "/roads", (rl) -> rl.getPath().endsWith(".json")).keySet();
             for (ResourceLocation roadRl : roadsRls) {
                 String rlPath = roadRl.getPath();
                 String typeId = rlPath.substring(rlPath.lastIndexOf('/') + 1, rlPath.lastIndexOf('.'));

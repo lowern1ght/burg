@@ -15,11 +15,11 @@ import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
 import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURES_FOLDER_NAME;
 
-public record C2SRequestCultureCCPacket(String cultureId) implements OuatPacket {
-    public static final ResourceLocation ID = modResource("c2s_request_culture_cc");
+public record C2SRequestBuildingsCCPacket(String cultureId) implements OuatPacket {
+    public static final ResourceLocation ID = modResource("c2s_request_buildings_cc");
 
-    public static C2SRequestCultureCCPacket decode(FriendlyByteBuf buf) {
-        return new C2SRequestCultureCCPacket(buf.readUtf());
+    public static C2SRequestBuildingsCCPacket decode(FriendlyByteBuf buf) {
+        return new C2SRequestBuildingsCCPacket(buf.readUtf());
     }
 
     @Override
@@ -39,7 +39,7 @@ public record C2SRequestCultureCCPacket(String cultureId) implements OuatPacket 
                     .resolve(CULTURES_FOLDER_NAME)
                     .resolve(cultureId);
             Files.createDirectories(newCultureFolder);
-            Ouat.COMMON.sendToClient(player, S2COpenCultureCCScreenPacket.create(player, cultureId));
+            Ouat.COMMON.sendToClient(player, S2COpenBuildingsCCScreenPacket.create(player, cultureId));
         } catch (IOException e) {
             Ouat.clientChat(player, "cc", "culture_error", cultureId);
             Ouat.debug("An error occurred while reading a culture file of '" + cultureId + "' : " + e);
