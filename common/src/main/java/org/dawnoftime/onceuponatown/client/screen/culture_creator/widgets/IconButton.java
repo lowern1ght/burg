@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.client.screen.widgets;
+package org.dawnoftime.onceuponatown.client.screen.culture_creator.widgets;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -13,8 +13,8 @@ public class IconButton extends Button {
     private final int textureWidth;
     private final int textureHeight;
 
-    public IconButton(int x, int y, int sideLength, ResourceLocation texture, int uOffset, int vOffset, int textureWidth, int textureHeight, Button.OnPress onPress) {
-        super(x, y, sideLength, sideLength, Component.empty(), onPress, DEFAULT_NARRATION);
+    public IconButton(int x, int y, int size, ResourceLocation texture, int uOffset, int vOffset, int textureWidth, int textureHeight, Button.OnPress onPress) {
+        super(x, y, size, size, Component.empty(), onPress, DEFAULT_NARRATION);
         this.texture = texture;
         this.uOffset = uOffset;
         this.vOffset = vOffset;

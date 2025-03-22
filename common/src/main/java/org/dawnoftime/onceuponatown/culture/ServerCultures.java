@@ -2,20 +2,19 @@ package org.dawnoftime.onceuponatown.culture;
 
 import net.minecraft.server.packs.resources.ResourceManager;
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.datapack.core.DataHandler;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.util.*;
 
 public class ServerCultures {
-    public static final String CULTURE_FOLDER_NAME = "ouat_cultures";
-    public static final String CULTURE_JSON_FILE_NAME = "ouat_culture.json";
     private static final Map<String, Culture> LOADED_CULTURES = new HashMap<>();
     private static final Set<String> CORRUPTED_CULTURES = new HashSet<>();
 
     public static void loadCultures(ResourceManager manager) {
         LOADED_CULTURES.clear(); // Just in case
-        var detectedCultures = new HashMap<>(manager.listResources(CULTURE_FOLDER_NAME, (rl) -> rl.getPath().endsWith("/" + CULTURE_JSON_FILE_NAME)));
+        var detectedCultures = new HashMap<>(manager.listResources(DataHandler.CULTURES_FOLDER_NAME, (rl) -> rl.getPath().endsWith("/" + DataHandler.CULTURE_JSON_FILE_NAME)));
         int n = detectedCultures.size();
         if (n == 0) {
             Ouat.error("No cultures detected");
@@ -24,7 +23,7 @@ public class ServerCultures {
         }
         detectedCultures.forEach((rl, res) -> {
             String path = rl.getPath();
-            String detectedId = path.substring((CULTURE_FOLDER_NAME + "/").length(), path.length() - ("/" + CULTURE_JSON_FILE_NAME).length());
+            String detectedId = path.substring((DataHandler.CULTURES_FOLDER_NAME + "/").length(), path.length() - ("/" + DataHandler.CULTURE_JSON_FILE_NAME).length());
             if (LOADED_CULTURES.containsKey(detectedId)) {
                 Ouat.error("Culture [%s]: Failed to register the culture. Another culture was already registered with the same id.".formatted(detectedId));
             } else {

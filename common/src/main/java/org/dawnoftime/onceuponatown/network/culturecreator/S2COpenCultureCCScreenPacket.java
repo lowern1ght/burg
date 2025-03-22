@@ -7,7 +7,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.client.screen.culturecreator.CultureCCScreen;
+import org.dawnoftime.onceuponatown.client.screen.culture_creator.CultureCCScreen;
 import org.dawnoftime.onceuponatown.network.OuatPacket;
 
 import java.io.IOException;
@@ -16,8 +16,8 @@ import java.nio.file.Path;
 
 import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
-import static org.dawnoftime.onceuponatown.culture.ServerCultures.CULTURE_FOLDER_NAME;
-import static org.dawnoftime.onceuponatown.culture.ServerCultures.CULTURE_JSON_FILE_NAME;
+import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURES_FOLDER_NAME;
+import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURE_JSON_FILE_NAME;
 
 public class S2COpenCultureCCScreenPacket implements OuatPacket {
     private static final ResourceLocation ID = modResource("s2c_open_culture_screen_cc");
@@ -31,9 +31,13 @@ public class S2COpenCultureCCScreenPacket implements OuatPacket {
     public static S2COpenCultureCCScreenPacket create(Player player, String cultureId){
         try {
             Path jsonPath = Ouat.COMMON.getConfigFolder().toPath()
-                    .resolve(MOD_ID).resolve(CULTURE_FOLDER_NAME).resolve(cultureId).resolve(CULTURE_JSON_FILE_NAME);
+                    .resolve(MOD_ID)
+                    .resolve(CULTURES_FOLDER_NAME)
+                    .resolve(cultureId)
+                    .resolve(CULTURE_JSON_FILE_NAME);
             String jsonContent = Files.readString(jsonPath);
             JsonObject jsonObject = JsonParser.parseString(jsonContent).getAsJsonObject();
+            // TODO Add the validation part.
         } catch (IOException ignored) {
             // An error occurred, we will create a new CULTURE_JSON_FILE_NAME
         }

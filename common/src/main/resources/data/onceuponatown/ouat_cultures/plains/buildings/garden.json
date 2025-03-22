@@ -55,6 +55,21 @@
       ]
     },
     {
+      "name": "lone_garden_3",
+      "size": {
+        "x": 24,
+        "y": 9,
+        "z": 14
+      },
+      "levels": [
+        {
+          "schematic": "lone_garden_3",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
       "name": "fountain_place",
       "size": {
         "x": 13,

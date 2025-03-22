@@ -8,7 +8,7 @@ import net.minecraft.resources.ResourceLocation;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.model.NpcModel;
 import org.dawnoftime.onceuponatown.client.renderer.NpcRenderer;
-import org.dawnoftime.onceuponatown.culture.ServerCultures;
+import org.dawnoftime.onceuponatown.datapack.core.DataHandler;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.entity.Profession;
 import org.jetbrains.annotations.NotNull;
@@ -34,7 +34,7 @@ public class NpcClothesLayer<T extends Npc, M extends NpcModel<T>> extends Rende
     private void renderCultureCommonClothes(M model, PoseStack poseStack, MultiBufferSource buffer, int packedLight, T npc) {
         String cultureId = npc.getCultureId();
         // TODO handle wrong culture id or corrupted culture
-        String path = ServerCultures.CULTURE_FOLDER_NAME + "/" + cultureId + "/clothes/jacket.png";
+        String path = DataHandler.CULTURES_FOLDER_NAME + "/" + cultureId + "/clothes/jacket.png";
         ResourceLocation resourceLocation = Ouat.modResource(path);
         renderColoredCutoutModel(model, resourceLocation, poseStack, buffer, packedLight, npc, 1.0F, 1.0F, 1.0F);
     }
@@ -44,7 +44,7 @@ public class NpcClothesLayer<T extends Npc, M extends NpcModel<T>> extends Rende
         String professionId = npc.getProfessionId();
         // TODO handle wrong culture id or corrupted culture
         if (!professionId.isBlank() && !professionId.equals(Profession.UNEMPLOYED.getId())) {
-            String path = ServerCultures.CULTURE_FOLDER_NAME + "/" + cultureId + "/clothes/professions/" + professionId + ".png";
+            String path = DataHandler.CULTURES_FOLDER_NAME + "/" + cultureId + "/clothes/professions/" + professionId + ".png";
             ResourceLocation resourceLocation = Ouat.modResource(path);
             renderColoredCutoutModel(model, resourceLocation, poseStack, buffer, packedLight, npc, 1.0F, 1.0F, 1.0F);
         }

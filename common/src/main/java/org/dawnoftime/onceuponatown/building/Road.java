@@ -5,6 +5,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import org.dawnoftime.onceuponatown.building.type.SliceBuildType;
 import org.dawnoftime.onceuponatown.culture.Culture;
+import org.dawnoftime.onceuponatown.datapack.core.DataHandler;
 import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
 import org.dawnoftime.onceuponatown.town.generation.TownMapUtils;
 import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
@@ -24,7 +25,7 @@ public class Road extends SliceBuild {
 
     public Road(SliceBuildType sliceBuildType, int length, int level) {
         super(sliceBuildType, length, level);
-        isWide = Objects.equals(sliceBuildType.getId(), Culture.WIDE_ROAD_TYPE_NAME);
+        isWide = Objects.equals(sliceBuildType.getId(), DataHandler.WIDE_ROAD_TYPE_NAME);
     }
 
     protected Road(Culture culture, CompoundTag tag) {

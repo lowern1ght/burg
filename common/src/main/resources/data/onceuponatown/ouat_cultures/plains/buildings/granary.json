@@ -1,5 +1,5 @@
 {
-  "id": "church",
+  "id": "granary",
   "category": "work",
   "weight": 10,
   "levels": [
@@ -7,18 +7,18 @@
       "required_era": 1
     }
   ],
-  "item": "minecraft:bell",
+  "item": "minecraft:barrel",
   "variants": [
     {
-      "name": "big_church",
+      "name": "variant_small",
       "size": {
-        "x": 22,
-        "y": 32,
-        "z": 38
+        "x": 17,
+        "y": 10,
+        "z": 12
       },
       "levels": [
         {
-          "schematic": "big_church",
+          "schematic": "small_granary",
           "waypoints": [
           ]
         }
