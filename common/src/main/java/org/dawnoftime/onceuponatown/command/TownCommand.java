@@ -219,10 +219,7 @@ public class TownCommand {
     private static int deleteTown(CommandSourceStack source, String townName, boolean demolish) {
         Town town = getTownOrClosest(source, townName);
         if (town != null) {
-            if ((demolish ?
-                LevelTowns.of(source.getLevel()).deleteAndDemolishTown(town.getId()) :
-                LevelTowns.of(source.getLevel()).deleteTown(town.getId()))
-            ) {
+            if (LevelTowns.of(source.getLevel()).deleteTown(town.getId(), demolish)) {
                 source.sendSuccess(() -> Component.literal("Successfully " + (demolish ? "demolished" : "deleted") + " town " + townName), true);
             } else {
                 source.sendFailure(Component.literal("Failed to delete the town"));

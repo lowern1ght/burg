@@ -91,20 +91,10 @@ public class LevelTowns extends SavedData {
         ++nextAvailableId;
     }
 
-    public boolean deleteTown(int townId) {
+    public boolean deleteTown(int townId, boolean demolish) {
         Town town = towns.remove(townId);
         if (town != null) {
-            town.delete();
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    public boolean deleteAndDemolishTown(int townId) {
-        Town town = towns.remove(townId);
-        if (town != null) {
-            town.deleteAndDemolish();
+            town.delete(demolish);
             return true;
         } else {
             return false;
