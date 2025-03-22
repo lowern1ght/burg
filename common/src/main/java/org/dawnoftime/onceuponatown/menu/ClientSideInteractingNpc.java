@@ -2,9 +2,7 @@ package org.dawnoftime.onceuponatown.menu;
 
 import net.minecraft.world.entity.player.Player;
 import org.dawnoftime.onceuponatown.entity.Npc;
-import org.dawnoftime.onceuponatown.trade.BuyDeal;
-import org.dawnoftime.onceuponatown.trade.MerchantDeal;
-import org.dawnoftime.onceuponatown.trade.SellDeal;
+import org.dawnoftime.onceuponatown.trade.NpcOffer;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -12,42 +10,26 @@ import java.util.List;
 public class ClientSideInteractingNpc implements InteractingNpc {
     private Npc npc;
     private Player interactingPlayer;
-    private List<BuyDeal> buyDeals;
-    private List<SellDeal> sellDeals;
-    private List<MerchantDeal> merchantDeals;
+    private List<NpcOffer> npcOffers;
 
     private ClientSideInteractingNpc(Builder builder) {
         this.npc = builder.npc;
         this.interactingPlayer = builder.interactingPlayer;
-        this.buyDeals = builder.buyDeals;
-        this.sellDeals = builder.sellDeals;
-        this.merchantDeals = builder.merchantDeals;
+        this.npcOffers = builder.npcOffers;
     }
 
     public static class Builder {
         private Npc npc;
         private Player interactingPlayer;
-        private List<BuyDeal> buyDeals;
-        private List<SellDeal> sellDeals;
-        private List<MerchantDeal> merchantDeals;
+        private List<NpcOffer> npcOffers;
 
         public Builder(Npc npc, Player interactingPlayer) {
             this.npc = npc;
             this.interactingPlayer = interactingPlayer;
         }
 
-        public Builder buyDeals(List<BuyDeal> deals) {
-            this.buyDeals = deals;
-            return this;
-        }
-
-        public Builder sellDeals(List<SellDeal> deals) {
-            this.sellDeals = deals;
-            return this;
-        }
-
-        public Builder merchantDeals(List<MerchantDeal> deals) {
-            this.merchantDeals = deals;
+        public Builder merchantDeals(List<NpcOffer> deals) {
+            this.npcOffers = deals;
             return this;
         }
 
@@ -71,21 +53,13 @@ public class ClientSideInteractingNpc implements InteractingNpc {
         this.interactingPlayer = player;
     }
 
-    public List<BuyDeal> getBuyDeals() {
-        return this.buyDeals;
-    }
-
-    public List<SellDeal> getSellDeals() {
-        return this.sellDeals;
+    @Override
+    public List<NpcOffer> getOffers() {
+        return npcOffers;
     }
 
     @Override
-    public List<MerchantDeal> getMerchantDeals() {
-        return merchantDeals;
-    }
-
-    @Override
-    public void notifyDealMade(BuyDeal deal) {
+    public void notifyDealMade(NpcOffer deal) {
         //deals.update(deal)
     }
 

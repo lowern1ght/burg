@@ -11,13 +11,11 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.client.gui.TradeScreen;
+import org.dawnoftime.onceuponatown.client.gui.tooltip.*;
 import org.dawnoftime.onceuponatown.client.model.NpcModel;
 import org.dawnoftime.onceuponatown.client.renderer.NpcFishingHookRenderer;
 import org.dawnoftime.onceuponatown.client.renderer.NpcRenderer;
-import org.dawnoftime.onceuponatown.client.screen.BuyScreen;
-import org.dawnoftime.onceuponatown.client.screen.SellScreen;
-import org.dawnoftime.onceuponatown.client.screen.TradeScreen;
-import org.dawnoftime.onceuponatown.client.screen.tooltip.*;
 import org.dawnoftime.onceuponatown.item.EmeraldPouchItem;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
 import org.dawnoftime.onceuponatown.registry.ItemRegistry;
@@ -29,12 +27,10 @@ public class ClientEvents {
         @SubscribeEvent
         public static void clientSetup(FMLClientSetupEvent event) {
             event.enqueueWork(() -> {
-                        MenuScreens.register(MenuRegistry.REGISTRY.BUY_MENU.get(), BuyScreen::new);
-                        MenuScreens.register(MenuRegistry.REGISTRY.SELL_MENU.get(), SellScreen::new);
-                        MenuScreens.register(MenuRegistry.REGISTRY.TRADE_MENU.get(), TradeScreen::new);
-                        // Custom client item properties
-                        ItemProperties.register(ItemRegistry.REGISTRY.EMERALD_POUCH.get(), Ouat.modResource("empty_pouch"), (emeraldPouchStack, clientLevel, livingEntity, id) -> EmeraldPouchItem.isEmpty(emeraldPouchStack) ? 1.0F : 0.0F);
-                    }
+                    MenuScreens.register(MenuRegistry.REGISTRY.TRADE_MENU.get(), TradeScreen::new);
+                    // Custom client item properties
+                    ItemProperties.register(ItemRegistry.REGISTRY.EMERALD_POUCH.get(), Ouat.modResource("empty_pouch"), (emeraldPouchStack, clientLevel, livingEntity, id) -> EmeraldPouchItem.isEmpty(emeraldPouchStack) ? 1.0F : 0.0F);
+                }
             );
         }
 

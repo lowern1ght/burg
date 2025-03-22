@@ -6,7 +6,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.client.screen.culture_creator.BuildingsCCScreen;
+import org.dawnoftime.onceuponatown.client.gui.culture_creator.BuildingsCCScreen;
 import org.dawnoftime.onceuponatown.network.OuatPacket;
 
 import java.io.IOException;
@@ -18,7 +18,8 @@ import java.util.stream.Stream;
 
 import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
-import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.*;
+import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.BUILDINGS_FOLDER_NAME;
+import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURES_FOLDER_NAME;
 
 public class S2COpenBuildingsCCScreenPacket implements OuatPacket {
     private static final ResourceLocation ID = modResource("s2c_open_buildings_screen_cc");
