@@ -1,5 +1,7 @@
 package org.dawnoftime.onceuponatown.town;
 
+import com.google.common.base.Joiner;
+import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -13,7 +15,9 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import org.dawnoftime.onceuponatown.Config;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.Utils;
@@ -363,6 +367,21 @@ public class Town extends ProtoTown {
         return success;
     }
 
+    private void setForceLoaded(boolean forceLoad, int margin) {
+        margin = Math.max(0, margin);
+        BoundingBox box = townBox.inflatedBy(margin);
+        int chunkXSpan = (int) Math.ceil(box.getXSpan() / 16.0D);
+        int chunkZSpan = (int) Math.ceil(box.getZSpan() / 16.0D);
+        int startX = level.getChunk(new BlockPos(box.minX(), box.minY(), box.minZ())).getPos().x;
+        int startZ = level.getChunk(new BlockPos(box.minX(), box.minY(), box.minZ())).getPos().z;
+        for (int x = startX; x <= startX + chunkXSpan; ++x) {
+            for (int z = startZ; z <= startZ + chunkZSpan; ++z) {
+                //Ouat.info((forceLoad ? "Forced" : "Freed") + "chunk at " + x + " " + z);
+                level.setChunkForced(x, z, forceLoad);
+            }
+        }
+    }
+
     public boolean demolish(Build build) {
         boolean success = removeBuild(build);
         if (success) {
@@ -393,11 +412,19 @@ public class Town extends ProtoTown {
         }
     }
 
-    void delete() {
+    void delete(boolean demolish) {
+        setForceLoaded(true, 64);
+        LongSet forceLoaded = level.getForcedChunks();
+        String string = Joiner.on(", ").join(forceLoaded.stream().sorted().map(ChunkPos::new).map(ChunkPos::toString).iterator());
+        Ouat.info("Forceloaded : " + string);
+        forceLoaded.stream().sorted().map(ChunkPos::new).forEach(
+            chunkPos -> Ouat.info("POS " + chunkPos.x + ", " + chunkPos.z + " " + (level.hasChunk(chunkPos.x, chunkPos.z) ? "LOADED" : "UNLOADED")));
+
         for (Citizen citizen : citizens) {
             var uuid = citizen.entityUUID;
             if (uuid != null) {
                 if (level.getEntity(citizen.entityUUID) instanceof Npc npc) {
+                    Ouat.info("ENTITY RETRIEVED");
                     npc.setProfessionId(Profession.UNEMPLOYED.getId());
                     npc.setNoAi(false);
                     npc.setCustomName(null);
@@ -405,14 +432,19 @@ public class Town extends ProtoTown {
                 }
             }
         }
-    }
-
-    void deleteAndDemolish() {
-        delete();
-        List<Build> concurrentSafe = new ArrayList<>(getBuilds());
-        for (Build build : concurrentSafe) {
-            demolish(build); // will remove Build from this.builds list
+        if (demolish) {
+            List<Build> concurrentSafe = new ArrayList<>(getBuilds());
+            for (Build build : concurrentSafe) {
+                demolish(build); // will remove Build from this.builds list
+            }
         }
+
+        setForceLoaded(false, 64);
+        forceLoaded = level.getForcedChunks();
+        string = Joiner.on(", ").join(forceLoaded.stream().sorted().map(ChunkPos::new).map(ChunkPos::toString).iterator());
+        Ouat.info("FREED : " + string);
+        forceLoaded.stream().sorted().map(ChunkPos::new).forEach(
+            chunkPos -> Ouat.info("POS " + chunkPos.x + ", " + chunkPos.z + " " + (level.hasChunk(chunkPos.x, chunkPos.z) ? "LOADED" : "UNLOADED")));
     }
 
     private void collectProduction() {
