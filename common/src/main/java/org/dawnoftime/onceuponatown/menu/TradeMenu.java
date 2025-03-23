@@ -29,23 +29,24 @@ public class TradeMenu extends NpcBaseMenu {
     private static final int RESULT_X = 232;
     private static final int ROW_Y = 38;
     private final TradeContainer tradeContainer;
-    private boolean sell;
+    private boolean sellMode;
+    private int activeOffer = -1;
 
     public TradeMenu(int containerId, Inventory playerInventory, FriendlyByteBuf friendlyByteBuf) {
         this(containerId, playerInventory, new ClientSideInteractingNpc.Builder(
-                (Npc) (playerInventory.player.level().getEntity(friendlyByteBuf.readInt())), playerInventory.player)
-            .merchantDeals(TradeUtils.createNpcOffersFromStream(friendlyByteBuf))
-                .build());
+            (Npc) (playerInventory.player.level().getEntity(friendlyByteBuf.readInt())), playerInventory.player)
+            .offers(TradeUtils.createNpcOffersFromStream(friendlyByteBuf))
+            .build());
     }
 
     public TradeMenu(int containerId, Inventory playerInventory, InteractingNpc npc) {
         super(MenuRegistry.REGISTRY.TRADE_MENU.get(), containerId, npc);
-        this.interactingNpc = npc;
-        npc.setInteractingPlayer(playerInventory.player);
-        this.tradeContainer = new TradeContainer(this);
-        this.addSlot(new Slot(this.tradeContainer, INPUT_A_SLOT, INPUT_A_X, ROW_Y));
-        this.addSlot(new Slot(this.tradeContainer, INPUT_B_SLOT, INPUT_B_X, ROW_Y));
-        this.addSlot(new TradeResultSlot(playerInventory.player, npc, this.tradeContainer, RESULT_SLOT, RESULT_X, ROW_Y));
+        interactingNpc = npc;
+        interactingNpc.setInteractingPlayer(playerInventory.player);
+        tradeContainer = new TradeContainer(this);
+        this.addSlot(new Slot(tradeContainer, INPUT_A_SLOT, INPUT_A_X, ROW_Y));
+        this.addSlot(new Slot(tradeContainer, INPUT_B_SLOT, INPUT_B_X, ROW_Y));
+        this.addSlot(new TradeResultSlot(playerInventory.player, npc, tradeContainer, RESULT_SLOT, RESULT_X, ROW_Y));
         for (int i = 0; i < 3; ++i) { // Inventory
             for (int j = 0; j < 9; ++j) {
                 this.addSlot(new Slot(playerInventory, j + i * 9 + 9, 113 + j * 18, 84 + i * 18));
@@ -58,13 +59,23 @@ public class TradeMenu extends NpcBaseMenu {
 
     @Override
     public void slotsChanged(@NotNull Container container) {
-        this.tradeContainer.updateResultItem();
+        tradeContainer.updateResultItem();
         super.slotsChanged(container);
     }
 
-    public void selectDeal(int selectedDealIndex) {
-        this.tradeContainer.setSelectedDealIndex(selectedDealIndex);
-        trySuggestPayment(selectedDealIndex);
+    public int getActiveOffer() {
+        return activeOffer;
+    }
+
+    public void selectOffer(int offerIndex, boolean switchMode) {
+        activeOffer = offerIndex;
+        if (switchMode) {
+            sellMode = !sellMode;
+            tryMoveGoodsBackToInventory();
+        } else {
+            trySuggestPayment(offerIndex);
+            tradeContainer.updateResultItem();
+        }
     }
 
     @Override
@@ -73,7 +84,7 @@ public class TradeMenu extends NpcBaseMenu {
     }
 
     @Override
-    public ItemStack quickMoveStack(Player player, int slotIndex) {
+    public @NotNull ItemStack quickMoveStack(Player player, int slotIndex) {
         ItemStack stackCopy = ItemStack.EMPTY;
         Slot slot = this.slots.get(slotIndex);
         if (slot.hasItem()) {
@@ -120,26 +131,26 @@ public class TradeMenu extends NpcBaseMenu {
     @Override
     public void removed(@NotNull Player player) {
         super.removed(player);
-        this.interactingNpc.setInteractingPlayer(null);
-        if (!this.interactingNpc.isClientSide()) {
+        interactingNpc.setInteractingPlayer(null);
+        if (!interactingNpc.isClientSide()) {
             if (!player.isAlive() || player instanceof ServerPlayer serverPlayer && serverPlayer.hasDisconnected()) {
-                ItemStack itemstack = this.tradeContainer.removeItemNoUpdate(INPUT_A_SLOT);
+                ItemStack itemstack = tradeContainer.removeItemNoUpdate(INPUT_A_SLOT);
                 if (!itemstack.isEmpty()) {
                     player.drop(itemstack, false);
                 }
-                itemstack = this.tradeContainer.removeItemNoUpdate(INPUT_B_SLOT);
+                itemstack = tradeContainer.removeItemNoUpdate(INPUT_B_SLOT);
                 if (!itemstack.isEmpty()) {
                     player.drop(itemstack, false);
                 }
             } else if (player instanceof ServerPlayer) {
-                player.getInventory().placeItemBackInInventory(this.tradeContainer.removeItemNoUpdate(INPUT_A_SLOT));
-                player.getInventory().placeItemBackInInventory(this.tradeContainer.removeItemNoUpdate(INPUT_B_SLOT));
+                player.getInventory().placeItemBackInInventory(tradeContainer.removeItemNoUpdate(INPUT_A_SLOT));
+                player.getInventory().placeItemBackInInventory(tradeContainer.removeItemNoUpdate(INPUT_B_SLOT));
             }
         }
     }
 
     public void trySuggestPayment(int selectedDealIndex) {
-        if (selectedDealIndex >= 0 && selectedDealIndex < this.getDeals().size()) {
+        if (selectedDealIndex >= 0 && selectedDealIndex < this.getOffers().size()) {
             ItemStack stackInSlotA = this.tradeContainer.getItem(INPUT_A_SLOT);
             if (!stackInSlotA.isEmpty()) {
                 if (!this.moveItemStackTo(stackInSlotA, INV_SLOT_START, HOT_BAR_SLOT_END + 1, true)) {
@@ -157,9 +168,9 @@ public class TradeMenu extends NpcBaseMenu {
             }
 
             if (this.tradeContainer.getItem(INPUT_A_SLOT).isEmpty() && this.tradeContainer.getItem(INPUT_B_SLOT).isEmpty()) {
-                ItemStack requiredA = this.getDeals().get(selectedDealIndex).getInputA();
+                ItemStack requiredA = this.getOffers().get(selectedDealIndex).getInputA();
                 this.moveFromInventoryToPaymentSlot(INPUT_A_SLOT, requiredA);
-                ItemStack requiredB = this.getDeals().get(selectedDealIndex).getInputB();
+                ItemStack requiredB = this.getOffers().get(selectedDealIndex).getInputB();
                 this.moveFromInventoryToPaymentSlot(INPUT_B_SLOT, requiredB);
             }
 
@@ -187,19 +198,14 @@ public class TradeMenu extends NpcBaseMenu {
         }
     }
 
-    public List<NpcOffer> getDeals() {
+    public List<NpcOffer> getOffers() {
         return interactingNpc.getOffers()
             .stream()
-            .filter((merchantDeal -> merchantDeal.getTradeType() == (sell ? NpcOffer.TradeType.SELL : NpcOffer.TradeType.BUY)))
+            .filter((merchantDeal -> merchantDeal.getTradeType() == (sellMode ? NpcOffer.TradeType.SELL : NpcOffer.TradeType.BUY)))
             .toList();
     }
 
-    public boolean isSelling() {
-        return sell;
-    }
-
-    public void setSelling(boolean sell) {
-        this.sell = sell;
+    private void tryMoveGoodsBackToInventory() {
         ItemStack stackInSlotA = this.tradeContainer.getItem(INPUT_A_SLOT);
         if (!stackInSlotA.isEmpty()) {
             if (!this.moveItemStackTo(stackInSlotA, INV_SLOT_START, HOT_BAR_SLOT_END + 1, true)) {

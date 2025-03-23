@@ -15,7 +15,6 @@ public class TradeContainer implements Container {
     private final NonNullList<ItemStack> itemStacks = NonNullList.withSize(3, ItemStack.EMPTY);
     @Nullable
     private NpcOffer activeDeal;
-    private int selectedDealIndex;
     private static final int INPUT_A = 0;
     private static final int INPUT_B = 1;
     private static final int RESULT = 2;
@@ -90,11 +89,11 @@ public class TradeContainer implements Container {
         if (stackInSlotA.isEmpty() && stackInSlotB.isEmpty()) {
             this.setItem(RESULT, ItemStack.EMPTY);
         } else {
-            List<NpcOffer> deals = menu.getDeals();
+            List<NpcOffer> deals = menu.getOffers();
             if (!deals.isEmpty()) {
                 NpcOffer d = null;
-                if (selectedDealIndex > 0 && selectedDealIndex < deals.size()) {
-                    NpcOffer deal = deals.get(selectedDealIndex);
+                if (menu.getActiveOffer() > 0 && menu.getActiveOffer() < deals.size()) {
+                    NpcOffer deal = deals.get(menu.getActiveOffer());
                     d = deal.isSatisfiedBy(stackInSlotA, stackInSlotB) || deal.isSatisfiedBy(stackInSlotB, stackInSlotA) ? deal : null;
                 } else {
                     for (NpcOffer deal : deals) {
@@ -118,11 +117,6 @@ public class TradeContainer implements Container {
     @Nullable
     public NpcOffer getActiveDeal() {
         return this.activeDeal;
-    }
-
-    public void setSelectedDealIndex(int pCurrentRecipeIndex) {
-        this.selectedDealIndex = pCurrentRecipeIndex;
-        this.updateResultItem();
     }
 
     public void clearContent() {

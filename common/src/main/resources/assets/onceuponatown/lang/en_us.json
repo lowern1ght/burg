@@ -92,6 +92,7 @@
   "onceuponatown.cc.levels_nav" : "Levels",
   "onceuponatown.cc.level_nav" : "Level %s",
   "onceuponatown.cc.variants_nav": "Variants",
+  "onceuponatown.trade": "Trade",
   "onceuponatown.buy": "Buy",
   "onceuponatown.sell": "Sell"
 }
