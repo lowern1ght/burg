@@ -28,7 +28,7 @@ public class ClientSideInteractingNpc implements InteractingNpc {
             this.interactingPlayer = interactingPlayer;
         }
 
-        public Builder merchantDeals(List<NpcOffer> deals) {
+        public Builder offers(List<NpcOffer> deals) {
             this.npcOffers = deals;
             return this;
         }

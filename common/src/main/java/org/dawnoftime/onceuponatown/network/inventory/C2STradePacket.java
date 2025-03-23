@@ -12,16 +12,17 @@ import org.slf4j.Logger;
 
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
 
-public record C2SSelectTradePacket(int dealIndex) implements OuatPacket {
-    public static final ResourceLocation ID = modResource("c2s_select_trade");
+public record C2STradePacket(int offerIndex, boolean switchMode) implements OuatPacket {
+    public static final ResourceLocation ID = modResource("c2s_trade");
 
-    public static C2SSelectTradePacket decode(FriendlyByteBuf buf) {
-        return new C2SSelectTradePacket(buf.readVarInt());
+    public static C2STradePacket decode(FriendlyByteBuf buf) {
+        return new C2STradePacket(buf.readVarInt(), buf.readBoolean());
     }
 
     @Override
     public void encode(FriendlyByteBuf buf) {
-        buf.writeVarInt(this.dealIndex);
+        buf.writeVarInt(offerIndex);
+        buf.writeBoolean(switchMode);
     }
 
     @Override
@@ -36,7 +37,7 @@ public record C2SSelectTradePacket(int dealIndex) implements OuatPacket {
                 Logger LOGGER = LogUtils.getLogger();
                 LOGGER.debug("Player {} interacted with invalid menu {}", player, tradeMenu);
             } else {
-                tradeMenu.selectDeal(this.dealIndex());
+                tradeMenu.selectOffer(offerIndex, switchMode);
             }
         }
     }

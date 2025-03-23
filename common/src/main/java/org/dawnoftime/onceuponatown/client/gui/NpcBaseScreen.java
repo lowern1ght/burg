@@ -31,13 +31,14 @@ public abstract class NpcBaseScreen<T extends AbstractContainerMenu> extends Abs
     private final TabType activeTab;
     protected Npc npc;
 
-    protected NpcBaseScreen(T menu, Inventory inventory, Component title, TabType activeTab) {
+    protected NpcBaseScreen(T menu, Inventory inventory, Component title, Npc npc, TabType activeTab) {
         super(menu, inventory, title);
+        this.npc = npc;
+        this.activeTab = activeTab;
         titleLabelX = 10;
         titleLabelY = 7;
         inventoryLabelX = 112;
         inventoryLabelY = 72;
-        this.activeTab = activeTab;
         List<TabType> wantedTabs = List.of(TabType.TRADE, TabType.QUESTS);
         int tabY = 4;
         for (TabType wantedTab : wantedTabs) {
@@ -56,8 +57,10 @@ public abstract class NpcBaseScreen<T extends AbstractContainerMenu> extends Abs
 
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
+        renderBackground(graphics);
         if (npc != null) {
             renderNpcDoll(graphics, mouseX, mouseY);
+            graphics.pose().translate(0.0F, 0.0F, 100.0F); // Hide Npc behind window
         }
     }
 
