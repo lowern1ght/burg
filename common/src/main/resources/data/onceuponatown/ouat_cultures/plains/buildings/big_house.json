@@ -69,6 +69,21 @@
           ]
         }
       ]
+    },
+    {
+      "name": "neighborhood",
+      "size": {
+        "x": 40,
+        "y": 16,
+        "z": 29
+      },
+      "levels": [
+        {
+          "schematic": "neighborhood",
+          "waypoints": [
+          ]
+        }
+      ]
     }
   ]
 }
