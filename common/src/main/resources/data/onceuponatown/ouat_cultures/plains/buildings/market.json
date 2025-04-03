@@ -38,6 +38,21 @@
           ]
         }
       ]
+    },
+    {
+      "name": "fancy_market",
+      "size": {
+        "x": 34,
+        "y": 13,
+        "z": 28
+      },
+      "levels": [
+        {
+          "schematic": "fancy_market",
+          "waypoints": [
+          ]
+        }
+      ]
     }
   ]
 }
