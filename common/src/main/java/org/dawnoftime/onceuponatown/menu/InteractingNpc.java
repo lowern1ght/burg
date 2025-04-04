@@ -27,6 +27,6 @@ public interface InteractingNpc {
     }
 
     default boolean isClientSide() {
-        return (this instanceof ClientSideInteractingNpc);
+        return (this instanceof InteractingNpcClient);
     }
 }

@@ -7,12 +7,12 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-public class ClientSideInteractingNpc implements InteractingNpc {
+public class InteractingNpcClient implements InteractingNpc {
     private Npc npc;
     private Player interactingPlayer;
     private List<NpcOffer> npcOffers;
 
-    private ClientSideInteractingNpc(Builder builder) {
+    private InteractingNpcClient(Builder builder) {
         this.npc = builder.npc;
         this.interactingPlayer = builder.interactingPlayer;
         this.npcOffers = builder.npcOffers;
@@ -37,8 +37,8 @@ public class ClientSideInteractingNpc implements InteractingNpc {
             return this;
         }
 
-        public ClientSideInteractingNpc build() {
-            return new ClientSideInteractingNpc(this);
+        public InteractingNpcClient build() {
+            return new InteractingNpcClient(this);
         }
     }
 

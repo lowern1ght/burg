@@ -44,12 +44,12 @@ public record C2SChangeNpcTabPacket(int newTab) implements OuatPacket {
                 Logger LOGGER = LogUtils.getLogger();
                 LOGGER.debug("Player {} interacted with invalid menu {}", player, menu);
             } else {
-                Npc npc = menu.getNpcInteraction().getNpc();
+                Npc npc = menu.getNpc().getNpc();
                 switch (tab) {
                     case TRADE -> {
                         Ouat.COMMON.openMenu(player, new SimpleMenuProvider((containerID, playerInventory, p) -> new TradeMenu(containerID, playerInventory, npc), Component.literal("Trade")), buffer -> {
                             buffer.writeInt(npc.getId());
-                            TradeUtils.writeNpcOffersToStream(npc.getOffers(), buffer);
+                            TradeUtils.writeOffersToStream(npc.getOffers(), buffer);
                         });
                     }
                     case QUESTS -> {
