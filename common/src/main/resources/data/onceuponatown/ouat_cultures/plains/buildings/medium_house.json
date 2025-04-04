@@ -39,6 +39,21 @@
           ]
         }
       ]
+    },
+    {
+      "name": "regular3",
+      "size": {
+        "x": 18,
+        "y": 11,
+        "z": 16
+      },
+      "levels": [
+        {
+          "schematic": "medium_house_3",
+          "waypoints": [
+          ]
+        }
+      ]
     }
   ]
 }
