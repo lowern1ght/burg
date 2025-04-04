@@ -21,6 +21,14 @@ public class TradeScreen extends NpcBaseScreen<TradeMenu> {
     private static final ResourceLocation TEXTURE = Ouat.modResource("textures/gui/trade_screen.png");
     private static final int MAIN_BLIT_WIDTH = 281;
     private static final int MAIN_BLIT_HEIGHT = 166;
+    private static final int XP_BAR_EMPTY_OFFSET_X = 66;
+    private static final int XP_BAR_EMPTY_OFFSET_Y = 171;
+    private static final int XP_BAR_FULL_OFFSET_X = 66;
+    private static final int XP_BAR_FULL_OFFSET_Y = 176;
+    private static final int XP_BAR_WIDTH = 102;
+    private static final int XP_BAR_HEIGHT = 5;
+    private static final int XP_BAR_X = 138;
+    private static final int XP_BAR_Y = 18;
     private static final int SCROLLER_HEIGHT = 27;
     private static final int SCROLLER_WIDTH = 6;
     private static final int SCROLLER_ENABLED_OFFSET_X = 54;
@@ -41,7 +49,7 @@ public class TradeScreen extends NpcBaseScreen<TradeMenu> {
     private boolean isDragging;
 
     public TradeScreen(TradeMenu menu, Inventory inventory, Component title) {
-        super(menu, inventory, Ouat.translatable("trade"), menu.getNpcInteraction().getNpc(), TabType.TRADE);
+        super(menu, inventory, Ouat.translatable("trade"), menu.getNpc().getNpc(), TabType.TRADE);
         imageWidth = 281;
         imageHeight = 193;
     }
@@ -103,8 +111,13 @@ public class TradeScreen extends NpcBaseScreen<TradeMenu> {
     @Override
     public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         super.render(graphics, mouseX, mouseY, partialTick);
-        this.renderScroller(graphics);
+        renderXpBar(graphics);
+        renderScroller(graphics);
         renderTooltip(graphics, mouseX, mouseY);
+    }
+
+    private void renderXpBar(GuiGraphics graphics) {
+        graphics.blit(TEXTURE, leftPos + XP_BAR_X, topPos + XP_BAR_Y, XP_BAR_EMPTY_OFFSET_X, XP_BAR_EMPTY_OFFSET_Y, XP_BAR_WIDTH, XP_BAR_HEIGHT, imageWidth, imageHeight);
     }
 
     private void renderScroller(GuiGraphics graphics) {
@@ -202,7 +215,7 @@ public class TradeScreen extends NpcBaseScreen<TradeMenu> {
                 graphics.drawString(font, String.valueOf(inStock), getX() + 18 - font.width(String.valueOf(inStock)), getY() + 11, 16777215, true);
                 graphics.pose().popPose();
             }
-            boolean activeOffer = offerIndex() == menu.getActiveOffer();
+            boolean activeOffer = offerIndex() == menu.getSelectedOffer();
             if (isHovered && !activeOffer) {
                 graphics.blit(TEXTURE, getX(), getY(), HOVERED_OFFSET_X, HOVERED_OFFSET_Y, width, height, imageWidth, imageHeight);
             } else if (activeOffer) {
