@@ -56,7 +56,7 @@ public class RegistriesImpls {
                 .title(Component.translatable("creative_mode_tab.onceuponatown.main_tab"))
                 //.icon(() -> TAB_ICON.get().getDefaultInstance())
                 //.displayItems((params, output) -> output.acceptAll(ForgeItemsRegistry.ITEMS_REGISTRY.getEntries().stream().filter(holder -> holder != TAB_ICON).map((itemDeferredHolder) -> itemDeferredHolder.get().getDefaultInstance()).toList()))
-                .icon(() -> new ItemStack(ItemRegistry.REGISTRY.TOWN_MAP.get()))
+            .icon(() -> new ItemStack(ItemRegistry.REGISTRY.TOWN_SCROLL.get()))
             .displayItems((params, output) -> {
                 output.acceptAll(ItemRegistryImpl.DEFERRED_REGISTER.getEntries().stream().map((itemDeferredHolder) -> itemDeferredHolder.get().getDefaultInstance()).toList());
                 output.acceptAll(BlockRegistryImpl.DEFERRED_ITEM_REGISTER.getEntries().stream().map((itemDeferredHolder) -> itemDeferredHolder.get().getDefaultInstance()).toList());

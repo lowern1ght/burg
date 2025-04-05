@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "onceuponatown:item/town_map"
+    "layer0": "onceuponatown:item/town_scroll"
   }
 }

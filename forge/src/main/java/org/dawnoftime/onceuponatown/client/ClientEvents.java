@@ -11,7 +11,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.client.gui.TradeScreen;
+import org.dawnoftime.onceuponatown.client.gui.npc.TradeScreen;
 import org.dawnoftime.onceuponatown.client.gui.tooltip.*;
 import org.dawnoftime.onceuponatown.client.model.NpcModel;
 import org.dawnoftime.onceuponatown.client.renderer.NpcFishingHookRenderer;
@@ -41,7 +41,7 @@ public class ClientEvents {
             }
             if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
                 event.accept(ItemRegistry.REGISTRY.EMERALD_POUCH);
-                event.accept(ItemRegistry.REGISTRY.TOWN_MAP);
+                event.accept(ItemRegistry.REGISTRY.TOWN_SCROLL);
             }
         }
 
