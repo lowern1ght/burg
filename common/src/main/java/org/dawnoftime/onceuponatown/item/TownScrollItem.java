@@ -13,10 +13,10 @@ import org.dawnoftime.onceuponatown.Utils;
 import org.dawnoftime.onceuponatown.network.S2COpenTownMapScreenPacket;
 import org.dawnoftime.onceuponatown.town.Town;
 
-public class TownMapItem extends Item {
+public class TownScrollItem extends Item {
     public static final int TOWN_VIEW_MAX_DIST = 100;
 
-    public TownMapItem(Properties properties) {
+    public TownScrollItem(Properties properties) {
         super(properties);
     }
 

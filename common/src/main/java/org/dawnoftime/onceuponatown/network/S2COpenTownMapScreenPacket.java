@@ -4,7 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import org.dawnoftime.onceuponatown.client.gui.TownMapItemScreen;
+import org.dawnoftime.onceuponatown.client.gui.town.TownMapScreen;
 
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
 
@@ -28,7 +28,7 @@ public record S2COpenTownMapScreenPacket(CompoundTag mapDataForGui) implements O
     public static class Handler {
         public static void handle(S2COpenTownMapScreenPacket packet) {
             Minecraft.getInstance().execute(() -> {
-                Minecraft.getInstance().setScreen(new TownMapItemScreen(packet.mapDataForGui()));
+                Minecraft.getInstance().setScreen(new TownMapScreen(packet.mapDataForGui()));
             });
         }
     }

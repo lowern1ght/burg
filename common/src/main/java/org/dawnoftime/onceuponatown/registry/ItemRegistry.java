@@ -5,7 +5,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.item.Item;
 import org.dawnoftime.onceuponatown.item.CultureCreatorItem;
 import org.dawnoftime.onceuponatown.item.EmeraldPouchItem;
-import org.dawnoftime.onceuponatown.item.TownMapItem;
+import org.dawnoftime.onceuponatown.item.TownScrollItem;
 
 import java.util.function.Supplier;
 
@@ -16,7 +16,7 @@ public abstract class ItemRegistry {
 
     public final Supplier<Item> EMERALD_POUCH = register("emerald_pouch", () -> new EmeraldPouchItem(new Item.Properties().stacksTo(1)));
 
-    public final Supplier<Item> TOWN_MAP = register("town_map", () -> new TownMapItem(new Item.Properties()));
+    public final Supplier<Item> TOWN_SCROLL = register("town_scroll", () -> new TownScrollItem(new Item.Properties()));
 
     public final Supplier<Item> CULTURE_CREATOR = register("culture_creator", () -> new CultureCreatorItem(new Item.Properties()));
 

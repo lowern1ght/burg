@@ -128,7 +128,7 @@ public class Town extends ProtoTown {
             new ArrayList<>(), // Empty ConstructionProjects
             new ListTag(), // Empty Citizens
             new HashMap<>(), // Empty progression
-            new TownInventory(),
+            new TownInventory(protoTownTag.getCompound("TownInventory")),
             level.getGameTime(), // lastProductionHarvest
             0, // experience
             0 // lastActive
@@ -154,7 +154,7 @@ public class Town extends ProtoTown {
             townTag.getList("Projects", Tag.TAG_COMPOUND).stream().map(projectTag -> new ConstructionProject(level, (CompoundTag) projectTag)).collect(Collectors.toList()),
             townTag.getList("Citizens", Tag.TAG_COMPOUND),
             new HashMap<>(), // TODO Implement progression
-            new TownInventory(),
+            new TownInventory(townTag.getCompound("TownInventory")),
             townTag.getLong("LastProductionHarvest"),
             townTag.getInt("Experience"),
             townTag.getLong("LastActive")
@@ -216,7 +216,7 @@ public class Town extends ProtoTown {
         citizens.forEach(citizen -> citizensTag.add(citizen.saveNbt()));
         tag.put("Citizens", citizensTag);
         // TODO Implement progression
-        tag.put("Inventory", inventory.writeNBT());
+        tag.put("TownInventory", inventory.save());
         tag.putLong("LastProductionHarvest", lastProductionHarvest);
         tag.putInt("Experience", experience);
         tag.putLong("LastActive", lastActive);

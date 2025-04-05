@@ -1,8 +1,7 @@
-package org.dawnoftime.onceuponatown.client.gui;
+package org.dawnoftime.onceuponatown.client.gui.town;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -30,12 +29,12 @@ import java.util.Optional;
 
 import static org.dawnoftime.onceuponatown.client.gui.GuiUtils.drawCenteredString;
 
-public class TownMapItemScreen extends Screen {
-    private static final ResourceLocation TEXTURE = Ouat.modResource("textures/gui/town_map_item_screen.png");
-    private static final int TEXTURE_WIDTH = 192;
-    private static final int TEXTURE_HEIGHT = 164;
-    private static final int BACKGROUND_WIDTH = 192;
-    private static final int BACKGROUND_HEIGHT = 128;
+public class TownMapScreen extends TownScreen {
+    private static final ResourceLocation TEXTURE = Ouat.modResource("textures/gui/town_map_screen.png");
+    private static final int TEXTURE_WIDTH = 281;
+    private static final int TEXTURE_HEIGHT = 196;
+    private static final int BACKGROUND_WIDTH = 281;
+    private static final int BACKGROUND_HEIGHT = 166;
     private static final int BUTTONS_WIDTH = 25;
     private static final int BUTTONS_HEIGHT = 15;
     private static final int MAP_MARGIN = 6;
@@ -59,7 +58,7 @@ public class TownMapItemScreen extends Screen {
     private int mapInitialHeight;
     private int soundTicks;
 
-    public TownMapItemScreen(CompoundTag mapData) {
+    public TownMapScreen(CompoundTag mapData) {
         super(Component.nullToEmpty(mapData.getString("TownName")));
         setupMap(mapData);
     }
@@ -127,6 +126,7 @@ public class TownMapItemScreen extends Screen {
 
     @Override
     protected void init() {
+        super.init();
         backGroundLeftPos = (width - BACKGROUND_WIDTH) / 2;
         backGroundTopPos = (height - BACKGROUND_HEIGHT) / 2;
         mapWindowLeftBound = backGroundLeftPos + MAP_MARGIN;
@@ -138,7 +138,9 @@ public class TownMapItemScreen extends Screen {
         // Center map button
         addRenderableWidget(new ReleaseFocusButton(
             backGroundLeftPos + (BACKGROUND_WIDTH / 2) - BUTTONS_WIDTH - 2,
-            backGroundTopPos + BACKGROUND_HEIGHT + 5, BUTTONS_WIDTH, BUTTONS_HEIGHT,
+            backGroundTopPos + BACKGROUND_HEIGHT + 5,
+            BUTTONS_WIDTH,
+            BUTTONS_HEIGHT,
             Component.literal(""),
             pressedButton -> {
                 mapZoom = 1;
@@ -150,7 +152,7 @@ public class TownMapItemScreen extends Screen {
             public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
                 if (visible) {
                     isHovered = mouseX >= getX() && mouseY >= getY() && mouseX < getX() + width && mouseY < getY() + height;
-                    graphics.blit(TEXTURE, getX(), getY(), 69, isHovered ? 149 : 133, width, height, TownMapItemScreen.TEXTURE_WIDTH, TownMapItemScreen.TEXTURE_HEIGHT);
+                    graphics.blit(TEXTURE, getX(), getY(), 0, isHovered ? 181 : 166, width, height, TownMapScreen.TEXTURE_WIDTH, TownMapScreen.TEXTURE_HEIGHT);
                     if (isHoveredOrFocused()) {
                         graphics.renderTooltip(font, Ouat.translatable("center_map"), mouseX, mouseY);
                     }
@@ -160,7 +162,9 @@ public class TownMapItemScreen extends Screen {
         // Toggle debug view button
         addRenderableWidget(new ReleaseFocusButton(
             backGroundLeftPos + (BACKGROUND_WIDTH / 2) + 2,
-            backGroundTopPos + BACKGROUND_HEIGHT + 5, BUTTONS_WIDTH, BUTTONS_HEIGHT,
+            backGroundTopPos + BACKGROUND_HEIGHT + 5,
+            BUTTONS_WIDTH,
+            BUTTONS_HEIGHT,
             Component.literal(""),
             pressedButton -> debugView = !debugView,
             null) {
@@ -168,7 +172,7 @@ public class TownMapItemScreen extends Screen {
             public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
                 if (visible) {
                     isHovered = mouseX >= getX() && mouseY >= getY() && mouseX < getX() + width && mouseY < getY() + height;
-                    graphics.blit(TEXTURE, getX(), getY(), 98, isHovered ? 149 : 133, width, height, TownMapItemScreen.TEXTURE_WIDTH, TownMapItemScreen.TEXTURE_HEIGHT);
+                    graphics.blit(TEXTURE, getX(), getY(), 25, isHovered ? 181 : 166, width, height, TownMapScreen.TEXTURE_WIDTH, TownMapScreen.TEXTURE_HEIGHT);
                     if (isHoveredOrFocused()) {
                         graphics.renderTooltip(font, Ouat.translatable("debug_view"), mouseX, mouseY);
                     }
@@ -179,6 +183,7 @@ public class TownMapItemScreen extends Screen {
 
     @Override
     public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        super.render(graphics, mouseX, mouseY, partialTick);
         renderBackground(graphics);
         graphics.blit(TEXTURE, backGroundLeftPos, backGroundTopPos, 0, 0, BACKGROUND_WIDTH, BACKGROUND_HEIGHT, TEXTURE_WIDTH, TEXTURE_HEIGHT);
         renderMap(graphics, mouseX, mouseY);

@@ -9,7 +9,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.client.gui.NpcBaseScreen;
+import org.dawnoftime.onceuponatown.client.gui.npc.NpcBaseScreen;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.menu.NpcBaseMenu;
 import org.dawnoftime.onceuponatown.menu.TradeMenu;
