@@ -92,8 +92,13 @@
     "onceuponatown.cc.level_nav": "Level %s",
     "onceuponatown.cc.variants_nav": "Variants",
     "onceuponatown.cc.building_category": "Building category",
-  "onceuponatown.cc.weight": "Weight",
-  "onceuponatown.trade": "Commerce",
-  "onceuponatown.buy": "Acheter",
-  "onceuponatown.sell": "Vendre"
+    "onceuponatown.cc.weight": "Weight",
+    "onceuponatown.trade": "Commerce",
+    "onceuponatown.buy": "Acheter",
+    "onceuponatown.sell": "Vendre",
+    "onceuponatown.quests": "Quêtes",
+    "onceuponatown.buildings": "Bâtiments de la ville",
+    "onceuponatown.progression": "Progression",
+    "onceuponatown.project": "Projet de construction",
+    "onceuponatown.diplomacy": "Diplomatie"
 }

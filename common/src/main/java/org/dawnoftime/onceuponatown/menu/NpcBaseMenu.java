@@ -3,15 +3,27 @@ package org.dawnoftime.onceuponatown.menu;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-public abstract class NpcBaseMenu extends AbstractContainerMenu {
+public class NpcBaseMenu extends AbstractContainerMenu {
     protected InteractingNpc npc;
 
-    protected NpcBaseMenu(@Nullable MenuType<?> menuType, int containerId, InteractingNpc npc) {
+    protected NpcBaseMenu(MenuType<?> menuType, int containerId, InteractingNpc npc, Player interactingPlayer) {
         super(menuType, containerId);
         this.npc = npc;
+        npc.setInteractingPlayer(interactingPlayer);
+    }
+
+    @Override
+    public ItemStack quickMoveStack(Player player, int index) {
+        return ItemStack.EMPTY;
+    }
+
+    @Override
+    public void removed(Player player) {
+        super.removed(player);
+        npc.setInteractingPlayer(null);
     }
 
     @Override

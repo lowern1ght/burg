@@ -9,8 +9,6 @@ import net.minecraftforge.network.simple.SimpleChannel;
 import org.apache.logging.log4j.util.TriConsumer;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.network.culturecreator.*;
-import org.dawnoftime.onceuponatown.network.inventory.C2SChangeNpcTabPacket;
-import org.dawnoftime.onceuponatown.network.inventory.C2STradePacket;
 
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;

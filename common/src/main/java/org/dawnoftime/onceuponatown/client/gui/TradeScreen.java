@@ -1,28 +1,25 @@
-package org.dawnoftime.onceuponatown.client.gui.npc;
+package org.dawnoftime.onceuponatown.client.gui;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.gui.tooltip.TradeItemTooltip;
+import org.dawnoftime.onceuponatown.client.gui.widgets.ReleaseFocusButton;
 import org.dawnoftime.onceuponatown.menu.TradeMenu;
-import org.dawnoftime.onceuponatown.network.inventory.C2STradePacket;
+import org.dawnoftime.onceuponatown.network.C2STradePacket;
 import org.dawnoftime.onceuponatown.trade.NpcOffer;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
 public class TradeScreen extends NpcBaseScreen<TradeMenu> {
-    private static final ResourceLocation TEXTURE = Ouat.modResource("textures/gui/trade_screen.png");
-    private static final int MAIN_BLIT_WIDTH = 281;
-    private static final int MAIN_BLIT_HEIGHT = 166;
-    private static final int XP_BAR_EMPTY_OFFSET_X = 66;
-    private static final int XP_BAR_EMPTY_OFFSET_Y = 171;
+    private static final int XP_BAR_EMPTY_OFFSET_X = 283;
+    private static final int XP_BAR_EMPTY_OFFSET_Y = 5;
     private static final int XP_BAR_FULL_OFFSET_X = 66;
     private static final int XP_BAR_FULL_OFFSET_Y = 176;
     private static final int XP_BAR_WIDTH = 102;
@@ -31,42 +28,37 @@ public class TradeScreen extends NpcBaseScreen<TradeMenu> {
     private static final int XP_BAR_Y = 18;
     private static final int SCROLLER_HEIGHT = 27;
     private static final int SCROLLER_WIDTH = 6;
-    private static final int SCROLLER_ENABLED_OFFSET_X = 54;
-    private static final int SCROLLER_ENABLED_OFFSET_Y = 166;
-    private static final int SCROLLER_DISABLED_OFFSET_X = 60;
-    private static final int SCROLLER_DISABLED_OFFSET_Y = 166;
-    private static final int OFFERS_GRID_X = 8;
-    private static final int OFFERS_GRID_Y = 38;
-    private static final int SCROLLER_X = 101;
-    private static final int SCROLL_BAR_TOP = 38;
+    private static final int SCROLLER_ENABLED_OFFSET_X = 385;
+    private static final int SCROLLER_ENABLED_OFFSET_Y = 0;
+    private static final int SCROLLER_DISABLED_OFFSET_X = 391;
+    private static final int SCROLLER_DISABLED_OFFSET_Y = 0;
+    private static final int OFFERS_GRID_X = 17;
+    private static final int OFFERS_GRID_Y = 47;
+    private static final int SCROLLER_X = 92;
+    private static final int SCROLL_BAR_TOP = 47;
     private static final int SCROLL_BAR_BOTTOM = 93;
-    private static final int SCROLL_BAR_HEIGHT = 139;
+    private static final int SCROLL_BAR_HEIGHT = 110;
     private static final int OFFERS_GRID_ROWS = 6;
-    private static final int OFFERS_GRID_COLUMNS = 5;
-    private Button buyButton;
-    private Button sellButton;
+    private static final int OFFERS_GRID_COLUMNS = 4;
     private int scrollOff;
     private boolean isDragging;
 
     public TradeScreen(TradeMenu menu, Inventory inventory, Component title) {
-        super(menu, inventory, Ouat.translatable("trade"), menu.getNpc().getNpc(), TabType.TRADE);
-        imageWidth = 281;
-        imageHeight = 193;
+        super(menu, inventory, title);
     }
 
     @Override
     protected void init() {
-        leftPos = (width - MAIN_BLIT_WIDTH) / 2;
-        topPos = (height - MAIN_BLIT_HEIGHT) / 2;
-        createBuyButton();
-        buyButton.active = false;
-        addRenderableWidget(buyButton);
-        createSellButton();
-        addRenderableWidget(sellButton);
-        createOfferButtons();
-    }
+        super.init();
+        addRenderableWidget(new ReleaseFocusButton(leftPos + 16, topPos + 27, 74, 16, Ouat.translatable("buy"), pressed -> {
+            if (pressed.getMessage().getString().equals(Ouat.translatable("sell").getString())) {
+                pressed.setMessage(Ouat.translatable("buy"));
+            } else {
+                pressed.setMessage(Ouat.translatable("sell"));
+            }
+            switchTradeMode();
+        }, null));
 
-    private void createOfferButtons() {
         int index = 0;
         for (int i = 0; i < OFFERS_GRID_ROWS; ++i) {
             for (int j = 0; j < OFFERS_GRID_COLUMNS; ++j) {
@@ -75,24 +67,6 @@ public class TradeScreen extends NpcBaseScreen<TradeMenu> {
                 ++index;
             }
         }
-    }
-
-    private void createBuyButton() {
-        buyButton = new Button.Builder(Ouat.translatable("buy"), pressed -> {
-            pressed.active = false;
-            sellButton.active = true;
-            switchTradeMode();
-        }
-        ).bounds(leftPos + 7, topPos + 20, 45, 16).build();
-    }
-
-    private void createSellButton() {
-        sellButton = new Button.Builder(Ouat.translatable("sell"), pressed -> {
-            pressed.active = false;
-            buyButton.active = true;
-            switchTradeMode();
-        }
-        ).bounds(leftPos + 54, topPos + 20, 45, 16).build();
     }
 
     private void switchTradeMode() {
@@ -104,8 +78,12 @@ public class TradeScreen extends NpcBaseScreen<TradeMenu> {
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         super.renderBg(graphics, partialTick, mouseX, mouseY);
-        graphics.blit(TEXTURE, leftPos, topPos, 0, 0, MAIN_BLIT_WIDTH, MAIN_BLIT_HEIGHT, imageWidth, imageHeight);
-        renderTabs(graphics);
+        renderInventory(graphics);
+        graphics.blit(BACKGROUND_TEXTURE, leftPos + 16, topPos + 46, 0, 277, 83, 122, imageWidth, imageHeight); // Grid
+        graphics.blit(BACKGROUND_TEXTURE, leftPos + 135, topPos + 46, 0, 175, 18, 18, imageWidth, imageHeight); // Input A slot
+        graphics.blit(BACKGROUND_TEXTURE, leftPos + 165, topPos + 46, 0, 175, 18, 18, imageWidth, imageHeight); // Input B slot
+        graphics.blit(BACKGROUND_TEXTURE, leftPos + 195, topPos + 47, 451, 0, 22, 15, imageWidth, imageHeight); // Arrow
+        graphics.blit(BACKGROUND_TEXTURE, leftPos + 229, topPos + 41, 0, 251, 26, 26, imageWidth, imageHeight); // Result slot
     }
 
     @Override
@@ -117,7 +95,7 @@ public class TradeScreen extends NpcBaseScreen<TradeMenu> {
     }
 
     private void renderXpBar(GuiGraphics graphics) {
-        graphics.blit(TEXTURE, leftPos + XP_BAR_X, topPos + XP_BAR_Y, XP_BAR_EMPTY_OFFSET_X, XP_BAR_EMPTY_OFFSET_Y, XP_BAR_WIDTH, XP_BAR_HEIGHT, imageWidth, imageHeight);
+        graphics.blit(BACKGROUND_TEXTURE, leftPos + XP_BAR_X, topPos + XP_BAR_Y, XP_BAR_EMPTY_OFFSET_X, XP_BAR_EMPTY_OFFSET_Y, XP_BAR_WIDTH, XP_BAR_HEIGHT, imageWidth, imageHeight);
     }
 
     private void renderScroller(GuiGraphics graphics) {
@@ -129,18 +107,18 @@ public class TradeScreen extends NpcBaseScreen<TradeMenu> {
             if (scrollOff == i - 1) {
                 scrollerOffset = SCROLL_BAR_BOTTOM;
             }
-            graphics.blit(TEXTURE, leftPos + SCROLLER_X, topPos + SCROLL_BAR_TOP + scrollerOffset, SCROLLER_ENABLED_OFFSET_X, SCROLLER_ENABLED_OFFSET_Y, SCROLLER_WIDTH, SCROLLER_HEIGHT, imageWidth, imageHeight);
+            graphics.blit(BACKGROUND_TEXTURE, leftPos + SCROLLER_X, topPos + SCROLL_BAR_TOP + scrollerOffset, SCROLLER_ENABLED_OFFSET_X, SCROLLER_ENABLED_OFFSET_Y, SCROLLER_WIDTH, SCROLLER_HEIGHT, imageWidth, imageHeight);
         } else {
-            graphics.blit(TEXTURE, leftPos + SCROLLER_X, topPos + SCROLL_BAR_TOP, SCROLLER_DISABLED_OFFSET_X, SCROLLER_DISABLED_OFFSET_Y, SCROLLER_WIDTH, SCROLLER_HEIGHT, imageWidth, imageHeight);
+            graphics.blit(BACKGROUND_TEXTURE, leftPos + SCROLLER_X, topPos + SCROLL_BAR_TOP, SCROLLER_DISABLED_OFFSET_X, SCROLLER_DISABLED_OFFSET_Y, SCROLLER_WIDTH, SCROLLER_HEIGHT, imageWidth, imageHeight);
         }
     }
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        if (this.canScroll()) {
+        if (this.canScroll() && mouseX >= leftPos + 16 && mouseX <= leftPos + 27 + (OFFERS_GRID_COLUMNS * OfferButton.WIDTH) && mouseY >= topPos + 46 && mouseY <= topPos + 46 + (OFFERS_GRID_ROWS * OfferButton.HEIGHT)) {
             this.scrollOff = Mth.clamp((int) ((double) scrollOff - delta), 0, maxScrolls());
         }
-        return true;
+        return super.mouseScrolled(mouseX, mouseY, delta);
     }
 
     @Override
@@ -174,15 +152,20 @@ public class TradeScreen extends NpcBaseScreen<TradeMenu> {
         return Mth.ceil((((double) menu.getOffers().size() - (double) OFFERS_GRID_ROWS * OFFERS_GRID_COLUMNS) / OFFERS_GRID_COLUMNS));
     }
 
+    @Override
+    protected Tab getTab() {
+        return Tab.TRADE;
+    }
+
     private class OfferButton extends Button {
         private static final int WIDTH = 18;
         private static final int HEIGHT = 20;
-        private static final int UNSEL_OFFSET_X = 0;
-        private static final int UNSEL_OFFSET_Y = 166;
-        private static final int SEL_OFFSET_X = 18;
-        private static final int SEL_OFFSET_Y = 166;
-        private static final int HOVERED_OFFSET_X = 36;
-        private static final int HOVERED_OFFSET_Y = 166;
+        private static final int UNSEL_OFFSET_X = 397;
+        private static final int UNSEL_OFFSET_Y = 0;
+        private static final int SEL_OFFSET_X = 415;
+        private static final int SEL_OFFSET_Y = 0;
+        private static final int HOVERED_OFFSET_X = 433;
+        private static final int HOVERED_OFFSET_Y = 0;
         private final int index;
 
         public OfferButton(int x, int y, int index) {
@@ -217,11 +200,11 @@ public class TradeScreen extends NpcBaseScreen<TradeMenu> {
             }
             boolean activeOffer = offerIndex() == menu.getSelectedOffer();
             if (isHovered && !activeOffer) {
-                graphics.blit(TEXTURE, getX(), getY(), HOVERED_OFFSET_X, HOVERED_OFFSET_Y, width, height, imageWidth, imageHeight);
+                graphics.blit(BACKGROUND_TEXTURE, getX(), getY(), HOVERED_OFFSET_X, HOVERED_OFFSET_Y, width, height, imageWidth, imageHeight);
             } else if (activeOffer) {
-                graphics.blit(TEXTURE, getX(), getY(), SEL_OFFSET_X, SEL_OFFSET_Y, width, height, imageWidth, imageHeight);
+                graphics.blit(BACKGROUND_TEXTURE, getX(), getY(), SEL_OFFSET_X, SEL_OFFSET_Y, width, height, imageWidth, imageHeight);
             } else {
-                graphics.blit(TEXTURE, getX(), getY(), UNSEL_OFFSET_X, UNSEL_OFFSET_Y, width, height, imageWidth, imageHeight);
+                graphics.blit(BACKGROUND_TEXTURE, getX(), getY(), UNSEL_OFFSET_X, UNSEL_OFFSET_Y, width, height, imageWidth, imageHeight);
             }
             if (isHovered()) {
                 renderToolTip(graphics, mouseX, mouseY);

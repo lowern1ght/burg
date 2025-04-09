@@ -27,26 +27,24 @@ public class TradeMenu extends NpcBaseMenu {
     private static final int INV_END = 29;
     private static final int HOT_BAR_START = 30;
     private static final int HOT_BAR_END = 38;
-    private static final int INPUT_A_X = 134;
-    private static final int INPUT_B_X = 164;
-    private static final int RESULT_X = 232;
-    private static final int ROW_Y = 38;
+    private static final int INPUT_A_X = 136;
+    private static final int INPUT_B_X = 166;
+    private static final int RESULT_X = 234;
+    private static final int ROW_Y = 47;
     private final TradeContainer tradeContainer;
     private boolean sellMode;
     private int selectedOffer = -1;
     private NpcOffer activeOffer;
 
     public TradeMenu(int containerId, Inventory inventory, FriendlyByteBuf buf) {
-        this(containerId, inventory, new InteractingNpcClient
-            .Builder((Npc) (inventory.player.level().getEntity(buf.readInt())), inventory.player)
-            .offers(TradeUtils.createOffersFromStream(buf))
-            .build());
+        this(containerId, inventory,
+            new InteractingNpcClient.Builder((Npc) (inventory.player.level().getEntity(buf.readInt())), inventory.player)
+                .offers(TradeUtils.createOffersFromStream(buf))
+                .build());
     }
 
-    public TradeMenu(int containerId, Inventory inventory, InteractingNpc npc) {
-        super(MenuRegistry.REGISTRY.TRADE_MENU.get(), containerId, npc);
-        this.npc = npc;
-        npc.setInteractingPlayer(inventory.player);
+    public TradeMenu(int containerId, Inventory playerInventory, InteractingNpc npc) {
+        super(MenuRegistry.REGISTRY.TRADE_MENU.get(), containerId, npc, playerInventory.player);
         tradeContainer = new TradeContainer();
         // Payment
         addSlot(new Slot(tradeContainer, INPUT_A, INPUT_A_X, ROW_Y));
@@ -56,12 +54,12 @@ public class TradeMenu extends NpcBaseMenu {
         // Inventory
         for (int i = 0; i < 3; ++i) {
             for (int j = 0; j < 9; ++j) {
-                this.addSlot(new Slot(inventory, j + i * 9 + 9, 113 + j * 18, 84 + i * 18));
+                this.addSlot(new Slot(playerInventory, j + i * 9 + 9, 114 + j * 18, 93 + i * 18));
             }
         }
         // Hot bar
         for (int k = 0; k < 9; ++k) {
-            this.addSlot(new Slot(inventory, k, 113 + k * 18, 142));
+            this.addSlot(new Slot(playerInventory, k, 114 + k * 18, 151));
         }
     }
 
@@ -185,7 +183,6 @@ public class TradeMenu extends NpcBaseMenu {
     @Override
     public void removed(@NotNull Player player) {
         super.removed(player);
-        npc.setInteractingPlayer(null);
         if (!npc.isClientSide()) {
             if (!player.isAlive() || player instanceof ServerPlayer serverPlayer && serverPlayer.hasDisconnected()) {
                 ItemStack itemstack = tradeContainer.removeItemNoUpdate(INPUT_A);

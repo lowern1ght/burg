@@ -94,5 +94,10 @@
   "onceuponatown.cc.variants_nav": "Variants",
   "onceuponatown.trade": "Trade",
   "onceuponatown.buy": "Buy",
-  "onceuponatown.sell": "Sell"
+  "onceuponatown.sell": "Sell",
+  "onceuponatown.quests": "Quests",
+  "onceuponatown.buildings": "Buildings",
+  "onceuponatown.progression": "Progression",
+  "onceuponatown.project": "Construction project",
+  "onceuponatown.diplomacy": "Diplomacy settings"
 }
