@@ -4,7 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import org.dawnoftime.onceuponatown.client.gui.town.TownMapScreen;
+import org.dawnoftime.onceuponatown.client.gui.TownMapScreen;
 
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
 

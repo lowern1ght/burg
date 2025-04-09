@@ -223,18 +223,10 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         if (!level().isClientSide() && (hand == InteractionHand.MAIN_HAND)) {
             this.interactingPlayer = player;
             if (player instanceof ServerPlayer serverPlayer) {
-                /*
-                Ouat.COMMON.openMenu(serverPlayer, new SimpleMenuProvider((containerID, playerInventory, p) -> new BuyMenu(containerID, playerInventory, this), Component.literal("Buy")), buffer -> {
-                    buffer.writeInt(this.getId());
-                    TradeUtils.writeBuyDealsToStream(getBuyDeals(), buffer);
-                });
-
-                 */
-                Ouat.COMMON.openMenu(serverPlayer, new SimpleMenuProvider((containerID, playerInventory, p) -> new TradeMenu(containerID, playerInventory, this), Component.literal("Buy")), buffer -> {
+                Ouat.COMMON.openMenu(serverPlayer, new SimpleMenuProvider((containerID, playerInventory, p) -> new TradeMenu(containerID, playerInventory, this), Ouat.translatable("trade")), buffer -> {
                     buffer.writeInt(this.getId());
                     TradeUtils.writeOffersToStream(getOffers(), buffer);
                 });
-
             }
 
         }

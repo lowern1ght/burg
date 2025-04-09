@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.client.gui.town;
+package org.dawnoftime.onceuponatown.client.gui;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -18,6 +18,8 @@ public abstract class TownScreen extends Screen {
 
     @Override
     protected void init() {
+        minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.BOOK_PAGE_TURN, 1.0F));
+
         int leftPos = (width - BACKGD_WIDTH) / 2;
         int topPos = (height - BACKGD_HEIGHT) / 2;
         String map = "Map";
@@ -35,5 +37,11 @@ public abstract class TownScreen extends Screen {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         super.render(graphics, mouseX, mouseY, partialTick);
+    }
+
+    @Override
+    public void onClose() {
+        super.onClose();
+        minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.BOOK_PAGE_TURN, 1.0F));
     }
 }

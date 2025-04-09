@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.network.inventory;
+package org.dawnoftime.onceuponatown.network;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.network.FriendlyByteBuf;
@@ -7,7 +7,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import org.dawnoftime.onceuponatown.menu.TradeMenu;
-import org.dawnoftime.onceuponatown.network.OuatPacket;
 import org.slf4j.Logger;
 
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
