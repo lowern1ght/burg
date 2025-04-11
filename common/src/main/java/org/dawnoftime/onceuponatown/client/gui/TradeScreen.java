@@ -50,7 +50,7 @@ public class TradeScreen extends NpcBaseScreen<TradeMenu> {
     @Override
     protected void init() {
         super.init();
-        addRenderableWidget(new ReleaseFocusButton(leftPos + 16, topPos + 27, 74, 16, Ouat.translatable("buy"), pressed -> {
+        addRenderableWidget(new ReleaseFocusButton(leftPos + 16, topPos + 28, 83, 16, Ouat.translatable("buy"), pressed -> {
             if (pressed.getMessage().getString().equals(Ouat.translatable("sell").getString())) {
                 pressed.setMessage(Ouat.translatable("buy"));
             } else {
@@ -89,7 +89,7 @@ public class TradeScreen extends NpcBaseScreen<TradeMenu> {
     @Override
     public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         super.render(graphics, mouseX, mouseY, partialTick);
-        renderXpBar(graphics);
+        //renderXpBar(graphics);
         renderScroller(graphics);
         renderTooltip(graphics, mouseX, mouseY);
     }

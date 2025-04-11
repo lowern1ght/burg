@@ -61,7 +61,7 @@ public class Utils {
     }
 
     public static @Nullable Town getNearestTown(ServerLevel level, BlockPos pos) {
-        return getNearestTown(level, pos, Integer.MAX_VALUE);
+        return getNearestTown(level, pos, 100);
     }
 
     public static @Nullable Town getNearestTown(ServerLevel level, BlockPos pos, int maxDist) {

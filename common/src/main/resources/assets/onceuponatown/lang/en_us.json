@@ -1,6 +1,7 @@
 {
   "creative_mode_tab.onceuponatown.main_tab": "Once upon a town",
   "entity.onceuponatown.npc": "Npc",
+  "block.onceuponatown.dirt_path_slab": "Dirt Path Slab",
   "item.onceuponatown.npc_spawn_egg": "Npc Spawn Egg",
   "item.onceuponatown.emerald_pouch": "Emerald pouch",
   "item.onceuponatown.town_scroll": "Town scroll",
@@ -27,8 +28,8 @@
   "onceuponatown.town_name.20": "Tumba",
 
   "onceuponatown.map_of": "Map of",
-  "onceuponatown.center_map": "Center map",
-  "onceuponatown.debug_view": "Debug view",
+  "onceuponatown.center_map": "Center",
+  "onceuponatown.debug_view": "Debug",
   "onceuponatown.coordinates": "Coordinates",
   "onceuponatown.plot_size": "Plot size",
   "onceuponatown.north_west_corner": "North-west corner",

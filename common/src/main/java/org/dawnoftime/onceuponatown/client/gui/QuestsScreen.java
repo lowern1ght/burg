@@ -9,7 +9,7 @@ import org.dawnoftime.onceuponatown.menu.QuestsMenu;
 public class QuestsScreen extends NpcBaseScreen<QuestsMenu> {
     private static final int NPC_DOLL_SCALE = 30;
     private static final int NPC_DOLL_X = 250;
-    private static final int NPC_DOLL_Y = 80;
+    private static final int NPC_DOLL_Y = 70;
 
     public QuestsScreen(QuestsMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
@@ -24,7 +24,7 @@ public class QuestsScreen extends NpcBaseScreen<QuestsMenu> {
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         super.renderLabels(graphics, mouseX, mouseY);
         int professionWidth = font.width(Utils.capitalize(menu.getNpc().getNpc().getProfessionId()));
-        //graphics.drawString(font, Utils.capitalize(menu.getNpc().getNpc().getProfessionId()), 100,100, 4210752, false);
+        graphics.drawString(font, Utils.capitalize(menu.getNpc().getNpc().getProfessionId()), BACKGROUND_WIDTH - professionWidth - 60, titleLabelY, 4210752, false);
     }
 
     @Override

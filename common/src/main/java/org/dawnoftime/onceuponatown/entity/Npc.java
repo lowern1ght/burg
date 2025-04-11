@@ -32,13 +32,14 @@ import net.minecraft.world.entity.raid.Raider;
 import net.minecraft.world.item.*;
 import net.minecraft.world.level.Level;
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.Utils;
 import org.dawnoftime.onceuponatown.entity.ai.goal.core.NpcPanicGoal;
 import org.dawnoftime.onceuponatown.entity.ai.goal.fight.SelfDefenseGoal;
+import org.dawnoftime.onceuponatown.menu.BuildingsMenu;
 import org.dawnoftime.onceuponatown.menu.InteractingNpc;
-import org.dawnoftime.onceuponatown.menu.TradeMenu;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
+import org.dawnoftime.onceuponatown.town.Town;
 import org.dawnoftime.onceuponatown.trade.NpcOffer;
-import org.dawnoftime.onceuponatown.trade.TradeUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -223,14 +224,23 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         if (!level().isClientSide() && (hand == InteractionHand.MAIN_HAND)) {
             this.interactingPlayer = player;
             if (player instanceof ServerPlayer serverPlayer) {
-                Ouat.COMMON.openMenu(serverPlayer, new SimpleMenuProvider((containerID, playerInventory, p) -> new TradeMenu(containerID, playerInventory, this), Ouat.translatable("trade")), buffer -> {
+                Town town = Utils.getNearestTown(serverPlayer.serverLevel(), blockPosition());
+                Ouat.COMMON.openMenu(serverPlayer, new SimpleMenuProvider((containerID, playerInventory, p) -> new BuildingsMenu(containerID, playerInventory, this, town.getGuiDescription()), Ouat.translatable("buildings")), buffer -> {
                     buffer.writeInt(this.getId());
-                    TradeUtils.writeOffersToStream(getOffers(), buffer);
+                    buffer.writeNbt(town.getGuiDescription());
                 });
             }
 
         }
         return super.mobInteract(player, hand);
+    }
+
+    public CompoundTag getTownMapData() {
+        if (!level().isClientSide() && level() instanceof ServerLevel level) {
+            return Utils.getNearestTown(level, blockPosition()).getGuiDescription();
+        } else {
+            return null;
+        }
     }
 
     @Override
