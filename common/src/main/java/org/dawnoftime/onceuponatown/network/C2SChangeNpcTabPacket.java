@@ -58,8 +58,9 @@ public record C2SChangeNpcTabPacket(int newTab) implements OuatPacket {
                     }
                     case BUILDINGS -> {
                         Ouat.COMMON.openMenu(player, new SimpleMenuProvider((containerID, playerInventory, p) ->
-                            new BuildingsMenu(containerID, playerInventory, npc), Ouat.translatable("buildings")), buffer -> {
+                            new BuildingsMenu(containerID, playerInventory, npc, npc.getTownMapData()), Ouat.translatable("buildings")), buffer -> {
                             buffer.writeInt(npc.getId());
+                            buffer.writeNbt(npc.getTownMapData());
                         });
                     }
                     case PROGRESSION -> {

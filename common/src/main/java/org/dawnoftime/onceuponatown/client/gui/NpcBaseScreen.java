@@ -18,7 +18,9 @@ import java.util.List;
 
 public abstract class NpcBaseScreen<T extends NpcBaseMenu> extends AbstractContainerScreen<T> {
     protected static final ResourceLocation BACKGROUND_TEXTURE = Ouat.modResource("textures/gui/npc_screen.png");
-    protected static final ResourceLocation TABS_TEXTURE = Ouat.modResource("textures/gui/tabs/tabs.png");
+    protected static final ResourceLocation TABS_TEXTURE = Ouat.modResource("textures/gui/tabs.png");
+    protected static final int BACKGROUND_ATLAS_WIDTH = 581;
+    protected static final int BACKGROUND_ATLAS_HEIGHT = 531;
     protected static final int BACKGROUND_WIDTH = 283;
     protected static final int BACKGROUND_HEIGHT = 175;
     private static final int TABS_TEXTURE_WIDTH = 35;
@@ -38,8 +40,8 @@ public abstract class NpcBaseScreen<T extends NpcBaseMenu> extends AbstractConta
 
     protected NpcBaseScreen(T menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
-        imageWidth = 581;
-        imageHeight = 531;
+        imageWidth = BACKGROUND_ATLAS_WIDTH;
+        imageHeight = BACKGROUND_ATLAS_HEIGHT;
         titleLabelX = 7;
         titleLabelY = 7;
         inventoryLabelX = 112;

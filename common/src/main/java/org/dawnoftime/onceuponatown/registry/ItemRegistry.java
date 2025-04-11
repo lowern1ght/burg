@@ -12,12 +12,9 @@ import java.util.function.Supplier;
 public abstract class ItemRegistry {
     public static ItemRegistry REGISTRY;
 
-    public final Supplier<Item> NPC_SPAWN_EGG = registerSpawnEgg("npc_spawn_egg", EntityRegistry.REGISTRY.NPC, 0x96691f, 0x38b934);
-
     public final Supplier<Item> EMERALD_POUCH = register("emerald_pouch", () -> new EmeraldPouchItem(new Item.Properties().stacksTo(1)));
-
     public final Supplier<Item> TOWN_SCROLL = register("town_scroll", () -> new TownScrollItem(new Item.Properties()));
-
+    public final Supplier<Item> NPC_SPAWN_EGG = registerSpawnEgg("npc_spawn_egg", EntityRegistry.REGISTRY.NPC, 0x96691f, 0x38b934);
     public final Supplier<Item> CULTURE_CREATOR = register("culture_creator", () -> new CultureCreatorItem(new Item.Properties()));
 
     public abstract <T extends Item> Supplier<Item> register(final String name, final Supplier<T> itemSupplier);
