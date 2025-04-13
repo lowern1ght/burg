@@ -1,6 +1,7 @@
 package org.dawnoftime.onceuponatown.entity.ai.goal.work;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -9,7 +10,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.phys.Vec3;
-import org.dawnoftime.onceuponatown.construction.ConstructionProject;
+import org.dawnoftime.onceuponatown.Utils;
+import org.dawnoftime.onceuponatown.building.ConstructionProject;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.entity.ai.SimpleStateMachine;
 import org.dawnoftime.onceuponatown.entity.ai.SimpleStateMachine.State;
@@ -23,8 +25,7 @@ public class BuilderWorkGoal extends NpcGoal {
     private int readingPlanCountdown;
     private int timeSinceLastSuccessfulStep;
     private boolean lastStepSuccessful;
-    private int blockBreakTime;
-    private int lastBreakProgress = -1;
+    private boolean superBuilder = false;
 
     public BuilderWorkGoal(Npc builder) {
         super(builder);
@@ -34,6 +35,7 @@ public class BuilderWorkGoal extends NpcGoal {
         State readPlan = new State(this::readPlan).onStart(this::startReadingPlan).onStop(this::stopReadingPlan);
         State prepareNextStep = new State(this::prepareNextStep).onStart(this::moveToNextStepPos);
         State executeStep = new State(this::executeStep);
+
         stateMachine = new SimpleStateMachine(goToConstructionSite, readPlan, prepareNextStep, executeStep)
                 .setInitialState(goToConstructionSite)
                 .addTransition(goToConstructionSite, readPlan, this::closeEnoughToConstructionSite)
@@ -46,10 +48,12 @@ public class BuilderWorkGoal extends NpcGoal {
                 .addTransition(executeStep, prepareNextStep, () -> lastStepSuccessful);
     }
 
+    @Override
     public boolean canUse() {
         return project != null || getTownConstructionProject() != null;
     }
 
+    @Override
     public boolean canContinueToUse() {
         return project != null && !project.isCompleted();
     }
@@ -58,7 +62,9 @@ public class BuilderWorkGoal extends NpcGoal {
         return npc.distanceToSqr(npcPos().getX(), npcPos().getY(), npcPos().getZ()) <= 20;
     }
 
+    @Override
     public void start() {
+        npc.setCrossingArms(false);
         npc.getNavigation().setMaxVisitedNodesMultiplier(10.0F);
         if (project == null) {
             project = getTownConstructionProject();
@@ -66,6 +72,7 @@ public class BuilderWorkGoal extends NpcGoal {
         readingPlanCountdown = npc.getRandom().nextInt(adjustedTickDelay(20 * 2), adjustedTickDelay(20 * 6));
     }
 
+    @Override
     public void stop() {
         npc.getNavigation().resetMaxVisitedNodesMultiplier();
         project = null;
@@ -83,6 +90,7 @@ public class BuilderWorkGoal extends NpcGoal {
         lastStepSuccessful = false;
     }
 
+    @Override
     public void tick() {
         if (project != null && !project.isCompleted()) {
             stateMachine.tick();
@@ -95,12 +103,12 @@ public class BuilderWorkGoal extends NpcGoal {
 
     private void prepareNextStep() {
         if (this.preparingNextStepCountdown <= 3) {
-            ConstructionProject.ProjectStep nextStep = project.getNextStep();
-            switch (nextStep.type()) {
+            ConstructionProject.NextAction nextAction = project.getNextStepType();
+            switch (nextAction) {
                 case PLACE_BLOCK -> {
-                    npc.holdInMainHand(nextStep.blockState().getBlock().asItem().getDefaultInstance());
+                    npc.holdInMainHand(project.getNextStepState().getBlock().asItem().getDefaultInstance());
                 }
-                case REMOVE_BLOCK -> {
+                case DESTROY_BLOCK -> {
 
                 }
             }
@@ -116,32 +124,39 @@ public class BuilderWorkGoal extends NpcGoal {
 
     private void executeStep() {
         ++timeSinceLastSuccessfulStep;
-        ConstructionProject.ProjectStep nextStep = project.getNextStep();
         lookAtNextStepPos();
-        if (npcPos().equals(nextStep.blockPos()) && npc.getNavigation().isDone()) {
-            npc.moveTo(getRandomPosAwayFromStepPos());
+        if (npcPos().equals(project.getNextStepPos()) && npc.getNavigation().isDone()) {
+            Vec3 vec3 = getRandomPosAwayFromStepPos();
+            if (vec3 != null) {
+                npc.moveTo(vec3.x, vec3.y, vec3.z);
+            } else {
+                npc.getJumpControl().jump();
+            }
             return;
         }
-        switch (nextStep.type()) {
+        switch (project.getNextStepType()) {
             case PLACE_BLOCK -> {
-                Block nextBlock = nextStep.blockState().getBlock();
-                if (project.executeNextStep()) {
+                Block nextBlock = project.getNextStepState().getBlock();
+                if (project.nextStep()) {
                     lastStepSuccessful = true;
                     timeSinceLastSuccessfulStep = 0;
                     preparingNextStepCountdown = npc.getRandom().nextInt(6 - 1, 6 + 1);
                     npc.swing(InteractionHand.MAIN_HAND);
-                    if (!project.isCompleted() && project.getNextStep().blockState().getBlock() != nextBlock) {
+                    if (!project.isCompleted() && project.getNextStepState().getBlock() != nextBlock) {
                         npc.freeMainHand();
                     }
                     return;
                 }
             }
-            case REMOVE_BLOCK -> {
-
-
+            case DESTROY_BLOCK -> {
+                if (project.nextStep()) {
+                    lastStepSuccessful = true;
+                    timeSinceLastSuccessfulStep = 0;
+                    preparingNextStepCountdown = npc.getRandom().nextInt(6 - 1, 6 + 1);
+                    npc.swing(InteractionHand.MAIN_HAND);
+                    return;
+                }
             }
-
-
         }
     }
 
@@ -165,17 +180,15 @@ public class BuilderWorkGoal extends NpcGoal {
         --this.readingPlanCountdown;
     }
 
-    private BlockPos getNextStepPos() {
-        return project.getNextStep().blockPos();
-    }
+
 
     private void lookAtNextStepPos() {
-        Vec3 toLookAt = getNextStepPos().getCenter();
+        Vec3 toLookAt = project.getNextStepPos().getCenter();
         npc.getLookControl().setLookAt(toLookAt.x, toLookAt.y, toLookAt.z);
     }
 
     private void moveToNextStepPos() {
-        BlockPos nextStepPos = getNextStepPos();
+        BlockPos nextStepPos = project.getNextStepPos();
         if (npc.distanceToSqr(nextStepPos.getX(), nextStepPos.getY(), nextStepPos.getZ()) > 8) {
             if (npc.getNavigation().isDone()) {
                 npc.getNavigation().moveTo(nextStepPos.getX(), nextStepPos.getY(), nextStepPos.getZ(), speedModifier);
@@ -186,14 +199,7 @@ public class BuilderWorkGoal extends NpcGoal {
     }
 
     private boolean closeEnoughToExecuteStep() {
-        /*
-        int x = this.project.nextBlockPos().getX();
-        int y = this.project.nextBlockPos().getY();
-        int z = this.project.nextBlockPos().getZ();
-
-         */
-        return false;
-        //return BuildingProjectCommand.superBuilder || npc.distanceToSqr(x, y, z) <= MAX_REACH_DIST;
+        return superBuilder || npc.distanceToSqr(project.getNextStepPos().getCenter()) <= 5 * 5;
     }
 
     private void startReadingPlan() {
@@ -212,8 +218,10 @@ public class BuilderWorkGoal extends NpcGoal {
     }
 
     private ConstructionProject getTownConstructionProject() {
+        if (!npc.level().isClientSide() && npc.level() instanceof ServerLevel serverLevel) {
+            return Utils.getNearestTown(serverLevel, npc.blockPosition(), 100).getPendingProject();
+        }
         return null;
-        //return npc.getTown().getCurrentConstructionProject();
     }
 
     public void assignConstructionProject(ConstructionProject project) {

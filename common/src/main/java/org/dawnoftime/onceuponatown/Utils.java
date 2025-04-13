@@ -12,7 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.phys.Vec3;
-import org.dawnoftime.onceuponatown.construction.EntityInfo;
+import org.dawnoftime.onceuponatown.building.schematic.SchematicEntity;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.Town;
@@ -139,13 +139,13 @@ public class Utils {
     }
 
     // TODO Useful or to be deleted ?
-    public static List<EntityInfo> getStructureEntities(ResourceLocation path, ResourceManager resourceManager) {
+    public static List<SchematicEntity> getStructureEntities(ResourceLocation path, ResourceManager resourceManager) {
         FileToIdConverter converter = new FileToIdConverter("structures", ".entityNbt");
         ResourceLocation resourceLocation = converter.idToFile(path);
         try (InputStream inputStream = resourceManager.open(resourceLocation)) {
             CompoundTag tag = NbtIo.readCompressed(inputStream);
             ListTag entitiesTag = tag.getList("entities", 10);
-            List<EntityInfo> entityInfoList = new ArrayList<>();
+            List<SchematicEntity> schematicEntityList = new ArrayList<>();
             for (int i = 0; i < entitiesTag.size(); ++i) {
                 CompoundTag entityTag = entitiesTag.getCompound(i);
                 ListTag posTag = entityTag.getList("vec3", 6);
@@ -154,10 +154,10 @@ public class Utils {
                 BlockPos blockPos = new BlockPos(blockPosTag.getInt(0), blockPosTag.getInt(1), blockPosTag.getInt(2));
                 if (entityTag.contains("entityNbt")) {
                     CompoundTag entityNBT = entityTag.getCompound("entityNbt");
-                    entityInfoList.add(new EntityInfo(pos, blockPos, entityNBT));
+                    schematicEntityList.add(new SchematicEntity(pos, blockPos, entityNBT));
                 }
             }
-            return entityInfoList;
+            return schematicEntityList;
         } catch (FileNotFoundException fileNotFoundException) {
             LogUtils.getLogger().error("Structure not found {}", resourceLocation, fileNotFoundException);
             return null;

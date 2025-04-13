@@ -51,6 +51,7 @@ public class NpcModel<T extends Npc> extends HumanoidModel<T> {
         return LayerDefinition.create(meshDefinition, 64, 64);
     }
 
+    @Override
     public void prepareMobModel(T npc, float limbSwing, float limbSwingAmount, float partialTick) {
         HumanoidModel.ArmPose leftArmPose = getArmPose(npc, InteractionHand.MAIN_HAND);
         HumanoidModel.ArmPose rightArmPose = getArmPose(npc, InteractionHand.OFF_HAND);
@@ -67,8 +68,15 @@ public class NpcModel<T extends Npc> extends HumanoidModel<T> {
         super.prepareMobModel(npc, limbSwing, limbSwingAmount, partialTick);
     }
 
+    @Override
     public void setupAnim(T npc, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch) {
         super.setupAnim(npc, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch);
+        if (npc.getUnhappyCounter() > 0) {
+            this.head.zRot = 0.3F * Mth.sin(0.45F * ageInTicks);
+            this.head.xRot = 0.4F;
+        } else {
+            this.head.zRot = 0.0F;
+        }
         //animateReadingPose(npc);
         //animateCelebrating(npc);
         //animateDabbingPose(npc);

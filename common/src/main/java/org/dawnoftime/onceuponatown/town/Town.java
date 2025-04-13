@@ -1,7 +1,5 @@
 package org.dawnoftime.onceuponatown.town;
 
-import com.google.common.base.Joiner;
-import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -9,25 +7,22 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.bossevents.CustomBossEvent;
-import net.minecraft.server.bossevents.CustomBossEvents;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.BossEvent;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import org.dawnoftime.onceuponatown.Config;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.Utils;
-import org.dawnoftime.onceuponatown.building.Build;
-import org.dawnoftime.onceuponatown.building.Building;
-import org.dawnoftime.onceuponatown.building.Road;
+import org.dawnoftime.onceuponatown.building.ConstructionProject;
+import org.dawnoftime.onceuponatown.building.instance.Build;
+import org.dawnoftime.onceuponatown.building.instance.Building;
+import org.dawnoftime.onceuponatown.building.instance.Road;
+import org.dawnoftime.onceuponatown.building.schematic.SchematicBlock;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
-import org.dawnoftime.onceuponatown.construction.BlockInfo;
-import org.dawnoftime.onceuponatown.construction.ConstructionProject;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.culture.ServerCultures;
 import org.dawnoftime.onceuponatown.culture.Specialization;
@@ -47,7 +42,7 @@ import java.util.stream.Collectors;
 public class Town extends ProtoTown {
     private final ServerLevel level; // The Level this Town belongs to
     private final int id; // Unique Id
-    private String name; // Not unique name
+    private Component name; // Not unique name
     private final List<ConstructionProject> projects; // List of Builds under construction
     private final List<Citizen> citizens; // Citizens of this Town
     private final HashMap<Specialization, Integer> progression;
@@ -57,27 +52,29 @@ public class Town extends ProtoTown {
     private long lastActive;
     // Unsaved attributes
     private final List<ServerPlayer> visitors = new ArrayList<>(); // Players in Town's boundaries
-    private final CustomBossEvent townInfoBar; // Boss bar for displaying info
     private boolean active;
+    private boolean rushProjects;
 
-    private Town(Culture culture, // ProtoTown attributes
-                 BlockPos center,
-                 BlockPos NWCorner,
-                 BlockPos SECorner,
-                 List<BuildBud> buds,
-                 List<Build> builds,
-                 int buildsWeight,
-                 BiFunction<Integer, Integer, Integer> getSurfaceY,
-                 ServerLevel level, // Town attributes
-                 int id,
-                 String name,
-                 List<ConstructionProject> projects,
-                 ListTag citizens,
-                 HashMap<Specialization, Integer> progression,
-                 TownInventory inventory,
-                 long lastProductionHarvest,
-                 int experience,
-                 long lastActive) {
+    private Town(
+        Culture culture, // ProtoTown attributes
+        BlockPos center,
+        BlockPos NWCorner,
+        BlockPos SECorner,
+        List<BuildBud> buds,
+        List<Build> builds,
+        int buildsWeight,
+        BiFunction<Integer, Integer, Integer> getSurfaceY,
+        ServerLevel level, // Town attributes
+        int id,
+        Component name,
+        List<ConstructionProject> projects,
+        ListTag citizens,
+        HashMap<Specialization, Integer> progression,
+        TownInventory inventory,
+        long lastProductionHarvest,
+        int experience,
+        long lastActive
+    ) {
         super(culture, center, NWCorner, SECorner, buds, builds, buildsWeight, getSurfaceY);
         this.level = level;
         this.id = id;
@@ -90,14 +87,6 @@ public class Town extends ProtoTown {
         this.experience = experience;
         this.lastActive = lastActive;
         // Common init regardless of how this Town was created (world gen, spawned by command, loaded by NBT)
-        CustomBossEvents bossEvents = level.getServer().getCustomBossEvents();
-        String barId = (name + "_bar").replaceAll("\\s", "").toLowerCase();
-        if (bossEvents.get(Ouat.modResource(barId)) == null) {
-            this.townInfoBar = bossEvents.create(Ouat.modResource(barId), Component.literal(name).withStyle(ChatFormatting.WHITE));
-            this.townInfoBar.setColor(BossEvent.BossBarColor.WHITE);
-        } else {
-            this.townInfoBar = bossEvents.get(Ouat.modResource(barId));
-        }
         var buildings = getBuildings();
         for (Tag tag : citizens) {
             CompoundTag citizenTag = (CompoundTag) tag;
@@ -150,8 +139,8 @@ public class Town extends ProtoTown {
             (x, z) -> level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) - 1,
             level,
             townTag.getInt("Id"),
-            townTag.getString("Name"),
-            townTag.getList("Projects", Tag.TAG_COMPOUND).stream().map(projectTag -> new ConstructionProject(level, (CompoundTag) projectTag)).collect(Collectors.toList()),
+            Component.Serializer.fromJson(townTag.getString("Name")),
+            new ArrayList<>(),
             townTag.getList("Citizens", Tag.TAG_COMPOUND),
             new HashMap<>(), // TODO Implement progression
             new TownInventory(townTag.getCompound("TownInventory")),
@@ -159,10 +148,13 @@ public class Town extends ProtoTown {
             townTag.getInt("Experience"),
             townTag.getLong("LastActive")
         );
+        townTag.getList("Projects", Tag.TAG_COMPOUND).stream()
+            .map(projectTag -> ConstructionProject.load(level, town, (CompoundTag) projectTag))
+            .forEach(town.projects::add);
         return town;
     }
 
-    static Town trySpawnAtPosition(Culture culture, ServerLevel level, int id, BlockPos center, @Nullable String townName) {
+    static Town trySpawnAtPosition(Culture culture, ServerLevel level, int id, BlockPos center, @Nullable Component townName) {
         Town town = new Town(
             culture,
             center, // Center
@@ -174,7 +166,7 @@ public class Town extends ProtoTown {
             (x, z) -> (level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) - 1),
             level,
             id,
-            (townName != null && !townName.isBlank()) ? townName : getRandomTownName(),
+            (townName != null) ? townName : getRandomTownName(),
             new ArrayList<>(), // Empty ConstructionProjects
             new ListTag(), // Empty Citizens
             new HashMap<>(), // Empty progression
@@ -185,17 +177,25 @@ public class Town extends ProtoTown {
         );
         if (town.buildStarterPack()) {
             // Placing builds
+            for (Build build : town.getBuilds()) {
+                ConstructionProject project = new ConstructionProject(level, ConstructionProject.ProjectType.NEW_BUILD, build);
+                project.rush(true);
+                town.projects.add(project);
+            }
+            /*
             BlockPos.MutableBlockPos cursor = new BlockPos(0, 0, 0).mutable();
             for (Build build : town.getBuilds()) {
                 SchematicContent schema = build.getSchematicContent(level.getServer().getResourceManager());
-                for (BlockInfo block : schema.getBlocks()) {
+                for (SchematicBlock block : schema.getBlocks()) {
                     cursor.set(build.getOriginPos().getX(), build.getOriginPos().getY(), build.getOriginPos().getZ());
                     level.setBlock(cursor.move(block.pos()), block.state(), 2);
                     // broken return null;
                 }
                 // TODO Do the same for the entities !
             }
+             */
             town.afterSpawnInit();
+            town.rushProjects = true;
             return town;
         } else {
             return null;
@@ -206,7 +206,7 @@ public class Town extends ProtoTown {
     public CompoundTag saveNbt() {
         CompoundTag tag = super.saveNbt();
         tag.putInt("Id", id);
-        tag.putString("Name", name);
+        tag.putString("Name", Component.Serializer.toJson(name));
         // ConstructionProjects
         ListTag projectsTag = new ListTag();
         projects.forEach(project -> projectsTag.add(project.save(new CompoundTag())));
@@ -290,26 +290,37 @@ public class Town extends ProtoTown {
 
     private void setActive() {
         active = true;
-        // Citizens
-        freezeCitizens(false);
-        // Builds
         maybeCollectProduction();
     }
 
     private void setInactive() {
         active = false;
         lastActive = level.getGameTime();
-        // Citizens
-        freezeCitizens(true);
-        // Builds
     }
 
     void tick() {
-        updateVisitors();
-        updateStatus();
-        if (active) {
-            //Ouat.info("Ticking active town %s".formatted(name));
-            handleCitizens();
+        if (level.getServer().getTickCount() % (20 * Config.TOWN_TICK_RATE_SECONDS) == 0) {
+            updateVisitors();
+            updateStatus();
+            if (active) {
+                handleCitizens();
+            }
+        }
+        ;
+        if (active && level.getServer().getTickCount() % 1 == 0) {
+            List<ConstructionProject> finished = new ArrayList<>();
+            for (ConstructionProject project : projects) {
+                if (project.rushing()) {
+                    while (project.getNextStepType() == ConstructionProject.NextAction.NOTHING) {
+                        project.nextStep();
+                    }
+                    project.nextNSteps(4);
+                    if (project.isCompleted()) {
+                        finished.add(project);
+                    }
+                }
+            }
+            finished.forEach(projects::remove);
         }
     }
 
@@ -317,19 +328,26 @@ public class Town extends ProtoTown {
         for (Citizen citizen : citizens) {
             switch (citizen.status) {
                 case NOT_SPAWNED -> {
-                    if (level.isLoaded(getCenter())) {
+                    BlockPos pos;
+                    if (citizen.residence != null) {
+                        pos = citizen.residence.getOriginPos();
+                        pos.atY(level.getHeight(Heightmap.Types.MOTION_BLOCKING, pos.getX(), pos.getZ()));
+                    } else {
+                        pos = getCenter();
+                    }
+                    if (level.isLoaded(pos.above())) {
                         Npc npc = EntityRegistry.REGISTRY.NPC.get().create(level);
                         if (npc != null) {
-                            npc.moveTo(getCenter().above(), 0.0F, 0.0F);
+                            npc.moveTo(pos.above(), 0.0F, 0.0F);
                             if (level.addFreshEntity(npc)) {
                                 npc.setCultureId(culture.getId());
                                 if (citizen.profession != null) {
                                     npc.setProfessionId(citizen.profession.getId());
-                                    npc.setCustomName(Component.literal(Utils.capitalize(citizen.profession.getId())));
                                 } else {
                                     npc.setProfessionId("unemployed");
-                                    npc.setCustomName(Component.literal("Unemployed"));
                                 }
+                                npc.assignTown(this);
+                                npc.setupAi();
                                 citizen.entityUUID = npc.getUUID();
                                 citizen.status = Citizen.Status.LOADED;
                             }
@@ -337,16 +355,10 @@ public class Town extends ProtoTown {
                     }
                 }
             }
-        }
-    }
+            if (citizen.entityUUID != null) {
+                Entity entity = level.getEntity(citizen.entityUUID);
+                if (entity instanceof Npc npc) {
 
-    private void freezeCitizens(boolean freeze) {
-        for (Citizen citizen : citizens) {
-            var uuid = citizen.entityUUID;
-            if (uuid != null) {
-                if (level.getEntity(citizen.entityUUID) instanceof Npc npc) {
-                    npc.setInvulnerable(freeze);
-                    npc.setNoAi(freeze);
                 }
             }
         }
@@ -358,11 +370,11 @@ public class Town extends ProtoTown {
         if (success) {
             BlockPos.MutableBlockPos cursor = new BlockPos(0, 0, 0).mutable();
             SchematicContent schema = building.getSchematicContent(level.getServer().getResourceManager());
-            for (BlockInfo block : schema.getBlocks()) {
+            for (SchematicBlock block : schema.getBlocks()) {
                 cursor.set(building.getOriginPos().getX(), building.getOriginPos().getY(), building.getOriginPos().getZ());
-                // success &= broken
                 level.setBlock(cursor.move(block.pos()), block.state(), 2);
             }
+            building.setStatus(Build.Status.COMPLETED);
         }
         return success;
     }
@@ -387,7 +399,7 @@ public class Town extends ProtoTown {
         if (success) {
             BlockPos.MutableBlockPos cursor = new BlockPos(0, 0, 0).mutable();
             SchematicContent schema = build.getSchematicContent(level.getServer().getResourceManager());
-            for (BlockInfo block : schema.getBlocks()) {
+            for (SchematicBlock block : schema.getBlocks()) {
                 cursor.set(build.getOriginPos().getX(), build.getOriginPos().getY(), build.getOriginPos().getZ());
                 // success &= broken
                 level.destroyBlock(cursor.move(block.pos()), false);
@@ -396,8 +408,28 @@ public class Town extends ProtoTown {
         return success;
     }
 
-    private boolean addProject(BuildingType buildingType) {
+    public boolean createProject(BuildingType buildingType) {
+        Building building = tryAddBuilding(buildingType, 1);
+        if (building != null) {
+            ConstructionProject project = new ConstructionProject(level, ConstructionProject.ProjectType.NEW_BUILD, building);
+            projects.add(project);
+            return true;
+        }
         return false;
+    }
+
+    public boolean finishProject(String projectId) {
+        for (ConstructionProject project : projects) {
+            if (project.toSafeString().equals(projectId)) {
+                project.rush(true);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public ConstructionProject getPendingProject() {
+        return projects.stream().filter(project -> !project.rushing()).findFirst().orElse(null);
     }
 
     private void maybeCollectProduction() {
@@ -413,22 +445,13 @@ public class Town extends ProtoTown {
     }
 
     void delete(boolean demolish) {
-        setForceLoaded(true, 64);
-        LongSet forceLoaded = level.getForcedChunks();
-        String string = Joiner.on(", ").join(forceLoaded.stream().sorted().map(ChunkPos::new).map(ChunkPos::toString).iterator());
-        Ouat.info("Forceloaded : " + string);
-        forceLoaded.stream().sorted().map(ChunkPos::new).forEach(
-            chunkPos -> Ouat.info("POS " + chunkPos.x + ", " + chunkPos.z + " " + (level.hasChunk(chunkPos.x, chunkPos.z) ? "LOADED" : "UNLOADED")));
-
+        //setForceLoaded(true, 64);
         for (Citizen citizen : citizens) {
             var uuid = citizen.entityUUID;
             if (uuid != null) {
                 if (level.getEntity(citizen.entityUUID) instanceof Npc npc) {
-                    Ouat.info("ENTITY RETRIEVED");
-                    npc.setProfessionId(Profession.UNEMPLOYED.getId());
-                    npc.setNoAi(false);
-                    npc.setCustomName(null);
                     npc.clearAi();
+                    npc.setProfessionId(Profession.UNEMPLOYED.getId());
                 }
             }
         }
@@ -438,13 +461,7 @@ public class Town extends ProtoTown {
                 demolish(build); // will remove Build from this.builds list
             }
         }
-
-        setForceLoaded(false, 64);
-        forceLoaded = level.getForcedChunks();
-        string = Joiner.on(", ").join(forceLoaded.stream().sorted().map(ChunkPos::new).map(ChunkPos::toString).iterator());
-        Ouat.info("FREED : " + string);
-        forceLoaded.stream().sorted().map(ChunkPos::new).forEach(
-            chunkPos -> Ouat.info("POS " + chunkPos.x + ", " + chunkPos.z + " " + (level.hasChunk(chunkPos.x, chunkPos.z) ? "LOADED" : "UNLOADED")));
+        //setForceLoaded(false, 64);
     }
 
     private void collectProduction() {
@@ -475,24 +492,22 @@ public class Town extends ProtoTown {
     }
 
     private void greetPlayer(ServerPlayer player) {
-        Component greetings = Component.literal("Entering " + getName()).withStyle(ChatFormatting.YELLOW);
+        Component greetings = Component.literal("Entering ").append(getName()).withStyle(ChatFormatting.YELLOW);
         player.displayClientMessage(greetings, true);
-        //townInfoBar.addPlayer(player);
     }
 
     private void byePlayer(ServerPlayer player) {
-        Component bye = Component.literal("Leaving " + getName()).withStyle(ChatFormatting.YELLOW);
+        Component bye = Component.literal("Leaving ").append(getName()).withStyle(ChatFormatting.YELLOW);
         player.displayClientMessage(bye, true);
-        //townInfoBar.removePlayer(player);
     }
 
-    private static String getRandomTownName() {
-        return Ouat.translatable("town_name." + RANDOM.nextInt(1, 20)).getString();
+    private static Component getRandomTownName() {
+        return Component.literal(Ouat.translatable("town_name." + RANDOM.nextInt(1, 20)).getString());
     }
 
-    public CompoundTag getGuiDescription() {
+    public CompoundTag getTownMapData() {
         CompoundTag mapDataTag = new CompoundTag();
-        mapDataTag.putString("TownName", getName());
+        mapDataTag.putString("Name", Component.Serializer.toJson(name));
         mapDataTag.put("NWCorner", NbtUtils.writeBlockPos(getNWCorner()));
         mapDataTag.put("SECorner", NbtUtils.writeBlockPos(getSECorner()));
         ListTag elementsTag = new ListTag();
@@ -556,24 +571,36 @@ public class Town extends ProtoTown {
         System.out.println("//------------------------------------------------------------------------------------------------------------------//");
     }
 
+    public List<ConstructionProject> getProjects() {
+        return projects;
+    }
+
+    public String getFancyId() {
+        return "town_" + id;
+    }
+
     public int getId() {
         return id;
     }
 
-    public boolean setName(String newName) {
-        if (newName != null && !newName.isBlank()) {
+    public boolean setName(Component newName) {
+        if (newName != null) {
             name = newName;
             return true;
         }
         return false;
     }
 
-    public String getName() {
+    public Component getName() {
         return name;
     }
 
     public boolean isActive() {
         return active;
+    }
+
+    public ServerLevel getLevel() {
+        return level;
     }
 
     public enum TownBellRingType {

@@ -9,6 +9,8 @@ import net.minecraft.sounds.SoundEvents;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.gui.widgets.ReleaseFocusButton;
 
+import java.util.Objects;
+
 import static org.dawnoftime.onceuponatown.client.gui.GuiUtils.drawCenteredString;
 
 public class TownScrollScreen extends Screen {
@@ -19,7 +21,7 @@ public class TownScrollScreen extends Screen {
     private int mapY;
 
     public TownScrollScreen(CompoundTag mapData) {
-        super(Component.nullToEmpty(mapData.getString("TownName")));
+        super(Objects.requireNonNullElse(Component.Serializer.fromJson(mapData.getString("Name")), Component.empty()));
         this.mapData = mapData;
     }
 

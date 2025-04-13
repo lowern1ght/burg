@@ -15,9 +15,9 @@ import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
 import net.minecraft.world.level.material.FluidState;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.building.Building;
+import org.dawnoftime.onceuponatown.building.instance.Building;
+import org.dawnoftime.onceuponatown.building.schematic.SchematicBlock;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
-import org.dawnoftime.onceuponatown.construction.BlockInfo;
 import org.dawnoftime.onceuponatown.registry.StructurePieceRegistry;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
@@ -65,7 +65,7 @@ public class BuildingPiece extends StructurePiece {
         if (schematicContent != null) {
             schematicContent.rotate(buildingOrientation);
             BlockPos.MutableBlockPos cursorPos = new BlockPos(0, 0, 0).mutable();
-            for (BlockInfo block : schematicContent.getBlocks()) {
+            for (SchematicBlock block : schematicContent.getBlocks()) {
                 cursorPos.set(originPos.getX(), originPos.getY(), originPos.getZ());
                 cursorPos.move(block.pos());
                 if (boundingBox.isInside(cursorPos)) {
