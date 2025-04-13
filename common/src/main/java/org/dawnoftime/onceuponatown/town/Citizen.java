@@ -1,7 +1,7 @@
 package org.dawnoftime.onceuponatown.town;
 
 import net.minecraft.nbt.CompoundTag;
-import org.dawnoftime.onceuponatown.building.Building;
+import org.dawnoftime.onceuponatown.building.instance.Building;
 import org.dawnoftime.onceuponatown.entity.Profession;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

@@ -21,6 +21,7 @@ public class DirtTowerEscapeGoal extends NpcGoal {
         cooldown(UniformInt.of(20 * 8, 20 * 14));
     }
 
+    @Override
     public boolean canUse() {
         var lastAttacker = npc.getLastAttacker();
         return super.canUse() && isHurtEnough() && lastAttacker != null && npc.distanceTo(lastAttacker) >= 6F;
@@ -30,12 +31,14 @@ public class DirtTowerEscapeGoal extends NpcGoal {
         return progress < 4;
     }
 
+    @Override
     public void start() {
         this.progress = 0;
         npc.getNavigation().stop();
         npc.holdInMainHand(new ItemStack(Items.DIRT));
     }
 
+    @Override
     public void tick() {
         boolean standingStill = npc.getDeltaMovement().x() == 0.0D && this.npc.getDeltaMovement().z() == 0.0D;
         BlockPos bellowPos = npc.blockPosition().below();

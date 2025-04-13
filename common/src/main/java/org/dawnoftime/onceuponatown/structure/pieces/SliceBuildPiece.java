@@ -13,10 +13,10 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
 import net.minecraft.world.level.material.FluidState;
-import org.dawnoftime.onceuponatown.building.Build;
-import org.dawnoftime.onceuponatown.building.SliceBuild;
+import org.dawnoftime.onceuponatown.building.instance.Build;
+import org.dawnoftime.onceuponatown.building.instance.SliceBuild;
+import org.dawnoftime.onceuponatown.building.schematic.SchematicBlock;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
-import org.dawnoftime.onceuponatown.construction.BlockInfo;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.culture.ServerCultures;
 import org.dawnoftime.onceuponatown.registry.StructurePieceRegistry;
@@ -65,7 +65,7 @@ public class SliceBuildPiece extends StructurePiece {
     public void postProcess(@NotNull WorldGenLevel level, @NotNull StructureManager structureManager, @NotNull ChunkGenerator chunkGenerator, @NotNull RandomSource random, @NotNull BoundingBox boundingBox, @NotNull ChunkPos chunkPos, @NotNull BlockPos pos) {
         SchematicContent schematicContent = sliceBuild.getSchematicContent(level.getServer().getResourceManager());
         BlockPos.MutableBlockPos cursorPos = new BlockPos(0, 0, 0).mutable();
-        for (BlockInfo block : schematicContent.getBlocks()) {
+        for (SchematicBlock block : schematicContent.getBlocks()) {
             cursorPos.set(originPos.getX(), originPos.getY(), originPos.getZ());
             cursorPos.move(block.pos());
             if (boundingBox.isInside(cursorPos)) {

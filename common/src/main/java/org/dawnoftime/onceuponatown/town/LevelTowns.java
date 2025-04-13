@@ -4,8 +4,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
+import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -16,7 +18,6 @@ import java.util.HashMap;
 public class LevelTowns extends SavedData {
     private final ServerLevel level;
     private final HashMap<Integer, Town> towns = new HashMap<>();
-    private int nextAvailableId;
 
     public static @NotNull LevelTowns of(ServerLevel level) {
         return level.getDataStorage().computeIfAbsent((tag) -> new LevelTowns(level, tag), () -> new LevelTowns(level), "ouat_towns");
@@ -24,24 +25,26 @@ public class LevelTowns extends SavedData {
 
     private LevelTowns(ServerLevel level) {
         this.level = level;
-        this.nextAvailableId = 1;
     }
 
     private LevelTowns(ServerLevel level, CompoundTag tag) {
         this.level = level;
-        this.nextAvailableId = tag.getInt("NextAvailableId");
         ListTag townsTag = tag.getList("Towns", Tag.TAG_COMPOUND);
         for (int i = 0; i < townsTag.size(); i++) {
             Town town = Town.loadNbt(level, townsTag.getCompound(i));
-            // TODO check for incorrect id
-            // Ouat.error(new CorruptedTownException(town, "Could not load town '%s'. Another town was already loaded with the same id.".formatted(key)).getMessage());
-            towns.put(town.getId(), town);
+            int id = town.getId();
+            if (id < 1) {
+                Ouat.error(new CorruptedTownException(town, "Could not load town '%s'. Its id '%s' is invalid.".formatted(town.getName(), id)).getMessage());
+            } else if (towns.containsKey(id)) {
+                Ouat.error(new CorruptedTownException(town, "Could not load town '%s'. Another town was already loaded with the same id '%s'.".formatted(town.getName(), id)).getMessage());
+            } else {
+                towns.put(id, town);
+            }
         }
     }
 
     @Override
-    public CompoundTag save(CompoundTag tag) {
-        tag.putInt("NextAvailableId", nextAvailableId);
+    public @NotNull CompoundTag save(CompoundTag tag) {
         ListTag townsTag = new ListTag();
         for (Town town : towns.values()) {
             townsTag.add(town.saveNbt());
@@ -50,17 +53,21 @@ public class LevelTowns extends SavedData {
         return tag;
     }
 
-    public @Nullable Town getTown(int townId) {
+    public @Nullable Town getTownById(int townId) {
         return towns.getOrDefault(townId, null);
     }
 
-    public @Nullable Town getTown(String townName) {
-        for (Town town : towns.values()) {
-            if (town.getName().equals(townName)) {
-                return town;
+    public @Nullable Town getTownByFancyId(String townFancyId) {
+        Town town = null;
+        try {
+            town = towns.getOrDefault(Integer.parseInt(townFancyId.substring(5)), null);
+        } catch (NumberFormatException e) {
+            try {
+                town = towns.getOrDefault(Integer.parseInt(townFancyId), null);
+            } catch (NumberFormatException ignored) {
             }
         }
-        return null;
+        return town;
     }
 
     public @NotNull Collection<Town> getAll() {
@@ -70,11 +77,10 @@ public class LevelTowns extends SavedData {
     /**
      * Tries to spawn a Town at the desired location. Returns null if generation was impossible.
      */
-    public Town trySpawnTown(Culture townCulture, BlockPos townPosition, @Nullable String townName) {
-        Town town = Town.trySpawnAtPosition(townCulture, level, nextAvailableId, townPosition, townName);
+    public Town trySpawnTown(Culture townCulture, BlockPos townPosition, @Nullable Component townName) {
+        Town town = Town.trySpawnAtPosition(townCulture, level, createId(), townPosition, townName);
         if (town != null) {
-            towns.put(nextAvailableId, town);
-            ++nextAvailableId;
+            towns.put(town.getId(), town);
             return town;
         } else {
             return null;
@@ -86,9 +92,8 @@ public class LevelTowns extends SavedData {
      * WARNING : this method should be called only once for each TownStructure.
      */
     public void registerWorldGeneratedTown(CompoundTag protoTownTag) {
-        Town town = Town.createFromProtoTown(level, nextAvailableId, protoTownTag);
-        towns.put(nextAvailableId, town);
-        ++nextAvailableId;
+        Town town = Town.createFromProtoTown(level, createId(), protoTownTag);
+        towns.put(town.getId(), town);
     }
 
     public boolean deleteTown(int townId, boolean demolish) {
@@ -105,6 +110,10 @@ public class LevelTowns extends SavedData {
         for (Town town : towns.values()) {
             town.tick();
         }
+    }
+
+    private int createId() {
+        return towns.keySet().stream().mapToInt(Integer::intValue).max().orElse(0) + 1;
     }
 
     @Override

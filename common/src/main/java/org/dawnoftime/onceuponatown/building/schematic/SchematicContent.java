@@ -13,11 +13,9 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.building.SliceBuild;
+import org.dawnoftime.onceuponatown.building.ConstructionUtils;
+import org.dawnoftime.onceuponatown.building.instance.SliceBuild;
 import org.dawnoftime.onceuponatown.building.type.SliceBuildType;
-import org.dawnoftime.onceuponatown.construction.BlockInfo;
-import org.dawnoftime.onceuponatown.construction.ConstructionUtils;
-import org.dawnoftime.onceuponatown.construction.EntityInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -32,8 +30,8 @@ import java.util.List;
  * Structure template similar to the vanilla one, but adapted to the mod needs.
  */
 public class SchematicContent {
-    private final List<BlockInfo> blocks = new ArrayList<>(); // Blocks (pos, state, nbt) in the schematic
-    private final List<EntityInfo> entities = new ArrayList<>(); // Entities (pos, state, nbt) in the schematic
+    private final List<SchematicBlock> blocks = new ArrayList<>(); // Blocks (pos, state, nbt) in the schematic
+    private final List<SchematicEntity> entities = new ArrayList<>(); // Entities (pos, state, nbt) in the schematic
     private Vec3i dimensions = Vec3i.ZERO; // XYZ dimensions of the schematic
 
     private SchematicContent() {
@@ -78,13 +76,13 @@ public class SchematicContent {
             minY[z] = shape.getMinYForSliceSchematic(z);
             maxY[z] = shape.getMaxYForSliceSchematic(z, this.dimensions.getZ(), this.dimensions.getY());
         }
-        for (BlockInfo info : this.blocks) {
+        for (SchematicBlock info : this.blocks) {
             int patternIndex = info.pos().getZ();
             if (info.pos().getY() >= minY[patternIndex] && info.pos().getY() <= maxY[patternIndex]) {
                 sliceArray[patternIndex].blocks.add(info.move(0, -minY[patternIndex], -patternIndex));
             }
         }
-        for (EntityInfo info : this.entities) {
+        for (SchematicEntity info : this.entities) {
             int patternIndex = info.pos().getZ();
             if (info.pos().getY() >= minY[patternIndex] && info.pos().getY() <= maxY[patternIndex]) {
                 sliceArray[patternIndex].entities.add(info.move(0, -minY[patternIndex], -patternIndex));
@@ -115,14 +113,14 @@ public class SchematicContent {
         for (int yIndex = 0; yIndex < yShape.length; yIndex++) {
             SliceBuild.SliceProperty slice = yShape[yIndex];
             int offsetY = slice.y() - originY;
-            List<BlockInfo> blocks = sliceMap.get(slice.buildVariantId())[yIndex % patternLength].getBlocks();
+            List<SchematicBlock> blocks = sliceMap.get(slice.buildVariantId())[yIndex % patternLength].getBlocks();
             if (slice.shape() == SliceBuildType.SliceBuildShape.STAIRS_INVERTED) {
-                blocks = blocks.stream().map(BlockInfo::inverse).toList();
+                blocks = blocks.stream().map(SchematicBlock::inverse).toList();
             }
             int finalYIndex = yIndex;
             schematic.blocks.addAll(blocks.stream().map(blockInfo -> blockInfo.move(0, offsetY, finalYIndex)).toList());
-            List<EntityInfo> entities = sliceMap.get(slice.buildVariantId())[yIndex % patternLength].getEntities();
-            schematic.entities.addAll(entities.stream().map(entityInfo -> entityInfo.move(0, offsetY, finalYIndex)).toList());
+            List<SchematicEntity> entities = sliceMap.get(slice.buildVariantId())[yIndex % patternLength].getEntities();
+            schematic.entities.addAll(entities.stream().map(schematicEntity -> schematicEntity.move(0, offsetY, finalYIndex)).toList());
         }
         schematic.dimensions = new Vec3i(build.getNorthSizeX(), build.getSizeY(), yShape.length);
         return schematic;
@@ -133,7 +131,7 @@ public class SchematicContent {
      */
     public SchematicContent rotate(Direction direction) {
         blocks.replaceAll(blockInfo -> blockInfo.rotateInBuild(direction, dimensions.getX(), dimensions.getZ()));
-        entities.replaceAll(entityInfo -> entityInfo.rotate(direction, dimensions.getX(), dimensions.getZ()));
+        entities.replaceAll(schematicEntity -> schematicEntity.rotate(direction, dimensions.getX(), dimensions.getZ()));
         if (direction.getAxis() == Direction.Axis.X) {
             dimensions = new Vec3i(dimensions.getZ(), dimensions.getY(), dimensions.getX());
         }
@@ -153,13 +151,13 @@ public class SchematicContent {
         ListTag entitiesTag = structureTag.getList("entities", 10);
         for (int i = 0; i < entitiesTag.size(); ++i) {
             CompoundTag entityTag = entitiesTag.getCompound(i);
-            ListTag posTag = entityTag.getList("vec3", 6);
+            ListTag posTag = entityTag.getList("pos", 6);
             Vec3 pos = new Vec3(posTag.getDouble(0), posTag.getDouble(1), posTag.getDouble(2));
-            ListTag blockPosTag = entityTag.getList("pos", 3);
+            ListTag blockPosTag = entityTag.getList("blockPos", 3);
             BlockPos blockPos = new BlockPos(blockPosTag.getInt(0), blockPosTag.getInt(1), blockPosTag.getInt(2));
-            if (entityTag.contains("entityNbt")) {
-                CompoundTag entityNBT = entityTag.getCompound("entityNbt");
-                entities.add(new EntityInfo(pos, blockPos, entityNBT));
+            if (entityTag.contains("nbt")) {
+                CompoundTag entityNBT = entityTag.getCompound("nbt");
+                entities.add(new SchematicEntity(pos, blockPos, entityNBT));
             }
         }
         // Extracting blocks
@@ -186,7 +184,7 @@ public class SchematicContent {
         for (int i = 0; i < paletteTag.size(); ++i) {
             palette.addMapping(NbtUtils.readBlockState(blockGetter, paletteTag.getCompound(i)), i);
         }
-        List<BlockInfo> blockInfoList = new ArrayList<>();
+        List<SchematicBlock> schematicBlockList = new ArrayList<>();
         for (int i = 0; i < blocksTag.size(); ++i) {
             CompoundTag blockTag = blocksTag.getCompound(i);
             ListTag posTag = blockTag.getList("pos", 3);
@@ -198,21 +196,21 @@ public class SchematicContent {
             } else {
                 blockNBT = null;
             }
-            BlockInfo blockInfo = new BlockInfo(blockPos, blockState, blockNBT);
-            blockInfoList.add(blockInfo);
+            SchematicBlock schematicBlock = new SchematicBlock(blockPos, blockState, blockNBT);
+            schematicBlockList.add(schematicBlock);
         }
-        ConstructionUtils.sortBlocks(blockInfoList);
-        blocks.addAll(blockInfoList);
+        ConstructionUtils.sortBlocks(schematicBlockList);
+        blocks.addAll(schematicBlockList);
     }
 
     /**
      * @return This building plan without void blocks
      */
     public SchematicContent withoutVoidBlocks() {
-        List<BlockInfo> toRemove = new ArrayList<>();
-        for (BlockInfo blockInfo : this.blocks) {
-            if (blockInfo.state().getBlock() == Blocks.STRUCTURE_VOID) {
-                toRemove.add(blockInfo);
+        List<SchematicBlock> toRemove = new ArrayList<>();
+        for (SchematicBlock schematicBlock : this.blocks) {
+            if (schematicBlock.state().getBlock() == Blocks.STRUCTURE_VOID) {
+                toRemove.add(schematicBlock);
             }
         }
         blocks.removeAll(toRemove);
@@ -235,11 +233,11 @@ public class SchematicContent {
         return blocks.get(i).nbt();
     }
 
-    public List<EntityInfo> getEntities() {
+    public List<SchematicEntity> getEntities() {
         return entities;
     }
 
-    public List<BlockInfo> getBlocks() {
+    public List<SchematicBlock> getBlocks() {
         return blocks;
     }
 

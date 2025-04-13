@@ -25,7 +25,7 @@ public class TownScrollItem extends Item {
         if (!level.isClientSide && level instanceof ServerLevel serverLevel) {
             Town town = Utils.getNearestTown(serverLevel, player.blockPosition(), TOWN_VIEW_MAX_DIST);
             if (town != null) {
-                Ouat.COMMON.sendToClient(player, new S2COpenTownMapScreenPacket(town.getGuiDescription()));
+                Ouat.COMMON.sendToClient(player, new S2COpenTownMapScreenPacket(town.getTownMapData()));
             } else {
                 player.displayClientMessage(Component.literal("There is no towns nearby"), true);
             }
