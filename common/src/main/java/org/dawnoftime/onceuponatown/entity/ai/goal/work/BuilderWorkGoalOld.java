@@ -8,7 +8,7 @@ import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.Vec3;
-import org.dawnoftime.onceuponatown.construction.ConstructionProject;
+import org.dawnoftime.onceuponatown.building.ConstructionProject;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.entity.ai.SimpleStateMachine;
 

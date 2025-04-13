@@ -46,9 +46,7 @@ public class CommonEvents {
         @SubscribeEvent
         public static void onLevelTick(TickEvent.LevelTickEvent event) {
             if (event.level instanceof ServerLevel level && event.phase.equals(TickEvent.Phase.END)) {
-                if (level.getServer().getTickCount() % (20 * Config.TOWN_TICK_RATE_SECONDS) == 0) {
-                    LevelTowns.of(level).tickTowns();
-                }
+                LevelTowns.of(level).tickTowns();
             }
         }
 

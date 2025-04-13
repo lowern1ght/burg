@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.building;
+package org.dawnoftime.onceuponatown.building.instance;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;

@@ -1,5 +1,7 @@
 package org.dawnoftime.onceuponatown.entity;
 
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -19,6 +21,7 @@ import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.*;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
+import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
 import net.minecraft.world.entity.boss.wither.WitherBoss;
 import net.minecraft.world.entity.monster.CrossbowAttackMob;
 import net.minecraft.world.entity.monster.RangedAttackMob;
@@ -31,24 +34,26 @@ import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.raid.Raider;
 import net.minecraft.world.item.*;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.pathfinder.BlockPathTypes;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.Utils;
 import org.dawnoftime.onceuponatown.entity.ai.goal.core.NpcPanicGoal;
 import org.dawnoftime.onceuponatown.entity.ai.goal.fight.SelfDefenseGoal;
 import org.dawnoftime.onceuponatown.menu.BuildingsMenu;
 import org.dawnoftime.onceuponatown.menu.InteractingNpc;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
+import org.dawnoftime.onceuponatown.registry.ItemRegistry;
+import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.Town;
 import org.dawnoftime.onceuponatown.trade.NpcOffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
 public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, CrossbowAttackMob {
     //TODO make a clean and custom client serialization
+    private static final EntityDataAccessor<Integer> DATA_UNHAPPY_COUNTER = SynchedEntityData.defineId(Npc.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> DATA_IS_CHARGING_CROSSBOW = SynchedEntityData.defineId(Npc.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> DATA_CROSSING_ARMS = SynchedEntityData.defineId(Npc.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> DATA_READING = SynchedEntityData.defineId(Npc.class, EntityDataSerializers.BOOLEAN);
@@ -63,21 +68,26 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
     private int lastBreakProgress = -1;
     private NpcFishingHook fishingHook;
     private Profession profession;
+    private Town town;
+    private int townId = -1;
 
     public Npc(EntityType<Npc> entityType, Level level) {
         super(entityType, level);
-        setCultureId("plains");
-        setProfessionId("unemployed");
+        ((GroundPathNavigation) getNavigation()).setCanOpenDoors(true);
+        getNavigation().setCanFloat(true);
+        setPathfindingMalus(BlockPathTypes.DANGER_FIRE, 16.0F);
+        setPathfindingMalus(BlockPathTypes.DAMAGE_FIRE, -1.0F);
     }
 
     @Override
     protected void defineSynchedData() {
         super.defineSynchedData();
+        entityData.define(DATA_UNHAPPY_COUNTER, 0);
         entityData.define(DATA_IS_CHARGING_CROSSBOW, false);
-        entityData.define(DATA_CROSSING_ARMS, true);
+        entityData.define(DATA_CROSSING_ARMS, false);
         entityData.define(DATA_READING, false);
-        entityData.define(CULTURE, "default");
-        entityData.define(PROFESSION, "");
+        entityData.define(CULTURE, "plains");
+        entityData.define(PROFESSION, "default");
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -89,6 +99,10 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         super.readAdditionalSaveData(tag);
         setCultureId(tag.getString("Culture"));
         setProfessionId(tag.getString("Profession"));
+        townId = tag.getInt("TownId");
+        if (townId != -1 && level() instanceof ServerLevel serverLevel) {
+            town = LevelTowns.of(serverLevel).getTownById(townId);
+        }
     }
 
     @Override
@@ -96,21 +110,25 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         super.addAdditionalSaveData(tag);
         tag.putString("Culture", getCultureId());
         tag.putString("Profession", getProfessionId());
+        tag.putInt("TownId", townId);
     }
 
     @Override
     protected void registerGoals() {
         addCoreGoals();
-        addRaidGoals();
-        addSleepingGoals();
-        addRestingGoals();
-        addWorkGoals();
-        addFreeTimeGoals();
     }
 
     public void clearAi() {
         goalSelector.removeAllGoals(goal -> true);
         addCoreGoals();
+    }
+
+    public void setupAi() {
+        addRaidGoals();
+        addSleepingGoals();
+        addRestingGoals();
+        addWorkGoals();
+        addFreeTimeGoals();
     }
 
     private void addCoreGoals() {
@@ -131,7 +149,6 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
             return (livingEntity.is(lastHurtBy));
         }));
 
-        //goalSelector.addGoal(8, new FishermanWorkGoal(this));
         goalSelector.addGoal(9, new WaterAvoidingRandomStrollGoal(this, 0.8D));
         goalSelector.addGoal(11, new LookAtPlayerGoal(this, Player.class, 10.0F));
         goalSelector.addGoal(12, new LookAtPlayerGoal(this, LivingEntity.class, 10.0F));
@@ -151,7 +168,9 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
     }
 
     private void addWorkGoals() {
-        //goalSelector.addGoal(12, new BuilderWorkGoal(this));
+        if (getProfessionId().equals(Profession.BUILDER.getId())) {
+            //goalSelector.addGoal(8, new BuilderWorkGoal(this));
+        }
     }
 
     private void addFreeTimeGoals() {
@@ -163,6 +182,14 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         //setItemSlot(EquipmentSlot.CHEST, new ItemStack(Items.IRON_CHESTPLATE));
         //setItemSlot(EquipmentSlot.LEGS, new ItemStack(Items.IRON_LEGGINGS));
         //setItemSlot(EquipmentSlot.FEET, new ItemStack(Items.IRON_BOOTS));
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (getUnhappyCounter() > 0) {
+            setUnhappyCounter(getUnhappyCounter() - 1);
+        }
     }
 
     @Override
@@ -220,26 +247,37 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         Ouat.LOG.info("Npc {} died, message: '{}'", this, cause.getLocalizedDeathMessage(this).getString());
     }
 
+    @Override
     protected @NotNull InteractionResult mobInteract(@NotNull Player player, @NotNull InteractionHand hand) {
-        if (!level().isClientSide() && (hand == InteractionHand.MAIN_HAND)) {
-            this.interactingPlayer = player;
-            if (player instanceof ServerPlayer serverPlayer) {
-                Town town = Utils.getNearestTown(serverPlayer.serverLevel(), blockPosition());
-                Ouat.COMMON.openMenu(serverPlayer, new SimpleMenuProvider((containerID, playerInventory, p) -> new BuildingsMenu(containerID, playerInventory, this, town.getGuiDescription()), Ouat.translatable("buildings")), buffer -> {
+        ItemStack itemStack = player.getItemInHand(hand);
+        if (!level().isClientSide()
+            && player instanceof ServerPlayer serverPlayer
+            && !itemStack.is(ItemRegistry.REGISTRY.NPC_SPAWN_EGG.get())
+            && isAlive()
+            && !isSleeping()
+            && (hand == InteractionHand.MAIN_HAND)
+        ) {
+            if (town != null
+                && !getProfessionId().equals("default")
+                && !getProfessionId().equals("unemployed")
+            ) {
+                interactingPlayer = serverPlayer;
+                Ouat.COMMON.openMenu(serverPlayer, new SimpleMenuProvider((containerID, playerInventory, p) ->
+                    new BuildingsMenu(containerID, playerInventory, this, town.getTownMapData()), Ouat.translatable("buildings")), buffer -> {
                     buffer.writeInt(this.getId());
-                    buffer.writeNbt(town.getGuiDescription());
+                    buffer.writeNbt(town.getTownMapData());
                 });
+            } else {
+                setUnhappy();
             }
-
         }
         return super.mobInteract(player, hand);
     }
 
-    public CompoundTag getTownMapData() {
-        if (!level().isClientSide() && level() instanceof ServerLevel level) {
-            return Utils.getNearestTown(level, blockPosition()).getGuiDescription();
-        } else {
-            return null;
+    private void setUnhappy() {
+        setUnhappyCounter(40);
+        if (!level().isClientSide()) {
+            playSound(SoundEvents.VILLAGER_NO, getSoundVolume(), getVoicePitch());
         }
     }
 
@@ -279,6 +317,7 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         }
     }
 
+    @Override
     public void performRangedAttack(@NotNull LivingEntity target, float velocity) {
         if (isHolding(stack -> stack.getItem() instanceof BowItem)) {
             performBowAttack(target);
@@ -298,6 +337,7 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         level().addFreshEntity(arrow);
     }
 
+    @Override
     public @NotNull ItemStack getProjectile(ItemStack weaponStack) {
         if (weaponStack.getItem() instanceof ProjectileWeaponItem projectileWeaponItem) {
             Predicate<ItemStack> predicate = projectileWeaponItem.getSupportedHeldProjectiles();
@@ -308,119 +348,17 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         }
     }
 
+    @Override
     public boolean canFireProjectileWeapon(@NotNull ProjectileWeaponItem projectileWeaponItem) {
         return projectileWeaponItem == Items.CROSSBOW || projectileWeaponItem == Items.BOW;
     }
 
     @Override
     public List<NpcOffer> getOffers() {
-        List<NpcOffer> deals = new ArrayList<>();
-        // Buy deals
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.WHITE_WOOL, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.LIGHT_GRAY_WOOL, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.GRAY_WOOL, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.BLACK_WOOL, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.BROWN_WOOL, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.RED_WOOL, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.ORANGE_WOOL, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.YELLOW_WOOL, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.LIME_WOOL, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.GREEN_WOOL, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.CYAN_WOOL, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.LIGHT_BLUE_WOOL, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.BLUE_WOOL, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.PURPLE_WOOL, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.MAGENTA_WOOL, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.PINK_WOOL, 1)).build());
-
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.WHITE_BED, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.LIGHT_GRAY_BED, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.GRAY_BED, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.BLACK_BED, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.BROWN_BED, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.RED_BED, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.ORANGE_BED, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.YELLOW_BED, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.LIME_BED, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.GREEN_BED, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.CYAN_BED, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.LIGHT_BLUE_BED, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.BLUE_BED, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.PURPLE_BED, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.MAGENTA_BED, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.PINK_BED, 1)).build());
-
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.WHITE_BANNER, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.LIGHT_GRAY_BANNER, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.GRAY_BANNER, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.BLACK_BANNER, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.BROWN_BANNER, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.RED_BANNER, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.ORANGE_BANNER, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.YELLOW_BANNER, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.LIME_BANNER, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.GREEN_BANNER, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.CYAN_BANNER, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.LIGHT_BLUE_BANNER, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.BLUE_BANNER, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.PURPLE_BANNER, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.MAGENTA_BANNER, 1)).build());
-        deals.add(NpcOffer.Builder.buyOffer(new ItemStack(Items.EMERALD, 1), new ItemStack(Items.PINK_BANNER, 1)).build());
-
-        // Sell deals
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.WHITE_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.LIGHT_GRAY_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.GRAY_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.BLACK_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.BROWN_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.RED_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.ORANGE_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.YELLOW_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.LIME_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.GREEN_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.CYAN_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.LIGHT_BLUE_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.BLUE_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.PURPLE_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.MAGENTA_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.PINK_CANDLE, 4), new ItemStack(Items.EMERALD, 1)).build());
-
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.WHITE_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.LIGHT_GRAY_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.GRAY_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.BLACK_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.BROWN_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.RED_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.ORANGE_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.YELLOW_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.LIME_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.GREEN_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.CYAN_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.LIGHT_BLUE_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.BLUE_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.PURPLE_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.MAGENTA_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.PINK_STAINED_GLASS, 6), new ItemStack(Items.EMERALD, 1)).build());
-
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.WHITE_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.LIGHT_GRAY_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.GRAY_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.BLACK_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.BROWN_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.RED_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.ORANGE_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.YELLOW_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.LIME_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.GREEN_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.CYAN_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.LIGHT_BLUE_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.BLUE_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.PURPLE_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.MAGENTA_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
-        deals.add(NpcOffer.Builder.sellOffer(new ItemStack(Items.PINK_STAINED_GLASS_PANE, 8), new ItemStack(Items.EMERALD, 1)).build());
-        return deals;
+        return NpcTrades.getOffers();
     }
 
+    @Override
     public void thunderHit(ServerLevel level, @NotNull LightningBolt lightningBolt) {
         if (level.getDifficulty() != Difficulty.PEACEFUL && Ouat.COMMON.canLivingConvert(this, EntityType.WITCH)) {
             Ouat.LOG.info("Npc {} was struck by lightning {}.", this, lightningBolt);
@@ -446,12 +384,43 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         }
     }
 
+    @Override
+    public void setLastHurtByMob(@Nullable LivingEntity livingEntity) {
+        if (!level().isClientSide() && livingEntity instanceof Player) {
+            sendParticlesAroundSelf(ParticleTypes.ANGRY_VILLAGER);
+        }
+        super.setLastHurtByMob(livingEntity);
+    }
+
+    protected void sendParticlesAroundSelf(ParticleOptions particleOption) {
+        if (level() instanceof ServerLevel serverLevel) {
+            for (int i = 0; i < 5; i++) {
+                serverLevel.sendParticles(particleOption, getRandomX(1.0), getRandomY() + 1.0, getRandomZ(1.0), 1, 0.0, 0.0, 0.0, random.nextGaussian() * 0.02);
+            }
+        }
+    }
+
+    public void assignTown(Town town) {
+        if (town != null && town.getLevel() == level()) {
+            this.town = town;
+            this.townId = town.getId();
+        }
+    }
+
     public void setCultureId(String cultureId) {
         entityData.set(CULTURE, cultureId);
     }
 
     public void setProfessionId(String professionId) {
         entityData.set(PROFESSION, professionId);
+    }
+
+    public int getUnhappyCounter() {
+        return entityData.get(DATA_UNHAPPY_COUNTER);
+    }
+
+    public void setUnhappyCounter(int unhappyCounter) {
+        entityData.set(DATA_UNHAPPY_COUNTER, unhappyCounter);
     }
 
     @Override
@@ -476,8 +445,7 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
 
     @Override
     protected SoundEvent getAmbientSound() {
-        return null;
-        //return SoundEvents.VILLAGER_AMBIENT; //return tradingHandler.isTrading() ? SoundEvents.VILLAGER_TRADE : SoundEvents.VILLAGER_AMBIENT;
+        return SoundEvents.VILLAGER_AMBIENT;
     }
 
     public String getCultureId() {
@@ -490,7 +458,11 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
 
     @Override
     public int getAmbientSoundInterval() {
-        return 600;
+        return super.getAmbientSoundInterval();
+    }
+
+    public void playCelebrateSound() {
+        playSound(SoundEvents.VILLAGER_CELEBRATE, getSoundVolume(), getVoicePitch());
     }
 
     @Override
@@ -524,6 +496,11 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
     }
 
     // ---- GETTERS & SETTERS ---- //
+
+
+    public Town getTown() {
+        return town;
+    }
 
     public boolean isCrossingArms() {
         return entityData.get(DATA_CROSSING_ARMS);

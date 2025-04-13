@@ -18,7 +18,7 @@ import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.Utils;
-import org.dawnoftime.onceuponatown.building.Build;
+import org.dawnoftime.onceuponatown.building.instance.Build;
 import org.dawnoftime.onceuponatown.client.gui.tooltip.ItemAndTitleTooltip;
 import oshi.util.tuples.Triplet;
 

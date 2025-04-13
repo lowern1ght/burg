@@ -1,10 +1,11 @@
-package org.dawnoftime.onceuponatown.construction;
+package org.dawnoftime.onceuponatown.building;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import org.dawnoftime.onceuponatown.building.schematic.SchematicBlock;
 
 import java.util.Comparator;
 import java.util.List;
@@ -16,9 +17,9 @@ public class ConstructionUtils {
      *
      * @param blockList The list of blocks in the structure
      */
-    public static void sortBlocks(List<BlockInfo> blockList) {
-        Comparator<BlockInfo> comparator = Comparator
-                .<BlockInfo>comparingInt((pY) -> pY.pos().getY())
+    public static void sortBlocks(List<SchematicBlock> blockList) {
+        Comparator<SchematicBlock> comparator = Comparator
+            .<SchematicBlock>comparingInt((pY) -> pY.pos().getY())
                 .thenComparingInt((pX) -> pX.pos().getX())
                 .thenComparingInt((pZ) -> pZ.pos().getZ());
         blockList.sort(comparator);

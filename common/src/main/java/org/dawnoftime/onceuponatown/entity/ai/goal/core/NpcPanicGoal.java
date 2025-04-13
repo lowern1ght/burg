@@ -22,6 +22,7 @@ public class NpcPanicGoal extends NpcGoal {
         this.setFlags(EnumSet.of(Goal.Flag.MOVE));
     }
 
+    @Override
     public boolean canUse() {
         if (!this.shouldPanic())
             return false;
@@ -41,6 +42,7 @@ public class NpcPanicGoal extends NpcGoal {
         return !this.npc.getNavigation().isDone();
     }
 
+    @Override
     public void start() {
         this.npc.getNavigation().moveTo(this.posX, this.posY, this.posZ, this.speedModifier);
     }

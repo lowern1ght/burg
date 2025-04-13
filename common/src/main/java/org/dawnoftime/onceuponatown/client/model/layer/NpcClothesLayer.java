@@ -33,20 +33,22 @@ public class NpcClothesLayer<T extends Npc, M extends NpcModel<T>> extends Rende
 
     private void renderCultureCommonClothes(M model, PoseStack poseStack, MultiBufferSource buffer, int packedLight, T npc) {
         String cultureId = npc.getCultureId();
-        // TODO handle wrong culture id or corrupted culture
-        String path = DataHandler.CULTURES_FOLDER_NAME + "/" + cultureId + "/clothes/jacket.png";
-        ResourceLocation resourceLocation = Ouat.modResource(path);
-        renderColoredCutoutModel(model, resourceLocation, poseStack, buffer, packedLight, npc, 1.0F, 1.0F, 1.0F);
+        if (!cultureId.equals("default") && !cultureId.isBlank()) {
+            String path = DataHandler.CULTURES_FOLDER_NAME + "/" + cultureId + "/clothes/jacket.png";
+            ResourceLocation resourceLocation = Ouat.modResource(path);
+            renderColoredCutoutModel(model, resourceLocation, poseStack, buffer, packedLight, npc, 1.0F, 1.0F, 1.0F);
+        }
     }
 
     private void renderProfessionClothes(M model, PoseStack poseStack, MultiBufferSource buffer, int packedLight, T npc) {
         String cultureId = npc.getCultureId();
         String professionId = npc.getProfessionId();
-        // TODO handle wrong culture id or corrupted culture
-        if (!professionId.isBlank() && !professionId.equals(Profession.UNEMPLOYED.getId())) {
-            String path = DataHandler.CULTURES_FOLDER_NAME + "/" + cultureId + "/clothes/professions/" + professionId + ".png";
-            ResourceLocation resourceLocation = Ouat.modResource(path);
-            renderColoredCutoutModel(model, resourceLocation, poseStack, buffer, packedLight, npc, 1.0F, 1.0F, 1.0F);
+        if (!cultureId.equals("default") && !cultureId.isBlank()) {
+            if (!professionId.isBlank() && !professionId.equals("default") && !professionId.equals(Profession.UNEMPLOYED.getId())) {
+                String path = DataHandler.CULTURES_FOLDER_NAME + "/" + cultureId + "/clothes/professions/" + professionId + ".png";
+                ResourceLocation resourceLocation = Ouat.modResource(path);
+                renderColoredCutoutModel(model, resourceLocation, poseStack, buffer, packedLight, npc, 1.0F, 1.0F, 1.0F);
+            }
         }
     }
 
