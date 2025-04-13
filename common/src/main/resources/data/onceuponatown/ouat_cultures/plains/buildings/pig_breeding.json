@@ -10,21 +10,6 @@
   "item": "minecraft:porkchop",
   "variants": [
     {
-      "name": "variant1",
-      "size": {
-        "x": 24,
-        "y": 9,
-        "z": 24
-      },
-      "levels": [
-        {
-          "schematic": "pig_field",
-          "waypoints": [
-          ]
-        }
-      ]
-    },
-    {
       "name": "variant2",
       "size": {
         "x": 29,
@@ -33,7 +18,7 @@
       },
       "levels": [
         {
-          "schematic": "pig_farm",
+          "schematic": "pig_farm_2",
           "waypoints": [
           ]
         }

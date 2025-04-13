@@ -11,6 +11,7 @@ import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.gui.NpcBaseScreen;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.menu.*;
+import org.dawnoftime.onceuponatown.town.Town;
 import org.dawnoftime.onceuponatown.trade.TradeUtils;
 import org.slf4j.Logger;
 
@@ -42,6 +43,10 @@ public record C2SChangeNpcTabPacket(int newTab) implements OuatPacket {
                 LOGGER.debug("Player {} interacted with invalid menu {}", player, menu);
             } else {
                 Npc npc = menu.getNpc().getNpc();
+                Town town = npc.getTown();
+                if (town == null) {
+                    return;
+                }
                 switch (tab) {
                     case TRADE -> {
                         Ouat.COMMON.openMenu(player, new SimpleMenuProvider((containerID, playerInventory, p) ->
@@ -58,9 +63,9 @@ public record C2SChangeNpcTabPacket(int newTab) implements OuatPacket {
                     }
                     case BUILDINGS -> {
                         Ouat.COMMON.openMenu(player, new SimpleMenuProvider((containerID, playerInventory, p) ->
-                            new BuildingsMenu(containerID, playerInventory, npc, npc.getTownMapData()), Ouat.translatable("buildings")), buffer -> {
+                            new BuildingsMenu(containerID, playerInventory, npc, npc.getTown().getTownMapData()), Ouat.translatable("buildings")), buffer -> {
                             buffer.writeInt(npc.getId());
-                            buffer.writeNbt(npc.getTownMapData());
+                            buffer.writeNbt(npc.getTown().getTownMapData());
                         });
                     }
                     case PROGRESSION -> {

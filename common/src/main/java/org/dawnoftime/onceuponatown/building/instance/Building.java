@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.building;
+package org.dawnoftime.onceuponatown.building.instance;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -191,10 +191,6 @@ public class Building extends Build {
     @Override
     protected byte getBuildCategory() {
         return BUILDING;
-    }
-
-    public String toSafeString() {
-        return getBuildType().getId() + "_" + getOriginPos().getX() + "_" + getOriginPos().getY() + "_" + getOriginPos().getZ();
     }
 
     public String getVariantId() {

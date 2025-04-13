@@ -8,10 +8,10 @@ import net.minecraft.nbt.NbtUtils;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import org.dawnoftime.onceuponatown.Config;
-import org.dawnoftime.onceuponatown.building.Build;
-import org.dawnoftime.onceuponatown.building.Building;
-import org.dawnoftime.onceuponatown.building.Road;
-import org.dawnoftime.onceuponatown.building.SliceBuild;
+import org.dawnoftime.onceuponatown.building.instance.Build;
+import org.dawnoftime.onceuponatown.building.instance.Building;
+import org.dawnoftime.onceuponatown.building.instance.Road;
+import org.dawnoftime.onceuponatown.building.instance.SliceBuild;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import org.dawnoftime.onceuponatown.building.type.SliceBuildType;
 import org.dawnoftime.onceuponatown.culture.Culture;
@@ -51,14 +51,16 @@ public class ProtoTown {
     private MapPart[][] townMap; // 2D array representing the map of the Town. Each map position could be a free space or occupied by a Build
     protected BoundingBox townBox;
 
-    protected ProtoTown(Culture culture,
-                        BlockPos center,
-                        BlockPos NWCorner,
-                        BlockPos SECorner,
-                        List<BuildBud> buds,
-                        List<Build> builds,
-                        int buildsWeight,
-                        BiFunction<Integer, Integer, Integer> getSurfaceY) {
+    protected ProtoTown(
+        Culture culture,
+        BlockPos center,
+        BlockPos NWCorner,
+        BlockPos SECorner,
+        List<BuildBud> buds,
+        List<Build> builds,
+        int buildsWeight,
+        BiFunction<Integer, Integer, Integer> getSurfaceY
+    ) {
         this.culture = culture;
         this.center = center.mutable();
         this.NWCorner = NWCorner.mutable();
@@ -68,7 +70,7 @@ public class ProtoTown {
         this.buildsWeight = buildsWeight;
         this.getSurfaceY = getSurfaceY;
         computeTownMap();
-        calculateBoundingBox();
+        computeBoundingBox();
     }
 
     /**
@@ -147,7 +149,11 @@ public class ProtoTown {
             }
         }
         for (BuildingType type : starterPack) {
-            success &= (this.tryAddBuilding(type, 1) != null);
+            Building building = this.tryAddBuilding(type, 1);
+            if (building != null) {
+                building.setStatus(Build.Status.COMPLETED);
+            }
+            success &= (building != null);
         }
         return success;
     }
@@ -168,7 +174,7 @@ public class ProtoTown {
         }
     }
 
-    private void calculateBoundingBox() {
+    private void computeBoundingBox() {
         townBox = BoundingBox.fromCorners(NWCorner.below(B_BOX_HEIGHT), SECorner.above(B_BOX_HEIGHT)).inflatedBy(B_BOX_INFLATED_BY);
     }
 
@@ -176,8 +182,8 @@ public class ProtoTown {
      * Tries to place the given Build on the given BuildBud. For each adjacent Road to the bud, we try the corresponding rotation
      * of the Build. If the town map is empty, and the MC Level allows the placement, the Build is added to the map.
      *
-     * @param build    Build we want to build.
-     * @param bud Bud on which we try to build.
+     * @param build Build we want to build.
+     * @param bud   Bud on which we try to build.
      * @return true if the Build was successfully added, false otherwise.
      */
     private boolean tryBuildOnBud(Build build, @Nullable BuildBud bud) {
@@ -198,7 +204,8 @@ public class ProtoTown {
 
     /**
      * Tries to add a new Building to this ProtoTown. Does not place any block in the world.
-     * @param type the BuildingType of the Building to add.
+     *
+     * @param type          the BuildingType of the Building to add.
      * @param startingLevel the initial level of the Building to add.
      * @return the freshly added Building or false if the placement was unsuccessful.
      */
@@ -273,6 +280,10 @@ public class ProtoTown {
 
     public @Nullable Building getBuilding(String buildingName) {
         return getBuildings().stream().filter(building -> building.toSafeString().equals(buildingName)).findFirst().orElse(null);
+    }
+
+    public @Nullable Build getBuild(String buildName) {
+        return getBuilds().stream().filter(build -> build.toSafeString().equals(buildName)).findFirst().orElse(null);
     }
 
     /**
@@ -393,7 +404,7 @@ public class ProtoTown {
             System.arraycopy(this.townMap[i], 0, newTownMap[i + north], west, cols);
         }
         this.townMap = newTownMap;
-        calculateBoundingBox();
+        computeBoundingBox();
     }
 
     /**
@@ -453,8 +464,8 @@ public class ProtoTown {
     }
 
     /**
-     * @param xMap            x coordinate in the town map.
-     * @param zMap            z coordinate in the town map.
+     * @param xMap           x coordinate in the town map.
+     * @param zMap           z coordinate in the town map.
      * @param allowedMapPart MapPart that should be considered as a free space (often a Build that we try to place).
      * @return true if the town map contains a free space at the given position, or contains the allowed MapPart.
      */
@@ -483,8 +494,8 @@ public class ProtoTown {
     /**
      * Set a MapPart at given town map coordinates.
      *
-     * @param xMap     x coordinate in the town map.
-     * @param zMap     z coordinate in the town map.
+     * @param xMap    x coordinate in the town map.
+     * @param zMap    z coordinate in the town map.
      * @param mapPart The MapPart to set at the given coordinates.
      */
     private void setMapPartAtPos(int xMap, int zMap, MapPart mapPart) {

@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.building;
+package org.dawnoftime.onceuponatown.building.instance;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -36,6 +36,7 @@ public abstract class Build implements MapPart {
     private Rotation rotation = Rotation.NONE;
     private Mirror mirror = Mirror.NONE;
     private int level; // Minimum is 1. Each upgrade will increase the level by 1. Upgrades are defined by the BuildType
+    private Status status;
 
     /**
      * Constructor for newly created Builds.
@@ -46,6 +47,7 @@ public abstract class Build implements MapPart {
     protected Build(BuildType buildType, int level) {
         this.buildType = buildType;
         this.level = level;
+        this.status = Status.UNDER_CONSTRUCTION;
     }
 
     /**
@@ -58,6 +60,7 @@ public abstract class Build implements MapPart {
         this(culture.getBuildType(tag.getString("BuildType")), tag.getInt("Level"));
         originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
         direction = Direction.byName(tag.getString("Direction"));
+        status = Status.valueOf(tag.getString("Status"));
     }
 
     /**
@@ -81,6 +84,7 @@ public abstract class Build implements MapPart {
         tag.put("OriginPos", NbtUtils.writeBlockPos(originPos));
         tag.putString("Direction", direction.getName());
         tag.putInt("Level", level);
+        tag.putString("Status", status.name());
         return tag;
     }
 
@@ -272,5 +276,23 @@ public abstract class Build implements MapPart {
 
     public int getLevel() {
         return level;
+    }
+
+    public Status getStatus() {
+        return status;
+    }
+
+    public void setStatus(Status status) {
+        this.status = status;
+    }
+
+    public String toSafeString() {
+        return getBuildType().getId() + "_" + getOriginPos().getX() + "_" + getOriginPos().getY() + "_" + getOriginPos().getZ();
+    }
+
+    public enum Status {
+        UNDER_CONSTRUCTION,
+        COMPLETED,
+        UNDER_UPGRADE
     }
 }
