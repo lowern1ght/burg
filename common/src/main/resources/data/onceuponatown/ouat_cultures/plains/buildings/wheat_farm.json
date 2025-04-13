@@ -60,6 +60,21 @@
           ]
         }
       ]
+    },
+    {
+      "name": "big_farm",
+      "size": {
+        "x": 48,
+        "y": 10,
+        "z": 35
+      },
+      "levels": [
+        {
+          "schematic": "big_farm",
+          "waypoints": [
+          ]
+        }
+      ]
     }
   ]
 }
