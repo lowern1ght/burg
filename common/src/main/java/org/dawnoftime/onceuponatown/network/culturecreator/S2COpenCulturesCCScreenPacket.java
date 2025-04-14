@@ -1,13 +1,12 @@
 package org.dawnoftime.onceuponatown.network.culturecreator;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.client.gui.culture_creator.CulturesCCScreen;
-import org.dawnoftime.onceuponatown.network.OuatPacket;
+import org.dawnoftime.onceuponatown.client.ClientUtils;
 
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
@@ -16,16 +15,16 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
-import static org.dawnoftime.onceuponatown.Ouat.modResource;
+import static org.dawnoftime.onceuponatown.Ouat.*;
 import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURES_FOLDER_NAME;
 
-public class S2COpenCulturesCCScreenPacket implements OuatPacket {
+public class S2COpenCulturesCCScreenPacket extends OpenScreenPacket {
     private static final ResourceLocation ID = modResource("s2c_open_cultures_screen_cc");
 
     private final List<String> cultureIds;
 
     private S2COpenCulturesCCScreenPacket(List<String> cultureIds) {
+        super(ID.getPath());
         this.cultureIds = cultureIds;
     }
 
@@ -47,7 +46,9 @@ public class S2COpenCulturesCCScreenPacket implements OuatPacket {
             }
             Ouat.debug("An error occurred while reading a culture file : " + e);
         }
-        return new S2COpenCulturesCCScreenPacket(cultureIds);
+        S2COpenCulturesCCScreenPacket packet = new S2COpenCulturesCCScreenPacket(cultureIds);
+        packet.saveTag(player);
+        return packet;
     }
 
     public static S2COpenCulturesCCScreenPacket decode(FriendlyByteBuf buf) {
@@ -60,6 +61,8 @@ public class S2COpenCulturesCCScreenPacket implements OuatPacket {
         buf.writeCollection(cultureIds, FriendlyByteBuf::writeUtf);
     }
 
+    public void encode(CompoundTag tag) {}
+
     public List<String> getCultureIds() {
         return cultureIds;
     }
@@ -71,7 +74,9 @@ public class S2COpenCulturesCCScreenPacket implements OuatPacket {
 
     public static class Handler {
         public static void handle(S2COpenCulturesCCScreenPacket packet) {
-            Minecraft.getInstance().execute(() -> Minecraft.getInstance().setScreen(new CulturesCCScreen(packet)));
+            if (COMMON.isClientSide()) {
+                ClientUtils.openCulturesCCScreen(packet);
+            }
         }
     }
 }

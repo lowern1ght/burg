@@ -33,6 +33,8 @@ public interface CommonAbstractions {
      */
     boolean isModLoaded(String modId);
 
+    boolean isClientSide();
+
     /**
      * Opens the given GUI for the player passed in parameter
      *

@@ -1,14 +1,13 @@
 package org.dawnoftime.onceuponatown.network.culturecreator;
 
 import com.google.gson.JsonParser;
-import net.minecraft.client.Minecraft;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.client.gui.culture_creator.VariantsCCScreen;
+import org.dawnoftime.onceuponatown.client.ClientUtils;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
-import org.dawnoftime.onceuponatown.network.OuatPacket;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -17,12 +16,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
-import static org.dawnoftime.onceuponatown.Ouat.modResource;
+import static org.dawnoftime.onceuponatown.Ouat.*;
 import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.BUILDINGS_FOLDER_NAME;
 import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURES_FOLDER_NAME;
 
-public class S2COpenVariantsCCScreenPacket implements OuatPacket {
+public class S2COpenVariantsCCScreenPacket extends OpenScreenPacket {
     private static final ResourceLocation ID = modResource("s2c_open_variants_screen_cc");
 
     private final String cultureId;
@@ -30,6 +28,7 @@ public class S2COpenVariantsCCScreenPacket implements OuatPacket {
     private final List<String> variantIds;
 
     private S2COpenVariantsCCScreenPacket(String cultureId, String buildingId, List<String> variantIds){
+        super(ID.getPath());
         this.cultureId = cultureId;
         this.buildingId = buildingId;
         this.variantIds = variantIds;
@@ -50,7 +49,9 @@ public class S2COpenVariantsCCScreenPacket implements OuatPacket {
         } catch (IOException ignored) {
             variants = new ArrayList<>();
         }
-        return new S2COpenVariantsCCScreenPacket(cultureId, buildingId, variants);
+        S2COpenVariantsCCScreenPacket packet = new S2COpenVariantsCCScreenPacket(cultureId, buildingId, variants);
+        packet.saveTag(player);
+        return packet;
     }
 
     public static S2COpenVariantsCCScreenPacket decode(FriendlyByteBuf buf) {
@@ -60,11 +61,22 @@ public class S2COpenVariantsCCScreenPacket implements OuatPacket {
         return new S2COpenVariantsCCScreenPacket(cultureId, buildingId, variantIds);
     }
 
+    public static S2COpenVariantsCCScreenPacket decode(CompoundTag tag) {
+        String cultureId = tag.getString("culture_id");
+        String buildingId = tag.getString("building_id");
+        return S2COpenVariantsCCScreenPacket.create(null, cultureId, buildingId);
+    }
+
     @Override
     public void encode(FriendlyByteBuf buf) {
         buf.writeUtf(cultureId);
         buf.writeUtf(buildingId);
         buf.writeCollection(variantIds, FriendlyByteBuf::writeUtf);
+    }
+
+    public void encode(CompoundTag tag) {
+        tag.putString("culture_id", cultureId);
+        tag.putString("building_id", buildingId);
     }
 
     @Override
@@ -86,9 +98,9 @@ public class S2COpenVariantsCCScreenPacket implements OuatPacket {
 
     public static class Handler {
         public static void handle(S2COpenVariantsCCScreenPacket packet) {
-            Minecraft.getInstance().execute(() -> {
-                Minecraft.getInstance().execute(() -> Minecraft.getInstance().setScreen(new VariantsCCScreen(packet)));
-            });
+            if (COMMON.isClientSide()) {
+                ClientUtils.openVariantsCCScreen(packet);
+            }
         }
     }
 }
