@@ -13,11 +13,11 @@ import org.dawnoftime.onceuponatown.entity.ai.goal.NpcGoal;
 
 import java.util.EnumSet;
 
-public class FishermanWorkGoal extends NpcGoal {
+public class FishGoal extends NpcGoal {
     private BlockPos waterPos;
     private boolean hookThrown;
 
-    public FishermanWorkGoal(Npc npc) {
+    public FishGoal(Npc npc) {
         super(npc);
         this.setFlags(EnumSet.of(Goal.Flag.MOVE, Flag.LOOK));
     }

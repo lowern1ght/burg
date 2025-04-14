@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SimpleStateMachine {
-    private List<State> states = new ArrayList<>();
-    private List<Transition> transitions = new ArrayList<>();
+    private final List<State> states = new ArrayList<>();
+    private final List<Transition> transitions = new ArrayList<>();
     private State initialState;
     private State currentState;
 
@@ -15,16 +15,13 @@ public class SimpleStateMachine {
                 this.states.add(state);
             }
         }
-        currentState = initialState = states[0];
-    }
-
-    public SimpleStateMachine setInitialState(State initialState) {
-        this.initialState = initialState;
-        return this;
+        if (!this.states.isEmpty()) {
+            currentState = initialState = this.states.get(0);
+        }
     }
 
     public SimpleStateMachine addTransition(State origin, State destination, Condition condition) {
-        this.transitions.add(new Transition(origin, destination, condition));
+        transitions.add(new Transition(origin, destination, condition));
         return this;
     }
 
@@ -50,6 +47,10 @@ public class SimpleStateMachine {
                 return;
             }
         }
+    }
+
+    public State getCurrentState() {
+        return currentState;
     }
 
     public void reset() {
@@ -81,12 +82,18 @@ public class SimpleStateMachine {
     }
 
     public static class State {
+        private final String name;
         private Action tickCode;
         private Action startCode;
         private Action stopCode;
 
-        public State(Action tickCode) {
+        public State(String name) {
+            this.name = name;
+        }
+
+        public State onTick(Action tickCode) {
             this.tickCode = tickCode;
+            return this;
         }
 
         public State onStart(Action startCode) {
@@ -115,6 +122,10 @@ public class SimpleStateMachine {
             if (stopCode != null) {
                 stopCode.execute();
             }
+        }
+
+        public String getName() {
+            return name;
         }
     }
 
