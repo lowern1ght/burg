@@ -16,7 +16,7 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import org.dawnoftime.onceuponatown.Config;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.Utils;
-import org.dawnoftime.onceuponatown.building.ConstructionProject;
+import org.dawnoftime.onceuponatown.building.BuildProject;
 import org.dawnoftime.onceuponatown.building.instance.Build;
 import org.dawnoftime.onceuponatown.building.instance.Building;
 import org.dawnoftime.onceuponatown.building.instance.Road;
@@ -43,7 +43,7 @@ public class Town extends ProtoTown {
     private final ServerLevel level; // The Level this Town belongs to
     private final int id; // Unique Id
     private Component name; // Not unique name
-    private final List<ConstructionProject> projects; // List of Builds under construction
+    private final List<BuildProject> projects; // List of Builds under construction
     private final List<Citizen> citizens; // Citizens of this Town
     private final HashMap<Specialization, Integer> progression;
     private final TownInventory inventory;
@@ -67,7 +67,7 @@ public class Town extends ProtoTown {
         ServerLevel level, // Town attributes
         int id,
         Component name,
-        List<ConstructionProject> projects,
+        List<BuildProject> projects,
         ListTag citizens,
         HashMap<Specialization, Integer> progression,
         TownInventory inventory,
@@ -149,7 +149,7 @@ public class Town extends ProtoTown {
             townTag.getLong("LastActive")
         );
         townTag.getList("Projects", Tag.TAG_COMPOUND).stream()
-            .map(projectTag -> ConstructionProject.load(level, town, (CompoundTag) projectTag))
+            .map(projectTag -> BuildProject.load(level, town, (CompoundTag) projectTag))
             .forEach(town.projects::add);
         return town;
     }
@@ -178,7 +178,7 @@ public class Town extends ProtoTown {
         if (town.buildStarterPack()) {
             // Placing builds
             for (Build build : town.getBuilds()) {
-                ConstructionProject project = new ConstructionProject(level, ConstructionProject.ProjectType.NEW_BUILD, build);
+                BuildProject project = new BuildProject(level, BuildProject.Type.NEW_BUILD, town, build);
                 project.rush(true);
                 town.projects.add(project);
             }
@@ -304,23 +304,23 @@ public class Town extends ProtoTown {
             updateStatus();
             if (active) {
                 handleCitizens();
+                //projects.stream().filter(BuildProject::isCompleted).toList().forEach(projects::remove);
             }
         }
-        ;
-        if (active && level.getServer().getTickCount() % 1 == 0) {
-            List<ConstructionProject> finished = new ArrayList<>();
-            for (ConstructionProject project : projects) {
-                if (project.rushing()) {
-                    while (project.getNextStepType() == ConstructionProject.NextAction.NOTHING) {
-                        project.nextStep();
-                    }
-                    project.nextNSteps(4);
-                    if (project.isCompleted()) {
-                        finished.add(project);
-                    }
+
+        if (active && level.getServer().getTickCount() % 2 == 0) {
+            List<BuildProject> rushingProjects = new ArrayList<>(projects.stream().filter(BuildProject::rushing).toList());
+            for (BuildProject project : rushingProjects) {
+                int attempt = 0;
+                while (attempt < 10 &&
+                    project.getNextAction() == BuildProject.Action.NOTHING ||
+                    project.getNextAction() == BuildProject.Action.SPAWN_ENTITY
+                ) {
+                    ++attempt;
+                    project.nextStep();
                 }
+                project.nextNSteps(4);
             }
-            finished.forEach(projects::remove);
         }
     }
 
@@ -347,7 +347,7 @@ public class Town extends ProtoTown {
                                     npc.setProfessionId("unemployed");
                                 }
                                 npc.assignTown(this);
-                                npc.setupAi();
+                                npc.addTownGoals();
                                 citizen.entityUUID = npc.getUUID();
                                 citizen.status = Citizen.Status.LOADED;
                             }
@@ -411,7 +411,7 @@ public class Town extends ProtoTown {
     public boolean createProject(BuildingType buildingType) {
         Building building = tryAddBuilding(buildingType, 1);
         if (building != null) {
-            ConstructionProject project = new ConstructionProject(level, ConstructionProject.ProjectType.NEW_BUILD, building);
+            BuildProject project = new BuildProject(level, BuildProject.Type.NEW_BUILD, this, building);
             projects.add(project);
             return true;
         }
@@ -419,7 +419,7 @@ public class Town extends ProtoTown {
     }
 
     public boolean finishProject(String projectId) {
-        for (ConstructionProject project : projects) {
+        for (BuildProject project : projects) {
             if (project.toSafeString().equals(projectId)) {
                 project.rush(true);
                 return true;
@@ -428,8 +428,12 @@ public class Town extends ProtoTown {
         return false;
     }
 
-    public ConstructionProject getPendingProject() {
-        return projects.stream().filter(project -> !project.rushing()).findFirst().orElse(null);
+    public void notifyProjectCompleted(BuildProject project) {
+        projects.remove(project);
+    }
+
+    public BuildProject getPendingProject() {
+        return projects.stream().filter(project -> project.isAvailable() && !project.rushing()).findFirst().orElse(null);
     }
 
     private void maybeCollectProduction() {
@@ -571,7 +575,7 @@ public class Town extends ProtoTown {
         System.out.println("//------------------------------------------------------------------------------------------------------------------//");
     }
 
-    public List<ConstructionProject> getProjects() {
+    public List<BuildProject> getProjects() {
         return projects;
     }
 

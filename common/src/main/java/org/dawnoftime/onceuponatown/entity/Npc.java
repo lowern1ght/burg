@@ -38,6 +38,7 @@ import net.minecraft.world.level.pathfinder.BlockPathTypes;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.entity.ai.goal.core.NpcPanicGoal;
 import org.dawnoftime.onceuponatown.entity.ai.goal.fight.SelfDefenseGoal;
+import org.dawnoftime.onceuponatown.entity.ai.goal.work.BuildGoal;
 import org.dawnoftime.onceuponatown.menu.BuildingsMenu;
 import org.dawnoftime.onceuponatown.menu.InteractingNpc;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
@@ -84,7 +85,7 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         super.defineSynchedData();
         entityData.define(DATA_UNHAPPY_COUNTER, 0);
         entityData.define(DATA_IS_CHARGING_CROSSBOW, false);
-        entityData.define(DATA_CROSSING_ARMS, false);
+        entityData.define(DATA_CROSSING_ARMS, true);
         entityData.define(DATA_READING, false);
         entityData.define(CULTURE, "plains");
         entityData.define(PROFESSION, "default");
@@ -102,6 +103,9 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         townId = tag.getInt("TownId");
         if (townId != -1 && level() instanceof ServerLevel serverLevel) {
             town = LevelTowns.of(serverLevel).getTownById(townId);
+        }
+        if (town != null) {
+            addTownGoals();
         }
     }
 
@@ -123,7 +127,7 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         addCoreGoals();
     }
 
-    public void setupAi() {
+    public void addTownGoals() {
         addRaidGoals();
         addSleepingGoals();
         addRestingGoals();
@@ -133,6 +137,7 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
 
     private void addCoreGoals() {
         goalSelector.addGoal(0, new FloatGoal(this));
+        goalSelector.addGoal(0, new OpenDoorGoal(this, true));
         goalSelector.addGoal(1, new NpcPanicGoal(this));
         goalSelector.addGoal(2, new SelfDefenseGoal(this, 1.0D));
         //goalSelector.addGoal(++priority, new NpcCrossbowAttackGoal(this, 1.4D, 8.0F));
@@ -169,7 +174,7 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
 
     private void addWorkGoals() {
         if (getProfessionId().equals(Profession.BUILDER.getId())) {
-            //goalSelector.addGoal(8, new BuilderWorkGoal(this));
+            goalSelector.addGoal(8, new BuildGoal(this));
         }
     }
 

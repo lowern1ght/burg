@@ -77,7 +77,7 @@ public class NpcModel<T extends Npc> extends HumanoidModel<T> {
         } else {
             this.head.zRot = 0.0F;
         }
-        //animateReadingPose(npc);
+        animateReadingPose(npc);
         //animateCelebrating(npc);
         //animateDabbingPose(npc);
     }
