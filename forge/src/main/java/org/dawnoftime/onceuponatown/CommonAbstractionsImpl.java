@@ -26,6 +26,7 @@ import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.common.ToolActions;
 import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.fml.ModList;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.network.PacketDistributor;
@@ -46,8 +47,13 @@ public class CommonAbstractionsImpl implements CommonAbstractions {
     }
 
     @Override
+    public boolean isClientSide() {
+        return FMLEnvironment.dist.isClient();
+    }
+
+    @Override
     public void sendToClient(Player player, OuatPacket packet) {
-        if (!player.level().isClientSide && player instanceof ServerPlayer serverPlayer) {
+        if (player instanceof ServerPlayer serverPlayer) {
             PacketHandler.CHANNEL.send(PacketDistributor.PLAYER.with(() -> serverPlayer), packet);
         }
     }

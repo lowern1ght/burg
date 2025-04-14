@@ -1,11 +1,11 @@
 package org.dawnoftime.onceuponatown.network;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import org.dawnoftime.onceuponatown.client.gui.TownScrollScreen;
+import org.dawnoftime.onceuponatown.client.ClientUtils;
 
+import static org.dawnoftime.onceuponatown.Ouat.COMMON;
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
 
 public record S2COpenTownMapScreenPacket(CompoundTag mapDataForGui) implements OuatPacket {
@@ -27,9 +27,9 @@ public record S2COpenTownMapScreenPacket(CompoundTag mapDataForGui) implements O
 
     public static class Handler {
         public static void handle(S2COpenTownMapScreenPacket packet) {
-            Minecraft.getInstance().execute(() -> {
-                Minecraft.getInstance().setScreen(new TownScrollScreen(packet.mapDataForGui()));
-            });
+            if (COMMON.isClientSide()) {
+                ClientUtils.openTownMapItemScreen(packet.mapDataForGui());
+            }
         }
     }
 }

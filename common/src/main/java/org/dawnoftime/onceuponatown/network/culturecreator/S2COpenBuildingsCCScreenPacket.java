@@ -1,13 +1,12 @@
 package org.dawnoftime.onceuponatown.network.culturecreator;
 
-import net.minecraft.client.Minecraft;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.client.gui.culture_creator.BuildingsCCScreen;
-import org.dawnoftime.onceuponatown.network.OuatPacket;
+import org.dawnoftime.onceuponatown.client.ClientUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -16,18 +15,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
-import static org.dawnoftime.onceuponatown.Ouat.modResource;
+import static org.dawnoftime.onceuponatown.Ouat.*;
 import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.BUILDINGS_FOLDER_NAME;
 import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURES_FOLDER_NAME;
 
-public class S2COpenBuildingsCCScreenPacket implements OuatPacket {
+public class S2COpenBuildingsCCScreenPacket extends OpenScreenPacket {
     private static final ResourceLocation ID = modResource("s2c_open_buildings_screen_cc");
 
     private final String cultureId;
     private final List<String> buildingIds;
 
     private S2COpenBuildingsCCScreenPacket(String cultureId, List<String> buildingIds){
+        super(ID.getPath());
         this.cultureId = cultureId;
         this.buildingIds = buildingIds;
     }
@@ -53,7 +52,9 @@ public class S2COpenBuildingsCCScreenPacket implements OuatPacket {
             }
             Ouat.debug("An error occurred while reading a culture file : " + e);
         }
-        return new S2COpenBuildingsCCScreenPacket(cultureId, buildingIds);
+        S2COpenBuildingsCCScreenPacket packet = new S2COpenBuildingsCCScreenPacket(cultureId, buildingIds);
+        packet.saveTag(player);
+        return packet;
     }
 
     public static S2COpenBuildingsCCScreenPacket decode(FriendlyByteBuf buf) {
@@ -62,10 +63,19 @@ public class S2COpenBuildingsCCScreenPacket implements OuatPacket {
         return new S2COpenBuildingsCCScreenPacket(cultureId, buildingIds);
     }
 
+    public static S2COpenBuildingsCCScreenPacket decode(CompoundTag tag) {
+        String cultureId = tag.getString("culture_id");
+        return S2COpenBuildingsCCScreenPacket.create(null, cultureId);
+    }
+
     @Override
     public void encode(FriendlyByteBuf buf) {
         buf.writeUtf(cultureId);
         buf.writeCollection(buildingIds, FriendlyByteBuf::writeUtf);
+    }
+
+    public void encode(CompoundTag tag) {
+        tag.putString("culture_id", cultureId);
     }
 
     @Override
@@ -83,9 +93,9 @@ public class S2COpenBuildingsCCScreenPacket implements OuatPacket {
 
     public static class Handler {
         public static void handle(S2COpenBuildingsCCScreenPacket packet) {
-            Minecraft.getInstance().execute(() -> {
-                Minecraft.getInstance().execute(() -> Minecraft.getInstance().setScreen(new BuildingsCCScreen(packet)));
-            });
+            if (COMMON.isClientSide()) {
+                ClientUtils.openBuildingsCCScreen(packet);
+            }
         }
     }
 }
