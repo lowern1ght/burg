@@ -81,7 +81,7 @@ public class BuildGoal extends NpcGoal {
     @Override
     public void tick() {
         stateMachine.tick();
-        showDebugInfo();
+        //showDebugInfo();
     }
 
     private boolean closeEnoughToSite() {
