@@ -1,5 +1,6 @@
 package org.dawnoftime.onceuponatown.entity;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
@@ -34,6 +35,8 @@ import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.raid.Raider;
 import net.minecraft.world.item.*;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.pathfinder.BlockPathTypes;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.entity.ai.goal.core.NpcPanicGoal;
@@ -69,6 +72,7 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
     private int lastBreakProgress = -1;
     private NpcFishingHook fishingHook;
     private Profession profession;
+    private BlockPos attackedBlock;
     private Town town;
     private int townId = -1;
 
@@ -203,35 +207,46 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         super.aiStep();
     }
 
-    @Override
-    protected void customServerAiStep() {
-        /*
-        BlockPos posAboveHead = blockPosition().above(2);
-        BlockState stateAboveHead = level().getBlockState(posAboveHead);
-        if (stateAboveHead.isSolid()) {
-            float destroySpeed = stateAboveHead.getDestroySpeed(level(), posAboveHead);
-            if (blockBreakTime % 4 == 0) {
-                swing(getUsedItemHand());
-                SoundType soundType = stateAboveHead.getSoundType();
+    public boolean tickBreakBlock(InteractionHand swingHand) {
+        if (attackedBlock != null) {
+            BlockState stateToBreak = level().getBlockState(attackedBlock);
+            float destroySpeed = stateToBreak.getDestroySpeed(level(), attackedBlock);
+            if (blockBreakTime % 2 == 0) {
+                swing(swingHand);
+                SoundType soundType = stateToBreak.getSoundType();
                 playSound(soundType.getHitSound(), (soundType.getVolume() + 1.0F) / 8.0F, soundType.getPitch() * 0.5F);
             }
-
             ++blockBreakTime;
             int i = (int) ((float) blockBreakTime / destroySpeed);
-            System.out.println("destroySpeed : " + destroySpeed + " | breakTime : " + blockBreakTime + " | i : " + i);
+            //System.out.println("destroySpeed : " + destroySpeed + " | breakTime : " + blockBreakTime + " | i : " + i);
             if (i != lastBreakProgress) {
-                level().destroyBlockProgress(getId(), posAboveHead, i);
+                level().destroyBlockProgress(getId(), attackedBlock, i);
                 this.lastBreakProgress = i;
             }
-
             if (blockBreakTime >= destroySpeed * 10.0F) {
-                //level().removeBlock(posAboveHead, false);
-                level().destroyBlock(posAboveHead, false);
                 blockBreakTime = 0;
+                return true;
             }
         }
+        return false;
+    }
 
-         */
+    public void startBreakingBlock(BlockPos blockPos) {
+        stopBreakingBlock();
+        blockBreakTime = 0;
+        lastBreakProgress = -1;
+        attackedBlock = blockPos;
+    }
+
+    public void stopBreakingBlock() {
+        if (attackedBlock != null) {
+            level().destroyBlockProgress(getId(), attackedBlock, -1);
+            attackedBlock = null;
+        }
+    }
+
+    public BlockPos getAttackedBlock() {
+        return attackedBlock;
     }
 
     @Override
