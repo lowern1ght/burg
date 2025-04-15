@@ -65,6 +65,7 @@ public class BuildGoal extends NpcGoal {
     @Override
     public void start() {
         npc.getNavigation().setMaxVisitedNodesMultiplier(10.0F);
+        npc.setCrossingArms(false);
         npc.freeHands();
     }
 
@@ -73,6 +74,7 @@ public class BuildGoal extends NpcGoal {
         npc.getNavigation().resetMaxVisitedNodesMultiplier();
         npc.freeHands();
         npc.setCrossingArms(true);
+        npc.stopBreakingBlock();
         if (project.isCompleted()) {
             npc.playSound(SoundEvents.VILLAGER_CELEBRATE, 2.0F, 0.9F);
         }
@@ -81,7 +83,7 @@ public class BuildGoal extends NpcGoal {
     @Override
     public void tick() {
         stateMachine.tick();
-        //showDebugInfo();
+        showDebugInfo();
     }
 
     private boolean closeEnoughToSite() {
@@ -93,7 +95,7 @@ public class BuildGoal extends NpcGoal {
     }
 
     private void arriveAtSite() {
-        npc.setCrossingArms(false);
+
     }
 
     private boolean canReachStep() {
@@ -199,21 +201,29 @@ public class BuildGoal extends NpcGoal {
                 }
             } else {
                 var nextAction = project.getNextAction();
-                if (project.nextStep()) {
-                    lastStepSuccessful = true;
-                    ticksSinceLastSuccessfulStep = 0;
-                    prepareStepCountdown = BUILD_SPEED; //npc.getRandom().nextInt(BUILD_SPEED - 1, BUILD_SPEED + 1);
+                if (nextAction != BuildProject.Action.DESTROY_BLOCK) {
+                    npc.stopBreakingBlock();
                 }
-                if (lastStepSuccessful) {
-                    switch (nextAction) {
-                        case PLACE_BLOCK -> {
+                switch (nextAction) {
+                    case PLACE_BLOCK -> {
+                        if (project.nextStep()) {
                             npc.swing(InteractionHand.MAIN_HAND);
+                            lastStepSuccessful = true;
+                            ticksSinceLastSuccessfulStep = 0;
+                            prepareStepCountdown = BUILD_SPEED; //npc.getRandom().nextInt(BUILD_SPEED - 1, BUILD_SPEED + 1);
                         }
-                        case DESTROY_BLOCK -> {
-                            npc.swing(InteractionHand.OFF_HAND);
-                        }
-                        case NOTHING, SPAWN_ENTITY -> {
-
+                    }
+                    case DESTROY_BLOCK -> {
+                        if (npc.getAttackedBlock() == null || !npc.getAttackedBlock().equals(nextStepPos)) {
+                            npc.startBreakingBlock(nextStepPos);
+                        } else {
+                            if (npc.tickBreakBlock(InteractionHand.OFF_HAND)) {
+                                if (project.nextStep()) {
+                                    lastStepSuccessful = true;
+                                    ticksSinceLastSuccessfulStep = 0;
+                                    prepareStepCountdown = BUILD_SPEED; //npc.getRandom().nextInt(BUILD_SPEED - 1, BUILD_SPEED + 1);
+                                }
+                            }
                         }
                     }
                 }
