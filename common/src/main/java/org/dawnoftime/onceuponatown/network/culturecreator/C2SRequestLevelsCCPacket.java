@@ -7,7 +7,13 @@ import net.minecraft.server.level.ServerPlayer;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.network.OuatPacket;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
+import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.BUILDINGS_FOLDER_NAME;
+import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURES_FOLDER_NAME;
 
 public record C2SRequestLevelsCCPacket(String cultureId, String buildingId) implements OuatPacket {
     public static final ResourceLocation ID = modResource("c2s_request_levels_cc");
@@ -28,6 +34,19 @@ public record C2SRequestLevelsCCPacket(String cultureId, String buildingId) impl
     }
 
     public void handle(MinecraftServer server, ServerPlayer player) {
-        Ouat.COMMON.sendToClient(player, S2COpenLevelsCCScreenPacket.create(player, cultureId, buildingId));
+        try {
+            Path newCultureFolder = Ouat.COMMON.getConfigFolder().toPath()
+                    .resolve(MOD_ID)
+                    .resolve(CULTURES_FOLDER_NAME)
+                    .resolve(cultureId);
+            if (Files.isDirectory(newCultureFolder)) {
+                Ouat.COMMON.sendToClient(player, S2COpenBuildingCCScreenPacket.create(player, cultureId, buildingId));
+                return;
+            }
+        } catch (Exception e) {
+            Ouat.clientChat(player, "cc", "culture_error", cultureId);
+            Ouat.debug("An error occurred while reading a culture file of '" + cultureId + "' : " + e);
+        }
+        Ouat.COMMON.sendToClient(player, S2COpenCulturesCCScreenPacket.create(player));
     }
 }

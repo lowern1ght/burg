@@ -38,11 +38,14 @@ public record C2SRequestBuildingsCCPacket(String cultureId) implements OuatPacke
                     .resolve(MOD_ID)
                     .resolve(CULTURES_FOLDER_NAME)
                     .resolve(cultureId);
-            Files.createDirectories(newCultureFolder);
-            Ouat.COMMON.sendToClient(player, S2COpenBuildingsCCScreenPacket.create(player, cultureId));
-        } catch (IOException e) {
+            if (Files.isDirectory(newCultureFolder)) {
+                Ouat.COMMON.sendToClient(player, S2COpenBuildingsCCScreenPacket.create(player, cultureId));
+                return;
+            }
+        } catch (Exception e) {
             Ouat.clientChat(player, "cc", "culture_error", cultureId);
             Ouat.debug("An error occurred while reading a culture file of '" + cultureId + "' : " + e);
         }
+        Ouat.COMMON.sendToClient(player, S2COpenCulturesCCScreenPacket.create(player));
     }
 }

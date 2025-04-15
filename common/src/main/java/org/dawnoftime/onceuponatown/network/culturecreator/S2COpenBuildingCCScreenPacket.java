@@ -1,25 +1,24 @@
 package org.dawnoftime.onceuponatown.network.culturecreator;
 
 import com.google.gson.JsonParser;
-import net.minecraft.client.Minecraft;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.client.gui.culture_creator.BuildingCCScreen;
+import org.dawnoftime.onceuponatown.client.ClientUtils;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
-import org.dawnoftime.onceuponatown.network.OuatPacket;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
-import static org.dawnoftime.onceuponatown.Ouat.modResource;
+import static org.dawnoftime.onceuponatown.Ouat.*;
 import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.BUILDINGS_FOLDER_NAME;
 import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURES_FOLDER_NAME;
 
-public class S2COpenBuildingCCScreenPacket implements OuatPacket {
+public class S2COpenBuildingCCScreenPacket extends OpenScreenPacket {
     private static final ResourceLocation ID = modResource("s2c_open_building_screen_cc");
 
     private final String cultureId;
@@ -28,15 +27,15 @@ public class S2COpenBuildingCCScreenPacket implements OuatPacket {
     private final String item;
 
     private S2COpenBuildingCCScreenPacket(String cultureId, String buildingId, String weight, String item){
+        super(ID.getPath());
         this.cultureId = cultureId;
         this.buildingId = buildingId;
         this.weight = weight;
         this.item = item;
     }
 
+    @Nullable
     public static S2COpenBuildingCCScreenPacket create(Player player, String cultureId, String buildingId){
-        String weight = "";
-        String item = "";
         try {
             Path jsonPath = Ouat.COMMON.getConfigFolder().toPath()
                     .resolve(MOD_ID)
@@ -46,10 +45,14 @@ public class S2COpenBuildingCCScreenPacket implements OuatPacket {
                     .resolve(buildingId + ".json");
             String jsonContent = Files.readString(jsonPath);
             BuildingDataHandler data = new BuildingDataHandler(JsonParser.parseString(jsonContent).getAsJsonObject());
-            weight = data.weight.asString();
-            item = data.item.asString();
-        } catch (IOException ignored) {}
-        return new S2COpenBuildingCCScreenPacket(cultureId, buildingId, weight, item);
+            String weight = data.weight.asString();
+            String item = data.item.asString();
+            S2COpenBuildingCCScreenPacket packet = new S2COpenBuildingCCScreenPacket(cultureId, buildingId, weight, item);
+            packet.saveTag(player);
+            return packet;
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     public static S2COpenBuildingCCScreenPacket decode(FriendlyByteBuf buf) {
@@ -58,6 +61,12 @@ public class S2COpenBuildingCCScreenPacket implements OuatPacket {
         String weight = buf.readUtf();
         String item = buf.readUtf();
         return new S2COpenBuildingCCScreenPacket(cultureId, buildingId, weight, item);
+    }
+
+    public static S2COpenBuildingCCScreenPacket decode(CompoundTag tag) {
+        String cultureId = tag.getString("culture_id");
+        String buildingId = tag.getString("building_id");
+        return S2COpenBuildingCCScreenPacket.create(null, cultureId, buildingId);
     }
 
     @Override
@@ -69,15 +78,21 @@ public class S2COpenBuildingCCScreenPacket implements OuatPacket {
     }
 
     @Override
+    public void encode(CompoundTag tag) {
+        tag.putString("culture_id", cultureId);
+        tag.putString("building_id", buildingId);
+    }
+
+    @Override
     public ResourceLocation getFabricId() {
         return ID;
     }
 
     public static class Handler {
         public static void handle(S2COpenBuildingCCScreenPacket packet) {
-            Minecraft.getInstance().execute(() -> {
-                Minecraft.getInstance().setScreen(new BuildingCCScreen(packet));
-            });
+            if (COMMON.isClientSide()) {
+                ClientUtils.openBuildingCCScreen(packet);
+            }
         }
     }
 

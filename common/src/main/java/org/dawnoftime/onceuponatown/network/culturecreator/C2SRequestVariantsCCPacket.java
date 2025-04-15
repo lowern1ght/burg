@@ -35,6 +35,19 @@ public record C2SRequestVariantsCCPacket(String cultureId, String buildingId) im
     }
 
     public void handle(MinecraftServer server, ServerPlayer player) {
-        Ouat.COMMON.sendToClient(player, S2COpenVariantsCCScreenPacket.create(player, cultureId, buildingId));
+        try {
+            Path newCultureFolder = Ouat.COMMON.getConfigFolder().toPath()
+                    .resolve(MOD_ID)
+                    .resolve(CULTURES_FOLDER_NAME)
+                    .resolve(cultureId);
+            if (Files.isDirectory(newCultureFolder)) {
+                Ouat.COMMON.sendToClient(player, S2COpenBuildingCCScreenPacket.create(player, cultureId, buildingId));
+                return;
+            }
+        } catch (Exception e) {
+            Ouat.clientChat(player, "cc", "culture_error", cultureId);
+            Ouat.debug("An error occurred while reading a culture file of '" + cultureId + "' : " + e);
+        }
+        Ouat.COMMON.sendToClient(player, S2COpenCulturesCCScreenPacket.create(player));
     }
 }
