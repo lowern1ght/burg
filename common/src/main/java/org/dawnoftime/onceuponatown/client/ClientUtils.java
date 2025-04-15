@@ -31,6 +31,10 @@ public class ClientUtils {
         Minecraft.getInstance().execute(() -> Minecraft.getInstance().setScreen(new LevelsCCScreen(packet)));
     }
 
+    public static void openLevelCCScreen(S2COpenLevelCCScreenPacket packet) {
+        Minecraft.getInstance().execute(() -> Minecraft.getInstance().setScreen(new LevelCCScreen(packet)));
+    }
+
     public static void openVariantsCCScreen(S2COpenVariantsCCScreenPacket packet) {
         Minecraft.getInstance().execute(() -> Minecraft.getInstance().setScreen(new VariantsCCScreen(packet)));
     }
