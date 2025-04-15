@@ -53,9 +53,9 @@ public class BuildingDataHandler extends DataHandler {
     }
 
     public static class BuildingLevelsHandler extends DataHandler {
-        private final IntegerDataHandler requiredEra;
-        private final IntegerDataHandler dwellingSlots;
-        private final ArrayList<WorkingSlotHandler> workingSlots = new ArrayList<>();
+        public final IntegerDataHandler requiredEra;
+        public final IntegerDataHandler dwellingSlots;
+        public final ArrayList<WorkingSlotHandler> workingSlots = new ArrayList<>();
 
         public BuildingLevelsHandler(@NotNull JsonObject rootJson) {
             super(rootJson);

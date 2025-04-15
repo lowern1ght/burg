@@ -1,7 +1,6 @@
 package org.dawnoftime.onceuponatown.item;
 
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -14,10 +13,6 @@ import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.network.OuatPacket;
 import org.dawnoftime.onceuponatown.network.culturecreator.*;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.HashMap;
-import java.util.function.Consumer;
 
 public class CultureCreatorItem extends Item {
 
@@ -55,6 +50,7 @@ public class CultureCreatorItem extends Item {
                     case "s2c_open_building_screen_cc" -> S2COpenBuildingCCScreenPacket.decode(contentTag);
                     case "s2c_open_variants_screen_cc" -> S2COpenVariantsCCScreenPacket.decode(contentTag);
                     case "s2c_open_levels_screen_cc" -> S2COpenLevelsCCScreenPacket.decode(contentTag);
+                    case "s2c_open_level_screen_cc" -> S2COpenLevelCCScreenPacket.decode(contentTag);
                     // If the id is "s2c_open_cultures_screen_cc" or if it's wrong id :
                     default -> null;
                 };

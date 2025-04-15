@@ -12,20 +12,20 @@ import java.nio.file.Path;
 
 import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
-import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.BUILDINGS_FOLDER_NAME;
 import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURES_FOLDER_NAME;
 
-public record C2SRequestLevelsCCPacket(String cultureId, String buildingId) implements OuatPacket {
-    public static final ResourceLocation ID = modResource("c2s_request_levels_cc");
+public record C2SRequestLevelCCPacket(String cultureId, String buildingId, String level) implements OuatPacket {
+    public static final ResourceLocation ID = modResource("c2s_request_level_cc");
 
-    public static C2SRequestLevelsCCPacket decode(FriendlyByteBuf buf) {
-        return new C2SRequestLevelsCCPacket(buf.readUtf(), buf.readUtf());
+    public static C2SRequestLevelCCPacket decode(FriendlyByteBuf buf) {
+        return new C2SRequestLevelCCPacket(buf.readUtf(), buf.readUtf(), buf.readUtf());
     }
 
     @Override
     public void encode(FriendlyByteBuf buf) {
         buf.writeUtf(cultureId);
         buf.writeUtf(buildingId);
+        buf.writeUtf(level);
     }
 
     @Override
@@ -40,7 +40,7 @@ public record C2SRequestLevelsCCPacket(String cultureId, String buildingId) impl
                     .resolve(CULTURES_FOLDER_NAME)
                     .resolve(cultureId);
             if (Files.isDirectory(newCultureFolder)) {
-                Ouat.COMMON.sendToClient(player, S2COpenLevelsCCScreenPacket.create(player, cultureId, buildingId));
+                Ouat.COMMON.sendToClient(player, S2COpenLevelCCScreenPacket.create(player, cultureId, buildingId, level));
                 return;
             }
         } catch (Exception e) {

@@ -29,15 +29,17 @@ public class LevelsCCScreen extends BaseCCScreen {
                 new NavigationTab(CULTURES_FOLDER_NAME, Ouat.translatable("cc", "cultures_nav"), C2SRequestCulturesCCPacket::new),
                 new NavigationTab(cultureId, Component.literal(cultureId), () -> new C2SRequestCultureCCPacket(cultureId)),
                 new NavigationTab(BUILDINGS_FOLDER_NAME, Ouat.translatable("cc", "buildings_nav"), () -> new C2SRequestBuildingsCCPacket(cultureId)),
-                new NavigationTab(null, Component.literal(cultureId), () -> new C2SRequestBuildingCCPacket(cultureId, buildingId)),
+                new NavigationTab(null, Component.literal(buildingId), () -> new C2SRequestBuildingCCPacket(cultureId, buildingId)),
                 new NavigationTab(null, title, () -> null)
         );
     }
 
     @Override
     public void initWidgets() {
-        for (int level = 1; level <= levelNumber; level++) {
-            this.addWidget(String.valueOf(level), new ButtonWidgetCC(posX, Ouat.translatable("cc", "level_nav", level), wdg -> {}));
+        for (int level = 0; level < levelNumber; level++) {
+            String buttonLevel = String.valueOf(level);
+            this.addWidget(buttonLevel, new ButtonWidgetCC(posX, Ouat.translatable("cc", "level_nav", level + 1),
+                    wdg -> Ouat.CLIENT.sendToServer(new C2SRequestLevelCCPacket(cultureId, buildingId, buttonLevel))));
 /*
                     wdg -> Ouat.CLIENT.sendToServer(new C2SRequestBuildingCCPacket(cultureId, variant))));
 */
