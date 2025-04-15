@@ -7,7 +7,6 @@ import net.minecraft.server.level.ServerPlayer;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.network.OuatPacket;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -30,15 +29,6 @@ public record C2SRequestCulturesCCPacket() implements OuatPacket {
     }
 
     public void handle(MinecraftServer server, ServerPlayer player) {
-        try {
-            Path newCultureFolder = Ouat.COMMON.getConfigFolder()
-                    .toPath()
-                    .resolve(MOD_ID);
-            Files.createDirectories(newCultureFolder);
-            Ouat.COMMON.sendToClient(player, S2COpenCulturesCCScreenPacket.create(player));
-        } catch (IOException e) {
-            Ouat.clientChat(player, "cc", "cultures_error");
-            Ouat.debug("An error occurred while reading the cultures folder : " + e);
-        }
+        Ouat.COMMON.sendToClient(player, S2COpenCulturesCCScreenPacket.create(player));
     }
 }

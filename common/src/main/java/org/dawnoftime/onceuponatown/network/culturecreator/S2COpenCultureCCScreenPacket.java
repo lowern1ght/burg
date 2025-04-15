@@ -1,57 +1,48 @@
 package org.dawnoftime.onceuponatown.network.culturecreator;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import net.minecraft.client.Minecraft;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
-import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.client.gui.culture_creator.CultureCCScreen;
-import org.dawnoftime.onceuponatown.network.OuatPacket;
+import org.dawnoftime.onceuponatown.client.ClientUtils;
+import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
-import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
+import static org.dawnoftime.onceuponatown.Ouat.COMMON;
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
-import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURES_FOLDER_NAME;
-import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURE_JSON_FILE_NAME;
 
-public class S2COpenCultureCCScreenPacket implements OuatPacket {
+public class S2COpenCultureCCScreenPacket extends OpenScreenPacket {
     private static final ResourceLocation ID = modResource("s2c_open_culture_screen_cc");
 
     private final String cultureId;
 
     private S2COpenCultureCCScreenPacket(String cultureId){
+        super(ID.getPath());
         this.cultureId = cultureId;
     }
 
-    public static S2COpenCultureCCScreenPacket create(Player player, String cultureId){
-        try {
-            Path jsonPath = Ouat.COMMON.getConfigFolder().toPath()
-                    .resolve(MOD_ID)
-                    .resolve(CULTURES_FOLDER_NAME)
-                    .resolve(cultureId)
-                    .resolve(CULTURE_JSON_FILE_NAME);
-            String jsonContent = Files.readString(jsonPath);
-            JsonObject jsonObject = JsonParser.parseString(jsonContent).getAsJsonObject();
-            // TODO Add the validation part.
-        } catch (IOException ignored) {
-            // An error occurred, we will create a new CULTURE_JSON_FILE_NAME
-        }
-        return new S2COpenCultureCCScreenPacket(cultureId);
-    }
+    public static S2COpenCultureCCScreenPacket create(@Nullable Player player, String cultureId){
+        S2COpenCultureCCScreenPacket packet = new S2COpenCultureCCScreenPacket(cultureId);
+        packet.saveTag(player);
+        return packet;
+}
 
     public static S2COpenCultureCCScreenPacket decode(FriendlyByteBuf buf) {
         String cultureId = buf.readUtf();
-        return new S2COpenCultureCCScreenPacket(cultureId);
+        return S2COpenCultureCCScreenPacket.create(null, cultureId);
+    }
+
+    public static S2COpenCultureCCScreenPacket decode(CompoundTag tag) {
+        String cultureId = tag.getString("culture_id");
+        return S2COpenCultureCCScreenPacket.create(null, cultureId);
     }
 
     @Override
     public void encode(FriendlyByteBuf buf) {
         buf.writeUtf(cultureId);
+    }
+
+    public void encode(CompoundTag tag) {
+        tag.putString("culture_id", cultureId);
     }
 
     @Override
@@ -61,9 +52,9 @@ public class S2COpenCultureCCScreenPacket implements OuatPacket {
 
     public static class Handler {
         public static void handle(S2COpenCultureCCScreenPacket packet) {
-            Minecraft.getInstance().execute(() -> {
-                Minecraft.getInstance().setScreen(new CultureCCScreen(packet));
-            });
+            if (COMMON.isClientSide()) {
+                ClientUtils.openCultureCCScreen(packet);
+            }
         }
     }
 
