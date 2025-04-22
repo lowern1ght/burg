@@ -44,7 +44,7 @@ public class S2COpenVariantsCCScreenPacket extends OpenScreenPacket {
                 .resolve(BUILDINGS_FOLDER_NAME)
                 .resolve(buildingId + ".json");
         BuildingDataHandler data = new BuildingDataHandler(DataHandler.loadJson(jsonPath));
-        variants = data.variants.stream().map(variant -> variant.name.get()).filter(Objects::nonNull).toList();
+        variants = data.variants.stream().map(variant -> variant.name.asString()).toList();
         S2COpenVariantsCCScreenPacket packet = new S2COpenVariantsCCScreenPacket(cultureId, buildingId, variants);
         packet.saveTag(player);
         return packet;

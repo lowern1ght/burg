@@ -16,7 +16,7 @@ public class BuildingDataHandler extends DataHandler {
     public final ArrayList<BuildingLevelsHandler> levels = new ArrayList<>();
     public final ArrayList<BuildingVariantHandler> variants = new ArrayList<>();
 
-    public BuildingDataHandler(JsonObject rootJson) {
+    public BuildingDataHandler(@NotNull JsonObject rootJson) {
         super(rootJson);
         id = new StringDataHandler(rootJson, "id");
         weight = new IntegerDataHandler(rootJson, "weight", 0, 100000);
@@ -121,9 +121,6 @@ public class BuildingDataHandler extends DataHandler {
             super(rootJson);
             this.name = new StringDataHandler(rootJson, "name");
             JsonObject sizeJson = this.getJsonObject(rootJson, "size");
-            if (sizeJson == null){
-                sizeJson = new JsonObject();
-            }
             this.sizeX = new IntegerDataHandler(sizeJson, "x", 1, 1000);
             this.sizeY = new IntegerDataHandler(sizeJson, "y", 1, 1000);
             this.sizeZ = new IntegerDataHandler(sizeJson, "z", 1, 1000);
