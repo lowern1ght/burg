@@ -47,6 +47,8 @@ public class LevelCCScreen extends BaseCCScreen {
                 .set(initRequiredEra);
         this.addWidget("dwelling_slots", new EditDigitWidgetCC(posX, Ouat.translatable("cc", "building_level_dwelling_slots"), font, true))
                 .set(initDwellingSlots);
+        this.addWidget("job", new EditDigitWidgetCC(posX, Ouat.translatable("cc", "building_level_dwelling_slots"), font, true))
+                .set(initDwellingSlots);
     }
 
     @Override

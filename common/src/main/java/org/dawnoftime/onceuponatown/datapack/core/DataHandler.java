@@ -45,8 +45,8 @@ public abstract class DataHandler {
     }
 
 
-    protected @Nullable JsonObject getJsonObject(JsonObject container, String property) {
-        return container.has(property) && container.get(property).isJsonObject() ? container.get(property).getAsJsonObject() : null;
+    protected @NotNull JsonObject getJsonObject(JsonObject container, String property) {
+        return container.has(property) && container.get(property).isJsonObject() ? container.get(property).getAsJsonObject() : new JsonObject();
     }
 
     protected @NotNull List<JsonObject> getJsonArrayObjects(JsonObject container, String property) {
