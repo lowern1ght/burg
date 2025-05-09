@@ -85,14 +85,14 @@ public abstract class BaseCCScreen extends Screen {
     }
 
     @Override
-    public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
         this.renderBackground(guiGraphics);
         guiGraphics.blit(GUI_TEXTURE, posX, posY, 0, 0, TEXTURE_TOTAL_WIDTH, TEXTURE_TAB_HEIGHT, TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT);
         drawCenteredString(guiGraphics, font, title, posX, posY + TITLE_OFFSET_Y, TEXTURE_TOTAL_WIDTH, GUI_COLOR_GREY);
         guiGraphics.enableScissor(posX + WIDGET_ZONE_X, posY + WIDGET_ZONE_Y, posX + WIDGET_ZONE_X + WIDGET_ZONE_WIDTH, posY + WIDGET_ZONE_Y + WIDGET_ZONE_HEIGHT);
-        super.render(guiGraphics, mouseX, mouseY, partialTick);
+        super.render(guiGraphics, mouseX, mouseY, partialTicks);
         guiGraphics.disableScissor();
-        this.folderButton.render(guiGraphics, mouseX, mouseY, partialTick);
+        this.folderButton.render(guiGraphics, mouseX, mouseY, partialTicks);
         this.renderScrollBar(guiGraphics);
         this.renderNavigationButtons(guiGraphics);
     }
@@ -169,7 +169,7 @@ public abstract class BaseCCScreen extends Screen {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (this.scrollbarActivated()) {
             // Detect if the user clicked somewhere in the scroll bar (but not the button).
-            if (this.inInArea(mouseX, mouseY, posX + SCROLL_ZONE_X, posY + SCROLL_ZONE_Y, TEXTURE_SCROLL_ICON_WIDTH, WIDGET_ZONE_HEIGHT)) {
+            if (mouseInArea(mouseX, mouseY, posX + SCROLL_ZONE_X, posY + SCROLL_ZONE_Y, TEXTURE_SCROLL_ICON_WIDTH, WIDGET_ZONE_HEIGHT)) {
                 scrolling = true;
                 this.setScrollOffsetFromMouseY(mouseY);
                 this.updateWidgetPositions();
@@ -193,13 +193,13 @@ public abstract class BaseCCScreen extends Screen {
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         int navigationButtons = Math.min(navigationTabList.size() - 1, MAX_NAVIGATION_NUMBER - 1); // The last button can not be clicked.
         if (navigationButtons > 0) {
-            if (this.inInArea(mouseX, mouseY, posX - TEXTURE_NAVIGATION_OFF_WIDTH, posY + NAVIGATION_ZONE_Y, TEXTURE_NAVIGATION_OFF_WIDTH, TEXTURE_NAVIGATION_OFF_HEIGHT * navigationButtons)) {
+            if (mouseInArea(mouseX, mouseY, posX - TEXTURE_NAVIGATION_OFF_WIDTH, posY + NAVIGATION_ZONE_Y, TEXTURE_NAVIGATION_OFF_WIDTH, TEXTURE_NAVIGATION_OFF_HEIGHT * navigationButtons)) {
                 Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
                 int targetedButton = (int) ((mouseY - posY - NAVIGATION_ZONE_Y) / TEXTURE_NAVIGATION_OFF_HEIGHT);
                 targetedButton += Math.max(0, navigationTabList.size() - MAX_NAVIGATION_NUMBER);
                 Ouat.CLIENT.sendToServer(navigationTabList.get(targetedButton).packetSupplier().get());
             }
-        } else if (scrolling){
+        } else if (scrolling) {
             scrolling = false;
         }
         return super.mouseReleased(mouseX, mouseY, button);
@@ -212,10 +212,6 @@ public abstract class BaseCCScreen extends Screen {
     private void setScrollOffsetFromMouseY(double mouseY){
         double newScrollButtonY = Math.min(Math.max(0, mouseY - posY  - SCROLL_ZONE_Y - TEXTURE_SCROLL_ICON_HEIGHT / 2.0D), WIDGET_ZONE_HEIGHT - TEXTURE_SCROLL_ICON_HEIGHT);
         scrollOffset = (int) (scrollMaxOffset * newScrollButtonY / (double) (WIDGET_ZONE_HEIGHT - TEXTURE_SCROLL_ICON_HEIGHT));
-    }
-
-    private boolean inInArea(double mouseX, double mouseY, int xStart, int yStart, int width, int height) {
-        return mouseX >= (double) xStart && mouseX < (double) (xStart + width) && mouseY >= (double) yStart && mouseY < (double) (yStart + height);
     }
 
     private Path getDirectoryPath() throws InvalidPathException {
@@ -247,6 +243,10 @@ public abstract class BaseCCScreen extends Screen {
             this.addRenderableWidget(w);
         }
         return widget;
+    }
+
+    public static boolean mouseInArea(double mouseX, double mouseY, int xStart, int yStart, int width, int height) {
+        return mouseX >= (double) xStart && mouseX < (double) (xStart + width) && mouseY >= (double) yStart && mouseY < (double) (yStart + height);
     }
 
     public record NavigationTab(@Nullable String folderName, Component displayName, Supplier<OuatPacket> packetSupplier) {}
