@@ -8,6 +8,7 @@ import net.minecraft.world.entity.player.Player;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.ClientUtils;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
+import org.dawnoftime.onceuponatown.datapack.core.DataHandler;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -36,19 +37,14 @@ public class S2COpenVariantsCCScreenPacket extends OpenScreenPacket {
 
     public static S2COpenVariantsCCScreenPacket create(Player player, String cultureId, String buildingId){
         List<String> variants;
-        try {
-            Path jsonPath = Ouat.COMMON.getConfigFolder().toPath()
-                    .resolve(MOD_ID)
-                    .resolve(CULTURES_FOLDER_NAME)
-                    .resolve(cultureId)
-                    .resolve(BUILDINGS_FOLDER_NAME)
-                    .resolve(buildingId + ".json");
-            String jsonContent = Files.readString(jsonPath);
-            BuildingDataHandler data = new BuildingDataHandler(JsonParser.parseString(jsonContent).getAsJsonObject());
-            variants = data.variants.stream().map(variant -> variant.name.get()).filter(Objects::nonNull).toList();
-        } catch (IOException ignored) {
-            variants = new ArrayList<>();
-        }
+        Path jsonPath = Ouat.COMMON.getConfigFolder().toPath()
+                .resolve(MOD_ID)
+                .resolve(CULTURES_FOLDER_NAME)
+                .resolve(cultureId)
+                .resolve(BUILDINGS_FOLDER_NAME)
+                .resolve(buildingId + ".json");
+        BuildingDataHandler data = new BuildingDataHandler(DataHandler.loadJson(jsonPath));
+        variants = data.variants.stream().map(variant -> variant.name.asString()).toList();
         S2COpenVariantsCCScreenPacket packet = new S2COpenVariantsCCScreenPacket(cultureId, buildingId, variants);
         packet.saveTag(player);
         return packet;

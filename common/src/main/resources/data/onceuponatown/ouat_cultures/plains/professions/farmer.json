@@ -2,10 +2,9 @@
   "id": "farmer",
   "schedule": "default",
   "work_ai": "farmer",
-  "levels": [
-    {
-      "level": 1,
-      "production": [
+  "levels": {
+    "1": {
+      "productions": [
         {
           "id": "minecraft:wheat",
           "amount": 16
@@ -45,5 +44,5 @@
         }
       ]
     }
-  ]
+  }
 }
