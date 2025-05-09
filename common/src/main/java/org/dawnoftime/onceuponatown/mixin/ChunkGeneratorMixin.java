@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ChunkGenerator.class)
-public class DisableVanillaVillagesMixin {
+public class ChunkGeneratorMixin {
     @Inject(method = "tryGenerateStructure", at = @At(value = "HEAD"), cancellable = true)
     private void disableVanillaVillages(StructureSet.StructureSelectionEntry structureSetEntry, StructureManager structureManager, RegistryAccess registryAccess, RandomState randomState, StructureTemplateManager structureTemplateManager, long seed, ChunkAccess chunkAccess, ChunkPos chunkPos, SectionPos sectionPos, CallbackInfoReturnable<Boolean> cir) {
         Config.getDisabledVillages().forEach((structure) -> {
