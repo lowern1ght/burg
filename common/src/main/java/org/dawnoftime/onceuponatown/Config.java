@@ -17,6 +17,11 @@ public class Config {
     public static final FakeConfig<Boolean> DISABLE_VANILLA_SNOW_VILLAGE = new FakeConfig<>(false);
     public static final FakeConfig<Boolean> DISABLE_VANILLA_SAVANNA_VILLAGE = new FakeConfig<>(false);
 
+    // Debug
+    public static final boolean DEBUG_PATHFINDING = false;
+    public static final boolean DEBUG_GOALS = false;
+    public static final boolean DEBUG_BRAINS = false;
+
     // Generation
     /** Minimal size of roads when they are extended.*/
     public static final int MINI_ROAD_LENGTH = 3;

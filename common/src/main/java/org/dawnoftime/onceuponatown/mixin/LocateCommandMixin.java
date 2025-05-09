@@ -21,7 +21,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.Optional;
 
 @Mixin(LocateCommand.class)
-public class LocateVillageMixin {
+public class LocateCommandMixin {
     @Inject(method = "locateStructure", at = @At(value = "HEAD"))
     private static void notifyWrongVillageCommand(CommandSourceStack sourceStack, ResourceOrTagKeyArgument.Result<Structure> result, CallbackInfoReturnable<Integer> cir) throws CommandSyntaxException {
         Optional<ResourceKey<Structure>> optional = result.unwrap().left();

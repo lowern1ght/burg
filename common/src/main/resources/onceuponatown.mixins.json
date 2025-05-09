@@ -5,10 +5,14 @@
   "refmap": "${mod_id}.refmap.json",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
-    "DisableVanillaVillagesMixin",
-    "LocateVillageMixin"
+    "ChunkGeneratorMixin",
+    "DebugPacketsMixin",
+    "LocateCommandMixin",
+    "PathMixin"
   ],
-  "client": [],
+  "client": [
+    "DebugRendererMixin"
+  ],
   "server": [],
   "injectors": {
     "defaultRequire": 1

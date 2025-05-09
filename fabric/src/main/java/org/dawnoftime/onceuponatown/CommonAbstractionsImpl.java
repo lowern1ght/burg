@@ -38,6 +38,11 @@ public class CommonAbstractionsImpl implements CommonAbstractions {
     }
 
     @Override
+    public boolean isClientSide() {
+        return false;
+    }
+
+    @Override
     public void openMenu(ServerPlayer player, MenuProvider menu, Consumer<FriendlyByteBuf> buf) {
 
     }
