@@ -8,9 +8,9 @@ import net.minecraft.world.entity.player.Player;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.ClientUtils;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
+import org.dawnoftime.onceuponatown.datapack.core.DataHandler;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -43,8 +43,7 @@ public class S2COpenBuildingCCScreenPacket extends OpenScreenPacket {
                     .resolve(cultureId)
                     .resolve(BUILDINGS_FOLDER_NAME)
                     .resolve(buildingId + ".json");
-            String jsonContent = Files.readString(jsonPath);
-            BuildingDataHandler data = new BuildingDataHandler(JsonParser.parseString(jsonContent).getAsJsonObject());
+            BuildingDataHandler data = new BuildingDataHandler(DataHandler.loadJson(jsonPath));
             String weight = data.weight.asString();
             String item = data.item.asString();
             S2COpenBuildingCCScreenPacket packet = new S2COpenBuildingCCScreenPacket(cultureId, buildingId, weight, item);

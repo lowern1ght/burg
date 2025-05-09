@@ -39,7 +39,7 @@ public class BuildingsCCScreen extends BaseCCScreen {
             this.addWidget(building, new ButtonWidgetCC(posX, Component.literal(building),
                     wdg -> Ouat.CLIENT.sendToServer(new C2SRequestBuildingCCPacket(cultureId, building))));
         }
-        this.addWidget("new_culture", new EditBoxAndConfirmWidgetCC(posX, Ouat.translatable("cc", "buildings_hint_building"), font, false,
+        this.addWidget("new_building", new EditBoxAndConfirmWidgetCC(posX, Ouat.translatable("cc", "buildings_hint_building"), font, false,
                 wdg -> Ouat.CLIENT.sendToServer(new C2SRequestBuildingCCPacket(cultureId, wdg.get()))));
     }
 }
