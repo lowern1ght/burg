@@ -56,7 +56,7 @@ public class DebugPacketsMixin {
 
     @Inject(method = "sendEntityBrain", at = @At("HEAD"))
     private static void implementSendEntityBrain(LivingEntity livingEntity, CallbackInfo ci) {
-        if (Config.DEBUG_BRAINS && !livingEntity.level().isClientSide() && livingEntity instanceof Npc) {
+        if (Config.DEBUG_BRAINS && !livingEntity.level().isClientSide() && (livingEntity instanceof Npc || livingEntity instanceof Villager)) {
             FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer());
             buffer.writeDouble(livingEntity.getX());
             buffer.writeDouble(livingEntity.getY());

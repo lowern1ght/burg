@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.entity.ai.goal.work;
+package org.dawnoftime.onceuponatown.entity.ai.goal;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundEvents;
@@ -9,7 +9,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.entity.NpcFishingHook;
-import org.dawnoftime.onceuponatown.entity.ai.goal.NpcGoal;
 
 import java.util.EnumSet;
 

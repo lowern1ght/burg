@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.entity.ai.goal.work;
+package org.dawnoftime.onceuponatown.entity.ai.goal;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -16,7 +16,6 @@ import org.dawnoftime.onceuponatown.building.BuildProject;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.entity.ai.SimpleStateMachine;
 import org.dawnoftime.onceuponatown.entity.ai.SimpleStateMachine.State;
-import org.dawnoftime.onceuponatown.entity.ai.goal.NpcGoal;
 import org.dawnoftime.onceuponatown.registry.ItemRegistry;
 import org.dawnoftime.onceuponatown.town.Town;
 

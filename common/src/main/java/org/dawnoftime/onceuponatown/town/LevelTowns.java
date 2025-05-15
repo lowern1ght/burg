@@ -70,6 +70,15 @@ public class LevelTowns extends SavedData {
         return town;
     }
 
+    public @Nullable Town getTownAt(BlockPos pos) {
+        for (Town town : towns.values()) {
+            if (false) {
+                return town;
+            }
+        }
+        return null;
+    }
+
     public @NotNull Collection<Town> getAll() {
         return towns.values();
     }

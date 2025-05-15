@@ -8,7 +8,9 @@
     "ChunkGeneratorMixin",
     "DebugPacketsMixin",
     "LocateCommandMixin",
-    "PathMixin"
+    "PathMixin",
+    "PillagerMixin",
+    "ServerLevelMixin"
   ],
   "client": [
     "DebugRendererMixin"
