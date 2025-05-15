@@ -7,7 +7,12 @@ import net.minecraft.server.level.ServerPlayer;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.network.OuatPacket;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
+import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURES_FOLDER_NAME;
 
 public record C2SRequestCultureCCPacket(String cultureId) implements OuatPacket {
     public static final ResourceLocation ID = modResource("c2s_request_culture_cc");
@@ -27,6 +32,16 @@ public record C2SRequestCultureCCPacket(String cultureId) implements OuatPacket 
     }
 
     public void handle(MinecraftServer server, ServerPlayer player) {
-        Ouat.COMMON.sendToClient(player, S2COpenCultureCCScreenPacket.create(player, cultureId));
+        try {
+            Path newCultureFolder = Ouat.COMMON.getConfigFolder().toPath()
+                    .resolve(MOD_ID)
+                    .resolve(CULTURES_FOLDER_NAME)
+                    .resolve(cultureId);
+            Files.createDirectories(newCultureFolder);
+            Ouat.COMMON.sendToClient(player, S2COpenCultureCCScreenPacket.create(player, cultureId));
+        } catch (Exception e) {
+            Ouat.clientChat(player, "cc", "culture_error", cultureId);
+            Ouat.debug("An error occurred while creating the culture folder of '" + cultureId + "' : " + e);
+        }
     }
 }
