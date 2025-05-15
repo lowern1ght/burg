@@ -2,6 +2,7 @@ package org.dawnoftime.onceuponatown.client.gui.culture_creator;
 
 import net.minecraft.network.chat.Component;
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.client.gui.culture_creator.widgets_cc.DropAndEditBoxWidgetCC;
 import org.dawnoftime.onceuponatown.client.gui.culture_creator.widgets_cc.EditDigitWidgetCC;
 import org.dawnoftime.onceuponatown.client.gui.culture_creator.widgets_cc.ItemEditBoxWidgetCC;
 import org.dawnoftime.onceuponatown.network.culturecreator.*;
@@ -47,7 +48,11 @@ public class LevelCCScreen extends BaseCCScreen {
                 .set(initRequiredEra);
         this.addWidget("dwelling_slots", new EditDigitWidgetCC(posX, Ouat.translatable("cc", "building_level_dwelling_slots"), font, true))
                 .set(initDwellingSlots);
-        this.addWidget("job", new EditDigitWidgetCC(posX, Ouat.translatable("cc", "building_level_dwelling_slots"), font, true))
+        this.addWidget("job", new DropAndEditBoxWidgetCC(posX, this, Ouat.translatable("cc", "building_level_dwelling_slots")))
+                .set(initDwellingSlots);
+        this.addWidget("job2", new DropAndEditBoxWidgetCC(posX, this, Ouat.translatable("cc", "building_level_dwelling_slots")))
+                .set(initDwellingSlots);
+        this.addWidget("job3", new DropAndEditBoxWidgetCC(posX, this, Ouat.translatable("cc", "building_level_dwelling_slots")))
                 .set(initDwellingSlots);
     }
 
