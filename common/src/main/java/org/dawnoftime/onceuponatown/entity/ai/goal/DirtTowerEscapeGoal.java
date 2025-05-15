@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.entity.ai.goal.core;
+package org.dawnoftime.onceuponatown.entity.ai.goal;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.valueproviders.UniformInt;
@@ -8,7 +8,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import org.dawnoftime.onceuponatown.entity.Npc;
-import org.dawnoftime.onceuponatown.entity.ai.goal.NpcGoal;
 
 import java.util.EnumSet;
 

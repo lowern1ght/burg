@@ -347,7 +347,6 @@ public class Town extends ProtoTown {
                                     npc.setProfessionId("unemployed");
                                 }
                                 npc.assignTown(this);
-                                npc.addTownGoals();
                                 citizen.entityUUID = npc.getUUID();
                                 citizen.status = Citizen.Status.LOADED;
                             }
@@ -454,7 +453,7 @@ public class Town extends ProtoTown {
             var uuid = citizen.entityUUID;
             if (uuid != null) {
                 if (level.getEntity(citizen.entityUUID) instanceof Npc npc) {
-                    npc.clearAi();
+                    npc.refreshAi(level);
                     npc.setProfessionId(Profession.UNEMPLOYED.getId());
                 }
             }

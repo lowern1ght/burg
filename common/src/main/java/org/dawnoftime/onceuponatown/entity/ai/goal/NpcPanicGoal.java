@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.entity.ai.goal.core;
+package org.dawnoftime.onceuponatown.entity.ai.goal;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.tags.FluidTags;
@@ -7,7 +7,6 @@ import net.minecraft.world.entity.ai.util.DefaultRandomPos;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.phys.Vec3;
 import org.dawnoftime.onceuponatown.entity.Npc;
-import org.dawnoftime.onceuponatown.entity.ai.goal.NpcGoal;
 
 import javax.annotation.Nullable;
 import java.util.EnumSet;

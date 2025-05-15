@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.entity.ai.goal.fight;
+package org.dawnoftime.onceuponatown.entity.ai.goal;
 
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;

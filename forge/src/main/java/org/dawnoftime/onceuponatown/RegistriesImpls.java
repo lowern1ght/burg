@@ -5,6 +5,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.schedule.Schedule;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.CreativeModeTab;
@@ -38,6 +39,7 @@ public class RegistriesImpls {
         MenuRegistryImpl.REGISTRY = new MenuRegistryImpl();
         StructureTypeRegistryImpl.REGISTRY = new StructureTypeRegistryImpl();
         StructurePieceRegistryImpl.REGISTRY = new StructurePieceRegistryImpl();
+        ScheduleRegistryImpl.REGISTRY = new ScheduleRegistryImpl();
 
         // Populates the registries and register their contents.
         EntityRegistryImpl.DEFERRED_REGISTER.register(modEventBus);
@@ -47,6 +49,7 @@ public class RegistriesImpls {
         MenuRegistryImpl.DEFERRED_REGISTER.register(modEventBus);
         StructureTypeRegistryImpl.DEFERRED_REGISTER.register(modEventBus);
         StructurePieceRegistryImpl.DEFERRED_REGISTER.register(modEventBus);
+        ScheduleRegistryImpl.DEFERRED_REGISTER.register(modEventBus);
 
         //modEventBus.addListener((EntityAttributeCreationEvent event) -> event.put(EntityRegistry.REGISTRY.NPC.get(), Npc.createAttributes().build()));
 
@@ -125,6 +128,15 @@ public class RegistriesImpls {
         @Override
         public Supplier<StructurePieceType> register(String name, Supplier<StructurePieceType> structurePieceTypeSupplier) {
             return DEFERRED_REGISTER.register(name, structurePieceTypeSupplier);
+        }
+    }
+
+    public static class ScheduleRegistryImpl extends ScheduleRegistry {
+        public static final DeferredRegister<Schedule> DEFERRED_REGISTER = DeferredRegister.create(Registries.SCHEDULE, Ouat.MOD_ID);
+
+        @Override
+        public Supplier<Schedule> register(String name, Supplier<Schedule> scheduleSupplier) {
+            return DEFERRED_REGISTER.register(name, scheduleSupplier);
         }
     }
 }
