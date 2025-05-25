@@ -22,7 +22,7 @@ public class EditDigitWidgetCC extends WidgetCC {
      */
     public EditDigitWidgetCC(int posX, Component hint, Font font, boolean isInt) {
         this.textButton = new LeftAlignTextButton(posX + WIDGET_ZONE_X, 0, WIDGET_ZONE_WIDTH - 3 * WIDGET_HEIGHT - 1, WIDGET_HEIGHT, hint);
-        this.editBox = new EditBox(font, posX + WIDGET_ZONE_X + WIDGET_ZONE_WIDTH - 3 * WIDGET_HEIGHT + 1, 0, 3 * WIDGET_HEIGHT - 2, WIDGET_HEIGHT - 2, Component.literal("...")) {
+        this.editBox = new EditBox(font, posX + WIDGET_ZONE_X + WIDGET_ZONE_WIDTH - 3 * WIDGET_HEIGHT + 1, 0, 3 * WIDGET_HEIGHT - 2, WIDGET_HEIGHT - 2, EMPTY_EDIT_BOX) {
             // We must edit the setY function because for some reason, MC devs decided that the actual border of this widget should be bigger than its size...
             @Override
             public void setY(int y) {
@@ -39,6 +39,7 @@ public class EditDigitWidgetCC extends WidgetCC {
                 return super.charTyped(codePoint, modifiers);
             }
         };
+        this.editBox.setHint(EMPTY_EDIT_BOX);
     }
 
     @Override
