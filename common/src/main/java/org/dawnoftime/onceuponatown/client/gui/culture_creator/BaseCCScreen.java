@@ -18,8 +18,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
 import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
@@ -46,7 +48,7 @@ public abstract class BaseCCScreen extends Screen {
     private static final int WIDGET_ZONE_HEIGHT = 139;
     public static final int WIDGET_HEIGHT = 20;
     private static final int WIDGET_HEIGHT_PADDED = WIDGET_HEIGHT + 1;
-    private static final int WIDGET_PLUS_BUTTON_HEIGHT = 12;
+    public static final int WIDGET_PLUS_BUTTON_HEIGHT = 12;
     private static final int FOLDER_BUTTON_X = 224;
     private static final int FOLDER_BUTTON_Y = 6;
     private static final int FOLDER_BUTTON_SIDE_LENGTH = 10;
@@ -81,7 +83,7 @@ public abstract class BaseCCScreen extends Screen {
         // Finally, create the widgets specific to the screen.
         this.initWidgets();
         this.updateWidgetPositions();
-        scrollMaxOffset = Math.max(widgets.size() * WIDGET_HEIGHT_PADDED - WIDGET_ZONE_HEIGHT, 0);
+        this.updateMaxScrollOffset();
     }
 
     @Override
@@ -130,11 +132,15 @@ public abstract class BaseCCScreen extends Screen {
         }
     }
 
+    protected void updateMaxScrollOffset() {
+        scrollMaxOffset = Math.max(widgets.size() * WIDGET_HEIGHT_PADDED - WIDGET_ZONE_HEIGHT, 0);
+    }
+
     private boolean scrollbarActivated() {
         return scrollMaxOffset > 0;
     }
 
-    private void updateWidgetPositions() {
+    protected void updateWidgetPositions() {
         String[] widgetIds = widgets.keySet().toArray(new String[0]);
         for (int i = 0; i < widgetIds.length; i++) {
             int widgetY = i * WIDGET_HEIGHT_PADDED - scrollOffset;
@@ -237,11 +243,30 @@ public abstract class BaseCCScreen extends Screen {
      */
     public abstract void initWidgets();
 
-    protected WidgetCC addWidget(String id, WidgetCC widget) {
+    protected <T extends WidgetCC> T addWidget(String id, T widget) {
         widgets.put(id, widget);
         for (AbstractWidget w : widget.getWidgets()) {
             this.addRenderableWidget(w);
         }
+        return widget;
+    }
+
+    protected <T extends WidgetCC> T insertBeforeLast(String id, T widget) {
+        for (AbstractWidget w : widget.getWidgets()) {
+            this.addRenderableWidget(w);
+        }
+        Iterator<Map.Entry<String, WidgetCC>> iterator = widgets.entrySet().iterator();
+        Map.Entry<String, WidgetCC> last = null;
+        while (iterator.hasNext()) {
+            last = iterator.next();
+        }
+        if (last == null) {
+            widgets.put(id, widget);
+            return widget;
+        }
+        widgets.remove(last.getKey());
+        widgets.put(id, widget);
+        widgets.put(last.getKey(), last.getValue());
         return widget;
     }
 

@@ -86,8 +86,8 @@ public class BuildingDataHandler extends DataHandler {
     }
 
     public static class WorkingSlotHandler extends DataHandler {
-        private final StringDataHandler id;
-        private final IntegerDataHandler maxLevel;
+        public final StringDataHandler id;
+        public final IntegerDataHandler maxLevel;
 
         public WorkingSlotHandler(@NotNull JsonObject rootJson) {
             super(rootJson);

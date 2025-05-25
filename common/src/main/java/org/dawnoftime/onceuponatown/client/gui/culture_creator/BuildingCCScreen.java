@@ -41,9 +41,9 @@ public class BuildingCCScreen extends BaseCCScreen {
     @Override
     public void initWidgets() {
         this.addWidget("item", new ItemEditBoxWidgetCC(posX, Ouat.translatable("cc", "building_item_id"), font))
-                .set(initItem);
+                .set(null, initItem);
         this.addWidget("weight", new EditDigitWidgetCC(posX, Ouat.translatable("cc", "building_weight"), font, true))
-                .set(initWeight);
+                .set(null, initWeight);
         this.addWidget("levels", new ButtonWidgetCC(posX, Ouat.translatable("cc", "levels_nav"),
                 wdg -> Ouat.CLIENT.sendToServer(new C2SRequestLevelsCCPacket(cultureId, buildingId))));
         this.addWidget("variants", new ButtonWidgetCC(posX, Ouat.translatable("cc", "variants_nav"),
@@ -52,7 +52,7 @@ public class BuildingCCScreen extends BaseCCScreen {
 
     @Override
     public void removed() {
-        Ouat.CLIENT.sendToServer(new C2SSaveBuildingCCPacket(cultureId, buildingId, this.widgets.get("item").get(), this.widgets.get("weight").get()));
+        Ouat.CLIENT.sendToServer(new C2SSaveBuildingCCPacket(cultureId, buildingId, this.widgets.get("item").get(null), this.widgets.get("weight").get()));
         super.removed();
     }
 }

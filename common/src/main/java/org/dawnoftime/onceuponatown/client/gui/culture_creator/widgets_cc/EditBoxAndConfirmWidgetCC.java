@@ -68,7 +68,7 @@ public class EditBoxAndConfirmWidgetCC extends WidgetCC {
     }
 
     @Override
-    public @NotNull String get() {
+    public @NotNull String get(String key) {
         String content = editBox.getValue().trim();
         if (!naturalLanguage) {
             content = content.toLowerCase().replace(" ", "_").replaceAll("[^a-z0-9_]", "");
@@ -77,7 +77,8 @@ public class EditBoxAndConfirmWidgetCC extends WidgetCC {
     }
 
     @Override
-    public void set(@NotNull String value) {
+    public WidgetCC set(String key, @NotNull String value) {
         editBox.setValue(value);
+        return this;
     }
 }
