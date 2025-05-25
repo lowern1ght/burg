@@ -31,6 +31,7 @@ public class PacketHandler {
         CHANNEL.registerMessage(i++, C2SSaveBuildingCCPacket.class, C2SSaveBuildingCCPacket::encode, C2SSaveBuildingCCPacket::decode, makeC2SHandler(C2SSaveBuildingCCPacket::handle));
         CHANNEL.registerMessage(i++, C2SRequestVariantsCCPacket.class, C2SRequestVariantsCCPacket::encode, C2SRequestVariantsCCPacket::decode, makeC2SHandler(C2SRequestVariantsCCPacket::handle));
         CHANNEL.registerMessage(i++, C2SRequestLevelsCCPacket.class, C2SRequestLevelsCCPacket::encode, C2SRequestLevelsCCPacket::decode, makeC2SHandler(C2SRequestLevelsCCPacket::handle));
+        CHANNEL.registerMessage(i++, C2SSaveLevelsCCPacket.class, C2SSaveLevelsCCPacket::encode, C2SSaveLevelsCCPacket::decode, makeC2SHandler(C2SSaveLevelsCCPacket::handle));
         CHANNEL.registerMessage(i++, C2SRequestLevelCCPacket.class, C2SRequestLevelCCPacket::encode, C2SRequestLevelCCPacket::decode, makeC2SHandler(C2SRequestLevelCCPacket::handle));
         CHANNEL.registerMessage(i++, C2SSaveLevelCCPacket.class, C2SSaveLevelCCPacket::encode, C2SSaveLevelCCPacket::decode, makeC2SHandler(C2SSaveLevelCCPacket::handle));
 

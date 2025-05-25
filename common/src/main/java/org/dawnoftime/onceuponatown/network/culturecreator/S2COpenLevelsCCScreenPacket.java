@@ -1,6 +1,5 @@
 package org.dawnoftime.onceuponatown.network.culturecreator;
 
-import com.google.gson.JsonParser;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
@@ -10,8 +9,6 @@ import org.dawnoftime.onceuponatown.client.ClientUtils;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
 import org.dawnoftime.onceuponatown.datapack.core.DataHandler;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.dawnoftime.onceuponatown.Ouat.*;
@@ -23,9 +20,9 @@ public class S2COpenLevelsCCScreenPacket extends OpenScreenPacket {
 
     private final String cultureId;
     private final String buildingId;
-    private final int levelNumber;
+    private final byte levelNumber;
 
-    private S2COpenLevelsCCScreenPacket(String cultureId, String buildingId, int levelNumber){
+    private S2COpenLevelsCCScreenPacket(String cultureId, String buildingId, byte levelNumber){
         super(ID.getPath());
         this.cultureId = cultureId;
         this.buildingId = buildingId;
@@ -33,7 +30,7 @@ public class S2COpenLevelsCCScreenPacket extends OpenScreenPacket {
     }
 
     public static S2COpenLevelsCCScreenPacket create(Player player, String cultureId, String buildingId){
-        int levelNumber = 1;
+        byte levelNumber = 1;
         Path jsonPath = Ouat.COMMON.getConfigFolder().toPath()
                 .resolve(MOD_ID)
                 .resolve(CULTURES_FOLDER_NAME)
@@ -41,7 +38,7 @@ public class S2COpenLevelsCCScreenPacket extends OpenScreenPacket {
                 .resolve(BUILDINGS_FOLDER_NAME)
                 .resolve(buildingId + ".json");
         BuildingDataHandler data = new BuildingDataHandler(DataHandler.loadJson(jsonPath));
-        levelNumber = Math.max(1, data.levels.size());
+        levelNumber = (byte) Math.min(Math.max(1, data.levels.size()), 127);
         S2COpenLevelsCCScreenPacket packet = new S2COpenLevelsCCScreenPacket(cultureId, buildingId, levelNumber);
         packet.saveTag(player);
         return packet;
@@ -50,7 +47,7 @@ public class S2COpenLevelsCCScreenPacket extends OpenScreenPacket {
     public static S2COpenLevelsCCScreenPacket decode(FriendlyByteBuf buf) {
         String cultureId = buf.readUtf();
         String buildingId = buf.readUtf();
-        int levelNumber = buf.readInt();
+        byte levelNumber = buf.readByte();
         return new S2COpenLevelsCCScreenPacket(cultureId, buildingId, levelNumber);
     }
 
@@ -64,7 +61,7 @@ public class S2COpenLevelsCCScreenPacket extends OpenScreenPacket {
     public void encode(FriendlyByteBuf buf) {
         buf.writeUtf(cultureId);
         buf.writeUtf(buildingId);
-        buf.writeInt(levelNumber);
+        buf.writeByte(levelNumber);
     }
 
     public void encode(CompoundTag tag) {
@@ -85,7 +82,7 @@ public class S2COpenLevelsCCScreenPacket extends OpenScreenPacket {
         return buildingId;
     }
 
-    public int getLevelNumber() {
+    public byte getLevelNumber() {
         return levelNumber;
     }
 
