@@ -27,8 +27,8 @@ public class DropAndEditBoxWidgetCC extends WidgetCC {
      * @param options Map that contains a String key associated to its displayed text.
      */
     public DropAndEditBoxWidgetCC(int posX, Screen screen, Component text, Font font, BiConsumer<String, String> storeChoiceFunction, LinkedHashMap<String, String> options) {
-        this.dropDownButton = new DropdownButton(posX + WIDGET_ZONE_X, 0, WIDGET_ZONE_WIDTH - 2 * WIDGET_HEIGHT - 1, WIDGET_HEIGHT, screen, text, options, storeChoiceFunction);
-        this.editBox = new EditBox(font, posX + WIDGET_ZONE_X + WIDGET_ZONE_WIDTH - 2 * WIDGET_HEIGHT + 1, 0, 3 * WIDGET_HEIGHT - 2, WIDGET_HEIGHT - 2, Component.literal("...")) {
+        this.dropDownButton = new DropdownButton(posX + WIDGET_ZONE_X, 0, WIDGET_ZONE_WIDTH - 3 * WIDGET_HEIGHT - 1, WIDGET_HEIGHT, screen, text, options, storeChoiceFunction);
+        this.editBox = new EditBox(font, posX + WIDGET_ZONE_X + WIDGET_ZONE_WIDTH - 3 * WIDGET_HEIGHT + 1, 0, 3 * WIDGET_HEIGHT - 2, WIDGET_HEIGHT - 2, EMPTY_EDIT_BOX) {
             // We must edit the setY function because for some reason, MC devs decided that the actual border of this widget should be bigger than its size...
             @Override
             public void setY(int y) {
@@ -43,6 +43,7 @@ public class DropAndEditBoxWidgetCC extends WidgetCC {
                 return super.charTyped(codePoint, modifiers);
             }
         };
+        this.editBox.setHint(EMPTY_EDIT_BOX);
     }
 
     @Override

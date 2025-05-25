@@ -20,9 +20,9 @@ public class LevelCCScreen extends BaseCCScreen {
     private final String cultureId;
     private final String buildingId;
     private final String level;
-    private final String initRequiredEra;
-    private final String initDwellingSlots;
-    private final Map<Integer, Pair<String, String>> initProfessionSlots;
+    private String initRequiredEra;
+    private String initDwellingSlots;
+    private Map<Integer, Pair<String, String>> initProfessionSlots;
     private final List<String> professionList;
 
     public LevelCCScreen(S2COpenLevelCCScreenPacket packet) {
@@ -82,17 +82,20 @@ public class LevelCCScreen extends BaseCCScreen {
         }));
     }
 
-    // TODO Lors de la fermeture de dropdown, le parent screen se réinitialise et reprend les valeurs des variables init, alors que les champs ont depuis été modifié par l'utilisateur (et sauvegardés)...
-
     @Override
     public void removed() {
-        List<Pair<String, String>> professionSlots = new ArrayList<>();
+        // When the dropdown screen is closed, the previous screen's (this one) init() is called, which reset the widgets value to their initialization value.
+        // We must update the initialization values when the dropdown screen opens : just after calling the removed() function !
+        initRequiredEra = this.widgets.get("required_era").get();
+        initDwellingSlots = this.widgets.get("dwelling_slots").get();
+        ArrayList<Pair<String, String>> professionSlots = new ArrayList<>();
         for (String widgetId : widgets.keySet()) {
             if (widgetId.startsWith("profession_slot")) {
                 professionSlots.add(new Pair<>(widgets.get(widgetId).get("selection"), widgets.get(widgetId).get("number")));
             }
         }
-        Ouat.CLIENT.sendToServer(new C2SSaveLevelCCPacket(cultureId, buildingId, level, this.widgets.get("required_era").get(), this.widgets.get("dwelling_slots").get(), professionSlots));
+        initProfessionSlots = IntStream.range(0, professionSlots.size()).boxed().collect(Collectors.toMap(i -> i, professionSlots::get));
+        Ouat.CLIENT.sendToServer(new C2SSaveLevelCCPacket(cultureId, buildingId, level, initRequiredEra, initDwellingSlots, professionSlots));
         super.removed();
     }
 }
