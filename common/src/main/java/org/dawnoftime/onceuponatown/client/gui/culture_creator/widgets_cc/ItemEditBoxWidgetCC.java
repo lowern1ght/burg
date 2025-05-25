@@ -71,12 +71,13 @@ public class ItemEditBoxWidgetCC extends WidgetCC {
     }
 
     @Override
-    public @NotNull String get() {
+    public @NotNull String get(String key) {
         return editBox.getValue().trim();
     }
 
     @Override
-    public void set(@NotNull String value) {
+    public WidgetCC set(String key, @NotNull String value) {
         editBox.setValue(value);
+        return this;
     }
 }

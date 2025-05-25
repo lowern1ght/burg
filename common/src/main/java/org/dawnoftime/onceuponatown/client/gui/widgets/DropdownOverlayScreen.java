@@ -12,6 +12,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import static org.dawnoftime.onceuponatown.client.gui.culture_creator.BaseCCScreen.mouseInArea;
 
@@ -32,43 +34,37 @@ public class DropdownOverlayScreen extends Screen {
     private static final int WIDGET_HEIGHT_PADDED = WIDGET_HEIGHT + 1;
 
     private final Screen parentScreen;
-    private final DropdownButton parentButton;
-    int posX;
-    private int posY;
+    private final int posX;
+    private final int posY;
     private int scrollOffset = 0;
     private int scrollMaxOffset;
     boolean scrolling = false;
     private final HashMap<String, String> options;
+    private final BiConsumer<String, String> storeChoiceFunction;
     private final LinkedHashMap<String, Button> widgets = new LinkedHashMap<>();
 
-    public DropdownOverlayScreen(Screen parent, DropdownButton button, LinkedHashMap<String, String> options) {
+    public DropdownOverlayScreen(Screen parent, DropdownButton button, LinkedHashMap<String, String> options, BiConsumer<String, String> storeChoiceFunction) {
         super(Component.empty());
         this.parentScreen = parent;
-        this.parentButton = button;
+        this.storeChoiceFunction = storeChoiceFunction;
+        this.posX = button.getX();
+        this.posY = button.getY() + button.getHeight() - 1;
         this.options = options;
     }
 
     @Override
     protected void init() {
-        // Since this function is also called on resize, we have to reset the widgets.
-        this.posX = parentButton.getX();
-        this.posY = parentButton.getY() + parentButton.getHeight() - 1;
-        widgets.clear();
-        // Finally, create the widgets specific to the screen.
-        this.initWidgets();
-        this.updateWidgetPositions();
-        scrollMaxOffset = Math.max(widgets.size() * WIDGET_HEIGHT_PADDED - WIDGET_ZONE_HEIGHT, 0);
-    }
-
-    private void initWidgets() {
+        // We don't have to reset the widgets since the dropdown will just close on resize.
         for (String id : options.keySet()) {
             Button button = new LeftAlignTextButton(posX + WIDGET_ZONE_X, 0, WIDGET_ZONE_WIDTH, WIDGET_HEIGHT, Component.literal(options.get(id)), btn -> {
-                parentButton.setCurrentChoiceKey(id);
+                storeChoiceFunction.accept(id, options.get(id));
                 Minecraft.getInstance().setScreen(parentScreen);
             });
             widgets.put(id, button);
             this.addRenderableWidget(button);
         }
+        this.updateWidgetPositions();
+        scrollMaxOffset = Math.max(widgets.size() * WIDGET_HEIGHT_PADDED - WIDGET_ZONE_HEIGHT, 0);
     }
 
     @Override
