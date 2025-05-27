@@ -38,14 +38,11 @@ public class VariantsCCScreen extends BaseCCScreen {
     @Override
     public void initWidgets() {
         for (String variant : variants) {
-            this.addWidget(variant, new ButtonWidgetCC(posX, Component.literal(variant), wdg -> {}));
-/*
-                    wdg -> Ouat.CLIENT.sendToServer(new C2SRequestBuildingCCPacket(cultureId, variant))));
-*/
+            this.addWidget(variant, new ButtonWidgetCC(posX, Component.literal(variant),
+                    wdg -> Ouat.CLIENT.sendToServer(new C2SRequestVariantLevelsCCPacket(cultureId, buildingId, variant))));
         }
-        this.addWidget("new_culture", new EditBoxAndConfirmWidgetCC(posX, Ouat.translatable("cc", "buildings_hint_building"), font, false, wdg -> {}));
-/*
-                wdg -> Ouat.CLIENT.sendToServer(new C2SRequestBuildingCCPacket(cultureId, wdg.get()))));
-*/
+        this.addWidget("new_variant", new EditBoxAndConfirmWidgetCC(posX, Ouat.translatable("cc", "building_variants_hint_variant"), font, false,
+                wdg -> Ouat.CLIENT.sendToServer(new C2SRequestVariantLevelsCCPacket(cultureId, buildingId, wdg.get()))));
+
     }
 }

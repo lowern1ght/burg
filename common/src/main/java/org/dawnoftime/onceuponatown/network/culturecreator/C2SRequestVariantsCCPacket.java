@@ -39,7 +39,7 @@ public record C2SRequestVariantsCCPacket(String cultureId, String buildingId) im
                     .resolve(CULTURES_FOLDER_NAME)
                     .resolve(cultureId);
             if (Files.isDirectory(newCultureFolder)) {
-                Ouat.COMMON.sendToClient(player, S2COpenBuildingCCScreenPacket.create(player, cultureId, buildingId));
+                Ouat.COMMON.sendToClient(player, S2COpenVariantsCCScreenPacket.create(player, cultureId, buildingId));
                 return;
             }
         } catch (Exception e) {
