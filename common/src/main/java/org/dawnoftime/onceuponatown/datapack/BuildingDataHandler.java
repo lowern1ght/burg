@@ -8,6 +8,7 @@ import org.dawnoftime.onceuponatown.datapack.core.StringDataHandler;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.function.Supplier;
 
 public class BuildingDataHandler extends DataHandler {
     public final StringDataHandler id;
@@ -50,6 +51,24 @@ public class BuildingDataHandler extends DataHandler {
         levels.forEach(spec -> errors.addAll(spec.getErrors()));
         variants.forEach(era -> errors.addAll(era.getErrors()));
         return errors;
+    }
+
+    public void resizeLevelLists(int numberOfLevel) {
+        resizeList(levels, numberOfLevel, () -> new BuildingLevelsHandler(new JsonObject()));
+        for (BuildingVariantHandler variant : variants) {
+            resizeList(variant.levels, numberOfLevel, () -> new BuildingVariantLevelHandler(new JsonObject()));
+        }
+    }
+
+    private static <T> void resizeList(ArrayList<T> list, int targetSize, Supplier<T> supplier) {
+        int currentSize = list.size();
+        if (currentSize > targetSize) {
+            list.subList(targetSize, currentSize).clear();
+        } else {
+            for (int i = currentSize; i < targetSize; i++) {
+                list.add(supplier.get());
+            }
+        }
     }
 
     public static class BuildingLevelsHandler extends DataHandler {

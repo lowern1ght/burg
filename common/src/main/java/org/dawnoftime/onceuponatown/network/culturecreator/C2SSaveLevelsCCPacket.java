@@ -42,10 +42,7 @@ public record C2SSaveLevelsCCPacket(String cultureId, String buildingId, byte nu
                 .resolve(BUILDINGS_FOLDER_NAME)
                 .resolve(buildingId + ".json");
         BuildingDataHandler data = new BuildingDataHandler(loadJson(jsonPath));
-        // If there isn't enough levels already created, we add blanks level in between.
-        for (int i = 0; i < numberOfLevel - data.levels.size(); i++) {
-            data.levels.add(new BuildingDataHandler.BuildingLevelsHandler(new JsonObject()));
-        }
+        data.resizeLevelLists(numberOfLevel);
         data.saveJson(jsonPath, player, cultureId);
     }
 }
