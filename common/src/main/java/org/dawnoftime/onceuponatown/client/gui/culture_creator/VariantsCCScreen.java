@@ -43,6 +43,5 @@ public class VariantsCCScreen extends BaseCCScreen {
         }
         this.addWidget("new_variant", new EditBoxAndConfirmWidgetCC(posX, Ouat.translatable("cc", "building_variants_hint_variant"), font, false,
                 wdg -> Ouat.CLIENT.sendToServer(new C2SRequestVariantLevelsCCPacket(cultureId, buildingId, wdg.get()))));
-
     }
 }

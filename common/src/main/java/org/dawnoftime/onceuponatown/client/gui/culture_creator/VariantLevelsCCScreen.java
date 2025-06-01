@@ -10,7 +10,7 @@ import java.util.*;
 import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.BUILDINGS_FOLDER_NAME;
 import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURES_FOLDER_NAME;
 
-public class VariantCCScreen extends BaseCCScreen {
+public class VariantLevelsCCScreen extends BaseCCScreen {
 
     private final String cultureId;
     private final String buildingId;
@@ -18,7 +18,7 @@ public class VariantCCScreen extends BaseCCScreen {
     private String initDwellingSlots;
     private Map<Integer, Pair<String, String>> initProfessionSlots;
 
-    public VariantCCScreen(S2COpenVariantLevelsCCScreenPacket packet) {
+    public VariantLevelsCCScreen(S2COpenVariantLevelsCCScreenPacket packet) {
         super(Ouat.translatable("cc", "level_nav", 1));
         cultureId = packet.getCultureId();
         buildingId = packet.getBuildingId();
