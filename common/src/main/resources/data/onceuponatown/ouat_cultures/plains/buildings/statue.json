@@ -12,13 +12,13 @@
     {
       "name": "variant1",
       "size": {
-        "x": 10,
-        "y": 10,
-        "z": 10
+        "x": 30,
+        "y": 12,
+        "z": 27
       },
       "levels": [
         {
-          "schematic": "small_house",
+          "schematic": "statue",
           "waypoints": [
           ]
         }
