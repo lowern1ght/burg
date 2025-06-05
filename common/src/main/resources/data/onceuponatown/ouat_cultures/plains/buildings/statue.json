@@ -23,6 +23,21 @@
           ]
         }
       ]
+    },
+    {
+      "name": "variant2",
+      "size": {
+        "x": 35,
+        "y": 20,
+        "z": 28
+      },
+      "levels": [
+        {
+          "schematic": "statue_2",
+          "waypoints": [
+          ]
+        }
+      ]
     }
   ]
 }
