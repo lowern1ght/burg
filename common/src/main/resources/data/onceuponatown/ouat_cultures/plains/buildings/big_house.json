@@ -71,6 +71,21 @@
       ]
     },
     {
+      "name": "apartments4",
+      "size": {
+        "x": 29,
+        "y": 16,
+        "z": 24
+      },
+      "levels": [
+        {
+          "schematic": "apartments_4",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
       "name": "neighborhood",
       "size": {
         "x": 40,
