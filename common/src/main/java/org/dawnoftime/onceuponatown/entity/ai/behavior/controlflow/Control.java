@@ -18,7 +18,7 @@ public class Control {
         Selector.ChoosePolicy choosePolicy,
         List<Pair<Integer, ? extends BehaviorControl<? super E>>> behaviors
     ) {
-        return new Selector<>(orderPolicy, choosePolicy, behaviors);
+        return new Selector<E>(orderPolicy, choosePolicy, behaviors);
     }
 
     @SafeVarargs
@@ -27,19 +27,19 @@ public class Control {
         Selector.ChoosePolicy choosePolicy,
         Pair<Integer, ? extends BehaviorControl<? super E>>... behaviors
     ) {
-        return new Selector<>(orderPolicy, choosePolicy, ImmutableList.copyOf(behaviors));
+        return new Selector<E>(orderPolicy, choosePolicy, ImmutableList.copyOf(behaviors));
     }
 
     public static <E extends LivingEntity> Sequence<E> sequence(boolean acceptsFailure, List<BehaviorControl<? super E>> behaviors) {
-        return new Sequence<>(behaviors, acceptsFailure);
+        return new Sequence<E>(behaviors, acceptsFailure);
     }
 
     @SafeVarargs
     public static <E extends LivingEntity> Sequence<E> sequence(boolean acceptsFailure, BehaviorControl<? super E>... behaviors) {
-        return new Sequence<>(ImmutableList.copyOf(behaviors), acceptsFailure);
+        return new Sequence<E>(ImmutableList.copyOf(behaviors), acceptsFailure);
     }
 
     public static <E extends LivingEntity> Repeater<E> repeat(boolean acceptsFailure, BehaviorControl<? super E> behavior) {
-        return new Repeater<>(behavior, acceptsFailure);
+        return new Repeater<E>(behavior, acceptsFailure);
     }
 }
