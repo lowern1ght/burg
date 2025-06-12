@@ -1,0 +1,5 @@
+accessWidener v2 named
+# Behavior
+extendable method net/minecraft/world/entity/ai/behavior/Behavior tryStart (Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/LivingEntity;J)Z
+accessible field net/minecraft/world/entity/ai/behavior/Behavior endTimestamp J
+accessible field net/minecraft/world/entity/ai/behavior/Behavior status Lnet/minecraft/world/entity/ai/behavior/Behavior$Status;

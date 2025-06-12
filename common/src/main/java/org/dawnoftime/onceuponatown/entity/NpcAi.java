@@ -17,7 +17,6 @@ import net.minecraft.world.entity.schedule.Activity;
 import org.dawnoftime.onceuponatown.entity.ai.behavior.FindBed;
 import org.dawnoftime.onceuponatown.entity.ai.behavior.NpcCalmDown;
 import org.dawnoftime.onceuponatown.entity.ai.behavior.NpcPanic;
-import org.dawnoftime.onceuponatown.entity.ai.behavior.TradeWithPlayer;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
 import org.dawnoftime.onceuponatown.registry.ScheduleRegistry;
 
@@ -74,7 +73,9 @@ public class NpcAi {
             brain.setSchedule(ScheduleRegistry.REGISTRY.DEFAULT_WORKER.get());
             addWorkTasks(brain, npc.getProfession(), 0.5F);
         } else {
-            brain.setSchedule(ScheduleRegistry.REGISTRY.DEFAULT_UNEMPLOYED.get());
+            brain.setSchedule(ScheduleRegistry.REGISTRY.DEFAULT_WORKER.get());
+            addWorkTasks(brain, npc.getProfession(), 0.5F);
+            //brain.setSchedule(ScheduleRegistry.REGISTRY.DEFAULT_UNEMPLOYED.get());
         }
 
         addCoreTasks(brain, 0.5F);
@@ -85,7 +86,6 @@ public class NpcAi {
         addPreRaidTasks(brain, npc.getProfession(), 0.5F);
         addRaidTasks(brain, npc.getProfession(), 0.5F);
         addHideTasks(brain, npc.getProfession(), 0.5F);
-
         brain.setCoreActivities(ImmutableSet.of(Activity.CORE));
         brain.setDefaultActivity(Activity.IDLE);
         brain.setActiveActivityIfPossible(Activity.IDLE);
@@ -100,9 +100,9 @@ public class NpcAi {
                 Pair.of(0, new LookAtTargetSink(45, 90)),
                 Pair.of(0, new NpcPanic()),
                 Pair.of(0, WakeUp.create()),
-                Pair.of(1, new MoveToTargetSink()),
-                Pair.of(3, new TradeWithPlayer(speedModifier)),
-                Pair.of(5, GoToWantedItem.create(speedModifier, false, 4))
+                Pair.of(1, new MoveToTargetSink())
+                //Pair.of(3, new TradeWithPlayer(speedModifier)),
+                //Pair.of(5, GoToWantedItem.create(speedModifier, false, 4))
             )
         );
     }
@@ -164,12 +164,10 @@ public class NpcAi {
     }
 
     private static void addWorkTasks(Brain<Npc> brain, Profession profession, float speedModifier) {
-        brain.addActivity(Activity.WORK,
-            ImmutableList.of(
-                getMinimalLookBehavior(),
-                Pair.of(99, UpdateActivityFromSchedule.create())
-            )
-        );
+        brain.addActivity(Activity.WORK, ImmutableList.of(
+            getMinimalLookBehavior(),
+            Pair.of(99, UpdateActivityFromSchedule.create())
+        ));
     }
 
     private static void addFightTasks(Brain<Npc> brain, float speedModifier) {
