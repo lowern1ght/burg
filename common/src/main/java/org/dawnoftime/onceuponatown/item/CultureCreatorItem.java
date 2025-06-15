@@ -52,6 +52,7 @@ public class CultureCreatorItem extends Item {
                     case "s2c_open_level_screen_cc" -> S2COpenLevelCCScreenPacket.decode(contentTag);
                     case "s2c_open_variants_screen_cc" -> S2COpenVariantsCCScreenPacket.decode(contentTag);
                     case "s2c_open_variant_levels_screen_cc" -> S2COpenVariantLevelsCCScreenPacket.decode(contentTag);
+                    case "s2c_open_variant_level_screen_cc" -> S2COpenVariantLevelCCScreenPacket.decode(contentTag);
                     // If the id is "s2c_open_cultures_screen_cc" or if it's wrong id :
                     default -> null;
                 };
