@@ -27,17 +27,16 @@ public class ClientEvents {
         @SubscribeEvent
         public static void clientSetup(FMLClientSetupEvent event) {
             event.enqueueWork(() -> {
-                    MenuScreens.register(MenuRegistry.REGISTRY.TRADE_MENU.get(), TradeScreen::new);
+                MenuScreens.register(MenuRegistry.REGISTRY.TRADE_MENU.get(), TradeScreen::new);
                 MenuScreens.register(MenuRegistry.REGISTRY.QUESTS_MENU.get(), QuestsScreen::new);
                 MenuScreens.register(MenuRegistry.REGISTRY.BUILDINGS_MENU.get(), BuildingsScreen::new);
                 MenuScreens.register(MenuRegistry.REGISTRY.PROGRESSION_MENU.get(), ProgressionScreen::new);
                 MenuScreens.register(MenuRegistry.REGISTRY.PROJECT_MENU.get(), ProjectScreen::new);
                 MenuScreens.register(MenuRegistry.REGISTRY.DIPLOMACY_MENU.get(), DiplomacyScreen::new);
 
-                    // Custom client item properties
-                    ItemProperties.register(ItemRegistry.REGISTRY.EMERALD_POUCH.get(), Ouat.modResource("empty_pouch"), (emeraldPouchStack, clientLevel, livingEntity, id) -> EmeraldPouchItem.isEmpty(emeraldPouchStack) ? 1.0F : 0.0F);
-                }
-            );
+                // Custom client item properties
+                ItemProperties.register(ItemRegistry.REGISTRY.EMERALD_POUCH.get(), Ouat.modResource("empty_pouch"), (emeraldPouchStack, clientLevel, livingEntity, id) -> EmeraldPouchItem.isEmpty(emeraldPouchStack) ? 1.0F : 0.0F);
+            });
         }
 
         @SubscribeEvent

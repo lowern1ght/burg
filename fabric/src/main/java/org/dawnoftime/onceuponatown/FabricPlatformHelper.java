@@ -26,7 +26,7 @@ import java.io.File;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class CommonAbstractionsImpl implements CommonAbstractions {
+public class FabricPlatformHelper implements IPlatformHelper {
 
     public String getPlatformName() {
         return "Fabric";
@@ -102,6 +102,7 @@ public class CommonAbstractionsImpl implements CommonAbstractions {
         return FabricLoader.getInstance().getConfigDir().toFile();
     }
 
+    @Override
     public boolean isDevelopmentEnvironment() {
         return FabricLoader.getInstance().isDevelopmentEnvironment();
     }

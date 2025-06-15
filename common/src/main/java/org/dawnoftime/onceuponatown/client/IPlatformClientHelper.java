@@ -2,7 +2,7 @@ package org.dawnoftime.onceuponatown.client;
 
 import org.dawnoftime.onceuponatown.network.OuatPacket;
 
-public interface ClientAbstractions {
+public interface IPlatformClientHelper {
     /**
      * Sends the given packet to the Server.
      *

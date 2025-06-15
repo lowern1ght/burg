@@ -31,6 +31,7 @@ public class EasyBehavior<E extends LivingEntity> extends Behavior<E> {
     protected ToIntFunction<E> durationProvider = entity -> Integer.MAX_VALUE;
     protected ToIntFunction<E> cooldownProvider = entity -> 0;
     protected long cooldownEnd = 0L;
+    private String debugInfo = "";
 
     public EasyBehavior(@NotNull Map<MemoryModuleType<?>, MemoryStatus> entryCondition) {
         super(entryCondition);
@@ -129,6 +130,11 @@ public class EasyBehavior<E extends LivingEntity> extends Behavior<E> {
 
     public EasyBehavior<E> eraseMemoriesOnStop(Set<MemoryModuleType<?>> memories) {
         memoriesToEraseOnStop.addAll(memories);
+        return this;
+    }
+
+    public EasyBehavior<E> debug(String info) {
+        debugInfo = info;
         return this;
     }
 

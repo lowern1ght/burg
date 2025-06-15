@@ -17,8 +17,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.StreamSupport;
 
-import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
-
 public abstract class DataHandler {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
