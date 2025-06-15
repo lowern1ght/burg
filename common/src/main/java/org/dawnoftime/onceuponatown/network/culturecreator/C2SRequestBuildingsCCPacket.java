@@ -7,7 +7,6 @@ import net.minecraft.server.level.ServerPlayer;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.network.OuatPacket;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 

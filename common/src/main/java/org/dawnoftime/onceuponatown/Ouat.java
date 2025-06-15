@@ -6,7 +6,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.dawnoftime.onceuponatown.client.ClientAbstractions;
+import org.dawnoftime.onceuponatown.client.IPlatformClientHelper;
 
 import java.util.ServiceLoader;
 
@@ -17,8 +17,8 @@ public class Ouat {
     public static final String MOD_ABBREVIATION = "ouat";
     public static final Logger LOG = LogManager.getLogger(MOD_NAME);
     // Common and client events and calls.
-    public static final CommonAbstractions COMMON = load(CommonAbstractions.class);
-    public static final ClientAbstractions CLIENT = load(ClientAbstractions.class);
+    public static final IPlatformHelper COMMON = load(IPlatformHelper.class);
+    public static final IPlatformClientHelper CLIENT = load(IPlatformClientHelper.class);
 
     public static ResourceLocation modResource(String name) {
         return new ResourceLocation(MOD_ID, name);

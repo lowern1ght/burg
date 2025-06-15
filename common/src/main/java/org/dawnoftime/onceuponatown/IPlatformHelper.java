@@ -24,7 +24,7 @@ import java.io.File;
 import java.util.List;
 import java.util.function.Consumer;
 
-public interface CommonAbstractions {
+public interface IPlatformHelper {
     /**
      * Checks if a mod with the given id is loaded.
      *
@@ -96,4 +96,14 @@ public interface CommonAbstractions {
      * @return The File corresponding to the folder .minecraft/config.
      */
     File getConfigFolder();
+
+
+    String getPlatformName();
+
+    boolean isDevelopmentEnvironment();
+
+    default String getEnvironmentName() {
+
+        return isDevelopmentEnvironment() ? "development" : "production";
+    }
 }

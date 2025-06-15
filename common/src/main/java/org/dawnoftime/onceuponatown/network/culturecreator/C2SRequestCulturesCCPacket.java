@@ -7,10 +7,6 @@ import net.minecraft.server.level.ServerPlayer;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.network.OuatPacket;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-
-import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
 
 public record C2SRequestCulturesCCPacket() implements OuatPacket {

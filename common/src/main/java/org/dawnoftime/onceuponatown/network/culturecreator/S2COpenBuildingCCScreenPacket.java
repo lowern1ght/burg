@@ -1,6 +1,5 @@
 package org.dawnoftime.onceuponatown.network.culturecreator;
 
-import com.google.gson.JsonParser;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
@@ -11,7 +10,6 @@ import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
 import org.dawnoftime.onceuponatown.datapack.core.DataHandler;
 import org.jetbrains.annotations.Nullable;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.dawnoftime.onceuponatown.Ouat.*;

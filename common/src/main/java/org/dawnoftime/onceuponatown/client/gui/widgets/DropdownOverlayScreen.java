@@ -3,8 +3,8 @@ package org.dawnoftime.onceuponatown.client.gui.widgets;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.dawnoftime.onceuponatown.Ouat;
@@ -13,7 +13,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 import static org.dawnoftime.onceuponatown.client.gui.culture_creator.BaseCCScreen.mouseInArea;
 

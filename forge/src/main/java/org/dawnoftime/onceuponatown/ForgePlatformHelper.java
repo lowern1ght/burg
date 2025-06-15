@@ -27,6 +27,7 @@ import net.minecraftforge.common.ToolActions;
 import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.loading.FMLEnvironment;
+import net.minecraftforge.fml.loading.FMLLoader;
 import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.network.PacketDistributor;
@@ -40,7 +41,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-public class CommonAbstractionsImpl implements CommonAbstractions {
+public class ForgePlatformHelper implements IPlatformHelper {
     @Override
     public boolean isModLoaded(String modId) {
         return ModList.get().isLoaded(modId);
@@ -119,5 +120,15 @@ public class CommonAbstractionsImpl implements CommonAbstractions {
     @Override
     public File getConfigFolder() {
         return FMLPaths.CONFIGDIR.get().toFile();
+    }
+
+    @Override
+    public String getPlatformName() {
+        return "Forge";
+    }
+
+    @Override
+    public boolean isDevelopmentEnvironment() {
+        return !FMLLoader.isProduction();
     }
 }

@@ -4,13 +4,9 @@ import net.minecraft.network.chat.Component;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.gui.culture_creator.widgets_cc.AddWidgetCC;
 import org.dawnoftime.onceuponatown.client.gui.culture_creator.widgets_cc.ButtonWidgetCC;
-import org.dawnoftime.onceuponatown.client.gui.culture_creator.widgets_cc.DropAndEditBoxWidgetCC;
 import org.dawnoftime.onceuponatown.network.culturecreator.*;
-import oshi.util.tuples.Pair;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.BUILDINGS_FOLDER_NAME;
 import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURES_FOLDER_NAME;
