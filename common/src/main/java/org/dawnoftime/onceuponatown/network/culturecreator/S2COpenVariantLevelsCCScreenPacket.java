@@ -4,6 +4,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
+import org.dawnoftime.onceuponatown.client.ClientUtils;
 
 import static org.dawnoftime.onceuponatown.Ouat.*;
 
@@ -73,10 +74,18 @@ public class S2COpenVariantLevelsCCScreenPacket extends OpenScreenPacket {
         return buildingId;
     }
 
+    public String getVariantId() {
+        return variantId;
+    }
+
+    public int getNumberOfLevels() {
+        return numberOfLevels;
+    }
+
     public static class Handler {
         public static void handle(S2COpenVariantLevelsCCScreenPacket packet) {
             if (COMMON.isClientSide()) {
-                //ClientUtils.openLevelCCScreen(packet);
+                ClientUtils.openVariantLevelsCCScreen(packet);
             }
         }
     }

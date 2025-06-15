@@ -35,6 +35,8 @@ public class PacketHandler {
         CHANNEL.registerMessage(i++, C2SSaveLevelCCPacket.class, C2SSaveLevelCCPacket::encode, C2SSaveLevelCCPacket::decode, makeC2SHandler(C2SSaveLevelCCPacket::handle));
         CHANNEL.registerMessage(i++, C2SRequestVariantsCCPacket.class, C2SRequestVariantsCCPacket::encode, C2SRequestVariantsCCPacket::decode, makeC2SHandler(C2SRequestVariantsCCPacket::handle));
         CHANNEL.registerMessage(i++, C2SRequestVariantLevelsCCPacket.class, C2SRequestVariantLevelsCCPacket::encode, C2SRequestVariantLevelsCCPacket::decode, makeC2SHandler(C2SRequestVariantLevelsCCPacket::handle));
+        CHANNEL.registerMessage(i++, C2SRequestVariantLevelCCPacket.class, C2SRequestVariantLevelCCPacket::encode, C2SRequestVariantLevelCCPacket::decode, makeC2SHandler(C2SRequestVariantLevelCCPacket::handle));
+        // CHANNEL.registerMessage(i++, C2SSaveVariantLevelCCPacket.class, C2SSaveVariantLevelCCPacket::encode, C2SSaveVariantLevelCCPacket::decode, makeC2SHandler(C2SSaveVariantLevelCCPacket::handle));
 
         // Server to Client packets
         CHANNEL.registerMessage(i++, S2COpenTownMapScreenPacket.class, S2COpenTownMapScreenPacket::encode, S2COpenTownMapScreenPacket::decode, makeS2CHandler(S2COpenTownMapScreenPacket.Handler::handle));
@@ -46,6 +48,7 @@ public class PacketHandler {
         CHANNEL.registerMessage(i++, S2COpenLevelCCScreenPacket.class, S2COpenLevelCCScreenPacket::encode, S2COpenLevelCCScreenPacket::decode, makeS2CHandler(S2COpenLevelCCScreenPacket.Handler::handle));
         CHANNEL.registerMessage(i++, S2COpenVariantsCCScreenPacket.class, S2COpenVariantsCCScreenPacket::encode, S2COpenVariantsCCScreenPacket::decode, makeS2CHandler(S2COpenVariantsCCScreenPacket.Handler::handle));
         CHANNEL.registerMessage(i++, S2COpenVariantLevelsCCScreenPacket.class, S2COpenVariantLevelsCCScreenPacket::encode, S2COpenVariantLevelsCCScreenPacket::decode, makeS2CHandler(S2COpenVariantLevelsCCScreenPacket.Handler::handle));
+        CHANNEL.registerMessage(i++, S2COpenVariantLevelCCScreenPacket.class, S2COpenVariantLevelCCScreenPacket::encode, S2COpenVariantLevelCCScreenPacket::decode, makeS2CHandler(S2COpenVariantLevelCCScreenPacket.Handler::handle));
     }
 
     private static <T> BiConsumer<T, Supplier<NetworkEvent.Context>> makeC2SHandler(TriConsumer<T, MinecraftServer, ServerPlayer> handler) {
