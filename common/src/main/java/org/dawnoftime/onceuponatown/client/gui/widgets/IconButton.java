@@ -29,4 +29,6 @@ public class IconButton extends Button {
             guiGraphics.blit(texture, this.getX(), this.getY(), uOffset, vOffset, this.getWidth(), this.getHeight(), textureWidth, textureHeight);
         }
     }
+
+    //TODO Add a render function to display a Hover text.
 }
