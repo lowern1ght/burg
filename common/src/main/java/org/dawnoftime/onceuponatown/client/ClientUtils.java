@@ -38,4 +38,12 @@ public class ClientUtils {
     public static void openVariantsCCScreen(S2COpenVariantsCCScreenPacket packet) {
         Minecraft.getInstance().execute(() -> Minecraft.getInstance().setScreen(new VariantsCCScreen(packet)));
     }
+
+    public static void openVariantLevelsCCScreen(S2COpenVariantLevelsCCScreenPacket packet) {
+        Minecraft.getInstance().execute(() -> Minecraft.getInstance().setScreen(new VariantLevelsCCScreen(packet)));
+    }
+
+    public static void openVariantLevelCCScreen(S2COpenVariantLevelCCScreenPacket packet) {
+        Minecraft.getInstance().execute(() -> Minecraft.getInstance().setScreen(new VariantLevelCCScreen(packet)));
+    }
 }
