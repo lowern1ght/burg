@@ -1,14 +1,15 @@
-package org.dawnoftime.onceuponatown.entity.ai.behavior.controlflow;
+package org.dawnoftime.onceuponatown.entity.ai.task.base;
 
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.behavior.BehaviorControl;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
 
-public class Repeater<E extends LivingEntity> extends EasyBehavior<E> {
+public class Repeater<E extends LivingEntity> extends Task<E> {
     private final BehaviorControl<? super E> behavior; // Child behavior to repeat
     private final boolean acceptsFailure;
     protected Predicate<E> repeatPredicate = entity -> true;
@@ -70,7 +71,8 @@ public class Repeater<E extends LivingEntity> extends EasyBehavior<E> {
         return this;
     }
 
-    public String toString() {
-        return "(" + this.getClass().getSimpleName() + " " + remainingRepeats + " remaining): " + behavior.getClass().getSimpleName();
+    @Override
+    public @NotNull String debugString() {
+        return "Repeat(" + getDebugInfo() + ") [" + remainingRepeats + " remaining] [" + behavior.debugString() + "]";
     }
 }

@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.entity.ai.behavior;
+package org.dawnoftime.onceuponatown.entity.ai.task;
 
 import com.google.common.collect.ImmutableMap;
 import net.minecraft.server.level.ServerLevel;

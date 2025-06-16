@@ -1,5 +1,6 @@
-package org.dawnoftime.onceuponatown.entity.ai.behavior.controlflow;
+package org.dawnoftime.onceuponatown.entity.ai.task.base;
 
+import net.minecraft.SharedConstants;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.behavior.Behavior;
@@ -18,7 +19,7 @@ import java.util.function.ToIntFunction;
 /**
  * Improved base class for behaviors
  */
-public class EasyBehavior<E extends LivingEntity> extends Behavior<E> {
+public class Task<E extends LivingEntity> extends Behavior<E> {
     protected final Set<MemoryModuleType<?>> memoriesToEraseOnStop = new HashSet<>();
     protected Predicate<E> startPredicate = entity -> true;
     protected Predicate<E> stopPredicate = entity -> false;
@@ -32,12 +33,13 @@ public class EasyBehavior<E extends LivingEntity> extends Behavior<E> {
     protected ToIntFunction<E> cooldownProvider = entity -> 0;
     protected long cooldownEnd = 0L;
     private String debugInfo = "";
+    private ServerLevel level;
 
-    public EasyBehavior(@NotNull Map<MemoryModuleType<?>, MemoryStatus> entryCondition) {
+    public Task(@NotNull Map<MemoryModuleType<?>, MemoryStatus> entryCondition) {
         super(entryCondition);
     }
 
-    public EasyBehavior() {
+    public Task() {
         this(new HashMap<>());
     }
 
@@ -53,6 +55,7 @@ public class EasyBehavior<E extends LivingEntity> extends Behavior<E> {
         if (canStart(level, entity, gameTime)) {
             status = Status.RUNNING;
             endTimestamp = gameTime + durationProvider.applyAsInt(entity);
+            this.level = level;
             start(level, entity, gameTime);
             return true;
         }
@@ -82,64 +85,95 @@ public class EasyBehavior<E extends LivingEntity> extends Behavior<E> {
         onStop.accept(entity);
     }
 
-    public EasyBehavior<E> startIf(Predicate<E> predicate) {
+    public Task<E> startIf(Predicate<E> predicate) {
         startPredicate = predicate;
         return this;
     }
 
-    public EasyBehavior<E> onStart(Consumer<E> consumer) {
+    public Task<E> probability(int percentChance) {
+        startPredicate = startPredicate.and((e -> e.getRandom().nextInt(100) < percentChance));
+        return this;
+    }
+
+    public Task<E> onStart(Consumer<E> consumer) {
         onStart = consumer;
         return this;
     }
 
-    public EasyBehavior<E> onTick(Consumer<E> consumer) {
+    public Task<E> onTick(Consumer<E> consumer) {
         onTick = consumer;
         return this;
     }
 
-    public EasyBehavior<E> stopIf(Predicate<E> predicate) {
+    public Task<E> stopIf(Predicate<E> predicate) {
         stopPredicate = predicate;
         return this;
     }
 
-    public EasyBehavior<E> onStop(Consumer<E> consumer) {
+    public Task<E> onStop(Consumer<E> consumer) {
         onStop = consumer;
         return this;
     }
 
-    public EasyBehavior<E> maxDuration(ToIntFunction<E> provider) {
+    public Task<E> maxDuration(ToIntFunction<E> provider) {
         durationProvider = provider;
         return this;
     }
 
-    public EasyBehavior<E> cooldown(ToIntFunction<E> provider) {
+    public Task<E> maxDuration(int duration) {
+        durationProvider = e -> duration;
+        return this;
+    }
+
+    public Task<E> maxDuration(int min, int max) {
+        durationProvider =e -> e.getRandom().nextInt(min, max);
+        return this;
+    }
+
+    public Task<E> cooldown(ToIntFunction<E> provider) {
         cooldownProvider = provider;
         return this;
     }
 
-    public EasyBehavior<E> requiresMemories(Map<MemoryModuleType<?>, MemoryStatus> memories) {
+    public Task<E> cooldown(int duration) {
+        cooldownProvider = e -> duration;
+        return this;
+    }
+
+    public Task<E> cooldown(int min, int max) {
+        cooldownProvider =e -> e.getRandom().nextInt(min, max);
+        return this;
+    }
+
+    public Task<E> requiresMemories(Map<MemoryModuleType<?>, MemoryStatus> memories) {
         entryCondition.putAll(memories);
         return this;
     }
 
-    public EasyBehavior<E> requiresMemoriesAndEraseOnStop(Map<MemoryModuleType<?>, MemoryStatus> memories) {
+    public Task<E> requiresMemoriesAndEraseOnStop(Map<MemoryModuleType<?>, MemoryStatus> memories) {
         entryCondition.putAll(memories);
         eraseMemoriesOnStop(memories.keySet());
         return this;
     }
 
-    public EasyBehavior<E> eraseMemoriesOnStop(Set<MemoryModuleType<?>> memories) {
+    public Task<E> eraseMemoriesOnStop(Set<MemoryModuleType<?>> memories) {
         memoriesToEraseOnStop.addAll(memories);
         return this;
     }
 
-    public EasyBehavior<E> debug(String info) {
+    public Task<E> debug(String info) {
         debugInfo = info;
         return this;
     }
 
     @Override
     public @NotNull String debugString() {
-        return toString();
+        String timeLeft = level == null ? "?]" : endTimestamp - level.getGameTime() + "]";
+        return getClass().getSimpleName() + " (" + debugInfo + ") ["
+            + ((endTimestamp >= SharedConstants.TICKS_PER_GAME_DAY) ? ">day]" : timeLeft);
+    }
+
+    public String getDebugInfo() {
+        return debugInfo;
     }
 }

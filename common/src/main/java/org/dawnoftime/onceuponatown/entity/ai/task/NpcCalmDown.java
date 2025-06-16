@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.entity.ai.behavior;
+package org.dawnoftime.onceuponatown.entity.ai.task;
 
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.behavior.BehaviorControl;
