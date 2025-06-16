@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.entity.ai.behavior;
+package org.dawnoftime.onceuponatown.entity.ai.task;
 
 import com.mojang.datafixers.util.Pair;
 import it.unimi.dsi.fastutil.longs.Long2LongMap;

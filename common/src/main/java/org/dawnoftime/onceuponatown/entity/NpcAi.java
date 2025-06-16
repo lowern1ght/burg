@@ -4,8 +4,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.mojang.datafixers.util.Pair;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.behavior.*;
@@ -14,11 +16,16 @@ import net.minecraft.world.entity.ai.memory.MemoryStatus;
 import net.minecraft.world.entity.ai.sensing.Sensor;
 import net.minecraft.world.entity.ai.sensing.SensorType;
 import net.minecraft.world.entity.schedule.Activity;
-import org.dawnoftime.onceuponatown.entity.ai.behavior.FindBed;
-import org.dawnoftime.onceuponatown.entity.ai.behavior.NpcCalmDown;
-import org.dawnoftime.onceuponatown.entity.ai.behavior.NpcPanic;
+import org.dawnoftime.onceuponatown.entity.ai.task.FindBed;
+import org.dawnoftime.onceuponatown.entity.ai.task.NpcCalmDown;
+import org.dawnoftime.onceuponatown.entity.ai.task.NpcPanic;
+import org.dawnoftime.onceuponatown.entity.ai.task.base.Selector;
+import org.dawnoftime.onceuponatown.entity.ai.task.base.Task;
+import org.dawnoftime.onceuponatown.entity.ai.task.base.Tasks;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
 import org.dawnoftime.onceuponatown.registry.ScheduleRegistry;
+
+import java.util.function.Predicate;
 
 public class NpcAi {
     // TODO Fight package : set aggressive
@@ -93,9 +100,19 @@ public class NpcAi {
     }
 
     private static void addCoreTasks(Brain<Npc> brain, float speedModifier) {
+        Predicate<Mob> swimPredicate = mob -> mob.isInWater() && mob.getFluidHeight(FluidTags.WATER) > mob.getFluidJumpThreshold() || mob.isInLava();
+
         brain.addActivity(Activity.CORE,
             ImmutableList.of(
-                Pair.of(0, new Swim(0.8F)),
+                Pair.of(0, new Task<Mob>().debug("Swim")
+                    .startIf(swimPredicate)
+                    .stopIf(swimPredicate.negate())
+                    .onTick(mob -> {
+                        if (mob.getRandom().nextFloat() < 0.8F) {
+                            mob.getJumpControl().jump();
+                        }
+                    })
+                ),
                 Pair.of(0, InteractWithDoor.create()),
                 Pair.of(0, new LookAtTargetSink(45, 90)),
                 Pair.of(0, new NpcPanic()),
@@ -165,6 +182,22 @@ public class NpcAi {
 
     private static void addWorkTasks(Brain<Npc> brain, Profession profession, float speedModifier) {
         brain.addActivity(Activity.WORK, ImmutableList.of(
+            Pair.of(0, Tasks.select(Selector.OrderPolicy.ORDERED, Selector.ChoosePolicy.TRY_ALL,
+                Pair.of(0, new Task<>()
+                    .debug("Dummy1")
+                    .maxDuration(40)
+                )
+                ,
+                Pair.of(0, new Task<>()
+                    .debug("Dummy2")
+                    .maxDuration(80)
+                )
+                ,
+                Pair.of(0, new Task<>()
+                    .debug("Dummy3")
+                    .maxDuration(120)
+                )
+            )),
             getMinimalLookBehavior(),
             Pair.of(99, UpdateActivityFromSchedule.create())
         ));

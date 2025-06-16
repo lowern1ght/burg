@@ -1,16 +1,16 @@
-package org.dawnoftime.onceuponatown.entity.ai.behavior.controlflow;
+package org.dawnoftime.onceuponatown.entity.ai.task.base;
 
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.behavior.Behavior;
 import net.minecraft.world.entity.ai.behavior.BehaviorControl;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.StringJoiner;
 
-public class Sequence<E extends LivingEntity> extends EasyBehavior<E> {
+public class Sequence<E extends LivingEntity> extends Task<E> {
     private final List<BehaviorControl<? super E>> behaviors; // Behaviors to run, one after another
     /**
      * True : if a child behavior fails to start, the sequence stops <br>
@@ -60,10 +60,12 @@ public class Sequence<E extends LivingEntity> extends EasyBehavior<E> {
             .forEach(behavior -> behavior.doStop(level, entity, gameTime));
     }
 
-    public String toString() {
-        Set<? extends BehaviorControl<? super E>> set = behaviors.stream()
-            .filter(behavior -> behavior.getStatus() == Behavior.Status.RUNNING)
-            .collect(Collectors.toSet());
-        return "(" + this.getClass().getSimpleName() + "): " + set;
+    @Override
+    public @NotNull String debugString() {
+        StringJoiner joiner = new StringJoiner("  |  ");
+        behaviors.stream()
+            .map(bc -> bc.getStatus() == Status.RUNNING ? ">>> " + bc.debugString() : bc.debugString())
+            .forEach(joiner::add);
+        return "Sequence(" + getDebugInfo() + ") [" + step + "] [" + joiner + "]";
     }
 }

@@ -1,19 +1,20 @@
-package org.dawnoftime.onceuponatown.entity.ai.behavior.controlflow;
+package org.dawnoftime.onceuponatown.entity.ai.task.base;
 
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.behavior.BehaviorControl;
+import net.minecraft.world.entity.ai.behavior.GateBehavior;
 import net.minecraft.world.entity.ai.behavior.ShufflingList;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.StringJoiner;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class Selector<E extends LivingEntity> extends EasyBehavior<E> {
+public class Selector<E extends LivingEntity> extends Task<E> {
     private final ShufflingList<BehaviorControl<? super E>> behaviors = new ShufflingList<>();
     private final OrderPolicy orderPolicy;
     private final ChoosePolicy choosePolicy;
@@ -42,7 +43,7 @@ public class Selector<E extends LivingEntity> extends EasyBehavior<E> {
     @Override
     protected boolean canStillUse(ServerLevel level, E entity, long gameTime) {
         return super.canStillUse(level, entity, gameTime)
-            && behaviors.stream().noneMatch((behaviorControl) -> behaviorControl.getStatus() == Status.RUNNING);
+            && behaviors.stream().anyMatch((behaviorControl) -> behaviorControl.getStatus() == Status.RUNNING);
     }
 
     @Override
@@ -53,22 +54,27 @@ public class Selector<E extends LivingEntity> extends EasyBehavior<E> {
             .forEach(behavior -> behavior.doStop(level, entity, gameTime));
     }
 
-    public String toString() {
-        Set<? extends BehaviorControl<? super E>> set = behaviors.stream()
-            .filter(behavior -> behavior.getStatus() == Status.RUNNING)
-            .collect(Collectors.toSet());
-        return "(" + this.getClass().getSimpleName() + "): " + set;
+    @Override
+    public @NotNull String debugString() {
+        StringJoiner joiner = new StringJoiner("  |  ");
+        behaviors.stream()
+            .filter(behaviorControl -> behaviorControl.getStatus() == Status.RUNNING)
+            .map(BehaviorControl::debugString)
+            .forEach(joiner::add);
+        return orderPolicy.debugName + " " + choosePolicy.debugName + " Select(" +  getDebugInfo() + ") [" + joiner + "]";
     }
 
     public enum OrderPolicy {
         ORDERED(shufflingList -> {
-        }),
-        SHUFFLED(ShufflingList::shuffle);
+        }, "ORD"),
+        SHUFFLED(ShufflingList::shuffle, "RAND");
 
         private final Consumer<ShufflingList<?>> consumer;
+        private final String debugName;
 
-        OrderPolicy(Consumer<ShufflingList<?>> consumer) {
+        OrderPolicy(Consumer<ShufflingList<?>> consumer, String debugName) {
             this.consumer = consumer;
+            this.debugName = debugName;
         }
 
         public void apply(ShufflingList<?> list) {
@@ -77,18 +83,24 @@ public class Selector<E extends LivingEntity> extends EasyBehavior<E> {
     }
 
     public enum ChoosePolicy {
-        FIND_FIRST {
+        FIND_FIRST("FF") {
             @Override
             public <E extends LivingEntity> void apply(Stream<BehaviorControl<? super E>> behaviors, ServerLevel level, E owner, long gameTime) {
                 behaviors.filter((behaviorControl) -> behaviorControl.getStatus() == Status.STOPPED).filter((behaviorControl) -> behaviorControl.tryStart(level, owner, gameTime)).findFirst();
             }
         },
-        TRY_ALL {
+        TRY_ALL("TA") {
             @Override
             public <E extends LivingEntity> void apply(Stream<BehaviorControl<? super E>> behaviors, ServerLevel level, E owner, long gameTime) {
                 behaviors.filter((behaviorControl) -> behaviorControl.getStatus() == Status.STOPPED).forEach((behaviorControl) -> behaviorControl.tryStart(level, owner, gameTime));
             }
         };
+
+        private final String debugName;
+
+        ChoosePolicy(String debugName) {
+            this.debugName = debugName;
+        }
 
         public abstract <E extends LivingEntity> void apply(Stream<BehaviorControl<? super E>> behaviors, ServerLevel level, E owner, long gameTime);
     }

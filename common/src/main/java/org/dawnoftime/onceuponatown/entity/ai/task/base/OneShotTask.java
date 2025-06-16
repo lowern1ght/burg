@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.entity.ai.behavior.controlflow;
+package org.dawnoftime.onceuponatown.entity.ai.task.base;
 
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
@@ -10,21 +10,26 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-public class EasyOneShot<E extends LivingEntity> extends EasyBehavior<E> {
-    public EasyOneShot(@NotNull Map<MemoryModuleType<?>, MemoryStatus> entryCondition) {
+public class OneShotTask<E extends LivingEntity> extends Task<E> {
+    public OneShotTask(@NotNull Map<MemoryModuleType<?>, MemoryStatus> entryCondition) {
         super(entryCondition);
     }
 
-    public EasyOneShot() {
+    public OneShotTask() {
         this(new HashMap<>());
     }
 
-    public static <E extends LivingEntity> EasyBehavior<E> run(Consumer<E> consumer) {
-        return new EasyOneShot<E>().onStart(consumer);
+    public static <E extends LivingEntity> Task<E> run(Consumer<E> consumer) {
+        return new OneShotTask<E>().onStart(consumer);
     }
 
     @Override
     protected boolean canStillUse(ServerLevel level, E entity, long gameTime) {
         return false;
+    }
+
+    @Override
+    public @NotNull String debugString() {
+        return "OS " + super.debugString();
     }
 }
