@@ -3,6 +3,7 @@ package org.dawnoftime.onceuponatown.client.gui.widgets;
 import net.minecraft.ResourceLocationException;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -54,8 +55,10 @@ public class ItemButton extends Button {
                 ResourceLocation resourceLocation = new ResourceLocation(itemId);
                 Item item = BuiltInRegistries.ITEM.get(resourceLocation);
                 this.itemStack = new ItemStack(item);
+                this.setTooltip(Tooltip.create(item.getName(this.itemStack)));
             } catch (ResourceLocationException ignored) {
                 this.itemStack = ItemStack.EMPTY;
+                this.setTooltip(null);
             }
         }
     }

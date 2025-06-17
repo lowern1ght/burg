@@ -32,7 +32,7 @@ public abstract class WidgetCC {
 
     @FunctionalInterface
     public interface WidgetAction {
-        void execute(WidgetCC widget);
+        void execute(WidgetCC widgetCC);
     }
 }
 
