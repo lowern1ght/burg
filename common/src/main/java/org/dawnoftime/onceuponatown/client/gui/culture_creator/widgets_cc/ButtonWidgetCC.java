@@ -20,6 +20,10 @@ public class ButtonWidgetCC extends WidgetCC {
         this.button = new LeftAlignTextButton(posX + WIDGET_ZONE_X, 0, WIDGET_ZONE_WIDTH, WIDGET_HEIGHT, text, btn -> onPress.execute(this));
     }
 
+    public ButtonWidgetCC(int posX, Component text) {
+        this.button = new LeftAlignTextButton(posX + WIDGET_ZONE_X, 0, WIDGET_ZONE_WIDTH, WIDGET_HEIGHT, text);
+    }
+
     @Override
     public AbstractWidget[] getWidgets() {
         return new AbstractWidget[]{button};

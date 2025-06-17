@@ -4,6 +4,7 @@ import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
@@ -46,12 +47,14 @@ public abstract class BaseCCScreen extends Screen {
     private static final int WIDGET_ZONE_Y = 20;
     public static final int WIDGET_ZONE_WIDTH = 211;
     private static final int WIDGET_ZONE_HEIGHT = 139;
+    private static final int SCROLLBAR_HEIGHT = 126;
     public static final int WIDGET_HEIGHT = 20;
     private static final int WIDGET_HEIGHT_PADDED = WIDGET_HEIGHT + 1;
     public static final int WIDGET_PLUS_BUTTON_HEIGHT = 12;
-    private static final int FOLDER_BUTTON_X = 224;
+    private static final int MINI_BUTTON_X = 224;
+    private static final int MINI_BUTTON_SIDE_LENGTH = 10;
     private static final int FOLDER_BUTTON_Y = 6;
-    private static final int FOLDER_BUTTON_SIDE_LENGTH = 10;
+    private static final int DELETE_BUTTON_Y = 150;
     private static final int NAVIGATION_ZONE_Y = 19;
     private static final int MAX_NAVIGATION_NUMBER = 8;
 
@@ -62,6 +65,7 @@ public abstract class BaseCCScreen extends Screen {
     boolean scrolling = false;
     protected final LinkedHashMap<String, WidgetCC> widgets = new LinkedHashMap<>();
     private IconButton folderButton;
+    private IconButton deleteButton;
     protected List<NavigationTab> navigationTabList;
 
     public BaseCCScreen(Component title) {
@@ -77,9 +81,14 @@ public abstract class BaseCCScreen extends Screen {
         widgets.clear();
         // Creates the button to open the file explorer at the current level.
         Path folderPath = this.getDirectoryPath();
-        folderButton = new IconButton(posX + FOLDER_BUTTON_X, posY + FOLDER_BUTTON_Y, FOLDER_BUTTON_SIDE_LENGTH, GUI_TEXTURE, 83, 186, TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT,
+        folderButton = new IconButton(posX + MINI_BUTTON_X, posY + FOLDER_BUTTON_Y, MINI_BUTTON_SIDE_LENGTH, GUI_TEXTURE, 83, 186, TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT,
                 btn -> Util.getPlatform().openUri(folderPath.toUri()));
+        folderButton.setTooltip(Tooltip.create(Ouat.translatable("cc", "folder_button_tooltip")));
         this.addWidget(folderButton);
+        deleteButton = new IconButton(posX + MINI_BUTTON_X, posY + DELETE_BUTTON_Y, MINI_BUTTON_SIDE_LENGTH, GUI_TEXTURE, 83, 196, TEXTURE_TOTAL_WIDTH, TEXTURE_TOTAL_HEIGHT,
+                btn -> {});
+        deleteButton.setTooltip(Tooltip.create(Ouat.translatable("cc", "delete_button_tooltip")));
+        this.addWidget(deleteButton);
         // Finally, create the widgets specific to the screen.
         this.initWidgets();
         this.updateWidgetPositions();
@@ -95,6 +104,7 @@ public abstract class BaseCCScreen extends Screen {
         super.render(guiGraphics, mouseX, mouseY, partialTicks);
         guiGraphics.disableScissor();
         this.folderButton.render(guiGraphics, mouseX, mouseY, partialTicks);
+        this.deleteButton.render(guiGraphics, mouseX, mouseY, partialTicks);
         this.renderScrollBar(guiGraphics);
         this.renderNavigationButtons(guiGraphics);
     }
@@ -212,12 +222,12 @@ public abstract class BaseCCScreen extends Screen {
     }
 
     private int getScrollButtonY() {
-        return (int) (((double) scrollOffset / (double) scrollMaxOffset) * (WIDGET_ZONE_HEIGHT - TEXTURE_SCROLL_ICON_HEIGHT));
+        return (int) (((double) scrollOffset / (double) scrollMaxOffset) * (SCROLLBAR_HEIGHT - TEXTURE_SCROLL_ICON_HEIGHT));
     }
 
     private void setScrollOffsetFromMouseY(double mouseY){
-        double newScrollButtonY = Math.min(Math.max(0, mouseY - posY  - SCROLL_ZONE_Y - TEXTURE_SCROLL_ICON_HEIGHT / 2.0D), WIDGET_ZONE_HEIGHT - TEXTURE_SCROLL_ICON_HEIGHT);
-        scrollOffset = (int) (scrollMaxOffset * newScrollButtonY / (double) (WIDGET_ZONE_HEIGHT - TEXTURE_SCROLL_ICON_HEIGHT));
+        double newScrollButtonY = Math.min(Math.max(0, mouseY - posY  - SCROLL_ZONE_Y - TEXTURE_SCROLL_ICON_HEIGHT / 2.0D), SCROLLBAR_HEIGHT - TEXTURE_SCROLL_ICON_HEIGHT);
+        scrollOffset = (int) (scrollMaxOffset * newScrollButtonY / (double) (SCROLLBAR_HEIGHT - TEXTURE_SCROLL_ICON_HEIGHT));
     }
 
     private Path getDirectoryPath() throws InvalidPathException {

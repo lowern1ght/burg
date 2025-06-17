@@ -2,6 +2,10 @@ package org.dawnoftime.onceuponatown.client.gui.culture_creator;
 
 import net.minecraft.network.chat.Component;
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.client.gui.culture_creator.widgets_cc.ButtonWidgetCC;
+import org.dawnoftime.onceuponatown.client.gui.culture_creator.widgets_cc.CoordinatesWidgetCC;
+import org.dawnoftime.onceuponatown.client.gui.culture_creator.widgets_cc.SelectBoundingBoxWidgetCC;
+import org.dawnoftime.onceuponatown.client.gui.culture_creator.widgets_cc.SelectWaypointsWidgetCC;
 import org.dawnoftime.onceuponatown.network.culturecreator.*;
 
 import java.util.Arrays;
@@ -18,7 +22,7 @@ public class VariantLevelCCScreen extends BaseCCScreen {
     private final int level;
 
     public VariantLevelCCScreen(S2COpenVariantLevelCCScreenPacket packet) {
-        super(Ouat.translatable("cc", "variant_level_nav", packet.getVariantId(), packet.getLevel() + 1));
+        super(Ouat.translatable("cc", "level_nav", packet.getLevel() + 1));
         cultureId = packet.getCultureId();
         buildingId = packet.getBuildingId();
         variantId = packet.getVariantId();
@@ -40,9 +44,24 @@ public class VariantLevelCCScreen extends BaseCCScreen {
 
     @Override
     public void initWidgets() {
-        // Title 2 buttons
-        // SizeSelector (si souris dessus quand scroll, monte et descend la valeur)
-        // Title 1 button
+        int realLevel = level + 1;
+        String fileName = buildingId + "_" + variantId + "_" + realLevel + ".nbt";
+        this.addWidget("file_name", new ButtonWidgetCC(posX, Ouat.translatable("cc", "building_variant_file_name", fileName)));
+        this.addWidget("select_mode", new SelectBoundingBoxWidgetCC(
+                posX,
+                Ouat.translatable("cc", "building_variant_level_select_mode"),
+                Ouat.translatable("cc", "switch_to_select_mode"),
+                btn -> {},
+                Ouat.translatable("cc", "switch_to_paste_mode"),
+                btn -> {}
+        ));
+        this.addWidget("size_selector", new CoordinatesWidgetCC(posX, font));
+        this.addWidget("waypoint_mode", new SelectWaypointsWidgetCC(
+                posX,
+                Ouat.translatable("cc", "building_variant_level_waypoint_mode"),
+                Ouat.translatable("cc", "switch_to_waypoint_mode"),
+                btn -> {}
+        ));
         // IconButtonsInventory
     }
 }
