@@ -16,6 +16,7 @@ import org.dawnoftime.onceuponatown.client.gui.tooltip.*;
 import org.dawnoftime.onceuponatown.client.model.NpcModel;
 import org.dawnoftime.onceuponatown.client.renderer.NpcFishingHookRenderer;
 import org.dawnoftime.onceuponatown.client.renderer.NpcRenderer;
+import org.dawnoftime.onceuponatown.item.CultureCreatorItem;
 import org.dawnoftime.onceuponatown.item.EmeraldPouchItem;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
 import org.dawnoftime.onceuponatown.registry.ItemRegistry;
@@ -36,6 +37,7 @@ public class ClientEvents {
 
                 // Custom client item properties
                 ItemProperties.register(ItemRegistry.REGISTRY.EMERALD_POUCH.get(), Ouat.modResource("empty_pouch"), (emeraldPouchStack, clientLevel, livingEntity, id) -> EmeraldPouchItem.isEmpty(emeraldPouchStack) ? 1.0F : 0.0F);
+                ItemProperties.register(ItemRegistry.REGISTRY.CULTURE_CREATOR.get(), Ouat.modResource("culture_creator_state"), (creatorState, clientLevel, livingEntity, id) -> CultureCreatorItem.getState(creatorState));
             });
         }
 

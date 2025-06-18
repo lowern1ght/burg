@@ -1,11 +1,14 @@
 package org.dawnoftime.onceuponatown.client.gui.culture_creator;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.gui.culture_creator.widgets_cc.ButtonWidgetCC;
 import org.dawnoftime.onceuponatown.client.gui.culture_creator.widgets_cc.CoordinatesWidgetCC;
 import org.dawnoftime.onceuponatown.client.gui.culture_creator.widgets_cc.SelectBoundingBoxWidgetCC;
 import org.dawnoftime.onceuponatown.client.gui.culture_creator.widgets_cc.SelectWaypointsWidgetCC;
+import org.dawnoftime.onceuponatown.item.CultureCreatorItem;
 import org.dawnoftime.onceuponatown.network.culturecreator.*;
 
 import java.util.Arrays;
@@ -51,17 +54,35 @@ public class VariantLevelCCScreen extends BaseCCScreen {
                 posX,
                 Ouat.translatable("cc", "building_variant_level_select_mode"),
                 Ouat.translatable("cc", "switch_to_select_mode"),
-                btn -> {},
+                btn -> {
+                    this.save(1);
+                    this.onClose();
+                },
                 Ouat.translatable("cc", "switch_to_paste_mode"),
-                btn -> {}
+                btn -> {
+                    this.save(2);
+                    this.onClose();
+                }
         ));
         this.addWidget("size_selector", new CoordinatesWidgetCC(posX, font));
         this.addWidget("waypoint_mode", new SelectWaypointsWidgetCC(
                 posX,
                 Ouat.translatable("cc", "building_variant_level_waypoint_mode"),
                 Ouat.translatable("cc", "switch_to_waypoint_mode"),
-                btn -> {}
+                btn -> {
+                    this.save(3);
+                    this.onClose();
+                }
         ));
-        // IconButtonsInventory
+        // TODO IconButtonsInventory
+    }
+
+    private void save(int cultureCreatorState) {
+        String x = widgets.get("size_selector").get("x");
+        String y = widgets.get("size_selector").get("y");
+        String z = widgets.get("size_selector").get("z");
+        LocalPlayer player = Minecraft.getInstance().player;
+        CultureCreatorItem.setClientPlayerCCState(player, (byte) cultureCreatorState); //Change state on client side, and the packet below send the change to the server.
+        Ouat.CLIENT.sendToServer(new C2SSaveVariantLevelCCPacket(cultureId, buildingId, variantId, level, x, y, z, (byte) cultureCreatorState));
     }
 }

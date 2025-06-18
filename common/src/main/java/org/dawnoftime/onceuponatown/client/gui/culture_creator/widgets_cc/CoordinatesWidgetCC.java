@@ -1,5 +1,6 @@
 package org.dawnoftime.onceuponatown.client.gui.culture_creator.widgets_cc;
 
+import joptsimple.internal.Strings;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.EditBox;
@@ -7,6 +8,8 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
 import org.dawnoftime.onceuponatown.client.gui.widgets.IconButton;
 import org.dawnoftime.onceuponatown.client.gui.widgets.LeftAlignTextButton;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static org.dawnoftime.onceuponatown.client.gui.culture_creator.BaseCCScreen.*;
 
@@ -57,5 +60,33 @@ public class CoordinatesWidgetCC extends WidgetCC {
     @Override
     public AbstractWidget[] getWidgets() {
         return new AbstractWidget[]{xText, xValue, yText, yValue, zText, zValue};
+    }
+
+    @Override
+    public WidgetCC set(@Nullable String key, @NotNull String value) {
+        if ("x".equals(key)) {
+            xValue.setValue(value);
+        }
+        if ("y".equals(key)) {
+            yValue.setValue(value);
+        }
+        if ("z".equals(key)) {
+            zValue.setValue(value);
+        }
+        return this;
+    }
+
+    @Override
+    public @NotNull String get(@Nullable String key) {
+        if ("x".equals(key)) {
+            return xValue.getValue();
+        }
+        if ("y".equals(key)) {
+            return yValue.getValue();
+        }
+        if ("z".equals(key)) {
+            return zValue.getValue();
+        }
+        return Strings.EMPTY;
     }
 }
