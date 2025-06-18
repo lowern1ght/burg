@@ -1,0 +1,6 @@
+{
+  "parent": "onceuponatown:item/culture_creator",
+  "textures": {
+    "layer0": "onceuponatown:item/culture_creator_waypoint"
+  }
+}
