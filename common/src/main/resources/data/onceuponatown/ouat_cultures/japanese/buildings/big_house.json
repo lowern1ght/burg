@@ -1,0 +1,89 @@
+{
+  "id": "big_house",
+  "category": "dwelling",
+  "weight": 7,
+  "levels": [
+    {
+      "required_era": 1,
+      "dwelling_slots": 4
+    }
+  ],
+  "item": "minecraft:red_bed",
+  "variants": [
+    {
+      "name": "standard",
+      "size": {
+        "x": 15,
+        "y": 11,
+        "z": 13
+      },
+      "levels": [
+        {
+          "schematic": "big_house",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "apartments",
+      "size": {
+        "x": 30,
+        "y": 13,
+        "z": 18
+      },
+      "levels": [
+        {
+          "schematic": "apartments",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "apartments2",
+      "size": {
+        "x": 25,
+        "y": 14,
+        "z": 16
+      },
+      "levels": [
+        {
+          "schematic": "apartments_2",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "apartments3",
+      "size": {
+        "x": 23,
+        "y": 15,
+        "z": 26
+      },
+      "levels": [
+        {
+          "schematic": "apartments_3",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "neighborhood",
+      "size": {
+        "x": 40,
+        "y": 16,
+        "z": 29
+      },
+      "levels": [
+        {
+          "schematic": "neighborhood",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

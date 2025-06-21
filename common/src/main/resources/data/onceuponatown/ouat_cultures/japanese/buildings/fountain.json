@@ -1,0 +1,28 @@
+{
+  "id": "fountain",
+  "category": "decoration",
+  "weight": 0,
+  "levels": [
+    {
+      "required_era": 1
+    }
+  ],
+  "item": "minecraft:stone_slab",
+  "variants": [
+    {
+      "name": "variant1",
+      "size": {
+        "x": 13,
+        "y": 6,
+        "z": 13
+      },
+      "levels": [
+        {
+          "schematic": "fountain_place",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

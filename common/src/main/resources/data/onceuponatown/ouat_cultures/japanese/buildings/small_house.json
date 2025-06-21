@@ -1,0 +1,74 @@
+{
+  "id": "small_house",
+  "category": "dwelling",
+  "weight": 5,
+  "levels": [
+    {
+      "required_era": 1,
+      "dwelling_slots": 2
+    }
+  ],
+  "item": "minecraft:white_bed",
+  "variants": [
+    {
+      "name": "regular1",
+      "size": {
+        "x": 9,
+        "y": 9,
+        "z": 9
+      },
+      "levels": [
+        {
+          "schematic": "japanese_house_1",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "regular2",
+      "size": {
+        "x": 23,
+        "y": 11,
+        "z": 15
+      },
+      "levels": [
+        {
+          "schematic": "japanese_house_2",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "fancy",
+      "size": {
+        "x": 11,
+        "y": 9,
+        "z": 9
+      },
+      "levels": [
+        {
+          "schematic": "japanese_house_3",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "regular3",
+      "size": {
+        "x": 11,
+        "y": 11,
+        "z": 10
+      },
+      "levels": [
+        {
+          "schematic": "japanese_house_4",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

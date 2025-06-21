@@ -1,0 +1,28 @@
+{
+  "id": "granary",
+  "category": "work",
+  "weight": 10,
+  "levels": [
+    {
+      "required_era": 1
+    }
+  ],
+  "item": "minecraft:barrel",
+  "variants": [
+    {
+      "name": "variant_small",
+      "size": {
+        "x": 17,
+        "y": 10,
+        "z": 12
+      },
+      "levels": [
+        {
+          "schematic": "small_granary",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}
