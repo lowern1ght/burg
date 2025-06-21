@@ -3,6 +3,10 @@
     {
       "structure": "onceuponatown:plains_town",
       "weight": 1
+    },
+    {
+      "structure": "onceuponatown:japanese_town",
+      "weight": 1
     }
   ],
   "placement": {

@@ -1,5 +1,5 @@
 {
-  "id": "plains",
+  "id": "japanese",
   "specializations": [
     {
       "id": "industry",
@@ -41,65 +41,10 @@
     }
   ],
   "buildings_starter_pack": [
-    {
-      "id": "apiary",
-      "min": 1,
-      "max": 2
-    },
-    {
-      "id": "granary",
-      "min": 1,
-      "max": 2
-    },
-    {
-      "id": "training_camp",
-      "min": 1,
-      "max": 2
-    },
-    {
-      "id": "dyeing_workshop",
-      "min": 1,
-      "max": 1
-    },
-    {
-      "id": "barracks",
-      "min": 1,
-      "max": 2
-    },
-    {
-      "id": "big_house",
-      "min": 3,
-      "max": 4
-    },
-    {
-      "id": "statue",
-      "min": 1,
-      "max": 1
-    },
-    {
-      "id": "medium_house",
-      "min": 1,
-      "max": 2
-    },
-    {
+       {
       "id": "small_house",
-      "min": 3,
-      "max": 3
-    },
-    {
-      "id": "cowshed",
-      "min": 1,
-      "max": 2
-    },
-    {
-      "id": "stable",
-      "min": 1,
-      "max": 1
-    },
-    {
-      "id": "fisherman_hut",
-      "min": 1,
-      "max": 1
+      "min": 4,
+      "max": 4
     },
     {
       "id": "garden",
@@ -112,51 +57,21 @@
       "max": 3
     },
     {
-      "id": "cathedral",
+      "id": "watchtower",
+      "min": 1,
+      "max": 1
+    },
+    {
+      "id": "weaponsmith_forge",
       "min": 1,
       "max": 1
     },
     {
       "id": "religious_building",
       "min": 1,
-      "max": 2
-    },
-    {
-      "id": "lumberjack_cabin",
-      "min": 1,
-      "max": 2
-    },
-    {
-      "id": "market",
-      "min": 2,
-      "max": 2
-    },
-    {
-      "id": "tavern",
-      "min": 1,
       "max": 1
-    },
-    {
-      "id": "watchtower",
-      "min": 1,
-      "max": 1
-    },
-    {
-      "id": "pig_breeding",
-      "min": 1,
-      "max": 2
-    },
-    {
-      "id": "wheat_farm",
-      "min": 2,
-      "max": 3
-    },
-    {
-      "id": "well",
-      "min": 2,
-      "max": 2
     }
-  ],
+   ],
   "foods": [
     "minecraft:bread",
     "minecraft:potato",
