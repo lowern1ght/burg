@@ -1,9 +1,12 @@
 package org.dawnoftime.onceuponatown.entity.ai.task.base;
 
+import com.google.common.collect.ImmutableList;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.behavior.Behavior;
 import net.minecraft.world.entity.ai.behavior.BehaviorControl;
+import net.minecraft.world.entity.ai.behavior.GateBehavior;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
@@ -11,18 +14,19 @@ import java.util.List;
 import java.util.StringJoiner;
 
 public class Sequence<E extends LivingEntity> extends Task<E> {
-    private final List<BehaviorControl<? super E>> behaviors; // Behaviors to run, one after another
-    /**
-     * True : if a child behavior fails to start, the sequence stops <br>
-     * False : if a child behavior fails to start, the sequence tries to start the next behavior
-     */
-    private final boolean acceptsFailure;
+    private final boolean strict; // If strict, the sequence will stop if a child behavior fails to start
+    private final List<BehaviorControl<? super E>> children; // Behaviors to run one after another
     private int step;
 
-    public Sequence(List<BehaviorControl<? super E>> behaviors, boolean acceptsFailure) {
-        super(new HashMap<>());
-        this.behaviors = behaviors;
-        this.acceptsFailure = acceptsFailure;
+    @SafeVarargs
+    public Sequence(boolean strict, BehaviorControl<? super E>... behaviors) {
+        this.children = ImmutableList.copyOf(behaviors);
+        this.strict = strict;
+    }
+
+    @SafeVarargs
+    public static <E extends LivingEntity> Sequence<E> of(BehaviorControl<? super E>... behaviors) {
+        return new Sequence<>(true, behaviors);
     }
 
     @Override
@@ -33,13 +37,15 @@ public class Sequence<E extends LivingEntity> extends Task<E> {
 
     @Override
     protected void tick(ServerLevel level, E entity, long gameTime) {
+        // Improve this, some ticks will not tick children
         super.tick(level, entity, gameTime);
-        var behavior = behaviors.get(step);
+        var behavior = children.get(step);
         if (behavior.getStatus() == Status.STOPPED) {
             if (!behavior.tryStart(level, entity, gameTime)) {
-                step = acceptsFailure ? step + 1 : behaviors.size();
+                step = strict ? children.size() : step + 1;
             }
-        } else {
+        }
+        if (behavior.getStatus() == Status.RUNNING) {
             behavior.tickOrStop(level, entity, gameTime);
             if (behavior.getStatus() == Status.STOPPED) {
                 ++step;
@@ -49,13 +55,13 @@ public class Sequence<E extends LivingEntity> extends Task<E> {
 
     @Override
     protected boolean canStillUse(ServerLevel level, E entity, long gameTime) {
-        return super.canStillUse(level, entity, gameTime) && step < behaviors.size();
+        return super.canStillUse(level, entity, gameTime) && step < children.size();
     }
 
     @Override
     protected void stop(ServerLevel level, E entity, long gameTime) {
         super.stop(level, entity, gameTime);
-        behaviors.stream()
+        children.stream()
             .filter(behavior -> behavior.getStatus() == Behavior.Status.RUNNING)
             .forEach(behavior -> behavior.doStop(level, entity, gameTime));
     }
@@ -63,7 +69,7 @@ public class Sequence<E extends LivingEntity> extends Task<E> {
     @Override
     public @NotNull String debugString() {
         StringJoiner joiner = new StringJoiner("  |  ");
-        behaviors.stream()
+        children.stream()
             .map(bc -> bc.getStatus() == Status.RUNNING ? ">>> " + bc.debugString() : bc.debugString())
             .forEach(joiner::add);
         return "Sequence(" + getDebugInfo() + ") [" + step + "] [" + joiner + "]";

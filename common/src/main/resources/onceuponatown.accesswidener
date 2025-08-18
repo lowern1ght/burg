@@ -3,3 +3,5 @@ accessWidener v2 named
 extendable method net/minecraft/world/entity/ai/behavior/Behavior tryStart (Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/LivingEntity;J)Z
 accessible field net/minecraft/world/entity/ai/behavior/Behavior endTimestamp J
 accessible field net/minecraft/world/entity/ai/behavior/Behavior status Lnet/minecraft/world/entity/ai/behavior/Behavior$Status;
+# Projectile constructor
+accessible method net/minecraft/world/entity/projectile/Projectile <init> (Lnet/minecraft/world/entity/EntityType;Lnet/minecraft/world/level/Level;)V

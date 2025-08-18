@@ -1,20 +1,21 @@
 package org.dawnoftime.onceuponatown.entity.ai.task.base;
 
+import com.mojang.datafixers.util.Pair;
 import net.minecraft.SharedConstants;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.behavior.Behavior;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.memory.MemoryStatus;
+import net.minecraft.world.entity.schedule.Activity;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-import java.util.function.ToIntFunction;
+import java.util.function.*;
 
 /**
  * Improved base class for behaviors
@@ -43,7 +44,7 @@ public class Task<E extends LivingEntity> extends Behavior<E> {
         this(new HashMap<>());
     }
 
-    protected boolean canStart(ServerLevel level, E entity, long gameTime) {
+    private boolean canStart(ServerLevel level, E entity, long gameTime) {
         return hasRequiredMemories(entity)
             && cooldownEnd <= gameTime
             && startPredicate.test(entity)
@@ -86,7 +87,13 @@ public class Task<E extends LivingEntity> extends Behavior<E> {
     }
 
     public Task<E> startIf(Predicate<E> predicate) {
-        startPredicate = predicate;
+        startPredicate = startPredicate.and(predicate);
+        return this;
+    }
+
+    public Task<E> restrictTo(Function<E, BlockPos> position, int closeEnoughDistance) {
+        startIf(npc -> npc.distanceToSqr(position.apply(npc).getCenter()) <= closeEnoughDistance * closeEnoughDistance);
+        stopIf(npc -> npc.distanceToSqr(position.apply(npc).getCenter()) > closeEnoughDistance * closeEnoughDistance);
         return this;
     }
 
@@ -96,22 +103,31 @@ public class Task<E extends LivingEntity> extends Behavior<E> {
     }
 
     public Task<E> onStart(Consumer<E> consumer) {
-        onStart = consumer;
+        onStart = onStart.andThen(consumer);
         return this;
     }
 
     public Task<E> onTick(Consumer<E> consumer) {
-        onTick = consumer;
+        onTick = onTick.andThen(consumer);
         return this;
     }
 
     public Task<E> stopIf(Predicate<E> predicate) {
-        stopPredicate = predicate;
+        stopPredicate = stopPredicate.or(predicate);
+        return this;
+    }
+
+    /**
+     * Stops this task if the brain is not running the required activity
+     **/
+    public Task<E> forActivity(Activity activity) {
+        startIf(e -> e.getBrain().getActiveNonCoreActivity().orElse(null) == activity);
+        stopIf(e -> e.getBrain().getActiveNonCoreActivity().orElse(null) != activity);
         return this;
     }
 
     public Task<E> onStop(Consumer<E> consumer) {
-        onStop = consumer;
+        onStop = onStop.andThen(consumer);
         return this;
     }
 
@@ -143,6 +159,14 @@ public class Task<E extends LivingEntity> extends Behavior<E> {
     public Task<E> cooldown(int min, int max) {
         cooldownProvider =e -> e.getRandom().nextInt(min, max);
         return this;
+    }
+
+    public Pair<Integer, Task<E>> defaultPriority() {
+        return Pair.of(1, this);
+    }
+
+    public Pair<Integer, Task<E>> priority(int priority) {
+        return Pair.of(priority, this);
     }
 
     public Task<E> requiresMemories(Map<MemoryModuleType<?>, MemoryStatus> memories) {

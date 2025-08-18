@@ -1,9 +1,10 @@
 package org.dawnoftime.onceuponatown.entity;
 
 import com.google.common.collect.ImmutableList;
-import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
@@ -19,6 +20,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.projectile.FishingHook;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.entity.projectile.ThrowableProjectile;
 import net.minecraft.world.item.ItemStack;
@@ -33,13 +36,11 @@ import net.minecraft.world.phys.Vec3;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class NpcFishingHook extends ThrowableProjectile {
-    private static final Logger LOGGER = LogUtils.getLogger();
+public class NpcFishingHook extends Projectile {
     private final RandomSource synchronizedRandom = RandomSource.create();
     private boolean biting;
     private int outOfWaterTime;
@@ -56,12 +57,14 @@ public class NpcFishingHook extends ThrowableProjectile {
     public NpcFishingHook(EntityType<NpcFishingHook> entityType, Level level) {
         super(entityType, level);
         this.noCulling = true;
-        this.lureSpeed = Math.max(0, 24);
+        this.lureSpeed = 3;
     }
 
-    public NpcFishingHook(Npc npc, Level level) {
+    public NpcFishingHook(Npc npc, Level level, BlockPos waterPos) {
         this(EntityRegistry.REGISTRY.NPC_FISHING_HOOK.get(), level);
         this.setOwner(npc);
+
+        /*
         float f = npc.getXRot();
         float f1 = npc.getYRot();
         float f2 = Mth.cos(-f1 * ((float) Math.PI / 180F) - (float) Math.PI);
@@ -72,6 +75,7 @@ public class NpcFishingHook extends ThrowableProjectile {
         double d1 = npc.getEyeY();
         double d2 = npc.getZ() - (double) f2 * 0.3D;
         this.moveTo(d0, d1, d2, f1, f);
+
         Vec3 vec3 = new Vec3((double) (-f3), (double) Mth.clamp(-(f5 / f4), -5.0F, 5.0F), (double) (-f2));
         double d3 = vec3.length();
         vec3 = vec3.multiply(0.6D / d3 + this.random.triangle(0.5D, 0.0103365D), 0.6D / d3 + this.random.triangle(0.5D, 0.0103365D), 0.6D / d3 + this.random.triangle(0.5D, 0.0103365D));
@@ -80,12 +84,36 @@ public class NpcFishingHook extends ThrowableProjectile {
         this.setXRot((float) (Mth.atan2(vec3.y, vec3.horizontalDistance()) * (double) (180F / (float) Math.PI)));
         this.yRotO = this.getYRot();
         this.xRotO = this.getXRot();
+
+         */
+
+
+
+        float f = npc.getXRot();
+        float f1 = npc.getYRot();
+        float f2 = Mth.cos(-f1 * ((float) Math.PI / 180F) - (float) Math.PI);
+        float f3 = Mth.sin(-f1 * ((float) Math.PI / 180F) - (float) Math.PI);
+        float f4 = -Mth.cos(-f * ((float) Math.PI / 180F));
+        float f5 = Mth.sin(-f * ((float) Math.PI / 180F));
+        double d01 = npc.getX() - (double) f3 * 0.3D;
+        double d11 = npc.getEyeY();
+        double d21 = npc.getZ() - (double) f2 * 0.3D;
+        this.moveTo(d01, d11, d21, f1, f);
+
+
+        double d0 = waterPos.getX() - getX();
+        double d1 = waterPos.getY() -  getY() ;
+        double d2 = waterPos.getZ() - getZ();
+        this.setDeltaMovement(d0 * 0.1D, d1 * 0.1D + Math.sqrt(Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2)) * 0.08D, d2 * 0.1D);
+
     }
 
+    @Override
     protected void defineSynchedData() {
         this.getEntityData().define(DATA_BITING, false);
     }
 
+    @Override
     public void onSyncedDataUpdated(@NotNull EntityDataAccessor<?> key) {
         if (DATA_BITING.equals(key)) {
             this.biting = this.getEntityData().get(DATA_BITING);
@@ -97,18 +125,23 @@ public class NpcFishingHook extends ThrowableProjectile {
         super.onSyncedDataUpdated(key);
     }
 
+    @Override
     public boolean shouldRenderAtSqrDistance(double pDistance) {
-        double d0 = 64.0D;
         return pDistance < 4096.0D;
+    }
+
+    public void lerpTo(double x, double y, double z, float yaw, float pitch, int posRotationIncrements, boolean teleport) {
     }
 
     public void tick() {
         this.synchronizedRandom.setSeed(this.getUUID().getLeastSignificantBits() ^ this.level().getGameTime());
         super.tick();
+        //Ouat.info(String.valueOf(timeUntilLured));
+        //sendSystemMessage(Component.literal(String.valueOf(nibble)));
         Npc npc = this.getNpcOwner();
         if (npc == null) {
             this.discard();
-        } else if (this.level().isClientSide || !this.shouldStopFishing(npc)) {
+        } else if (this.level().isClientSide || this.canFish(npc)) {
             if (this.onGround()) {
                 ++this.life;
                 if (this.life >= 1200) {
@@ -168,27 +201,22 @@ public class NpcFishingHook extends ThrowableProjectile {
                 this.setDeltaMovement(Vec3.ZERO);
             }
 
-            double d1 = 0.92D;
             this.setDeltaMovement(this.getDeltaMovement().scale(0.92D));
             this.reapplyPosition();
         }
     }
 
-    private boolean shouldStopFishing(Npc npc) {
-        boolean validMainStack = Ouat.COMMON.canBeUsedAsFishingRod(npc.getMainHandItem());
-        boolean validOffStack = Ouat.COMMON.canBeUsedAsFishingRod(npc.getOffhandItem());
-        if (!npc.isRemoved() && npc.isAlive() && (validMainStack || validOffStack) && !(this.distanceToSqr(npc) > 1024.0D)) {
-            return false;
-        } else {
+    private boolean canFish(Npc npc) {
+        boolean validItem = npc.getMainHandItem().is(Items.FISHING_ROD) || npc.getOffhandItem().is(Items.FISHING_ROD);
+        if (npc.isRemoved() || !npc.isAlive() || !validItem || distanceToSqr(npc) > 1024.0D) {
             this.discard();
-            return true;
+            return false;
         }
+        return true;
     }
 
     private void checkCollision() {
         HitResult hitresult = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity);
-        // TODO : Use forge event to check if impact...
-        //if (hitresult.getType() == HitResult.Type.MISS || !net.minecraftforge.event.ForgeEventFactory.onProjectileImpact(this, hitresult)) this.onHit(hitresult);
         this.onHit(hitresult);
     }
 
@@ -279,23 +307,41 @@ public class NpcFishingHook extends ThrowableProjectile {
 
     }
 
-    public void retrieve(ItemStack pStack) {
+    @Override
+    public void addAdditionalSaveData(CompoundTag compound) {
+    }
+
+    @Override
+    public void readAdditionalSaveData(CompoundTag compound) {
+    }
+
+    public ItemEntity retrieve() {
         Npc npc = this.getNpcOwner();
-        if (!this.level().isClientSide && npc != null && !this.shouldStopFishing(npc)) {
+        if (!this.level().isClientSide && npc != null && this.canFish(npc)) {
             if (this.nibble > 0) {
-                List<ItemStack> list = ImmutableList.of(Items.COD.getDefaultInstance(), Items.SALMON.getDefaultInstance(), Items.TROPICAL_FISH.getDefaultInstance());
-                for (ItemStack itemstack : list) {
-                    ItemEntity itementity = new ItemEntity(this.level(), this.getX(), this.getY(), this.getZ(), itemstack);
-                    double d0 = npc.getX() - this.getX();
-                    double d1 = npc.getY() - this.getY();
-                    double d2 = npc.getZ() - this.getZ();
-                    double d3 = 0.1D;
-                    itementity.setDeltaMovement(d0 * 0.1D, d1 * 0.1D + Math.sqrt(Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2)) * 0.08D, d2 * 0.1D);
-                    this.level().addFreshEntity(itementity);
-                }
+                List<ItemStack> list = ImmutableList.of(Items.COD.getDefaultInstance(), Items.SALMON.getDefaultInstance());
+                ItemStack found = list.get(random.nextInt(0, list.size() - 1));
+
+                ItemEntity itementity = new ItemEntity(this.level(), this.getX(), this.getY(), this.getZ(), found);
+                double d0 = npc.getX() - this.getX();
+                double d1 = npc.getY() - this.getY();
+                double d2 = npc.getZ() - this.getZ();
+                itementity.setDeltaMovement(d0 * 0.1D, d1 * 0.1D + Math.sqrt(Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2)) * 0.08D, d2 * 0.1D);
+
+                itementity.setTarget(npc.getUUID());
+                // Workaround for setting item entity age
+                CompoundTag itemSavedData = new CompoundTag();
+                itementity.addAdditionalSaveData(itemSavedData);
+                itemSavedData.putShort("Age", (short)5900);
+                itementity.readAdditionalSaveData(itemSavedData);
+
+                this.level().addFreshEntity(itementity);
+                this.discard();
+                return itementity;
             }
             this.discard();
         }
+        return null;
     }
 
     protected Entity.@NotNull MovementEmission getMovementEmission() {
@@ -321,7 +367,6 @@ public class NpcFishingHook extends ThrowableProjectile {
         if (npc != null) {
             npc.setFishingHook(fishingHook);
         }
-
     }
 
     @Nullable
@@ -347,10 +392,9 @@ public class NpcFishingHook extends ThrowableProjectile {
         super.recreateFromPacket(pPacket);
         if (this.getNpcOwner() == null) {
             int i = pPacket.getData();
-            LOGGER.error("Failed to recreate fishing hook on client. {} (id: {}) is not a valid owner.", this.level().getEntity(i), i);
+            Ouat.error("Failed to recreate fishing hook on client. %s (id: %s) is not a valid owner.".formatted(this.level().getEntity(i), i));
             this.kill();
         }
-
     }
 
     enum HookState {

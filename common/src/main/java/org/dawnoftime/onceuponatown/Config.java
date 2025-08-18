@@ -20,7 +20,7 @@ public class Config {
     // Debug
     public static final boolean DEBUG_PATHFINDING = false;
     public static final boolean DEBUG_GOALS = false;
-    public static final boolean DEBUG_BRAINS = true; // It includes pathfinding debug
+    public static final boolean DEBUG_BRAINS = false; // It includes pathfinding debug
 
     // Generation
     /** Minimal size of roads when they are extended.*/

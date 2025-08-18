@@ -62,7 +62,7 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
     private static final EntityDataAccessor<Boolean> DATA_READING = SynchedEntityData.defineId(Npc.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<String> CULTURE = SynchedEntityData.defineId(Npc.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<String> PROFESSION = SynchedEntityData.defineId(Npc.class, EntityDataSerializers.STRING);
-    private static final Set<Item> WANTED_ITEMS = ImmutableSet.of(Items.BREAD, Items.POTATO, Items.CARROT, Items.WHEAT, Items.WHEAT_SEEDS, Items.BEETROOT, Items.BEETROOT_SEEDS, Items.TORCHFLOWER_SEEDS, Items.PITCHER_POD);
+    private static final Set<Item> WANTED_ITEMS = ImmutableSet.of(Items.BREAD, Items.POTATO, Items.CARROT, Items.WHEAT, Items.WHEAT_SEEDS, Items.BEETROOT, Items.BEETROOT_SEEDS, Items.TORCHFLOWER_SEEDS, Items.PITCHER_POD, Items.COD, Items.SALMON);
     public static final double WALK_SPEED = 0.5D;
     public static final double RUN_SPEED = 0.65D;
     public static final double SPRINT_SPEED = 0.75D;
@@ -330,20 +330,33 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         return new ItemStack(Items.WOODEN_HOE);
     }
 
+    public void holdInHands(ItemStack mainHandStack, ItemStack offHandStack) {
+        holdInMainHand(mainHandStack);
+        holdInOffHand(offHandStack);
+    }
+
     public void holdInMainHand(ItemStack stack) {
         setItemInHand(InteractionHand.MAIN_HAND, stack);
+        setCrossingArms(false);
     }
 
     public void holdInOffHand(ItemStack stack) {
         setItemInHand(InteractionHand.OFF_HAND, stack);
+        setCrossingArms(false);
     }
 
     public void freeMainHand() {
         setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        if (getItemInHand(InteractionHand.OFF_HAND).isEmpty()) {
+            setCrossingArms(true);
+        }
     }
 
     public void freeOffHand() {
         setItemInHand(InteractionHand.OFF_HAND, ItemStack.EMPTY);
+        if (getItemInHand(InteractionHand.MAIN_HAND).isEmpty()) {
+            setCrossingArms(true);
+        }
     }
 
     public void freeHands() {
@@ -627,6 +640,10 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
 
     public void setFishingHook(NpcFishingHook hook) {
         fishingHook = hook;
+    }
+
+    public NpcFishingHook getFishingHook() {
+        return fishingHook;
     }
 
     @Override

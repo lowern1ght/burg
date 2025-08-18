@@ -10,17 +10,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-public class OneShotTask<E extends LivingEntity> extends Task<E> {
-    public OneShotTask(@NotNull Map<MemoryModuleType<?>, MemoryStatus> entryCondition) {
+public class SingleTask<E extends LivingEntity> extends Task<E> {
+    public SingleTask(@NotNull Map<MemoryModuleType<?>, MemoryStatus> entryCondition) {
         super(entryCondition);
     }
 
-    public OneShotTask() {
+    public SingleTask() {
         this(new HashMap<>());
     }
 
     public static <E extends LivingEntity> Task<E> run(Consumer<E> consumer) {
-        return new OneShotTask<E>().onStart(consumer);
+        return new SingleTask<E>().onStart(consumer);
     }
 
     @Override
@@ -30,6 +30,6 @@ public class OneShotTask<E extends LivingEntity> extends Task<E> {
 
     @Override
     public @NotNull String debugString() {
-        return "OS " + super.debugString();
+        return "Single " + super.debugString();
     }
 }

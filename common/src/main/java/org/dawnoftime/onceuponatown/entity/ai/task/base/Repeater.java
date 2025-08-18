@@ -10,16 +10,20 @@ import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
 
 public class Repeater<E extends LivingEntity> extends Task<E> {
+    private final boolean strict; // If strict, the repeater will not decrement its repeats counter if the child fails to start
     private final BehaviorControl<? super E> behavior; // Child behavior to repeat
-    private final boolean acceptsFailure;
     protected Predicate<E> repeatPredicate = entity -> true;
     private ToIntFunction<E> repeatsProvider = entity -> Integer.MAX_VALUE;
     private int remainingRepeats;
 
-    public Repeater(BehaviorControl<? super E> behavior, boolean acceptsFailure) {
+    public Repeater(BehaviorControl<? super E> behavior, boolean strict) {
         super(new HashMap<>());
         this.behavior = behavior;
-        this.acceptsFailure = acceptsFailure;
+        this.strict = strict;
+    }
+
+    public static <E extends LivingEntity> Repeater<E> of(BehaviorControl<? super E> behavior) {
+        return new Repeater<>(behavior, true);
     }
 
     @Override
@@ -38,7 +42,7 @@ public class Repeater<E extends LivingEntity> extends Task<E> {
         super.tick(level, entity, gameTime);
         if (behavior.getStatus() == Status.RUNNING) {
             behavior.tickOrStop(level, entity, gameTime);
-        } else if (remainingRepeats > 0 && repeatPredicate.test(entity) && (behavior.tryStart(level, entity, gameTime) || acceptsFailure)) {
+        } else if (remainingRepeats > 0 && repeatPredicate.test(entity) && (behavior.tryStart(level, entity, gameTime) || !strict)) {
             --remainingRepeats;
         }
     }
