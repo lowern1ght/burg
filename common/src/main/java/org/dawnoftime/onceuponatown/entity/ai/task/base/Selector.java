@@ -1,5 +1,6 @@
 package org.dawnoftime.onceuponatown.entity.ai.task.base;
 
+import com.google.common.collect.ImmutableList;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
@@ -24,6 +25,21 @@ public class Selector<E extends LivingEntity> extends Task<E> {
         this.orderPolicy = orderPolicy;
         this.choosePolicy = choosePolicy;
         behaviors.forEach(pair -> this.behaviors.add(pair.getSecond(), pair.getFirst()));
+    }
+
+    @SafeVarargs
+    public static <E extends LivingEntity> Selector<E> firstValid(Pair<Integer, ? extends BehaviorControl<? super E>>... behaviors) {
+        return new Selector<>(OrderPolicy.ORDERED, ChoosePolicy.FIND_FIRST, ImmutableList.copyOf(behaviors));
+    }
+
+    @SafeVarargs
+    public static <E extends LivingEntity> Selector<E> oneRandom(Pair<Integer, ? extends BehaviorControl<? super E>>... behaviors) {
+        return new Selector<>(OrderPolicy.SHUFFLED, ChoosePolicy.FIND_FIRST, ImmutableList.copyOf(behaviors));
+    }
+
+    @SafeVarargs
+    public static <E extends LivingEntity> Selector<E> tryAll(Pair<Integer, ? extends BehaviorControl<? super E>>... behaviors) {
+        return new Selector<>(OrderPolicy.ORDERED, ChoosePolicy.TRY_ALL, ImmutableList.copyOf(behaviors));
     }
 
     @Override

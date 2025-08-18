@@ -19,18 +19,19 @@ import net.minecraft.world.entity.schedule.Activity;
 import org.dawnoftime.onceuponatown.entity.ai.task.FindBed;
 import org.dawnoftime.onceuponatown.entity.ai.task.NpcCalmDown;
 import org.dawnoftime.onceuponatown.entity.ai.task.NpcPanic;
-import org.dawnoftime.onceuponatown.entity.ai.task.base.Selector;
 import org.dawnoftime.onceuponatown.entity.ai.task.base.Task;
-import org.dawnoftime.onceuponatown.entity.ai.task.base.Tasks;
+import org.dawnoftime.onceuponatown.entity.ai.task.work.Fishing;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
 import org.dawnoftime.onceuponatown.registry.ScheduleRegistry;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Predicate;
 
 public class NpcAi {
     // TODO Fight package : set aggressive
     static final ImmutableList<MemoryModuleType<?>> MEMORIES = com.google.common.collect.ImmutableList.of(
-        MemoryModuleType.HOME,
+        MemoryModuleType.HOME, // Sleep position
         MemoryModuleType.JOB_SITE,
         MemoryModuleType.POTENTIAL_JOB_SITE,
         MemoryModuleType.MEETING_POINT,
@@ -44,13 +45,13 @@ public class NpcAi {
         MemoryModuleType.ITEM_PICKUP_COOLDOWN_TICKS,
         MemoryModuleType.WALK_TARGET,
         MemoryModuleType.LOOK_TARGET,
-        MemoryModuleType.INTERACTION_TARGET,
+        MemoryModuleType.INTERACTION_TARGET, // Living entity
         MemoryModuleType.BREED_TARGET,
         MemoryModuleType.PATH,
         MemoryModuleType.DOORS_TO_CLOSE,
         MemoryModuleType.NEAREST_BED,
-        MemoryModuleType.HURT_BY,
-        MemoryModuleType.HURT_BY_ENTITY,
+        MemoryModuleType.HURT_BY, // Damage source
+        MemoryModuleType.HURT_BY_ENTITY, // Aggressor
         MemoryModuleType.NEAREST_HOSTILE,
         MemoryModuleType.SECONDARY_JOB_SITE,
         MemoryModuleType.HIDING_PLACE,
@@ -93,7 +94,7 @@ public class NpcAi {
         addPreRaidTasks(brain, npc.getProfession(), 0.5F);
         addRaidTasks(brain, npc.getProfession(), 0.5F);
         addHideTasks(brain, npc.getProfession(), 0.5F);
-        brain.setCoreActivities(ImmutableSet.of(Activity.CORE));
+        brain.setCoreActivities(ImmutableSet.of(net.minecraft.world.entity.schedule.Activity.CORE));
         brain.setDefaultActivity(Activity.IDLE);
         brain.setActiveActivityIfPossible(Activity.IDLE);
         brain.updateActivityFromSchedule(npc.level().getDayTime(), npc.level().getGameTime());
@@ -114,7 +115,7 @@ public class NpcAi {
                     })
                 ),
                 Pair.of(0, InteractWithDoor.create()),
-                Pair.of(0, new LookAtTargetSink(45, 90)),
+                Pair.of(0, new LookAtTargetSink(45, 20 * 60 * 20)),
                 Pair.of(0, new NpcPanic()),
                 Pair.of(0, WakeUp.create()),
                 Pair.of(1, new MoveToTargetSink())
@@ -181,26 +182,26 @@ public class NpcAi {
     }
 
     private static void addWorkTasks(Brain<Npc> brain, Profession profession, float speedModifier) {
-        brain.addActivity(Activity.WORK, ImmutableList.of(
-            Pair.of(0, Tasks.select(Selector.OrderPolicy.ORDERED, Selector.ChoosePolicy.TRY_ALL,
-                Pair.of(0, new Task<>()
-                    .debug("Dummy1")
-                    .maxDuration(40)
-                )
-                ,
-                Pair.of(0, new Task<>()
-                    .debug("Dummy2")
-                    .maxDuration(80)
-                )
-                ,
-                Pair.of(0, new Task<>()
-                    .debug("Dummy3")
-                    .maxDuration(120)
-                )
-            )),
-            getMinimalLookBehavior(),
+        addBrainActivity(brain, Activity.WORK,
+            //Fishing.create(0, speedModifier),
+            //getMinimalLookBehavior(),
             Pair.of(99, UpdateActivityFromSchedule.create())
-        ));
+        );
+    }
+
+    @SafeVarargs
+    private static <E extends LivingEntity> void addBrainActivity(Brain<E> brain, Activity activity, Pair<Integer, ? extends BehaviorControl<? super E>>... tasks) {
+        brain.addActivity(activity, ImmutableList.copyOf(tasks));
+    }
+
+    @SafeVarargs
+    private static <E extends LivingEntity> void addBrainActivity(Brain<E> brain, Activity activity, BehaviorControl<? super E>... tasks) {
+        List<Pair<Integer, ? extends BehaviorControl<? super E>>> toReturn = new ArrayList<>();
+
+        //Arrays.stream(tasks).map(behavior -> Pair.of(behavior))
+
+
+        //brain.addActivity(activity, ImmutableList.copyOf(tasks));
     }
 
     private static void addFightTasks(Brain<Npc> brain, float speedModifier) {
