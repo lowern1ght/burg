@@ -1,20 +1,21 @@
 package org.dawnoftime.onceuponatown.item;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.entity.CultureCreatorEntity;
 import org.dawnoftime.onceuponatown.network.OuatPacket;
 import org.dawnoftime.onceuponatown.network.culturecreator.*;
+import org.dawnoftime.onceuponatown.registry.EntityRegistry;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -28,34 +29,72 @@ public class CultureCreatorItem extends Item {
     @Override
     public @NotNull InteractionResultHolder<ItemStack> use(Level level, @NotNull Player player, @NotNull InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
-        if (!level.isClientSide() && player instanceof ServerPlayer serverPlayer) {
-            return switch (getState(stack)) {
-                case 1 -> this.useCultureCreatorSelect(serverPlayer, stack);
-                case 2 -> this.useCultureCreatorPaste(serverPlayer, stack);
-                case 3 -> this.useCultureCreatorWaypoint(serverPlayer, stack);
-                default -> this.useCultureCreatorDefault(serverPlayer, stack);
-            };
+        if (!level.isClientSide()) {
+            if (player instanceof ServerPlayer serverPlayer) {
+                return switch (getState(stack)) {
+                    case 1 -> InteractionResultHolder.pass(stack);
+                    case 2 -> this.useServerCultureCreatorPaste(serverPlayer, stack);
+                    case 3 -> this.useServerCultureCreatorWaypoint(serverPlayer, stack);
+                    default -> this.useServerCultureCreatorDefault(serverPlayer, stack);
+                };
+            }
         } else {
-            return InteractionResultHolder.pass(stack);
+            return switch (getState(stack)) {
+                case 1 -> InteractionResultHolder.pass(stack);
+                // case 1 -> this.useClientCultureCreatorSelect(player, stack);
+                case 2 -> this.useClientCultureCreatorPaste(player, stack);
+                case 3 -> this.useClientCultureCreatorWaypoint(player, stack);
+                default -> InteractionResultHolder.success(stack);
+            };
         }
+        return InteractionResultHolder.pass(stack);
     }
 
-    private @NotNull InteractionResultHolder<ItemStack> useCultureCreatorSelect(@NotNull ServerPlayer serverPlayer, @NotNull ItemStack stack) {
-        System.out.println("Mode Select");
+    @Override
+    public InteractionResult useOn(UseOnContext context) {
+        ItemStack stack = context.getItemInHand();
+        if (getState(stack) == 1) {
+            Level level = context.getLevel();
+            CultureCreatorEntity entity = EntityRegistry.REGISTRY.CULTURE_CREATOR_ENTITY.get().create(level);
+            if (entity != null) {
+                entity.moveTo(context.getClickedPos(), 0.0F, 0.0F);
+                context.getLevel().addFreshEntity(entity);
+            }
+        }
+        return super.useOn(context);
+    }
+
+    private @NotNull InteractionResultHolder<ItemStack> useServerCultureCreatorSelect(@NotNull ServerPlayer serverPlayer, @NotNull ItemStack stack) {
+
         return InteractionResultHolder.success(stack);
     }
 
-    private @NotNull InteractionResultHolder<ItemStack> useCultureCreatorPaste(@NotNull ServerPlayer serverPlayer, @NotNull ItemStack stack) {
-        System.out.println("Mode Paste");
+    private @NotNull InteractionResultHolder<ItemStack> useClientCultureCreatorSelect(@NotNull Player serverPlayer, @NotNull ItemStack stack) {
+        System.out.println("Mode Select Client");
         return InteractionResultHolder.success(stack);
     }
 
-    private @NotNull InteractionResultHolder<ItemStack> useCultureCreatorWaypoint(@NotNull ServerPlayer serverPlayer, @NotNull ItemStack stack) {
-        System.out.println("Mode Waypoint");
+    private @NotNull InteractionResultHolder<ItemStack> useServerCultureCreatorPaste(@NotNull ServerPlayer serverPlayer, @NotNull ItemStack stack) {
+        System.out.println("Mode Paste Server");
         return InteractionResultHolder.success(stack);
     }
 
-    private @NotNull InteractionResultHolder<ItemStack> useCultureCreatorDefault(@NotNull ServerPlayer serverPlayer, @NotNull ItemStack stack) {
+    private @NotNull InteractionResultHolder<ItemStack> useClientCultureCreatorPaste(@NotNull Player serverPlayer, @NotNull ItemStack stack) {
+        System.out.println("Mode Paste Client");
+        return InteractionResultHolder.success(stack);
+    }
+
+    private @NotNull InteractionResultHolder<ItemStack> useServerCultureCreatorWaypoint(@NotNull Player serverPlayer, @NotNull ItemStack stack) {
+        System.out.println("Mode Waypoint Server");
+        return InteractionResultHolder.success(stack);
+    }
+
+    private @NotNull InteractionResultHolder<ItemStack> useClientCultureCreatorWaypoint(@NotNull Player serverPlayer, @NotNull ItemStack stack) {
+        System.out.println("Mode Waypoint Client");
+        return InteractionResultHolder.success(stack);
+    }
+
+    private @NotNull InteractionResultHolder<ItemStack> useServerCultureCreatorDefault(@NotNull ServerPlayer serverPlayer, @NotNull ItemStack stack) {
         MinecraftServer server = serverPlayer.server;
         if (server.getPlayerList().isOp(serverPlayer.getGameProfile())) {
             Ouat.COMMON.sendToClient(serverPlayer, this.openStoredScreen(serverPlayer, stack.getOrCreateTag()));
@@ -93,7 +132,7 @@ public class CultureCreatorItem extends Item {
     }
 
     public static byte getState(ItemStack creatorState) {
-        return creatorState.getOrCreateTag().getByte("culture_creator_state");
+        return creatorState.getOrCreateTag().getByte("ouat_culture_creator_state");
     }
 
     /**
@@ -105,7 +144,7 @@ public class CultureCreatorItem extends Item {
             ItemStack stack = player.getItemInHand(player.getUsedItemHand());
             if (!stack.isEmpty() && stack.getItem() instanceof CultureCreatorItem) {
                 CompoundTag tag = stack.getOrCreateTag();
-                tag.putByte("culture_creator_state", state);
+                tag.putByte("ouat_culture_creator_state", state);
                 stack.setTag(tag);
                 System.out.println(state);
             }
