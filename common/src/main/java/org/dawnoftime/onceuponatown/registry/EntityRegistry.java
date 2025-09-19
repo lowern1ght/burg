@@ -3,6 +3,7 @@ package org.dawnoftime.onceuponatown.registry;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
+import org.dawnoftime.onceuponatown.entity.CultureCreatorEntity;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.entity.NpcFishingHook;
 
@@ -24,6 +25,11 @@ public abstract class EntityRegistry {
                     .updateInterval(5)
             //.build(Ouat.createOuatResource("npc_fishing_hook").toString())
     );
+
+    public final Supplier<EntityType<CultureCreatorEntity>> CULTURE_CREATOR_ENTITY = register("culture_creator_entity", () -> EntityType.Builder
+            .of(CultureCreatorEntity::new, MobCategory.MISC)
+            .sized(1.05F, 1.05F)
+            .clientTrackingRange(10));
 
     public abstract <T extends Entity> Supplier<EntityType<T>> register(String name, Supplier<EntityType.Builder<T>> builder);
 }
