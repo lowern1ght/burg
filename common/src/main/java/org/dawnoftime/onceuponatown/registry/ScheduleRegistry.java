@@ -33,8 +33,9 @@ public abstract class ScheduleRegistry {
             .changeActivityAt(10, Activity.IDLE)
             .changeActivityAt(3000, Activity.PLAY)
             .changeActivityAt(6000, Activity.IDLE)
+            .changeActivityAt(9000, Activity.MEET)
             .changeActivityAt(10000, Activity.PLAY)
-            .changeActivityAt(12000, Activity.REST)
+            .changeActivityAt(11000, Activity.REST)
             .build()
     );
 

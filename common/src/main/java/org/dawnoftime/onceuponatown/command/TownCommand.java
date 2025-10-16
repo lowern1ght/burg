@@ -5,24 +5,30 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.ComponentArgument;
+import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.*;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.Heightmap;
+import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.Utils;
 import org.dawnoftime.onceuponatown.building.instance.Building;
 import org.dawnoftime.onceuponatown.building.type.BuildType;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.culture.ServerCultures;
+import org.dawnoftime.onceuponatown.entity.Npc;
+import org.dawnoftime.onceuponatown.registry.EntityRegistry;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.Town;
 import org.jetbrains.annotations.Nullable;
@@ -125,6 +131,16 @@ public class TownCommand {
                     )
                 )
             )
+            .then(Commands.literal("dwellers")
+                .then(Commands.argument("townid", string())
+                    .suggests(SUGGEST_TOWNS)
+                    .then(Commands.literal("welcome")
+                        .then(Commands.argument("npc", entity())
+                            .executes(context -> addTownDweller(context.getSource(), getString(context, "townid"), getEntity(context, "npc")))
+                        )
+                    )
+                )
+            )
             .then(Commands.literal("project")
                 .then(Commands.literal("list")
                     .then(Commands.argument("townid", string())
@@ -194,6 +210,21 @@ public class TownCommand {
                     )
                 )
             );
+    }
+
+    private static int addTownDweller(CommandSourceStack source, String townId, Entity entity) {
+        Town town = getTownOrClosest(source, townId);
+        if (town != null) {
+            if (entity instanceof Npc npc) {
+                town.addDweller(npc);
+                source.sendSuccess(() -> Component.literal("Successfully added dweller"), true);
+            } else {
+                source.sendFailure(Component.literal("The dweller entity must be an Npc (" + Ouat.MOD_ID + ":npc"));
+            }
+        } else {
+            source.sendSuccess(() -> Component.literal("Town not founded"), true);
+        }
+        return 1;
     }
 
     private static int listTowns(CommandSourceStack source) {
@@ -458,6 +489,14 @@ public class TownCommand {
 
     private static String getString(CommandContext<CommandSourceStack> context, String name) {
         return StringArgumentType.getString(context, name);
+    }
+
+    private static EntityArgument entity() {
+        return EntityArgument.entity();
+    }
+
+    private static Entity getEntity(CommandContext<CommandSourceStack> context, String name) throws CommandSyntaxException {
+        return EntityArgument.getEntity(context, name);
     }
 
     private static ComponentArgument component() {

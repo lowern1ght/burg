@@ -2,12 +2,14 @@ package org.dawnoftime.onceuponatown.entity;
 
 public class Profession {
     public static final Profession BUILDER = new Profession("builder");
+    public static final Profession FISHERMAN = new Profession("fisherman");
     public static final Profession UNEMPLOYED = new Profession("unemployed");
     private final String id;
 
     public static Profession of(String id) {
         return switch (id) {
             case "builder" -> BUILDER;
+            case "fisherman" -> FISHERMAN;
             case "unemployed" -> UNEMPLOYED;
             default -> new Profession(id);
         };

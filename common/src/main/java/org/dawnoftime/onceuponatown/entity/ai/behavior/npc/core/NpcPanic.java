@@ -1,13 +1,21 @@
-package org.dawnoftime.onceuponatown.entity.ai.task;
+package org.dawnoftime.onceuponatown.entity.ai.behavior.npc.core;
 
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.schedule.Activity;
 import org.dawnoftime.onceuponatown.entity.Npc;
-import org.dawnoftime.onceuponatown.entity.ai.task.base.Task;
+import org.dawnoftime.onceuponatown.entity.ai.behavior.Task;
 
 public class NpcPanic extends Task<Npc> {
+    public NpcPanic(Task.Builder<Npc> builder) {
+        super(builder);
+    }
+
+    public NpcPanic(String name) {
+        super(Task.<Npc>builder(name));
+    }
+
     @Override
     protected void start(ServerLevel level, Npc npc, long gameTime) {
         super.start(level, npc, gameTime);
