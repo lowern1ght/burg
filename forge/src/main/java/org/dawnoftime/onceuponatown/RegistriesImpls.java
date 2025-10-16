@@ -5,6 +5,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.schedule.Schedule;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.MenuType;
@@ -137,6 +138,15 @@ public class RegistriesImpls {
         @Override
         public Supplier<Schedule> register(String name, Supplier<Schedule> scheduleSupplier) {
             return DEFERRED_REGISTER.register(name, scheduleSupplier);
+        }
+    }
+
+    public static class MemoryModuleTypeRegistryImpl extends MemoryModuleTypeRegistry {
+        public static final DeferredRegister<MemoryModuleType<?>> DEFERRED_REGISTER = DeferredRegister.create(Registries.MEMORY_MODULE_TYPE, Ouat.MOD_ID);
+
+        @Override
+        public <U> Supplier<MemoryModuleType<U>> register(String name, Supplier<MemoryModuleType<U>> memoryModuleTypeSupplier) {
+            return DEFERRED_REGISTER.register(name, memoryModuleTypeSupplier);
         }
     }
 }

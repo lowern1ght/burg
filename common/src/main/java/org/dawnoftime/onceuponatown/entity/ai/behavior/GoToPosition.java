@@ -1,14 +1,12 @@
-package org.dawnoftime.onceuponatown.entity.ai.task;
+package org.dawnoftime.onceuponatown.entity.ai.behavior;
 
 import com.google.common.collect.ImmutableMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.behavior.Behavior;
 import net.minecraft.world.entity.ai.behavior.BehaviorUtils;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.memory.MemoryStatus;
-import org.dawnoftime.onceuponatown.entity.ai.task.base.Task;
 
 import java.util.function.Function;
 
@@ -18,11 +16,15 @@ public class GoToPosition<E extends LivingEntity> extends Task<E> {
     private final float speedModifier;
     private int retryTick;
 
-    public GoToPosition(Function<E, BlockPos> destinationProvider, int closeEnoughDistance, float speedModifier) {
-        super(ImmutableMap.of(MemoryModuleType.WALK_TARGET, MemoryStatus.VALUE_ABSENT));
+    public GoToPosition(Task.Builder<E> builder, Function<E, BlockPos> destinationProvider, int closeEnoughDistance, float speedModifier) {
+        super(builder.requiresMemories(ImmutableMap.of(MemoryModuleType.WALK_TARGET, MemoryStatus.VALUE_ABSENT)));
         this.destinationProvider = destinationProvider;
         this.closeEnoughDistance = closeEnoughDistance;
         this.speedModifier = speedModifier;
+    }
+
+    public GoToPosition(String name, Function<E, BlockPos> destinationProvider, int closeEnoughDistance, float speedModifier) {
+        this(Task.<E>builder(name), destinationProvider, closeEnoughDistance, speedModifier);
     }
 
     @Override
@@ -33,7 +35,7 @@ public class GoToPosition<E extends LivingEntity> extends Task<E> {
     @Override
     protected void start(ServerLevel level, E entity, long gameTime) {
         super.start(level, entity, gameTime);
-        BehaviorUtils.setWalkAndLookTargetMemories(entity, destinationProvider.apply(entity).above(), speedModifier, closeEnoughDistance);
+        BehaviorUtils.setWalkAndLookTargetMemories(entity, destinationProvider.apply(entity), speedModifier, closeEnoughDistance);
     }
 
     @Override
@@ -42,7 +44,7 @@ public class GoToPosition<E extends LivingEntity> extends Task<E> {
         retryTick++;
         if (retryTick > 80) {
             retryTick = 0;
-            BehaviorUtils.setWalkAndLookTargetMemories(entity, destinationProvider.apply(entity).above(), speedModifier, closeEnoughDistance);
+            BehaviorUtils.setWalkAndLookTargetMemories(entity, destinationProvider.apply(entity), speedModifier, closeEnoughDistance);
         }
     }
 
