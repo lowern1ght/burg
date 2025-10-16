@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Optional;
 
 public abstract class NpcScreen<T extends NpcMenu> extends AbstractContainerScreen<T> {
-    protected static final ResourceLocation BACKGROUND_TEXTURE = Ouat.modResource("textures/gui/npc_screen2.png");
+    protected static final ResourceLocation BACKGROUND_TEXTURE = Ouat.modResource("textures/gui/npc_screen.png");
     protected static final ResourceLocation TABS_TEXTURE = Ouat.modResource("textures/gui/tabs.png");
     protected static final int BACKGROUND_ATLAS_WIDTH = 581;
     protected static final int BACKGROUND_ATLAS_HEIGHT = 531;
