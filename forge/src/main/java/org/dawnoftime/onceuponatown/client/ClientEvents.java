@@ -11,7 +11,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.client.gui.*;
+import org.dawnoftime.onceuponatown.client.gui.screens.*;
 import org.dawnoftime.onceuponatown.client.gui.tooltip.*;
 import org.dawnoftime.onceuponatown.client.model.NpcModel;
 import org.dawnoftime.onceuponatown.client.renderer.CultureCreatorRenderer;
@@ -33,7 +33,7 @@ public class ClientEvents {
                 MenuScreens.register(MenuRegistry.REGISTRY.QUESTS_MENU.get(), QuestsScreen::new);
                 MenuScreens.register(MenuRegistry.REGISTRY.BUILDINGS_MENU.get(), BuildingsScreen::new);
                 MenuScreens.register(MenuRegistry.REGISTRY.PROGRESSION_MENU.get(), ProgressionScreen::new);
-                MenuScreens.register(MenuRegistry.REGISTRY.PROJECT_MENU.get(), ProjectScreen::new);
+                MenuScreens.register(MenuRegistry.REGISTRY.PROJECT_MENU.get(), ProjectsScreen::new);
                 MenuScreens.register(MenuRegistry.REGISTRY.DIPLOMACY_MENU.get(), DiplomacyScreen::new);
 
                 // Custom client item properties

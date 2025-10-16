@@ -7,7 +7,7 @@ import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.registry.MenuRegistry;
 import org.jetbrains.annotations.Nullable;
 
-public class BuildingsMenu extends NpcBaseMenu {
+public class BuildingsMenu extends NpcMenu {
     private final CompoundTag townMapData;
 
     public BuildingsMenu(int containerId, Inventory playerInventory, InteractingNpc npc, CompoundTag townMapData) {

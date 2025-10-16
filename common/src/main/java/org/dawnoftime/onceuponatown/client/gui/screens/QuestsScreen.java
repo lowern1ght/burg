@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.client.gui;
+package org.dawnoftime.onceuponatown.client.gui.screens;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -6,7 +6,7 @@ import net.minecraft.world.entity.player.Inventory;
 import org.dawnoftime.onceuponatown.Utils;
 import org.dawnoftime.onceuponatown.menu.QuestsMenu;
 
-public class QuestsScreen extends NpcBaseScreen<QuestsMenu> {
+public class QuestsScreen extends NpcScreen<QuestsMenu> {
     private static final int NPC_DOLL_SCALE = 30;
     private static final int NPC_DOLL_X = 250;
     private static final int NPC_DOLL_Y = 70;

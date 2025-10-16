@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.client.gui;
+package org.dawnoftime.onceuponatown.client.gui.screens;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -11,13 +11,13 @@ import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.gui.tooltip.TradeItemTooltip;
 import org.dawnoftime.onceuponatown.client.gui.widgets.ReleaseFocusButton;
 import org.dawnoftime.onceuponatown.menu.TradeMenu;
-import org.dawnoftime.onceuponatown.network.C2STradePacket;
+import org.dawnoftime.onceuponatown.network.C2STradeScreenPacket;
 import org.dawnoftime.onceuponatown.trade.NpcOffer;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-public class TradeScreen extends NpcBaseScreen<TradeMenu> {
+public class TradeScreen extends NpcScreen<TradeMenu> {
     private static final int XP_BAR_EMPTY_OFFSET_X = 283;
     private static final int XP_BAR_EMPTY_OFFSET_Y = 5;
     private static final int XP_BAR_FULL_OFFSET_X = 66;
@@ -72,7 +72,7 @@ public class TradeScreen extends NpcBaseScreen<TradeMenu> {
     private void switchTradeMode() {
         scrollOff = 0;
         menu.selectOffer(-1, true);
-        Ouat.CLIENT.sendToServer(new C2STradePacket(-1, true));
+        Ouat.CLIENT.sendToServer(new C2STradeScreenPacket(-1, true));
     }
 
     @Override
@@ -172,7 +172,7 @@ public class TradeScreen extends NpcBaseScreen<TradeMenu> {
             super(x, y, WIDTH, HEIGHT, CommonComponents.EMPTY, (pressed) -> {
                     int offer = ((OfferButton) pressed).index + (scrollOff * OFFERS_GRID_COLUMNS);
                     menu.selectOffer(offer, false);
-                    Ouat.CLIENT.sendToServer(new C2STradePacket(offer, false));
+                    Ouat.CLIENT.sendToServer(new C2STradeScreenPacket(offer, false));
                 },
                 DEFAULT_NARRATION);
             this.index = index;

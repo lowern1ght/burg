@@ -10,7 +10,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.Utils;
-import org.dawnoftime.onceuponatown.network.S2COpenTownMapScreenPacket;
+import org.dawnoftime.onceuponatown.network.S2CTownScrollScreenPacket;
 import org.dawnoftime.onceuponatown.town.Town;
 
 public class TownScrollItem extends Item {
@@ -25,7 +25,7 @@ public class TownScrollItem extends Item {
         if (!level.isClientSide && level instanceof ServerLevel serverLevel) {
             Town town = Utils.getNearestTown(serverLevel, player.blockPosition(), TOWN_VIEW_MAX_DIST);
             if (town != null) {
-                Ouat.COMMON.sendToClient(player, new S2COpenTownMapScreenPacket(town.getTownMapData()));
+                Ouat.COMMON.sendToClient(player, new S2CTownScrollScreenPacket(town.getTownMapData()));
             } else {
                 player.displayClientMessage(Component.literal("There is no towns nearby"), true);
             }

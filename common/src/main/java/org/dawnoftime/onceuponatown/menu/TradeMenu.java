@@ -19,7 +19,7 @@ import org.jetbrains.annotations.NotNull;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class TradeMenu extends NpcBaseMenu {
+public class TradeMenu extends NpcMenu {
     private static final int INPUT_A = 0;
     private static final int INPUT_B = 1;
     private static final int RESULT = 2;

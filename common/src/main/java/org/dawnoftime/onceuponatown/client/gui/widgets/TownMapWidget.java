@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.client.gui;
+package org.dawnoftime.onceuponatown.client.gui.widgets;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;

@@ -213,6 +213,10 @@ public class BuildProject {
         return progress >= schematic.getBlocks().size() + schematic.getEntities().size();
     }
 
+    public int getTotalSteps() {
+        return schematic.getBlocks().size() + schematic.getEntities().size();
+    }
+
     public boolean isAvailable() {
         return !isCompleted() && !rush;
     }
@@ -227,6 +231,10 @@ public class BuildProject {
 
     public String getProgression() {
         return progress + "/" + (schematic.getBlocks().size() + schematic.getEntities().size());
+    }
+
+    public Build getBuild() {
+        return build;
     }
 
     public BoundingBox getBoundingBox() {

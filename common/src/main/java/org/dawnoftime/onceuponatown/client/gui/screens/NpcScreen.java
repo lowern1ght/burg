@@ -1,7 +1,8 @@
-package org.dawnoftime.onceuponatown.client.gui;
+package org.dawnoftime.onceuponatown.client.gui.screens;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -10,14 +11,16 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.player.Inventory;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.menu.NpcBaseMenu;
-import org.dawnoftime.onceuponatown.network.C2SChangeNpcTabPacket;
+import org.dawnoftime.onceuponatown.client.gui.widgets.WidgetsWorkarounds;
+import org.dawnoftime.onceuponatown.menu.NpcMenu;
+import org.dawnoftime.onceuponatown.network.C2SNpcScreenPacket;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
-public abstract class NpcBaseScreen<T extends NpcBaseMenu> extends AbstractContainerScreen<T> {
-    protected static final ResourceLocation BACKGROUND_TEXTURE = Ouat.modResource("textures/gui/npc_screen.png");
+public abstract class NpcScreen<T extends NpcMenu> extends AbstractContainerScreen<T> {
+    protected static final ResourceLocation BACKGROUND_TEXTURE = Ouat.modResource("textures/gui/npc_screen2.png");
     protected static final ResourceLocation TABS_TEXTURE = Ouat.modResource("textures/gui/tabs.png");
     protected static final int BACKGROUND_ATLAS_WIDTH = 581;
     protected static final int BACKGROUND_ATLAS_HEIGHT = 531;
@@ -38,7 +41,7 @@ public abstract class NpcBaseScreen<T extends NpcBaseMenu> extends AbstractConta
     private final List<TabButton> tabs = new ArrayList<>();
     private static int tabScroll = 0;
 
-    protected NpcBaseScreen(T menu, Inventory playerInventory, Component title) {
+    protected NpcScreen(T menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
         imageWidth = BACKGROUND_ATLAS_WIDTH;
         imageHeight = BACKGROUND_ATLAS_HEIGHT;
@@ -143,10 +146,33 @@ public abstract class NpcBaseScreen<T extends NpcBaseMenu> extends AbstractConta
             TabButton tabButton = tabs.get(i + tabScroll);
             if ((tabButton.tab != getTab()) && (mouseX >= leftPos + tabButton.x) && (mouseX <= leftPos + tabButton.x + TAB_WIDTH) && (mouseY >= topPos + tabButton.y) && (mouseY <= topPos + tabButton.y + TAB_HEIGHT)) {
                 Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
-                Ouat.CLIENT.sendToServer(new C2SChangeNpcTabPacket(tabButton.tab.ordinal()));
+                Ouat.CLIENT.sendToServer(new C2SNpcScreenPacket(tabButton.tab.ordinal()));
             }
         }
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+        // Replacement for AbstractContainerScreen mouseDragged
+        return this.getFocused() != null && this.isDragging() && button == 0 ? this.getFocused().mouseDragged(mouseX, mouseY, button, dragX, dragY) : false;
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        super.mouseReleased(mouseX, mouseY, button);
+        this.setDragging(false);
+
+        // Replacement for vanilla code
+        Optional<GuiEventListener> child = Optional.empty();
+        for (GuiEventListener guieventlistener : this.children().stream().filter(gel ->
+            !(gel instanceof WidgetsWorkarounds wid && !wid.allowMouseReleased())).toList()) {
+            if (guieventlistener.isMouseOver(mouseX, mouseY)) {
+                child = Optional.of(guieventlistener);
+            }
+        }
+        return child.filter((p_94708_) -> p_94708_.mouseReleased(mouseX, mouseY, button)).isPresent();
     }
 
     @Override
@@ -165,11 +191,20 @@ public abstract class NpcBaseScreen<T extends NpcBaseMenu> extends AbstractConta
                 }
             }
         }
-        return super.mouseScrolled(mouseX, mouseY, delta);
+
+        // Replacement for vanilla code
+        Optional<GuiEventListener> child = Optional.empty();
+        for (GuiEventListener guieventlistener : this.children().stream().filter(gel ->
+            !(gel instanceof WidgetsWorkarounds wid && !wid.allowMouseScrolled())).toList()) {
+            if (guieventlistener.isMouseOver(mouseX, mouseY)) {
+                child = Optional.of(guieventlistener);
+            }
+        }
+        return child.filter((gel) -> gel.mouseScrolled(mouseX, mouseY, delta)).isPresent();
     }
 
     private List<Tab> getProfessionTabs() {
-        return List.of(Tab.TRADE, Tab.QUESTS, Tab.BUILDINGS, Tab.PROGRESSION, Tab.PROJECTS, Tab.DIPLOMACY);
+        return List.of(Tab.TRADE, Tab.BUILDINGS, Tab.PROJECTS);
     }
 
     protected abstract Tab getTab();

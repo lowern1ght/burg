@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.client.gui;
+package org.dawnoftime.onceuponatown.client.gui.screens;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -7,6 +7,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.client.gui.widgets.TownMapWidget;
 import org.dawnoftime.onceuponatown.client.gui.widgets.ReleaseFocusButton;
 
 import java.util.Objects;
@@ -41,7 +42,7 @@ public class TownScrollScreen extends Screen {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(graphics);
-        graphics.blit(NpcBaseScreen.BACKGROUND_TEXTURE, mapX, mapY, 0, 399, MAP_SIZE, MAP_SIZE, NpcBaseScreen.BACKGROUND_ATLAS_WIDTH, NpcBaseScreen.BACKGROUND_ATLAS_HEIGHT);
+        graphics.blit(NpcScreen.BACKGROUND_TEXTURE, mapX, mapY, 0, 399, MAP_SIZE, MAP_SIZE, NpcScreen.BACKGROUND_ATLAS_WIDTH, NpcScreen.BACKGROUND_ATLAS_HEIGHT);
         super.render(graphics, mouseX, mouseY, partialTick);
         drawCenteredString(graphics, font, Ouat.translatable("map_of").append(" ").append(title), mapX, mapY - 12, MAP_SIZE, 16777215);
     }

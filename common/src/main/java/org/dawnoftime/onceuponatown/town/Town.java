@@ -280,6 +280,11 @@ public class Town extends ProtoTown {
         citizens.addAll(citizenList);
     }
 
+    public void addDweller(Npc npc) {
+        citizens.add(new Citizen(Citizen.Status.LOADED, Profession.of(npc.getProfessionId()), npc.getUUID(), null, null));
+        npc.assignTown(this);
+    }
+
     private void updateStatus() {
         if (!active && !visitors.isEmpty()) {
             setActive();
@@ -319,7 +324,7 @@ public class Town extends ProtoTown {
                     ++attempt;
                     project.nextStep();
                 }
-                project.nextNSteps(4);
+                project.nextNSteps(10);
             }
         }
     }
@@ -342,9 +347,9 @@ public class Town extends ProtoTown {
                             if (level.addFreshEntity(npc)) {
                                 npc.setCultureId(culture.getId());
                                 if (citizen.profession != null) {
-                                    npc.setProfessionId(citizen.profession.getId());
+                                    npc.assignProfession(citizen.profession.getId());
                                 } else {
-                                    npc.setProfessionId("unemployed");
+                                    npc.assignProfession("unemployed");
                                 }
                                 npc.assignTown(this);
                                 citizen.entityUUID = npc.getUUID();
@@ -454,7 +459,7 @@ public class Town extends ProtoTown {
             if (uuid != null) {
                 if (level.getEntity(citizen.entityUUID) instanceof Npc npc) {
                     npc.refreshAi(level);
-                    npc.setProfessionId(Profession.UNEMPLOYED.getId());
+                    npc.assignProfession(Profession.UNEMPLOYED.getId());
                 }
             }
         }
