@@ -2,7 +2,7 @@ package org.dawnoftime.onceuponatown.client;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
-import org.dawnoftime.onceuponatown.client.gui.TownScrollScreen;
+import org.dawnoftime.onceuponatown.client.gui.screens.TownScrollScreen;
 import org.dawnoftime.onceuponatown.client.gui.culture_creator.*;
 import org.dawnoftime.onceuponatown.network.culturecreator.*;
 

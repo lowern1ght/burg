@@ -41,6 +41,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.pathfinder.BlockPathTypes;
 import net.minecraft.world.phys.Vec3;
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.building.BuildProject;
+import org.dawnoftime.onceuponatown.entity.ai.behavior.npc.NpcAi;
 import org.dawnoftime.onceuponatown.menu.BuildingsMenu;
 import org.dawnoftime.onceuponatown.menu.InteractingNpc;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
@@ -76,6 +78,7 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
     private BlockPos attackedBlock;
     private Town town;
     private int townId = -1;
+    private BuildProject project;
     // TODO gossips
     // TODO golems
     // TODO food
@@ -87,6 +90,7 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         ((GroundPathNavigation) getNavigation()).setCanOpenDoors(true);
         getNavigation().setCanFloat(true);
         setCanPickUpLoot(true);
+        profession = Profession.of(entityData.get(PROFESSION));
     }
 
     @Override
@@ -101,7 +105,8 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
     public void readAdditionalSaveData(@NotNull CompoundTag tag) {
         super.readAdditionalSaveData(tag);
         setCultureId(tag.getString("Culture"));
-        setProfessionId(tag.getString("Profession"));
+        entityData.set(PROFESSION, tag.getString("Profession"));
+        profession = Profession.of(entityData.get(PROFESSION));
         townId = tag.getInt("TownId");
         if (townId != -1 && level() instanceof ServerLevel serverLevel) {
             town = LevelTowns.of(serverLevel).getTownById(townId);
@@ -116,7 +121,7 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         entityData.define(DATA_CROSSING_ARMS, true);
         entityData.define(DATA_READING, false);
         entityData.define(CULTURE, "plains");
-        entityData.define(PROFESSION, "default");
+        entityData.define(PROFESSION, "unemployed");
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -124,17 +129,17 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
     }
 
     @Override
-    public Brain<Npc> getBrain() {
+    public @NotNull Brain<Npc> getBrain() {
         return (Brain<Npc>) super.getBrain();
     }
 
     @Override
-    protected Brain.Provider<Npc> brainProvider() {
+    protected Brain.@NotNull Provider<Npc> brainProvider() {
         return Brain.provider(NpcAi.MEMORIES, NpcAi.SENSORS);
     }
 
     @Override
-    protected Brain<?> makeBrain(Dynamic<?> dynamic) {
+    protected @NotNull Brain<?> makeBrain(@NotNull Dynamic<?> dynamic) {
         Brain<Npc> brain = this.brainProvider().makeBrain(dynamic);
         NpcAi.setupBrain(brain, this);
         return brain;
@@ -191,10 +196,27 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         super.aiStep();
     }
 
+    public void setAssignedProject(BuildProject project) {
+        this.project = project;
+    }
+
+    public BuildProject getAssignedProject() {
+        return project;
+    }
+
     @Override
     protected void customServerAiStep() {
         this.level().getProfiler().push("ouatNpcBrain");
         this.getBrain().tick((ServerLevel) this.level(), this);
+        boolean debugBrain = false;
+        if (debugBrain && level().getGameTime() % 20 == 0) {
+            StringBuilder string = new StringBuilder("Npc " + getUUID() + " brain");
+            for (var behavior : getBrain().getRunningBehaviors()) {
+                string.append("\n").append(behavior.debugString());
+            }
+            Ouat.info(string.toString());
+        }
+
         this.level().getProfiler().pop();
         super.customServerAiStep();
     }
@@ -467,8 +489,9 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         entityData.set(CULTURE, cultureId);
     }
 
-    public void setProfessionId(String professionId) {
+    public void assignProfession(String professionId) {
         entityData.set(PROFESSION, professionId);
+        profession = Profession.of(professionId);
     }
 
     public int getUnhappyCounter() {

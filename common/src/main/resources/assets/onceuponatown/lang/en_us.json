@@ -112,5 +112,11 @@
   "onceuponatown.buildings": "Buildings",
   "onceuponatown.progression": "Progression",
   "onceuponatown.project": "Construction project",
-  "onceuponatown.diplomacy": "Diplomacy settings"
+  "onceuponatown.diplomacy": "Diplomacy settings",
+
+  "onceuponatown.building.medium_house": "Medium house",
+  "onceuponatown.building.training_camp": "Training camp",
+  "onceuponatown.building.religious_building": "Religious building",
+  "onceuponatown.building.sugar_cane_farm": "Sugar cane farm",
+  "onceuponatown.building.granary": "Granary"
 }

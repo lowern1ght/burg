@@ -8,11 +8,11 @@ import org.dawnoftime.onceuponatown.client.ClientUtils;
 import static org.dawnoftime.onceuponatown.Ouat.COMMON;
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
 
-public record S2COpenTownMapScreenPacket(CompoundTag mapDataForGui) implements OuatPacket {
-    public static final ResourceLocation ID = modResource("s2c_open_town_map_screen");
+public record S2CTownScrollScreenPacket(CompoundTag mapDataForGui) implements OuatPacket {
+    public static final ResourceLocation ID = modResource("s2c_town_scroll_screen");
 
-    public static S2COpenTownMapScreenPacket decode(FriendlyByteBuf buf) {
-        return new S2COpenTownMapScreenPacket(buf.readNbt());
+    public static S2CTownScrollScreenPacket decode(FriendlyByteBuf buf) {
+        return new S2CTownScrollScreenPacket(buf.readNbt());
     }
 
     @Override
@@ -26,7 +26,7 @@ public record S2COpenTownMapScreenPacket(CompoundTag mapDataForGui) implements O
     }
 
     public static class Handler {
-        public static void handle(S2COpenTownMapScreenPacket packet) {
+        public static void handle(S2CTownScrollScreenPacket packet) {
             if (COMMON.isClientSide()) {
                 ClientUtils.openTownMapItemScreen(packet.mapDataForGui());
             }

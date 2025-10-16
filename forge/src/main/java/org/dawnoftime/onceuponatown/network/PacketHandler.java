@@ -21,8 +21,9 @@ public class PacketHandler {
         int i = 0;
 
         // Client to Server packets
-        CHANNEL.registerMessage(i++, C2SChangeNpcTabPacket.class, C2SChangeNpcTabPacket::encode, C2SChangeNpcTabPacket::decode, makeC2SHandler(C2SChangeNpcTabPacket::handle));
-        CHANNEL.registerMessage(i++, C2STradePacket.class, C2STradePacket::encode, C2STradePacket::decode, makeC2SHandler(C2STradePacket::handle));
+        CHANNEL.registerMessage(i++, C2SNpcScreenPacket.class, C2SNpcScreenPacket::encode, C2SNpcScreenPacket::decode, makeC2SHandler(C2SNpcScreenPacket::handle));
+        CHANNEL.registerMessage(i++, C2STradeScreenPacket.class, C2STradeScreenPacket::encode, C2STradeScreenPacket::decode, makeC2SHandler(C2STradeScreenPacket::handle));
+        CHANNEL.registerMessage(i++, C2SProjectsScreenPacket.class, C2SProjectsScreenPacket::encode, C2SProjectsScreenPacket::decode, makeC2SHandler(C2SProjectsScreenPacket::handle));
 
         CHANNEL.registerMessage(i++, C2SRequestCulturesCCPacket.class, C2SRequestCulturesCCPacket::encode, C2SRequestCulturesCCPacket::decode, makeC2SHandler(C2SRequestCulturesCCPacket::handle));
         CHANNEL.registerMessage(i++, C2SRequestCultureCCPacket.class, C2SRequestCultureCCPacket::encode, C2SRequestCultureCCPacket::decode, makeC2SHandler(C2SRequestCultureCCPacket::handle));
@@ -39,7 +40,7 @@ public class PacketHandler {
         CHANNEL.registerMessage(i++, C2SSaveVariantLevelCCPacket.class, C2SSaveVariantLevelCCPacket::encode, C2SSaveVariantLevelCCPacket::decode, makeC2SHandler(C2SSaveVariantLevelCCPacket::handle));
 
         // Server to Client packets
-        CHANNEL.registerMessage(i++, S2COpenTownMapScreenPacket.class, S2COpenTownMapScreenPacket::encode, S2COpenTownMapScreenPacket::decode, makeS2CHandler(S2COpenTownMapScreenPacket.Handler::handle));
+        CHANNEL.registerMessage(i++, S2CTownScrollScreenPacket.class, S2CTownScrollScreenPacket::encode, S2CTownScrollScreenPacket::decode, makeS2CHandler(S2CTownScrollScreenPacket.Handler::handle));
         CHANNEL.registerMessage(i++, S2COpenCulturesCCScreenPacket.class, S2COpenCulturesCCScreenPacket::encode, S2COpenCulturesCCScreenPacket::decode, makeS2CHandler(S2COpenCulturesCCScreenPacket.Handler::handle));
         CHANNEL.registerMessage(i++, S2COpenCultureCCScreenPacket.class, S2COpenCultureCCScreenPacket::encode, S2COpenCultureCCScreenPacket::decode, makeS2CHandler(S2COpenCultureCCScreenPacket.Handler::handle));
         CHANNEL.registerMessage(i++, S2COpenBuildingsCCScreenPacket.class, S2COpenBuildingsCCScreenPacket::encode, S2COpenBuildingsCCScreenPacket::decode, makeS2CHandler(S2COpenBuildingsCCScreenPacket.Handler::handle));

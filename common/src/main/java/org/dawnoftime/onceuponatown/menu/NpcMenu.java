@@ -6,10 +6,10 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
-public class NpcBaseMenu extends AbstractContainerMenu {
+public class NpcMenu extends AbstractContainerMenu {
     protected InteractingNpc npc;
 
-    protected NpcBaseMenu(MenuType<?> menuType, int containerId, InteractingNpc npc, Player interactingPlayer) {
+    protected NpcMenu(MenuType<?> menuType, int containerId, InteractingNpc npc, Player interactingPlayer) {
         super(menuType, containerId);
         this.npc = npc;
         npc.setInteractingPlayer(interactingPlayer);

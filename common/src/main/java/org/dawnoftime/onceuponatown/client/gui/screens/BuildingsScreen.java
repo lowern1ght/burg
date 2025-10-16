@@ -1,13 +1,14 @@
-package org.dawnoftime.onceuponatown.client.gui;
+package org.dawnoftime.onceuponatown.client.gui.screens;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.client.gui.widgets.TownMapWidget;
 import org.dawnoftime.onceuponatown.client.gui.widgets.ReleaseFocusButton;
 import org.dawnoftime.onceuponatown.menu.BuildingsMenu;
 
-public class BuildingsScreen extends NpcBaseScreen<BuildingsMenu> {
+public class BuildingsScreen extends NpcScreen<BuildingsMenu> {
     private static final int MAP_BACKGROUND_X = 21;
     private static final int MAP_BACKGROUND_Y = 19;
     private static final int MAP_SIZE = 132;
