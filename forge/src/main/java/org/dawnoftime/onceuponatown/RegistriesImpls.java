@@ -1,5 +1,6 @@
 package org.dawnoftime.onceuponatown;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
@@ -13,6 +14,9 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureType;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
@@ -24,6 +28,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import org.dawnoftime.onceuponatown.registry.*;
 
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -37,6 +42,7 @@ public class RegistriesImpls {
         EntityRegistryImpl.REGISTRY = new EntityRegistryImpl();
         ItemRegistryImpl.REGISTRY = new ItemRegistryImpl();
         BlockRegistryImpl.REGISTRY = new BlockRegistryImpl();
+        BlockEntityRegistryImpl.REGISTRY = new BlockEntityRegistryImpl();
         MenuRegistryImpl.REGISTRY = new MenuRegistryImpl();
         StructureTypeRegistryImpl.REGISTRY = new StructureTypeRegistryImpl();
         StructurePieceRegistryImpl.REGISTRY = new StructurePieceRegistryImpl();
@@ -47,6 +53,7 @@ public class RegistriesImpls {
         ItemRegistryImpl.DEFERRED_REGISTER.register(modEventBus);
         BlockRegistryImpl.DEFERRED_REGISTER.register(modEventBus);
         BlockRegistryImpl.DEFERRED_ITEM_REGISTER.register(modEventBus);
+        BlockEntityRegistryImpl.DEFERRED_REGISTER.register(modEventBus);
         MenuRegistryImpl.DEFERRED_REGISTER.register(modEventBus);
         StructureTypeRegistryImpl.DEFERRED_REGISTER.register(modEventBus);
         StructurePieceRegistryImpl.DEFERRED_REGISTER.register(modEventBus);
@@ -102,6 +109,15 @@ public class RegistriesImpls {
         @Override
         public <T extends Item> Supplier<Item> registerSpawnEgg(String name, Supplier<? extends EntityType<? extends Mob>> type, int backgroundColor, int highlightColor) {
             return register(name, () -> new ForgeSpawnEggItem(type, backgroundColor, highlightColor, new Item.Properties()));
+        }
+    }
+
+    public static class BlockEntityRegistryImpl extends BlockEntityRegistry {
+        public static final DeferredRegister<BlockEntityType<?>> DEFERRED_REGISTER = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, Ouat.MOD_ID);
+
+        @Override
+        public <T extends BlockEntity> Supplier<BlockEntityType<T>> register(String name, BiFunction<BlockPos, BlockState, T> factoryIn, Supplier<Block> validBlocksSupplier) {
+            return DEFERRED_REGISTER.register(name, () -> BlockEntityType.Builder.of(factoryIn::apply, validBlocksSupplier.get()).build(null));
         }
     }
 

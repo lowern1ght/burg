@@ -14,14 +14,12 @@ import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.gui.screens.*;
 import org.dawnoftime.onceuponatown.client.gui.tooltip.*;
 import org.dawnoftime.onceuponatown.client.model.NpcModel;
-import org.dawnoftime.onceuponatown.client.renderer.CultureCreatorRenderer;
+import org.dawnoftime.onceuponatown.client.renderer.CultureCreatorBlockRenderer;
 import org.dawnoftime.onceuponatown.client.renderer.NpcFishingHookRenderer;
 import org.dawnoftime.onceuponatown.client.renderer.NpcRenderer;
 import org.dawnoftime.onceuponatown.item.CultureCreatorItem;
 import org.dawnoftime.onceuponatown.item.EmeraldPouchItem;
-import org.dawnoftime.onceuponatown.registry.EntityRegistry;
-import org.dawnoftime.onceuponatown.registry.ItemRegistry;
-import org.dawnoftime.onceuponatown.registry.MenuRegistry;
+import org.dawnoftime.onceuponatown.registry.*;
 
 public class ClientEvents {
     @Mod.EventBusSubscriber(modid = Ouat.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
@@ -38,7 +36,7 @@ public class ClientEvents {
 
                 // Custom client item properties
                 ItemProperties.register(ItemRegistry.REGISTRY.EMERALD_POUCH.get(), Ouat.modResource("empty_pouch"), (emeraldPouchStack, clientLevel, livingEntity, id) -> EmeraldPouchItem.isEmpty(emeraldPouchStack) ? 1.0F : 0.0F);
-                ItemProperties.register(ItemRegistry.REGISTRY.CULTURE_CREATOR.get(), Ouat.modResource("culture_creator_state"), (creatorState, clientLevel, livingEntity, id) -> CultureCreatorItem.getState(creatorState));
+                ItemProperties.register(BlockRegistry.REGISTRY.CULTURE_CREATOR_BLOCK.get().asItem(), Ouat.modResource("culture_creator_state"), (creatorState, clientLevel, livingEntity, id) -> CultureCreatorItem.getState(creatorState));
             });
         }
 
@@ -54,10 +52,10 @@ public class ClientEvents {
         }
 
         @SubscribeEvent
-        public static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
             event.registerEntityRenderer(EntityRegistry.REGISTRY.NPC.get(), NpcRenderer::new);
             event.registerEntityRenderer(EntityRegistry.REGISTRY.NPC_FISHING_HOOK.get(), NpcFishingHookRenderer::new);
-            event.registerEntityRenderer(EntityRegistry.REGISTRY.CULTURE_CREATOR_ENTITY.get(), CultureCreatorRenderer::new);
+            event.registerBlockEntityRenderer(BlockEntityRegistry.REGISTRY.CULTURE_CREATOR.get(), CultureCreatorBlockRenderer::new);
         }
 
         @SubscribeEvent
