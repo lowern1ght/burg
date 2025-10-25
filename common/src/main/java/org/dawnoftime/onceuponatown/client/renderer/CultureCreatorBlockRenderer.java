@@ -1,40 +1,31 @@
 package org.dawnoftime.onceuponatown.client.renderer;
 
-import com.mojang.authlib.minecraft.client.MinecraftClient;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.entity.EntityRenderer;
-import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
+import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.ItemStack;
-import org.dawnoftime.onceuponatown.entity.CultureCreatorEntity;
+import org.dawnoftime.onceuponatown.blockentity.CultureCreatorBlockEntity;
+import org.dawnoftime.onceuponatown.item.CultureCreatorItem;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Matrix4f;
 
 import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
 
-public class CultureCreatorRenderer extends EntityRenderer<CultureCreatorEntity> {
+public class CultureCreatorBlockRenderer implements BlockEntityRenderer<CultureCreatorBlockEntity> {
     private static final ResourceLocation WHITE_TEXTURE = new ResourceLocation(MOD_ID, "textures/entity/culture_creator_entity.png");
 
-    public CultureCreatorRenderer(EntityRendererProvider.Context context) {
-        super(context);
-    }
+    public CultureCreatorBlockRenderer(BlockEntityRendererProvider.Context context) {}
 
     @Override
-    public @NotNull ResourceLocation getTextureLocation(@NotNull CultureCreatorEntity cultureCreatorEntity) {
-        return WHITE_TEXTURE;
-    }
-
-    @Override
-    public void render(@NotNull CultureCreatorEntity entity, float entityYaw, float partialTick, @NotNull PoseStack poseStack, @NotNull MultiBufferSource buffer, int packedLight) {
-        poseStack.translate(0, 0.5F, 0);
+    public void render(@NotNull CultureCreatorBlockEntity entity, float partialTick, @NotNull PoseStack poseStack, @NotNull MultiBufferSource buffer, int packedLight, int overlay) {
+        poseStack.translate(0.5F, 0.5F, 0.5F);
         VertexConsumer consumer = buffer.getBuffer(RenderType.entityTranslucentCull(WHITE_TEXTURE));
         Matrix4f matrix = poseStack.last().pose();
         if (isPairedWithClientPlayerItem(entity)) {
@@ -80,16 +71,10 @@ public class CultureCreatorRenderer extends EntityRenderer<CultureCreatorEntity>
                 .endVertex();
     }
 
-    private static boolean isPairedWithClientPlayerItem(@NotNull CultureCreatorEntity entity) {
+    private static boolean isPairedWithClientPlayerItem(@NotNull CultureCreatorBlockEntity entity) {
         LocalPlayer player = Minecraft.getInstance().player;
-        if (player == null) return false;
-        ItemStack mainHand = player.getMainHandItem();
-        if (!mainHand.isEmpty() && mainHand.hasTag()) {
-            CompoundTag tag = mainHand.getTag();
-            if (tag != null && tag.contains("entity_paired", Tag.TAG_STRING)) {
-                String pairedId = tag.getString("entity_paired");
-                return pairedId.equals(entity.getUUID().toString());
-            }
+        if (player != null) {
+            return entity.getBlockPos().equals(CultureCreatorItem.getPairedCCBlockPos(player.getMainHandItem()));
         }
         return false;
     }
