@@ -7,8 +7,12 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.commands.TimeCommand;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -54,6 +58,7 @@ public class Town extends ProtoTown {
     private final List<ServerPlayer> visitors = new ArrayList<>(); // Players in Town's boundaries
     private boolean active;
     private boolean rushProjects;
+    private boolean ringedBell;
 
     private Town(
         Culture culture, // ProtoTown attributes
@@ -304,16 +309,11 @@ public class Town extends ProtoTown {
     }
 
     void tick() {
-        if (level.getServer().getTickCount() % (20 * Config.TOWN_TICK_RATE_SECONDS) == 0) {
-            updateVisitors();
-            updateStatus();
-            if (active) {
-                handleCitizens();
-                //projects.stream().filter(BuildProject::isCompleted).toList().forEach(projects::remove);
-            }
-        }
-
-        if (active && level.getServer().getTickCount() % 2 == 0) {
+        // Tick
+        if (active) {
+            // Scheduler
+            TickScheduler.tick(level);
+            // Projects
             List<BuildProject> rushingProjects = new ArrayList<>(projects.stream().filter(BuildProject::rushing).toList());
             for (BuildProject project : rushingProjects) {
                 int attempt = 0;
@@ -326,7 +326,43 @@ public class Town extends ProtoTown {
                 }
                 project.nextNSteps(10);
             }
+            // Ring bells
+            if (Config.TOWN_RING_BELLS) {
+                var dayTime = level.getDayTime() % 24000L;
+                if (dayTime == 1) {
+                    // Sunrise bells
+                    for (int i = 0; i < 3; i++) {
+                        TickScheduler.schedule(() -> visitors.forEach(player ->
+                            player.playNotifySound(SoundEvents.BELL_BLOCK, SoundSource.AMBIENT, 1.2F, 1.1F)),  40 * i);
+                    }
+                } else if (dayTime == 6001) {
+                    // Noon bells
+                    TickScheduler.schedule(() -> visitors.forEach(player ->
+                        player.playNotifySound(SoundEvents.BELL_BLOCK, SoundSource.AMBIENT, 1.2F, 1.0F)), 0);
+                } else if (dayTime == 12001) {
+                    // Sunset bells
+                    for (int i = 0; i < 3; i++) {
+                        TickScheduler.schedule(() -> visitors.forEach(player ->
+                            player.playNotifySound(SoundEvents.BELL_BLOCK, SoundSource.AMBIENT, 1.2F, 0.5F)),  40 * i);
+                    }
+                }
+            }
         }
+        // Slow tick
+        if (level.getServer().getTickCount() % (20 * Config.TOWN_TICK_RATE_SECONDS) == 0) {
+            // Visitors
+            updateVisitors();
+            // Status
+            updateStatus();
+            // Active tick
+            if (active) {
+                // Citizens
+                handleCitizens();
+
+                //projects.stream().filter(BuildProject::isCompleted).toList().forEach(projects::remove);
+            }
+        }
+
     }
 
     private void handleCitizens() {

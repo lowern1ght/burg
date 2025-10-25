@@ -49,6 +49,8 @@ public class Config {
     public static final int TOWN_TICK_RATE_SECONDS = 1;
     /** Maximal amount of an item a town can have. */
     public static int MAX_TOWN_INVENTORY_STACK_SIZE = 10000;
+    /** If the town can ring bells at sunrise, noon and sunset.*/
+    public static final boolean TOWN_RING_BELLS = true;
 
     // Towns
     public static final int ACTIVE_AREA_RADIUS = 80;
