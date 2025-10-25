@@ -9,7 +9,6 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import org.dawnoftime.onceuponatown.blockentity.CultureCreatorBlockEntity;
 import org.dawnoftime.onceuponatown.item.CultureCreatorItem;
@@ -29,7 +28,7 @@ public class CultureCreatorBlockRenderer implements BlockEntityRenderer<CultureC
         VertexConsumer consumer = buffer.getBuffer(RenderType.entityTranslucentCull(WHITE_TEXTURE));
         Matrix4f matrix = poseStack.last().pose();
         if (isPairedWithClientPlayerItem(entity)) {
-            renderTranslucentBox(consumer, matrix, 1.1F, 1.0F, 1.0F, 1.0F, 0.6F);
+            renderTranslucentBox(consumer, matrix, 1.1F, 1.0F, 0.63F, 0.98F, 0.6F);
         } else {
             renderTranslucentBox(consumer, matrix, 1.1F, 0.8F, 0.8F, 0.8F, 0.4F);
         }
