@@ -10,14 +10,11 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.blockentity.CultureCreatorBlockEntity;
 import org.dawnoftime.onceuponatown.item.CultureCreatorItem;
 import org.dawnoftime.onceuponatown.network.OuatPacket;
 import org.dawnoftime.onceuponatown.registry.BlockRegistry;
 import org.jetbrains.annotations.NotNull;
-
-import java.io.IOException;
 
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
 

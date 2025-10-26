@@ -6,32 +6,36 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
-import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
-import org.dawnoftime.onceuponatown.blockentity.CultureCreatorBlockEntity;
+import org.dawnoftime.onceuponatown.entity.CultureCreatorSelectEntity;
 import org.dawnoftime.onceuponatown.item.CultureCreatorItem;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Matrix4f;
 
 import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
 
-public class CultureCreatorBlockRenderer implements BlockEntityRenderer<CultureCreatorBlockEntity> {
+public class CultureCreatorSelectRenderer extends EntityRenderer<CultureCreatorSelectEntity> {
     private static final ResourceLocation WHITE_TEXTURE = new ResourceLocation(MOD_ID, "textures/entity/culture_creator_entity.png");
 
-    public CultureCreatorBlockRenderer(BlockEntityRendererProvider.Context context) {}
+    public CultureCreatorSelectRenderer(EntityRendererProvider.Context context) {
+        super(context);
+    }
 
     @Override
-    public void render(@NotNull CultureCreatorBlockEntity entity, float partialTick, @NotNull PoseStack poseStack, @NotNull MultiBufferSource buffer, int packedLight, int overlay) {
+    public void render(@NotNull CultureCreatorSelectEntity entity, float entityYaw, float partialTicks, @NotNull PoseStack poseStack, @NotNull MultiBufferSource buffer, int packedLight) {
         poseStack.translate(0.5F, 0.5F, 0.5F);
         VertexConsumer consumer = buffer.getBuffer(RenderType.entityTranslucentCull(WHITE_TEXTURE));
         Matrix4f matrix = poseStack.last().pose();
         if (isPairedWithClientPlayerItem(entity)) {
-            renderTranslucentBox(consumer, matrix, 1.1F, 1.0F, 0.63F, 0.98F, 0.6F);
+            renderTranslucentBox(consumer, matrix, 1.1F, 0.56F, 0.78F, 0.44F, 0.7F);
         } else {
             renderTranslucentBox(consumer, matrix, 1.1F, 0.8F, 0.8F, 0.8F, 0.4F);
         }
+        BlockPos secondPos = entity.getSecondPos();
     }
 
     private void renderTranslucentBox(VertexConsumer consumer, Matrix4f matrix, float size, float r, float g, float b, float alpha) {
@@ -70,11 +74,16 @@ public class CultureCreatorBlockRenderer implements BlockEntityRenderer<CultureC
                 .endVertex();
     }
 
-    private static boolean isPairedWithClientPlayerItem(@NotNull CultureCreatorBlockEntity entity) {
+    private static boolean isPairedWithClientPlayerItem(@NotNull CultureCreatorSelectEntity entity) {
         LocalPlayer player = Minecraft.getInstance().player;
         if (player != null) {
-            return entity.getBlockPos().equals(CultureCreatorItem.getPairedCCBlockPos(player.getMainHandItem()));
+            return entity.blockPosition().equals(CultureCreatorItem.getPairedCCBlockPos(player.getMainHandItem()));
         }
         return false;
+    }
+
+    @Override
+    public @NotNull ResourceLocation getTextureLocation(@NotNull CultureCreatorSelectEntity cultureCreatorSelectEntity) {
+        return WHITE_TEXTURE;
     }
 }
