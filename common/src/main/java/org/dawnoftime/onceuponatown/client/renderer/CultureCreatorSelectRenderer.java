@@ -31,7 +31,7 @@ public class CultureCreatorSelectRenderer extends EntityRenderer<CultureCreatorS
         VertexConsumer consumer = buffer.getBuffer(RenderType.entityTranslucentCull(WHITE_TEXTURE));
         Matrix4f matrix = poseStack.last().pose();
         if (isPairedWithClientPlayerItem(entity)) {
-            renderTranslucentBox(consumer, matrix, 1.1F, 0.56F, 0.78F, 0.44F, 0.7F);
+            renderTranslucentBox(consumer, matrix, 1.1F, 0.56F, 0.78F, 0.44F, 0.6F);
         } else {
             renderTranslucentBox(consumer, matrix, 1.1F, 0.8F, 0.8F, 0.8F, 0.4F);
         }

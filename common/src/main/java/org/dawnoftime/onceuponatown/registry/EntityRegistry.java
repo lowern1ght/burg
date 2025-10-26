@@ -28,7 +28,7 @@ public abstract class EntityRegistry {
 
     public final Supplier<EntityType<CultureCreatorSelectEntity>> CULTURE_CREATOR_SELECT_ENTITY = register("culture_creator_select_entity", () -> EntityType.Builder
             .<CultureCreatorSelectEntity>of(CultureCreatorSelectEntity::new, MobCategory.MISC)
-            .sized(0.05F, 0.05F)
+            .sized(0.5F, 0.5F)
             .clientTrackingRange(256));
 
     public abstract <T extends Entity> Supplier<EntityType<T>> register(String name, Supplier<EntityType.Builder<T>> builder);
