@@ -38,6 +38,7 @@ public class PacketHandler {
         CHANNEL.registerMessage(i++, C2SRequestVariantLevelsCCPacket.class, C2SRequestVariantLevelsCCPacket::encode, C2SRequestVariantLevelsCCPacket::decode, makeC2SHandler(C2SRequestVariantLevelsCCPacket::handle));
         CHANNEL.registerMessage(i++, C2SRequestVariantLevelCCPacket.class, C2SRequestVariantLevelCCPacket::encode, C2SRequestVariantLevelCCPacket::decode, makeC2SHandler(C2SRequestVariantLevelCCPacket::handle));
         CHANNEL.registerMessage(i++, C2SSaveVariantLevelCCPacket.class, C2SSaveVariantLevelCCPacket::encode, C2SSaveVariantLevelCCPacket::decode, makeC2SHandler(C2SSaveVariantLevelCCPacket::handle));
+        CHANNEL.registerMessage(i++, C2SUseSelectCCPacket.class, C2SUseSelectCCPacket::encode, C2SUseSelectCCPacket::decode, makeC2SHandler(C2SUseSelectCCPacket::handle));
 
         // Server to Client packets
         CHANNEL.registerMessage(i++, S2CTownScrollScreenPacket.class, S2CTownScrollScreenPacket::encode, S2CTownScrollScreenPacket::decode, makeS2CHandler(S2CTownScrollScreenPacket.Handler::handle));
