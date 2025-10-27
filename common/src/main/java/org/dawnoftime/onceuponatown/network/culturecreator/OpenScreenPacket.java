@@ -25,7 +25,6 @@ public abstract class OpenScreenPacket implements OuatPacket {
                 packetTag.putString("id", id);
                 this.encode(packetTag);
                 tag.put("ouat_packet", packetTag);
-                stack.setTag(tag);
             }
         }
     }

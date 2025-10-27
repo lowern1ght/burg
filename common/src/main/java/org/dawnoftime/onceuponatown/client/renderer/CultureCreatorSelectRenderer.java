@@ -3,6 +3,7 @@ package org.dawnoftime.onceuponatown.client.renderer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -10,6 +11,7 @@ import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.dawnoftime.onceuponatown.entity.CultureCreatorSelectEntity;
 import org.dawnoftime.onceuponatown.item.CultureCreatorItem;
@@ -20,14 +22,15 @@ import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
 
 public class CultureCreatorSelectRenderer extends EntityRenderer<CultureCreatorSelectEntity> {
     private static final ResourceLocation WHITE_TEXTURE = new ResourceLocation(MOD_ID, "textures/entity/culture_creator_entity.png");
+    private final Font font;
 
     public CultureCreatorSelectRenderer(EntityRendererProvider.Context context) {
         super(context);
+        this.font = context.getFont();
     }
 
     @Override
     public void render(@NotNull CultureCreatorSelectEntity entity, float entityYaw, float partialTicks, @NotNull PoseStack poseStack, @NotNull MultiBufferSource buffer, int packedLight) {
-        poseStack.translate(0.5F, 0.5F, 0.5F);
         VertexConsumer consumer = buffer.getBuffer(RenderType.entityTranslucentCull(WHITE_TEXTURE));
         Matrix4f matrix = poseStack.last().pose();
         if (isPairedWithClientPlayerItem(entity)) {
@@ -35,7 +38,20 @@ public class CultureCreatorSelectRenderer extends EntityRenderer<CultureCreatorS
         } else {
             renderTranslucentBox(consumer, matrix, 1.1F, 0.8F, 0.8F, 0.8F, 0.4F);
         }
+
         BlockPos secondPos = entity.getSecondPos();
+
+        Component text = entity.getText();
+        if (!text.getString().isEmpty()) {
+            poseStack.pushPose();
+            poseStack.translate(entity.position().x, entity.position().y, entity.position().z);
+            poseStack.mulPose(this.entityRenderDispatcher.cameraOrientation());
+            float scale = 0.02F;
+            poseStack.scale(-scale, -scale, scale);
+            float textWidth = font.width(text);
+            font.drawInBatch(text, -textWidth / 2, 0, 0xFFFFFF, false, poseStack.last().pose(), buffer, Font.DisplayMode.NORMAL, 0, packedLight);
+            poseStack.popPose();
+        }
     }
 
     private void renderTranslucentBox(VertexConsumer consumer, Matrix4f matrix, float size, float r, float g, float b, float alpha) {

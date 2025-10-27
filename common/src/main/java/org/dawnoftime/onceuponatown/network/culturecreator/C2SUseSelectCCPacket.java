@@ -18,12 +18,12 @@ import org.jetbrains.annotations.NotNull;
 
 import static org.dawnoftime.onceuponatown.Ouat.modResource;
 
-public record C2SUseSelectCCPacket(boolean shift, boolean ctrl, @NotNull BlockPos target, Direction clickedFace) implements OuatPacket {
+public record C2SUseSelectCCPacket(boolean shift, boolean ctrl, @NotNull BlockPos target, Direction clickedFace, String cultureId, String buildingId, String variantId, int buildingLevel) implements OuatPacket {
 
     public static final ResourceLocation ID = modResource("c2s_use_select_cc");
 
     public static C2SUseSelectCCPacket decode(FriendlyByteBuf buf) {
-        return new C2SUseSelectCCPacket(buf.readBoolean(), buf.readBoolean(), buf.readBlockPos(), buf.readEnum(Direction.class));
+        return new C2SUseSelectCCPacket(buf.readBoolean(), buf.readBoolean(), buf.readBlockPos(), buf.readEnum(Direction.class), buf.readUtf(), buf.readUtf(), buf.readUtf(), buf.readInt());
     }
 
     @Override
@@ -32,6 +32,10 @@ public record C2SUseSelectCCPacket(boolean shift, boolean ctrl, @NotNull BlockPo
         buf.writeBoolean(ctrl);
         buf.writeBlockPos(target);
         buf.writeEnum(clickedFace);
+        buf.writeUtf(cultureId);
+        buf.writeUtf(buildingId);
+        buf.writeUtf(variantId);
+        buf.writeInt(buildingLevel);
     }
 
     @Override
@@ -61,6 +65,9 @@ public record C2SUseSelectCCPacket(boolean shift, boolean ctrl, @NotNull BlockPo
                 } else {
                     // If the target is a different CultureCreatorBlock, bind with it.
                     CultureCreatorItem.setPairedCCBlockPos(stack, targetCCB);
+                    if (level.getBlockEntity(targetCCB) instanceof CultureCreatorBlockEntity ccBE) {
+                        CultureCreatorItem.changeSelectedPage(stack, ccBE.getCultureId(), ccBE.getBuildingId(), ccBE.getVariantId(), ccBE.getBuildingLevel());
+                    }
                 }
                 return;
             }
@@ -80,6 +87,10 @@ public record C2SUseSelectCCPacket(boolean shift, boolean ctrl, @NotNull BlockPo
                     }
                 }
                 level.setBlock(placePos, ccBlock.defaultBlockState(), 2);
+                if (level.getBlockEntity(placePos) instanceof CultureCreatorBlockEntity ccBE) {
+                    ccBE.setParameters(cultureId, buildingId, variantId, buildingLevel);
+                    ccBE.setChanged();
+                }
                 if (currentCCB != null) {
                     level.setBlock(currentCCB, Blocks.AIR.defaultBlockState(), 2);
                 }
