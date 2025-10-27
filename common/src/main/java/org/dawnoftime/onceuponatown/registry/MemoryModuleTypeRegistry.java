@@ -1,11 +1,7 @@
 package org.dawnoftime.onceuponatown.registry;
 
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
-import net.minecraft.world.entity.schedule.Activity;
-import net.minecraft.world.entity.schedule.Schedule;
-import net.minecraft.world.entity.schedule.ScheduleBuilder;
 
 import java.util.Optional;
 import java.util.function.Supplier;

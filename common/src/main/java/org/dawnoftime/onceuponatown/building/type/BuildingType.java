@@ -1,22 +1,10 @@
 package org.dawnoftime.onceuponatown.building.type;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.packs.resources.ResourceManager;
-import net.minecraft.util.GsonHelper;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.Item;
-import org.dawnoftime.onceuponatown.Utils;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
-import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
-import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 public class BuildingType extends BuildType {
     private final Item iconItem;

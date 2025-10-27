@@ -5,7 +5,8 @@ import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
 import org.dawnoftime.onceuponatown.culture.Profession;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
 
 public abstract class BuildType {
     public static final BuildType DEFAULT = new BuildType("default_build_type", 0, List.of(new BuildLevel(1, 1, 0, new HashMap<>(), 0)), BuildingPurpose.MISCELLANEOUS) {
