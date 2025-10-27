@@ -14,10 +14,10 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.dawnoftime.onceuponatown.building.BuildProject;
 import org.dawnoftime.onceuponatown.entity.Npc;
-import org.dawnoftime.onceuponatown.entity.ai.core.SetMemory;
 import org.dawnoftime.onceuponatown.entity.ai.controlflow.Task;
 import org.dawnoftime.onceuponatown.entity.ai.controlflow.Tasks;
 import org.dawnoftime.onceuponatown.entity.ai.core.GoToPosition;
+import org.dawnoftime.onceuponatown.entity.ai.core.SetMemory;
 import org.dawnoftime.onceuponatown.registry.ItemRegistry;
 
 import static org.dawnoftime.onceuponatown.building.BuildProject.Action.NOTHING;

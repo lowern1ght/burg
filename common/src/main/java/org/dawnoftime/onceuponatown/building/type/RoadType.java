@@ -1,20 +1,14 @@
 package org.dawnoftime.onceuponatown.building.type;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.packs.resources.ResourceManager;
-import net.minecraft.util.GsonHelper;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.Utils;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
-import org.jetbrains.annotations.NotNull;
 import oshi.util.tuples.Pair;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
 
 import static org.dawnoftime.onceuponatown.town.generation.ProtoTown.RANDOM;
 

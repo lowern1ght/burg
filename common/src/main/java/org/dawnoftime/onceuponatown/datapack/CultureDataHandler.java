@@ -2,10 +2,6 @@ package org.dawnoftime.onceuponatown.datapack;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
-import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.datapack.core.DataHandler;
 import org.dawnoftime.onceuponatown.datapack.core.IntegerDataHandler;
 import org.dawnoftime.onceuponatown.datapack.core.StringDataHandler;

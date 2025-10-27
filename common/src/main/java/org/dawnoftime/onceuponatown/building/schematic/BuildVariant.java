@@ -1,17 +1,8 @@
 package org.dawnoftime.onceuponatown.building.schematic;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
-import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.Utils;
-import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
-import org.dawnoftime.onceuponatown.datapack.core.DataHandler;
-import org.jetbrains.annotations.NotNull;
-import oshi.util.tuples.Pair;
 
 import java.util.HashMap;
 import java.util.TreeMap;

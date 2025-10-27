@@ -23,7 +23,8 @@ import org.dawnoftime.onceuponatown.entity.ai.core.GoToPosition;
 import org.dawnoftime.onceuponatown.entity.ai.core.SetMemory;
 
 import java.util.concurrent.atomic.AtomicReference;
-import static net.minecraft.world.entity.ai.memory.MemoryModuleType.*;
+
+import static net.minecraft.world.entity.ai.memory.MemoryModuleType.LOOK_TARGET;
 
 public class Fishing {
     public static Task<Npc> create() {
