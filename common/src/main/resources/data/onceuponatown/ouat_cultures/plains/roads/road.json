@@ -1,6 +1,5 @@
 {
   "id": "road",
-  "weight": 0,
   "levels": [
     {
       "required_era": 1
@@ -23,9 +22,9 @@
       },
       "levels": [
         {
-          "level": 1,
           "schematic": "road_flat_a1",
-          "waypoints": []
+          "waypoints": [
+          ]
         }
       ]
     },
@@ -39,9 +38,9 @@
       },
       "levels": [
         {
-          "level": 1,
           "schematic": "road_flat_b1",
-          "waypoints": []
+          "waypoints": [
+          ]
         }
       ]
     },
@@ -55,9 +54,9 @@
       },
       "levels": [
         {
-          "level": 1,
           "schematic": "road_flat_c1",
-          "waypoints": []
+          "waypoints": [
+          ]
         }
       ]
     },
@@ -71,9 +70,9 @@
       },
       "levels": [
         {
-          "level": 1,
           "schematic": "road_slab_a1",
-          "waypoints": []
+          "waypoints": [
+          ]
         }
       ]
     },
@@ -87,9 +86,9 @@
       },
       "levels": [
         {
-          "level": 1,
           "schematic": "road_stairs_a1",
-          "waypoints": []
+          "waypoints": [
+          ]
         }
       ]
     }

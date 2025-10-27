@@ -2,12 +2,12 @@
   "id": "barracks",
   "category": "work",
   "weight": 10,
+  "item": "minecraft:shield",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:shield",
   "variants": [
     {
       "name": "soldier_house",

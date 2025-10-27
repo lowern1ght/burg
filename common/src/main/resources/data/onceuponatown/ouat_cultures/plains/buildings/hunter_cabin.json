@@ -2,12 +2,12 @@
   "id": "hunter_cabin",
   "category": "work",
   "weight": 10,
+  "item": "minecraft:rabbit_hide",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:rabbit_hide",
   "variants": [
     {
       "name": "variant1",

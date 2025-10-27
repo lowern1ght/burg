@@ -2,12 +2,12 @@
   "id": "monster_hunter_caravan",
   "category": "work",
   "weight": 10,
+  "item": "minecraft:spider_eye",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:spider_eye",
   "variants": [
     {
       "name": "variant1",

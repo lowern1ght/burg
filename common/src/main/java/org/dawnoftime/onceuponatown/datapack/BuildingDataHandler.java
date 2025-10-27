@@ -2,9 +2,11 @@ package org.dawnoftime.onceuponatown.datapack;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import org.dawnoftime.onceuponatown.building.type.BuildingPurpose;
 import org.dawnoftime.onceuponatown.datapack.core.DataHandler;
 import org.dawnoftime.onceuponatown.datapack.core.IntegerDataHandler;
 import org.dawnoftime.onceuponatown.datapack.core.StringDataHandler;
+import org.dawnoftime.onceuponatown.datapack.core.StringEnumDataHandler;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -12,18 +14,19 @@ import java.util.function.Supplier;
 
 public class BuildingDataHandler extends DataHandler {
     public final StringDataHandler id;
+    public final StringEnumDataHandler<BuildingPurpose> category;
     public final IntegerDataHandler weight;
     public final StringDataHandler item;
-    public final ArrayList<BuildingLevelsHandler> levels = new ArrayList<>();
+    public final ArrayList<BuildingLevelHandler> levels = new ArrayList<>();
     public final ArrayList<BuildingVariantHandler> variants = new ArrayList<>();
 
     public BuildingDataHandler(@NotNull JsonObject rootJson) {
-        super(rootJson);
         id = new StringDataHandler(rootJson, "id");
-        weight = new IntegerDataHandler(rootJson, "weight", 0, 100000);
-        item = new StringDataHandler(rootJson, "item");
+        category = new StringEnumDataHandler<>(rootJson, "category", BuildingPurpose.class);
+        weight = new IntegerDataHandler(rootJson, "weight", 0, Integer.MAX_VALUE);
+        item = new StringDataHandler(rootJson, "item", "minecraft:oak_planks");
         this.getJsonArrayObjects(rootJson, "levels")
-                .forEach(obj -> levels.add(new BuildingLevelsHandler(obj)));
+                .forEach(obj -> levels.add(new BuildingLevelHandler(obj)));
         this.getJsonArrayObjects(rootJson, "variants")
                 .forEach(obj -> variants.add(new BuildingVariantHandler(obj)));
     }
@@ -31,6 +34,7 @@ public class BuildingDataHandler extends DataHandler {
     @Override
     public JsonObject toJson(@NotNull JsonObject rootJson) {
         id.toJson(rootJson);
+        category.toJson(rootJson);
         weight.toJson(rootJson);
         item.toJson(rootJson);
         JsonArray levelsJson = new JsonArray();
@@ -46,15 +50,16 @@ public class BuildingDataHandler extends DataHandler {
     public @NotNull ArrayList<String> getErrors() {
         ArrayList<String> errors = new ArrayList<>();
         errors.addAll(id.getErrors());
+        errors.addAll(category.getErrors());
         errors.addAll(weight.getErrors());
         errors.addAll(item.getErrors());
-        levels.forEach(spec -> errors.addAll(spec.getErrors()));
+        levels.forEach(level -> errors.addAll(level.getErrors()));
         variants.forEach(era -> errors.addAll(era.getErrors()));
         return errors;
     }
 
     public void resizeLevelLists(int numberOfLevel) {
-        resizeList(levels, numberOfLevel, () -> new BuildingLevelsHandler(new JsonObject()));
+        resizeList(levels, numberOfLevel, () -> new BuildingLevelHandler(new JsonObject()));
         for (BuildingVariantHandler variant : variants) {
             resizeList(variant.levels, numberOfLevel, () -> new BuildingVariantLevelHandler(new JsonObject()));
         }
@@ -71,15 +76,14 @@ public class BuildingDataHandler extends DataHandler {
         }
     }
 
-    public static class BuildingLevelsHandler extends DataHandler {
+    public static class BuildingLevelHandler extends DataHandler {
         public final IntegerDataHandler requiredEra;
         public final IntegerDataHandler dwellingSlots;
         public final ArrayList<WorkingSlotHandler> workingSlots = new ArrayList<>();
 
-        public BuildingLevelsHandler(@NotNull JsonObject rootJson) {
-            super(rootJson);
-            this.requiredEra = new IntegerDataHandler(rootJson, "required_era", 0, 100);
-            this.dwellingSlots = new IntegerDataHandler(rootJson, "dwelling_slots", 0, 100);
+        public BuildingLevelHandler(@NotNull JsonObject rootJson) {
+            this.requiredEra = new IntegerDataHandler(rootJson, "required_era", 0, 100, 0);
+            this.dwellingSlots = new IntegerDataHandler(rootJson, "dwelling_slots", 0, 100, 0);
             this.getJsonArrayObjects(rootJson, "working_slots")
                     .forEach(obj -> workingSlots.add(new WorkingSlotHandler(obj)));
         }
@@ -105,25 +109,28 @@ public class BuildingDataHandler extends DataHandler {
     }
 
     public static class WorkingSlotHandler extends DataHandler {
-        public final StringDataHandler id;
+        public final StringDataHandler profession;
+        public final IntegerDataHandler slots;
         public final IntegerDataHandler maxLevel;
 
         public WorkingSlotHandler(@NotNull JsonObject rootJson) {
-            super(rootJson);
-            this.id = new StringDataHandler(rootJson, "id");
-            this.maxLevel = new IntegerDataHandler(rootJson, "max_level", 0, 100);
+            this.profession = new StringDataHandler(rootJson, "profession");
+            this.slots = new IntegerDataHandler(rootJson, "slots", 0, Integer.MAX_VALUE, 1);
+            this.maxLevel = new IntegerDataHandler(rootJson, "max_level", 0, Integer.MAX_VALUE, Integer.MAX_VALUE);
         }
 
         @Override
         public JsonObject toJson(@NotNull JsonObject rootJson) {
-            id.toJson(rootJson);
+            profession.toJson(rootJson);
+            slots.toJson(rootJson);
             maxLevel.toJson(rootJson);
             return rootJson;
         }
 
         @Override
         public @NotNull ArrayList<String> getErrors() {
-            ArrayList<String> errors = id.getErrors();
+            ArrayList<String> errors = profession.getErrors();
+            errors.addAll(slots.getErrors());
             errors.addAll(maxLevel.getErrors());
             return errors;
         }
@@ -137,7 +144,6 @@ public class BuildingDataHandler extends DataHandler {
         public final ArrayList<BuildingVariantLevelHandler> levels = new ArrayList<>();
 
         public BuildingVariantHandler(@NotNull JsonObject rootJson) {
-            super(rootJson);
             this.name = new StringDataHandler(rootJson, "name");
             JsonObject sizeJson = this.getJsonObject(rootJson, "size");
             this.sizeX = new IntegerDataHandler(sizeJson, "x", 1, 1000);
@@ -177,7 +183,6 @@ public class BuildingDataHandler extends DataHandler {
         public final ArrayList<WaypointHandler> waypoints = new ArrayList<>();
 
         public BuildingVariantLevelHandler(@NotNull JsonObject rootJson) {
-            super(rootJson);
             this.schematic = new StringDataHandler(rootJson, "schematic");
             this.getJsonArrayObjects(rootJson, "waypoints")
                     .forEach(waypoint -> waypoints.add(new WaypointHandler(waypoint)));
@@ -206,8 +211,7 @@ public class BuildingDataHandler extends DataHandler {
         public final IntegerDataHandler y;
         public final IntegerDataHandler z;
 
-        public WaypointHandler(@NotNull JsonObject rootJson) {
-            super(rootJson);
+        public WaypointHandler(@NotNull JsonObject rootJson) {;
             this.id = new StringDataHandler(rootJson, "id");
             this.x = new IntegerDataHandler(rootJson, "x", 1, 1000);
             this.y = new IntegerDataHandler(rootJson, "y", 1, 1000);
@@ -232,5 +236,4 @@ public class BuildingDataHandler extends DataHandler {
             return errors;
         }
     }
-
 }

@@ -53,15 +53,15 @@ public record C2SSaveLevelCCPacket(String cultureId, String buildingId, String l
         int levelInt = Integer.parseInt(level);
         // If there isn't enough levels already created, we add blanks level in between.
         for (int i = 0; i <= levelInt - data.levels.size(); i++) {
-            data.levels.add(new BuildingDataHandler.BuildingLevelsHandler(new JsonObject()));
+            data.levels.add(new BuildingDataHandler.BuildingLevelHandler(new JsonObject()));
         }
-        BuildingDataHandler.BuildingLevelsHandler levelData = data.levels.get(levelInt);
+        BuildingDataHandler.BuildingLevelHandler levelData = data.levels.get(levelInt);
         levelData.requiredEra.set(requiredEra);
         levelData.dwellingSlots.set(dwellingSlots);
         levelData.workingSlots.clear();
         professionSlots.forEach(pair -> {
             BuildingDataHandler.WorkingSlotHandler slot = new BuildingDataHandler.WorkingSlotHandler(new JsonObject());
-            slot.id.set(pair.getA());
+            slot.profession.set(pair.getA());
             slot.maxLevel.set(pair.getB());
             levelData.workingSlots.add(slot);
         });

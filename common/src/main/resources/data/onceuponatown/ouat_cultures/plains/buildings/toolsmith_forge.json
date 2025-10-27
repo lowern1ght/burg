@@ -2,12 +2,12 @@
   "id": "toolsmith_forge",
   "category": "work",
   "weight": 10,
+  "item": "minecraft:anvil",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:anvil",
   "variants": [
     {
       "name": "variant1",

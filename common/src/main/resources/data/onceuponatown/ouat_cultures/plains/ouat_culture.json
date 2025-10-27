@@ -3,27 +3,21 @@
   "specializations": [
     {
       "id": "industry",
-      "rgbColor": [
-        100,
-        100,
-        100
-      ]
+      "colorRed": 85,
+      "colorGreen": 255,
+      "colorBlue": 85
     },
     {
       "id": "defense",
-      "rgbColor": [
-        100,
-        100,
-        100
-      ]
+      "colorRed": 255,
+      "colorGreen": 85,
+      "colorBlue": 85
     },
     {
       "id": "science",
-      "rgbColor": [
-        100,
-        100,
-        100
-      ]
+      "colorRed": 85,
+      "colorGreen": 85,
+      "colorBlue": 255
     }
   ],
   "eras": [
@@ -42,9 +36,9 @@
   ],
   "buildings_starter_pack": [
     {
-      "id": "tavern",
-      "min": 1,
-      "max": 1
+      "id": "small_house",
+      "min": 2,
+      "max": 3
     },
     {
       "id": "wheat_farm",

@@ -42,7 +42,9 @@ import net.minecraft.world.level.pathfinder.BlockPathTypes;
 import net.minecraft.world.phys.Vec3;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.BuildProject;
-import org.dawnoftime.onceuponatown.entity.ai.behavior.npc.NpcAi;
+import org.dawnoftime.onceuponatown.culture.Profession;
+import org.dawnoftime.onceuponatown.culture.ServerCultures;
+import org.dawnoftime.onceuponatown.entity.ai.NpcAi;
 import org.dawnoftime.onceuponatown.menu.BuildingsMenu;
 import org.dawnoftime.onceuponatown.menu.InteractingNpc;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
@@ -90,7 +92,9 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         ((GroundPathNavigation) getNavigation()).setCanOpenDoors(true);
         getNavigation().setCanFloat(true);
         setCanPickUpLoot(true);
-        profession = Profession.of(entityData.get(PROFESSION));
+        if (!level().isClientSide()) {
+            profession = ServerCultures.getCultureOrDefault(getCultureId()).getProfessionOrDefault(getProfessionId());
+        }
     }
 
     @Override
@@ -106,7 +110,9 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         super.readAdditionalSaveData(tag);
         setCultureId(tag.getString("Culture"));
         entityData.set(PROFESSION, tag.getString("Profession"));
-        profession = Profession.of(entityData.get(PROFESSION));
+        if (!level().isClientSide()) {
+            profession = ServerCultures.getCultureOrDefault(getCultureId()).getProfessionOrDefault(getProfessionId());
+        }
         townId = tag.getInt("TownId");
         if (townId != -1 && level() instanceof ServerLevel serverLevel) {
             town = LevelTowns.of(serverLevel).getTownById(townId);
@@ -489,9 +495,9 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         entityData.set(CULTURE, cultureId);
     }
 
-    public void assignProfession(String professionId) {
-        entityData.set(PROFESSION, professionId);
-        profession = Profession.of(professionId);
+    public void assignProfession(Profession profession) {
+        entityData.set(PROFESSION, profession.getId());
+        this.profession = profession;
     }
 
     public int getUnhappyCounter() {

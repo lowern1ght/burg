@@ -2,13 +2,13 @@
   "id": "big_house",
   "category": "dwelling",
   "weight": 7,
+  "item": "minecraft:pink_bed",
   "levels": [
     {
       "required_era": 1,
-      "dwelling_slots": 4
+      "dwelling_slots": 6
     }
   ],
-  "item": "minecraft:red_bed",
   "variants": [
     {
       "name": "standard",

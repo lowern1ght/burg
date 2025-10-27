@@ -1,10 +1,7 @@
 {
   "id": "builder",
-  "schedule": "default",
+  "schedule": "worker",
   "work_ai": "builder",
   "levels": [
-    {
-      "level": 1
-    }
   ]
 }

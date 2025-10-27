@@ -10,7 +10,7 @@ import org.dawnoftime.onceuponatown.client.model.NpcModel;
 import org.dawnoftime.onceuponatown.client.renderer.NpcRenderer;
 import org.dawnoftime.onceuponatown.datapack.core.DataHandler;
 import org.dawnoftime.onceuponatown.entity.Npc;
-import org.dawnoftime.onceuponatown.entity.Profession;
+import org.dawnoftime.onceuponatown.culture.Profession;
 import org.jetbrains.annotations.NotNull;
 
 

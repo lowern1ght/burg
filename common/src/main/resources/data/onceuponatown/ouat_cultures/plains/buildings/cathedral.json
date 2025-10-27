@@ -2,12 +2,12 @@
   "id": "cathedral",
   "category": "special",
   "weight": 30,
+  "item": "minecraft:bell",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:bell",
   "variants": [
     {
       "name": "big_church",

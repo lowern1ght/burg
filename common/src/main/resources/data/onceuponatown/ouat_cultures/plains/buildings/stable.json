@@ -1,13 +1,13 @@
 {
   "id": "stable",
-  "category": "decoration",
-  "weight": 0,
+  "category": "work",
+  "weight": 10,
+  "item": "minecraft:saddle",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:blue_bed",
   "variants": [
     {
       "name": "stable1",

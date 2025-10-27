@@ -2,12 +2,12 @@
   "id": "hen_house",
   "category": "work",
   "weight": 10,
+  "item": "minecraft:egg",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:egg",
   "variants": [
     {
       "name": "variant1",

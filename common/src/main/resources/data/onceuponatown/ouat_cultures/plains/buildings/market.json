@@ -2,12 +2,12 @@
   "id": "market",
   "category": "special",
   "weight": 30,
+  "item": "minecraft:emerald",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:emerald",
   "variants": [
     {
       "name": "merchant_shop",

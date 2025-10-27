@@ -1,0 +1,7 @@
+{
+  "id": "sugarcane_farmer",
+  "schedule": "worker",
+  "work_ai": "sugarcane_farmer",
+  "levels": [
+  ]
+}

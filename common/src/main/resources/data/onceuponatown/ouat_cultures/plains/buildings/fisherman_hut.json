@@ -2,6 +2,7 @@
   "id": "fisherman_hut",
   "category": "work",
   "weight": 10,
+  "item": "minecraft:fishing_rod",
   "levels": [
     {
       "required_era": 1,
@@ -14,7 +15,6 @@
       ]
     }
   ],
-  "item": "minecraft:fishing_rod",
   "variants": [
     {
       "name": "fishery_hut",

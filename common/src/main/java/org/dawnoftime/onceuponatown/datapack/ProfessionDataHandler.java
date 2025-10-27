@@ -6,32 +6,34 @@ import org.dawnoftime.onceuponatown.datapack.core.DataHandler;
 import org.dawnoftime.onceuponatown.datapack.core.IntegerDataHandler;
 import org.dawnoftime.onceuponatown.datapack.core.StringDataHandler;
 import org.dawnoftime.onceuponatown.datapack.core.StringEnumDataHandler;
+import org.dawnoftime.onceuponatown.entity.ai.work.WorkAi;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 public class ProfessionDataHandler extends DataHandler {
     public final StringDataHandler id;
     public final StringDataHandler schedule;
-    public final StringDataHandler workAI;
-    public final ProfessionLevelsDataHandler levels;
+    public final StringEnumDataHandler<WorkAi> workAi;
+    public final ArrayList<ProfessionLevelHandler> levels = new ArrayList<>();
 
     public ProfessionDataHandler(@NotNull JsonObject rootJson) {
-        super(rootJson);
         id = new StringDataHandler(rootJson, "id");
         schedule = new StringDataHandler(rootJson, "schedule");
-        workAI = new StringDataHandler(rootJson, "work_ai");
-        levels = new ProfessionLevelsDataHandler(rootJson, "levels");
+        workAi = new StringEnumDataHandler<>(rootJson,  "work_ai", WorkAi.class);
+        this.getJsonArrayObjects(rootJson, "levels")
+            .forEach(obj -> levels.add(new ProfessionLevelHandler(obj)));
     }
 
     @Override
     public JsonObject toJson(@NotNull JsonObject rootJson) {
         id.toJson(rootJson);
         schedule.toJson(rootJson);
-        workAI.toJson(rootJson);
-        levels.toJson(rootJson);
+        workAi.toJson(rootJson);
+        JsonArray levelsJson = new JsonArray();
+        levels.forEach(level -> levelsJson.add(level.toJson(new JsonObject())));
+        rootJson.add("levels", levelsJson);
         return rootJson;
     }
 
@@ -40,75 +42,100 @@ public class ProfessionDataHandler extends DataHandler {
         ArrayList<String> errors = new ArrayList<>();
         errors.addAll(id.getErrors());
         errors.addAll(schedule.getErrors());
-        errors.addAll(workAI.getErrors());
-        errors.addAll(levels.getErrors());
+        errors.addAll(workAi.getErrors());
+        levels.forEach(level -> errors.addAll(level.getErrors()));
         return errors;
     }
 
-    public static class ProfessionLevelsDataHandler extends DataHandler {
-        private final @NotNull String key;
-        public final HashMap<Integer, ProfessionLevelDataHandler> levels = new HashMap<>();
+    public static class ProfessionLevelHandler extends DataHandler {
+        public final ArrayList<ProductionDataHandler> production = new ArrayList<>();
+        public final ArrayList<ProfessionCraftHandler> crafts = new ArrayList<>();
+        public final ArrayList<ProfessionTradeHandler> buy = new ArrayList<>();
+        public final ArrayList<ProfessionTradeHandler> sell = new ArrayList<>();
 
-        public ProfessionLevelsDataHandler(@NotNull JsonObject rootJson, @NotNull String key) {
-            super(rootJson);
-            this.key = key;
-            JsonObject levelsJson = this.getJsonObject(rootJson, key);
-            for (int level = 1; level <= levelsJson.size(); level++) {
-                levels.put(level, new ProfessionLevelDataHandler(this.getJsonObject(levelsJson, String.valueOf(level))));
-            }
+        public ProfessionLevelHandler(@NotNull JsonObject rootJson) {
+            this.getJsonArrayObjects(rootJson, "production")
+                    .forEach(production -> this.production.add(new ProductionDataHandler(production)));
+            this.getJsonArrayObjects(rootJson, "crafts")
+                    .forEach(craft -> crafts.add(new ProfessionCraftHandler(craft)));
+            this.getJsonArrayObjects(rootJson, "buy")
+                    .forEach(trade -> buy.add(new ProfessionTradeHandler(trade)));
+            this.getJsonArrayObjects(rootJson, "sell")
+                .forEach(trade -> sell.add(new ProfessionTradeHandler(trade)));
         }
 
         @Override
         public JsonObject toJson(@NotNull JsonObject rootJson) {
-            JsonObject levelsJson = new JsonObject();
-            levels.forEach((level, data) -> levelsJson.add(String.valueOf(level), data.toJson(new JsonObject())));
-            rootJson.add(this.key, levelsJson);
+            JsonArray productionJson = new JsonArray();
+            production.forEach(production -> productionJson.add(production.toJson(new JsonObject())));
+            rootJson.add("production", productionJson);
+            JsonArray craftsJson = new JsonArray();
+            crafts.forEach(craft -> craftsJson.add(craft.toJson(new JsonObject())));
+            rootJson.add("crafts", craftsJson);
+            JsonArray buyTradesJson = new JsonArray();
+            buy.forEach(trade -> buyTradesJson.add(trade.toJson(new JsonObject())));
+            rootJson.add("buy", buyTradesJson);
+            JsonArray sellTradesJson = new JsonArray();
+            sell.forEach(trade -> sellTradesJson.add(trade.toJson(new JsonObject())));
+            rootJson.add("sell", sellTradesJson);
             return rootJson;
         }
 
         @Override
         public @NotNull ArrayList<String> getErrors() {
             ArrayList<String> errors = new ArrayList<>();
-            levels.values().forEach(level -> errors.addAll(level.getErrors()));
+            production.forEach(production -> errors.addAll(production.getErrors()));
+            crafts.forEach(craft -> errors.addAll(craft.getErrors()));
+            buy.forEach(trade -> errors.addAll(trade.getErrors()));
+            sell.forEach(trade -> errors.addAll(trade.getErrors()));
             return errors;
         }
     }
 
-    public static class ProfessionLevelDataHandler extends DataHandler {
-        public final ArrayList<ItemQuantityDataHandler> productions = new ArrayList<>();
-        public final ArrayList<ProfessionCraftsDataHandler> crafts = new ArrayList<>();
-        public final ArrayList<ProfessionTradesDataHandler> trades = new ArrayList<>();
+    public static class ProfessionCraftHandler extends DataHandler {
+        // TODO Need to define proper data structure.
+        public final StringDataHandler item;
 
-        public ProfessionLevelDataHandler(@NotNull JsonObject rootJson) {
-            super(rootJson);
-            this.getJsonArrayObjects(rootJson, "productions")
-                    .forEach(production -> productions.add(new ItemQuantityDataHandler(production)));
-            this.getJsonArrayObjects(rootJson, "crafts")
-                    .forEach(craft -> crafts.add(new ProfessionCraftsDataHandler(craft)));
-            this.getJsonArrayObjects(rootJson, "trades")
-                    .forEach(trade -> trades.add(new ProfessionTradesDataHandler(trade)));
+        public ProfessionCraftHandler(@NotNull JsonObject rootJson) {
+            this.item = new StringDataHandler(rootJson, "id");
         }
 
         @Override
         public JsonObject toJson(@NotNull JsonObject rootJson) {
-            JsonArray productionsJson = new JsonArray();
-            productions.forEach(production -> productionsJson.add(production.toJson(new JsonObject())));
-            rootJson.add("productions", productionsJson);
-            JsonArray craftsJson = new JsonArray();
-            crafts.forEach(craft -> craftsJson.add(craft.toJson(new JsonObject())));
-            rootJson.add("crafts", craftsJson);
-            JsonArray tradesJson = new JsonArray();
-            trades.forEach(trade -> tradesJson.add(trade.toJson(new JsonObject())));
-            rootJson.add("trades", tradesJson);
+            item.toJson(rootJson);
             return rootJson;
         }
 
         @Override
         public @NotNull ArrayList<String> getErrors() {
-            ArrayList<String> errors = new ArrayList<>();
-            productions.forEach(production -> errors.addAll(production.getErrors()));
-            crafts.forEach(craft -> errors.addAll(craft.getErrors()));
-            trades.forEach(trade -> errors.addAll(trade.getErrors()));
+            return item.getErrors();
+        }
+    }
+
+    public static class ProfessionTradeHandler extends DataHandler {
+        public final ItemQuantityDataHandler costA;
+        public final ItemQuantityDataHandler costB;
+        public final ItemQuantityDataHandler result;
+
+        public ProfessionTradeHandler(@NotNull JsonObject rootJson) {
+            this.costA = new ItemQuantityDataHandler(this.getJsonObject(rootJson, "cost_a"), "cost_a");
+            this.costB = new ItemQuantityDataHandler(this.getJsonObject(rootJson, "cost_b"), "cost_b", "nothing");
+            this.result = new ItemQuantityDataHandler(this.getJsonObject(rootJson, "result"), "result");
+        }
+
+        @Override
+        public JsonObject toJson(@NotNull JsonObject rootJson) {
+            costA.toJson(rootJson);
+            costB.toJson(rootJson);
+            result.toJson(rootJson);
+            return rootJson;
+        }
+
+        @Override
+        public @NotNull ArrayList<String> getErrors() {
+            ArrayList<String> errors = costA.getErrors();
+            errors.addAll(costB.getErrors());
+            errors.addAll(result.getErrors());
             return errors;
         }
     }
@@ -118,15 +145,16 @@ public class ProfessionDataHandler extends DataHandler {
         public final StringDataHandler item;
         public final IntegerDataHandler amount;
 
-        public ItemQuantityDataHandler(@NotNull JsonObject rootJson) {
-            this(rootJson, null);
-        }
-
         public ItemQuantityDataHandler(@NotNull JsonObject rootJson, @Nullable String key) {
-            super(rootJson);
             this.key = key;
             this.item = new StringDataHandler(rootJson, "id");
-            this.amount = new IntegerDataHandler(rootJson, "amount", 1, 1000);
+            this.amount = new IntegerDataHandler(rootJson, "amount", 1, Integer.MAX_VALUE, 1);
+        }
+
+        public ItemQuantityDataHandler(@NotNull JsonObject rootJson, @Nullable String key, String fallback) {
+            this.key = key;
+            this.item = new StringDataHandler(rootJson, "id", fallback);
+            this.amount = new IntegerDataHandler(rootJson, "amount", 1, Integer.MAX_VALUE, 1);
         }
 
         @Override
@@ -148,58 +176,30 @@ public class ProfessionDataHandler extends DataHandler {
         }
     }
 
-    public static class ProfessionCraftsDataHandler extends DataHandler {
-        //TODO Need to define proper data structure.
-        public final StringDataHandler craftId;
+    public static class ProductionDataHandler extends DataHandler {
+        public final StringDataHandler item;
+        public final IntegerDataHandler amount;
+        public final IntegerDataHandler maxStock;
 
-        public ProfessionCraftsDataHandler(@NotNull JsonObject rootJson) {
-            super(rootJson);
-            this.craftId = new StringDataHandler(rootJson, "id");
+        public ProductionDataHandler(@NotNull JsonObject rootJson) {
+            this.item = new StringDataHandler(rootJson, "id");
+            this.amount = new IntegerDataHandler(rootJson, "amount", 1, Integer.MAX_VALUE);
+            this.maxStock = new IntegerDataHandler(rootJson, "max_stock", 1, Integer.MAX_VALUE);
         }
 
         @Override
         public JsonObject toJson(@NotNull JsonObject rootJson) {
-            craftId.toJson(rootJson);
+            item.toJson(rootJson);
+            amount.toJson(rootJson);
+            maxStock.toJson(rootJson);
             return rootJson;
         }
 
         @Override
         public @NotNull ArrayList<String> getErrors() {
-            return craftId.getErrors();
-        }
-    }
-
-    public enum TradeType{
-        // TODO Bouger cet enum où on gère les crafts !
-        BUY,
-        SELL;
-    }
-
-    public static class ProfessionTradesDataHandler extends DataHandler {
-        public final StringEnumDataHandler<TradeType> type;
-        public final ItemQuantityDataHandler costA;
-        public final ItemQuantityDataHandler result;
-
-        public ProfessionTradesDataHandler(@NotNull JsonObject rootJson) {
-            super(rootJson);
-            this.type = new StringEnumDataHandler<>(rootJson, "type", TradeType.class);
-            this.costA = new ItemQuantityDataHandler(rootJson, "cost_a");
-            this.result = new ItemQuantityDataHandler(rootJson, "result");
-        }
-
-        @Override
-        public JsonObject toJson(@NotNull JsonObject rootJson) {
-            type.toJson(rootJson);
-            costA.toJson(rootJson);
-            result.toJson(rootJson);
-            return rootJson;
-        }
-
-        @Override
-        public @NotNull ArrayList<String> getErrors() {
-            ArrayList<String> errors = type.getErrors();
-            errors.addAll(costA.getErrors());
-            errors.addAll(result.getErrors());
+            ArrayList<String> errors = item.getErrors();
+            errors.addAll(amount.getErrors());
+            errors.addAll(maxStock.getErrors());
             return errors;
         }
     }

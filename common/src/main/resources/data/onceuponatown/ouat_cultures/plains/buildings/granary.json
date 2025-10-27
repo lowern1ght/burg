@@ -1,13 +1,13 @@
 {
   "id": "granary",
-  "category": "work",
+  "category": "special",
   "weight": 10,
+  "item": "minecraft:chest",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:barrel",
   "variants": [
     {
       "name": "variant_small",

@@ -2,12 +2,12 @@
   "id": "statue",
   "category": "decoration",
   "weight": 0,
+  "item": "minecraft:player_head",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:player_head",
   "variants": [
     {
       "name": "variant1",

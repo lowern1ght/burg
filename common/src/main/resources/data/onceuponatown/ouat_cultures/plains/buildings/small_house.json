@@ -1,14 +1,14 @@
 {
   "id": "small_house",
   "category": "dwelling",
-  "weight": 5,
+  "weight": 3,
+  "item": "minecraft:white_bed",
   "levels": [
     {
       "required_era": 1,
       "dwelling_slots": 2
     }
   ],
-  "item": "minecraft:white_bed",
   "variants": [
     {
       "name": "regular1",

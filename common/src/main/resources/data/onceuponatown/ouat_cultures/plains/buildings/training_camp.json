@@ -2,12 +2,12 @@
   "id": "training_camp",
   "category": "work",
   "weight": 20,
+  "item": "minecraft:target",
   "levels": [
     {
       "required_era": 2
     }
   ],
-  "item": "minecraft:target",
   "variants": [
     {
       "name": "bow_training_camp",

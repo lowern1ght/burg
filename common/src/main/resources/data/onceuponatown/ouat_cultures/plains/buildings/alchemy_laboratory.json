@@ -2,12 +2,12 @@
   "id": "alchemy_laboratory",
   "category": "work",
   "weight": 10,
+  "item": "minecraft:brewing_stand",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:brewing_stand",
   "variants": [
     {
       "name": "variant1",

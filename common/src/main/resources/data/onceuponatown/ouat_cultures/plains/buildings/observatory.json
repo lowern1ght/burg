@@ -2,12 +2,12 @@
   "id": "observatory",
   "category": "work",
   "weight": 10,
+  "item": "minecraft:spyglass",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:spyglass",
   "variants": [
     {
       "name": "variant1",

@@ -1,50 +1,40 @@
 {
   "id": "fisherman",
-  "schedule": "default",
-  "work_ai": "farmer",
+  "schedule": "worker",
+  "work_ai": "fisherman",
   "levels": [
     {
-      "level": 1,
       "production": [
         {
-          "id": "minecraft:dried_kelp",
-          "amount": 16
+          "id": "minecraft:cod",
+          "amount": 8,
+          "max_stock": 128
         },
         {
-          "id": "minecraft:salmon",
-          "amount": 3
+          "id": "minecraft:kelp",
+          "amount": 20,
+          "max_stock": 128
         }
       ],
       "crafts": [
         {
-          "id": "minecraft:cooked_salmon"
+          "id": "minecraft:cooked_cod"
         }
       ],
-      "trades": [
+      "buy": [
         {
-          "type": "buy",
           "cost_a": {
             "id": "minecraft:emerald",
-            "amount": 3
+            "amount": 2
           },
           "result": {
-            "id": "minecraft:cooked_salmon",
+            "id": "minecraft:cooked_cod",
             "amount": 1
           }
-        },
+        }
+      ],
+      "sell": [
         {
-          "type": "buy",
-          "cost_a": {
-            "id": "minecraft:emerald",
-            "amount": 1
-          },
-          "result": {
-            "id": "minecraft:dried_kelp",
-            "amount": 1
-          }
-        },
-        {
-          "type": "sell",
           "cost_a": {
             "id": "minecraft:string",
             "amount": 16

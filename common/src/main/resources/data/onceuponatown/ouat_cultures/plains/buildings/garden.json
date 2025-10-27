@@ -2,12 +2,12 @@
   "id": "garden",
   "category": "decoration",
   "weight": 0,
+  "item": "minecraft:grass",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:grass",
   "variants": [
     {
       "name": "lone_garden",
