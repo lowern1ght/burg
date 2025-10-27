@@ -2,12 +2,12 @@
   "id": "cemetery",
   "category": "decoration",
   "weight": 0,
+  "item": "minecraft:bone",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:bone",
   "variants": [
     {
       "name": "variant1",

@@ -2,12 +2,12 @@
   "id": "vegetable_garden",
   "category": "work",
   "weight": 10,
+  "item": "minecraft:carrot",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:carrot",
   "variants": [
     {
       "name": "variant1",

@@ -11,9 +11,15 @@ public class StringDataHandler extends DataHandler {
     private @Nullable String value;
 
     public StringDataHandler(@NotNull JsonObject rootJson, @NotNull String key) {
-        super(rootJson);
         this.key = key;
         this.value = this.getString(rootJson, key);
+    }
+
+    public StringDataHandler(@NotNull JsonObject rootJson, @NotNull String key, @NotNull String fallback) {
+        this(rootJson, key);
+        if (value == null) {
+            value = fallback;
+        }
     }
 
     public void set(String value) {

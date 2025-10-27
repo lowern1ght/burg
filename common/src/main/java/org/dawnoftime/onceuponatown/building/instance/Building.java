@@ -12,7 +12,7 @@ import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
 import org.dawnoftime.onceuponatown.building.type.BuildType;
 import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import org.dawnoftime.onceuponatown.culture.Culture;
-import org.dawnoftime.onceuponatown.entity.Profession;
+import org.dawnoftime.onceuponatown.culture.Profession;
 import org.dawnoftime.onceuponatown.structure.pieces.BuildingPiece;
 import org.dawnoftime.onceuponatown.town.generation.MapPart;
 import org.dawnoftime.onceuponatown.town.generation.ProtoTown;

@@ -2,12 +2,12 @@
   "id": "theater",
   "category": "special",
   "weight": 20,
+  "item": "minecraft:music_disc_stal",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:music_disc_stal",
   "variants": [
     {
       "name": "variant1",

@@ -2,12 +2,12 @@
   "id": "redstone_laboratory",
   "category": "work",
   "weight": 10,
+  "item": "minecraft:redstone_torch",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:redstone_torch",
   "variants": [
     {
       "name": "variant1",

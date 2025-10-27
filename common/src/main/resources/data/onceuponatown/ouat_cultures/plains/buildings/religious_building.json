@@ -2,12 +2,12 @@
   "id": "religious_building",
   "category": "work",
   "weight": 10,
+  "item": "minecraft:totem_of_undying",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:bell",
   "variants": [
     {
       "name": "small_temple",

@@ -2,6 +2,7 @@
   "id": "wheat_farm",
   "category": "work",
   "weight": 10,
+  "item": "minecraft:wheat",
   "levels": [
     {
       "required_era": 1,
@@ -14,7 +15,6 @@
       ]
     }
   ],
-  "item": "minecraft:wheat",
   "variants": [
     {
       "name": "small_farm",

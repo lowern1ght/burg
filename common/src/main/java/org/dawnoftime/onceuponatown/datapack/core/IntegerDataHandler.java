@@ -13,11 +13,17 @@ public class IntegerDataHandler extends DataHandler {
     private final int max;
 
     public IntegerDataHandler(@NotNull JsonObject rootJson, @NotNull String key, int min, int max) {
-        super(rootJson);
         this.key = key;
         this.value = this.getInt(rootJson, key);
         this.min = min;
         this.max = max;
+    }
+
+    public IntegerDataHandler(@NotNull JsonObject rootJson, @NotNull String key, int min, int max, int fallback) {
+        this(rootJson, key, min, max);
+        if (value == null) {
+            value = fallback;
+        }
     }
 
     public void set(String value) {
@@ -55,7 +61,7 @@ public class IntegerDataHandler extends DataHandler {
         return errors;
     }
 
-    public boolean isGreaterThan(IntegerDataHandler value){
+    public boolean isGreaterThan(IntegerDataHandler value) {
         Integer otherInteger = value.get();
         if (this.value == null || otherInteger == null) {
             return false;

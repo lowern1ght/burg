@@ -2,12 +2,12 @@
   "id": "library",
   "category": "work",
   "weight": 10,
+  "item": "minecraft:book",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:book",
   "variants": [
     {
       "name": "variant1",

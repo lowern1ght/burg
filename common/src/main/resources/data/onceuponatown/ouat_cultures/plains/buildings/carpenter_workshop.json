@@ -2,12 +2,12 @@
   "id": "carpenter_workshop",
   "category": "work",
   "weight": 10,
+  "item": "minecraft:oak_stairs",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:oak_stairs",
   "variants": [
     {
       "name": "variant1",

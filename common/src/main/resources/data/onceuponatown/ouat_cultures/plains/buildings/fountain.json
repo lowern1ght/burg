@@ -2,12 +2,12 @@
   "id": "fountain",
   "category": "decoration",
   "weight": 0,
+  "item": "minecraft:stone_slab",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:stone_slab",
   "variants": [
     {
       "name": "variant1",

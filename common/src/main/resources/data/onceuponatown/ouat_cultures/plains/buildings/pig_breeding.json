@@ -2,12 +2,12 @@
   "id": "pig_breeding",
   "category": "work",
   "weight": 10,
+  "item": "minecraft:porkchop",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:porkchop",
   "variants": [
     {
       "name": "variant2",

@@ -24,12 +24,12 @@ public abstract class DataHandler {
     public static final String CULTURE_JSON_FILE_NAME = "ouat_culture.json";
     public static final String BUILDINGS_FOLDER_NAME = "buildings";
     public static final String PROFESSIONS_FOLDER_NAME = "professions";
+    public static final String ROADS_FOLDER_NAME = "roads";
+    public static final String SCHEDULES_FOLDER_NAME = "schedules";
     public static final String ROAD_TYPE_NAME = "road";
     public static final String WIDE_ROAD_TYPE_NAME = "wide_road";
     public static final String BRIDGE_TYPE_NAME = "bridge";
     public static final String WALL_TYPE_NAME = "wall";
-
-    public DataHandler(@NotNull JsonObject rootJson){}
 
     public abstract JsonObject toJson(@NotNull JsonObject rootJson);
 
@@ -42,7 +42,6 @@ public abstract class DataHandler {
     protected String missingOrIncorrect(String field) {
         return "Missing or incorrect field '" + field + "'.";
     }
-
 
     protected @NotNull JsonObject getJsonObject(JsonObject container, String property) {
         return container.has(property) && container.get(property).isJsonObject() ? container.get(property).getAsJsonObject() : new JsonObject();

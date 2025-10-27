@@ -2,12 +2,12 @@
   "id": "mine",
   "category": "work",
   "weight": 10,
+  "item": "minecraft:minecart",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:minecart",
   "variants": [
     {
       "name": "variant1",

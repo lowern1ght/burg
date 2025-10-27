@@ -14,10 +14,16 @@ public class StringEnumDataHandler<T extends Enum<T>> extends DataHandler {
     private final Class<T> enumClass;
 
     public StringEnumDataHandler(@NotNull JsonObject rootJson, @NotNull String key, Class<T> enumClass) {
-        super(rootJson);
         this.key = key;
         this.value = this.getString(rootJson, key);
         this.enumClass = enumClass;
+    }
+
+    public StringEnumDataHandler(@NotNull JsonObject rootJson, @NotNull String key, Class<T> enumClass, @NotNull String fallback) {
+        this(rootJson, key, enumClass);
+        if (value == null) {
+            value = fallback;
+        }
     }
 
     public void set(String value) {
@@ -26,6 +32,10 @@ public class StringEnumDataHandler<T extends Enum<T>> extends DataHandler {
 
     public @Nullable String get(){
         return this.isValid() ? value : null;
+    }
+
+    public @Nullable T getEnum(){
+        return this.isValid() ? Enum.valueOf(enumClass, value.toUpperCase()) : null;
     }
 
     public @NotNull String asString() {

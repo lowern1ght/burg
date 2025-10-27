@@ -2,13 +2,13 @@
   "id": "medium_house",
   "category": "dwelling",
   "weight": 5,
+  "item": "minecraft:red_bed",
   "levels": [
     {
       "required_era": 1,
-      "dwelling_slots": 2
+      "dwelling_slots": 4
     }
   ],
-  "item": "minecraft:white_bed",
   "variants": [
     {
       "name": "regular1",

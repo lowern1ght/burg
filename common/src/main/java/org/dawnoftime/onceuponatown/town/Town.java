@@ -7,10 +7,8 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.commands.TimeCommand;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
@@ -31,7 +29,7 @@ import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.culture.ServerCultures;
 import org.dawnoftime.onceuponatown.culture.Specialization;
 import org.dawnoftime.onceuponatown.entity.Npc;
-import org.dawnoftime.onceuponatown.entity.Profession;
+import org.dawnoftime.onceuponatown.culture.Profession;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
 import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
 import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
@@ -97,7 +95,7 @@ public class Town extends ProtoTown {
             CompoundTag citizenTag = (CompoundTag) tag;
             this.citizens.add(new Citizen(
                 Citizen.Status.valueOf(citizenTag.getString("Status")),
-                Profession.of(citizenTag.getString("Profession")),
+                culture.getProfessionOrDefault(citizenTag.getString("Profession")),
                 citizenTag.hasUUID("UUID") ? citizenTag.getUUID("UUID") : null,
                 buildings.stream().filter(building -> building.toSafeString().equals(citizenTag.getString("Residence"))).findFirst().orElse(null),
                 buildings.stream().filter(building -> building.toSafeString().equals(citizenTag.getString("Workplace"))).findFirst().orElse(null)
@@ -257,7 +255,10 @@ public class Town extends ProtoTown {
         // Special profession : Builder
         Citizen builder = citizenList.stream().filter(Citizen::isUnemployed).findFirst()
             .orElse(new Citizen(Citizen.Status.NOT_SPAWNED, Profession.UNEMPLOYED, null, null, null));
-        builder.profession = Profession.BUILDER;
+        Profession profession = culture.getProfessionOrDefault("builder");
+        if (profession != Profession.UNEMPLOYED) {
+            builder.profession = profession;
+        }
         if (!citizenList.contains(builder)) {
             citizenList.add(builder);
         }
@@ -286,7 +287,7 @@ public class Town extends ProtoTown {
     }
 
     public void addDweller(Npc npc) {
-        citizens.add(new Citizen(Citizen.Status.LOADED, Profession.of(npc.getProfessionId()), npc.getUUID(), null, null));
+        citizens.add(new Citizen(Citizen.Status.LOADED, culture.getProfessionOrDefault(npc.getProfessionId()), npc.getUUID(), null, null));
         npc.assignTown(this);
     }
 
@@ -383,9 +384,9 @@ public class Town extends ProtoTown {
                             if (level.addFreshEntity(npc)) {
                                 npc.setCultureId(culture.getId());
                                 if (citizen.profession != null) {
-                                    npc.assignProfession(citizen.profession.getId());
+                                    npc.assignProfession(citizen.profession);
                                 } else {
-                                    npc.assignProfession("unemployed");
+                                    npc.assignProfession(Profession.UNEMPLOYED);
                                 }
                                 npc.assignTown(this);
                                 citizen.entityUUID = npc.getUUID();
@@ -495,7 +496,7 @@ public class Town extends ProtoTown {
             if (uuid != null) {
                 if (level.getEntity(citizen.entityUUID) instanceof Npc npc) {
                     npc.refreshAi(level);
-                    npc.assignProfession(Profession.UNEMPLOYED.getId());
+                    npc.assignProfession(Profession.UNEMPLOYED);
                 }
             }
         }

@@ -2,19 +2,19 @@
   "id": "cowshed",
   "category": "work",
   "weight": 10,
+  "item": "minecraft:milk_bucket",
   "levels": [
     {
       "required_era": 1,
       "dwelling_slots": 2,
       "working_slots": [
         {
-          "profession": "butcher",
+          "profession": "cowman",
           "slots": 1
         }
       ]
     }
   ],
-  "item": "minecraft:milk_bucket",
   "variants": [
     {
       "name": "cowshed",

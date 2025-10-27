@@ -2,12 +2,12 @@
   "id": "tavern",
   "category": "special",
   "weight": 20,
+  "item": "minecraft:pumpkin_pie",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:pumpkin_pie",
   "variants": [
     {
       "name": "big_inn",

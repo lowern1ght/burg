@@ -2,12 +2,12 @@
   "id": "greenhouses",
   "category": "work",
   "weight": 10,
+  "item": "minecraft:allium",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:allium",
   "variants": [
     {
       "name": "variant1",

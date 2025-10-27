@@ -27,7 +27,7 @@ public class ServerCultures {
             if (LOADED_CULTURES.containsKey(detectedId)) {
                 Ouat.error("Culture [%s]: Failed to register the culture. Another culture was already registered with the same id.".formatted(detectedId));
             } else {
-                Culture culture = Culture.readCultureFromDataPack(detectedId, rl, res, manager);
+                Culture culture = Culture.load(detectedId, res, manager);
                 if (culture != null) {
                     LOADED_CULTURES.put(detectedId, culture);
                 } else {

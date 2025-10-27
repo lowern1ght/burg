@@ -2,6 +2,10 @@ package org.dawnoftime.onceuponatown.datapack;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.datapack.core.DataHandler;
 import org.dawnoftime.onceuponatown.datapack.core.IntegerDataHandler;
 import org.dawnoftime.onceuponatown.datapack.core.StringDataHandler;
@@ -10,14 +14,13 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 
 public class CultureDataHandler extends DataHandler {
-    private final StringDataHandler id;
-    private final ArrayList<SpecializationDataHandler> specializations = new ArrayList<>();
-    private final ArrayList<EraDataHandler> eras = new ArrayList<>();
-    private final ArrayList<StarterPackDataHandler> starterPack = new ArrayList<>();
+    public final StringDataHandler id;
+    public final ArrayList<SpecializationDataHandler> specializations = new ArrayList<>();
+    public final ArrayList<EraDataHandler> eras = new ArrayList<>();
+    public final ArrayList<StarterPackDataHandler> starterPack = new ArrayList<>();
 
     public CultureDataHandler(@NotNull JsonObject rootJson) {
-        super(rootJson);
-        this.id = new StringDataHandler(rootJson, "id");
+        id = new StringDataHandler(rootJson, "id");
         this.getJsonArrayObjects(rootJson, "specializations")
                 .forEach(obj -> specializations.add(new SpecializationDataHandler(obj)));
         this.getJsonArrayObjects(rootJson, "eras")
@@ -50,26 +53,25 @@ public class CultureDataHandler extends DataHandler {
         return errors;
     }
 
-    private static class SpecializationDataHandler extends DataHandler {
+    public static class SpecializationDataHandler extends DataHandler {
         public final StringDataHandler id;
-        public final IntegerDataHandler colorR;
-        public final IntegerDataHandler colorG;
-        public final IntegerDataHandler colorB;
+        public final IntegerDataHandler colorRed;
+        public final IntegerDataHandler colorGreen;
+        public final IntegerDataHandler colorBlue;
 
         public SpecializationDataHandler(@NotNull JsonObject rootJson) {
-            super(rootJson);
             this.id = new StringDataHandler(rootJson, "id");
-            this.colorR = new IntegerDataHandler(rootJson, "colorR", 0, 255);
-            this.colorG = new IntegerDataHandler(rootJson, "colorG", 0, 255);
-            this.colorB = new IntegerDataHandler(rootJson, "colorB", 0, 255);
+            this.colorRed = new IntegerDataHandler(rootJson, "colorRed", 0, 255, 100);
+            this.colorGreen = new IntegerDataHandler(rootJson, "colorGreen", 0, 255, 100);
+            this.colorBlue = new IntegerDataHandler(rootJson, "colorBlue", 0, 255, 100);
         }
 
         @Override
         public JsonObject toJson(@NotNull JsonObject rootJson) {
             id.toJson(rootJson);
-            colorR.toJson(rootJson);
-            colorG.toJson(rootJson);
-            colorB.toJson(rootJson);
+            colorRed.toJson(rootJson);
+            colorGreen.toJson(rootJson);
+            colorBlue.toJson(rootJson);
             return rootJson;
         }
 
@@ -77,27 +79,26 @@ public class CultureDataHandler extends DataHandler {
         public @NotNull ArrayList<String> getErrors() {
             ArrayList<String> errors = new ArrayList<>();
             errors.addAll(id.getErrors());
-            errors.addAll(colorR.getErrors());
-            errors.addAll(colorG.getErrors());
-            errors.addAll(colorB.getErrors());
+            errors.addAll(colorRed.getErrors());
+            errors.addAll(colorGreen.getErrors());
+            errors.addAll(colorBlue.getErrors());
             return errors;
         }
     }
 
-    private static class EraDataHandler extends DataHandler {
+    public static class EraDataHandler extends DataHandler {
         public final IntegerDataHandler requiredExperience;
-        public final IntegerDataHandler maxBuildingWeight;
+        public final IntegerDataHandler maxBuildingsWeight;
 
         public EraDataHandler(@NotNull JsonObject rootJson) {
-            super(rootJson);
-            this.requiredExperience = new IntegerDataHandler(rootJson, "required_experience", 0, 100000);
-            this.maxBuildingWeight = new IntegerDataHandler(rootJson, "max_buildings_weight", 100, 100000);
+            this.requiredExperience = new IntegerDataHandler(rootJson, "required_experience", 0, Integer.MAX_VALUE, 0);
+            this.maxBuildingsWeight = new IntegerDataHandler(rootJson, "max_buildings_weight", 0, Integer.MAX_VALUE, Integer.MAX_VALUE);
         }
 
         @Override
         public JsonObject toJson(@NotNull JsonObject rootJson) {
             requiredExperience.toJson(rootJson);
-            maxBuildingWeight.toJson(rootJson);
+            maxBuildingsWeight.toJson(rootJson);
             return rootJson;
         }
 
@@ -105,21 +106,20 @@ public class CultureDataHandler extends DataHandler {
         public @NotNull ArrayList<String> getErrors() {
             ArrayList<String> errors = new ArrayList<>();
             errors.addAll(requiredExperience.getErrors());
-            errors.addAll(maxBuildingWeight.getErrors());
+            errors.addAll(maxBuildingsWeight.getErrors());
             return errors;
         }
     }
 
-    private static class StarterPackDataHandler extends DataHandler {
-        private final StringDataHandler id;
-        private final IntegerDataHandler min;
-        private final IntegerDataHandler max;
+    public static class StarterPackDataHandler extends DataHandler {
+        public final StringDataHandler id;
+        public final IntegerDataHandler min;
+        public final IntegerDataHandler max;
 
         public StarterPackDataHandler(@NotNull JsonObject rootJson) {
-            super(rootJson);
             this.id = new StringDataHandler(rootJson, "id");
-            this.min = new IntegerDataHandler(rootJson, "min", 0, 100000);
-            this.max = new IntegerDataHandler(rootJson, "max", 0, 100000);
+            this.min = new IntegerDataHandler(rootJson, "min", 0, Integer.MAX_VALUE);
+            this.max = new IntegerDataHandler(rootJson, "max", 0, Integer.MAX_VALUE);
         }
 
         @Override
@@ -140,6 +140,25 @@ public class CultureDataHandler extends DataHandler {
                 errors.add("Field 'min' must be <= to field 'max'");
             }
             return errors;
+        }
+    }
+
+    public static class FoodsDataHandler extends DataHandler {
+        public final StringDataHandler id;
+
+        public FoodsDataHandler(@NotNull JsonObject rootJson) {
+            this.id = new StringDataHandler(rootJson, "id");
+        }
+
+        @Override
+        public JsonObject toJson(@NotNull JsonObject rootJson) {
+            id.toJson(rootJson);
+            return rootJson;
+        }
+
+        @Override
+        public @NotNull ArrayList<String> getErrors() {
+            return new ArrayList<>(id.getErrors());
         }
     }
 }

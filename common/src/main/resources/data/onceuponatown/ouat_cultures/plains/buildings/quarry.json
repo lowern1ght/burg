@@ -2,12 +2,12 @@
   "id": "quarry",
   "category": "work",
   "weight": 10,
+  "item": "minecraft:stone_pickaxe",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:stone_pickaxe",
   "variants": [
     {
       "name": "variant1",

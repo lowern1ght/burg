@@ -2,12 +2,12 @@
   "id": "dyeing_workshop",
   "category": "work",
   "weight": 10,
+  "item": "minecraft:yellow_dye",
   "levels": [
     {
       "required_era": 1
     }
   ],
-  "item": "minecraft:yellow_dye",
   "variants": [
     {
       "name": "leather_shop",

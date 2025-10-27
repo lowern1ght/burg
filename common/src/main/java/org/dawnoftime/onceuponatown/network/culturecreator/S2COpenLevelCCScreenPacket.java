@@ -53,8 +53,8 @@ public class S2COpenLevelCCScreenPacket extends OpenScreenPacket {
                     .resolve(buildingId + ".json");
             BuildingDataHandler data = new BuildingDataHandler(loadJson(jsonPath));
             int levelInt = Integer.parseInt(level);
-            BuildingDataHandler.BuildingLevelsHandler levelData = data.levels.size() > levelInt ? data.levels.get(Integer.parseInt(level)) : new BuildingDataHandler.BuildingLevelsHandler(new JsonObject());
-            List<Pair<String, String>> professionSlots = levelData.workingSlots.stream().map(slot -> new Pair<>(slot.id.asString(), slot.maxLevel.asString())).toList();
+            BuildingDataHandler.BuildingLevelHandler levelData = data.levels.size() > levelInt ? data.levels.get(Integer.parseInt(level)) : new BuildingDataHandler.BuildingLevelHandler(new JsonObject());
+            List<Pair<String, String>> professionSlots = levelData.workingSlots.stream().map(slot -> new Pair<>(slot.profession.asString(), slot.maxLevel.asString())).toList();
             List<String> professions = new ArrayList<>();
             try {
                 jsonPath = COMMON.getConfigFolder().toPath()

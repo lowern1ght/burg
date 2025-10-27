@@ -9,7 +9,6 @@ import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.Utils;
 import org.dawnoftime.onceuponatown.building.schematic.BuildVariant;
 import org.dawnoftime.onceuponatown.culture.CorruptedCultureException;
-import org.dawnoftime.onceuponatown.culture.CultureFileHelper;
 import org.jetbrains.annotations.NotNull;
 import oshi.util.tuples.Pair;
 
@@ -26,20 +25,6 @@ public class RoadType extends SliceBuildType {
     public RoadType(String roadTypeId, int weight, List<BuildLevel> levels, HashMap<String, Pair<BuildVariant, String>> variants, String cultureId) {
         super(roadTypeId, weight, levels, BuildingPurpose.INFRASTRUCTURE);
         variants.forEach((id, pair) -> addVariant(pair.getA(), pair.getB(), cultureId));
-    }
-
-    public static @NotNull RoadType createFromDataPack(String cultureId, ResourceLocation roadRl, ResourceManager resourceManager) {
-        String path = roadRl.getPath();
-        String roadTypeId = path.substring(path.lastIndexOf('/') + 1, path.lastIndexOf('.'));
-        CultureFileHelper helper = new CultureFileHelper(cultureId, roadTypeId + ".json", roadRl, "road type");
-        try (Reader reader = resourceManager.getResource(roadRl).orElseThrow().openAsReader()) {
-            JsonObject rootJson = GsonHelper.parse(reader);
-            /* Reading data shared by all types (roads, buildings...) : id, weight, levels... */
-            BuildTypeCommonJsonData mainData = readJsonCommonData(cultureId, roadTypeId, rootJson, helper, resourceManager);
-            return new RoadType(roadTypeId, mainData.weight(), mainData.levels(), mainData.variants(), cultureId);
-        } catch (NoSuchElementException | IOException | JsonParseException e) {
-            throw new CorruptedCultureException(cultureId, "Could not read road type file '" + roadTypeId + "'.json, supposed to be located at " + Utils.serverRlToDebug(roadRl) + ". " + e.getMessage());
-        }
     }
 
     @Override
