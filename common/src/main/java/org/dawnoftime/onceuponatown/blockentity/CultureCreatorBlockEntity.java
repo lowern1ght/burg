@@ -21,6 +21,10 @@ import java.util.List;
 import java.util.Map;
 
 public class CultureCreatorBlockEntity extends BlockEntity {
+    private String cultureId;
+    private String buildingId;
+    private String variantId;
+    private int buildingLevel;
     private BlockPos secondPos = null;
     private final Map<BlockPos,String> waypoints = new HashMap<>();
 
@@ -28,13 +32,36 @@ public class CultureCreatorBlockEntity extends BlockEntity {
         super(BlockEntityRegistry.REGISTRY.CULTURE_CREATOR.get(), pos, blockState);
     }
 
-    public void setSecondPos(@NotNull BlockPos pos) {
-        this.secondPos = pos;
-        this.updateSelectEntity();
+    public String getCultureId() {
+        return cultureId;
+    }
+
+    public int getBuildingLevel() {
+        return buildingLevel;
+    }
+
+    public String getVariantId() {
+        return variantId;
+    }
+
+    public String getBuildingId() {
+        return buildingId;
+    }
+
+    public void setParameters(@NotNull String cultureId, @NotNull String buildingId, @NotNull String variantId, int buildingLevel) {
+        this.cultureId = cultureId;
+        this.buildingId = buildingId;
+        this.variantId = variantId;
+        this.buildingLevel = buildingLevel;
     }
 
     public @Nullable BlockPos getSecondPos() {
         return this.secondPos;
+    }
+
+    public void setSecondPos(@NotNull BlockPos pos) {
+        this.secondPos = pos;
+        this.updateSelectEntity();
     }
 
     public void addWaypoint(BlockPos pos, String type) {
@@ -99,6 +126,10 @@ public class CultureCreatorBlockEntity extends BlockEntity {
 
     @Override
     public void load(@NotNull CompoundTag tag) {
+        this.cultureId = tag.getString("culture_id");
+        this.buildingId = tag.getString("building_id");
+        this.variantId = tag.getString("variant_id");
+        this.buildingLevel = tag.getInt("level");
         try {
             if (tag.contains("second_pos")) {
                 this.secondPos = NbtUtils.readBlockPos(tag.getCompound("second_pos"));
@@ -120,6 +151,10 @@ public class CultureCreatorBlockEntity extends BlockEntity {
 
     @Override
     public void saveAdditional(@NotNull CompoundTag tag) {
+        tag.putString("culture_id", this.cultureId);
+        tag.putString("building_id", this.buildingId);
+        tag.putString("variant_id", this.variantId);
+        tag.putInt("level", this.buildingLevel);
         if (secondPos != null) {
             tag.put("second_pos", NbtUtils.writeBlockPos(secondPos));
         }
@@ -142,5 +177,9 @@ public class CultureCreatorBlockEntity extends BlockEntity {
 //                this.removeAllAt(..., pos);
 //            }
         }
+    }
+
+    public boolean forSameParameters(String cultureId, String buildingId, String variantId, int buildingLevel) {
+        return this.cultureId.equals(cultureId) && this.buildingId.equals(buildingId) && this.variantId.equals(variantId) && this.buildingLevel == buildingLevel;
     }
 }

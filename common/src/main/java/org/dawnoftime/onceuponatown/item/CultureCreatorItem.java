@@ -19,7 +19,6 @@ import net.minecraft.world.level.block.Block;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.network.OuatPacket;
 import org.dawnoftime.onceuponatown.network.culturecreator.*;
-import org.dawnoftime.onceuponatown.registry.BlockRegistry;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -69,7 +68,12 @@ public class CultureCreatorItem extends BlockItem {
 
     private @NotNull InteractionResultHolder<ItemStack> useCultureCreatorSelect(Level level, @NotNull Player player, @NotNull ItemStack stack, @NotNull BlockPos pos, @NotNull Direction direction) {
         if (level.isClientSide()) {
-            Ouat.CLIENT.sendToServer(new C2SUseSelectCCPacket(player.isShiftKeyDown(), Screen.hasControlDown(), pos, direction));
+            CompoundTag currentScreenTag = stack.getOrCreateTag().getCompound("ouat_packet");
+            String cultureId = currentScreenTag.getString("culture_id");
+            String buildingId = currentScreenTag.getString("building_id");
+            String variantId = currentScreenTag.getString("variant_id");
+            int buildingLevel = currentScreenTag.getInt("level");
+            Ouat.CLIENT.sendToServer(new C2SUseSelectCCPacket(player.isShiftKeyDown(), Screen.hasControlDown(), pos, direction, cultureId, buildingId, variantId, buildingLevel));
         }
         return InteractionResultHolder.success(stack);
     }
@@ -142,5 +146,16 @@ public class CultureCreatorItem extends BlockItem {
                 stack.getOrCreateTag().putByte("ouat_culture_creator_state", state);
             }
         }
+    }
+
+    public static void changeSelectedPage(ItemStack ccStack, @NotNull String cultureId, @NotNull String buildingId, @NotNull String variantId, int buildingLevel) {
+        CompoundTag tag = ccStack.getOrCreateTag();
+        CompoundTag packetTag = new CompoundTag();
+        packetTag.putString("id", "s2c_open_variant_level_screen_cc");
+        packetTag.putString("culture_id", cultureId);
+        packetTag.putString("building_id", buildingId);
+        packetTag.putString("variant_id", variantId);
+        packetTag.putInt("level", buildingLevel);
+        tag.put("ouat_packet", packetTag);
     }
 }
