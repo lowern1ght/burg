@@ -1,8 +1,6 @@
 package org.dawnoftime.onceuponatown.item;
 
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.server.MinecraftServer;
@@ -13,12 +11,17 @@ import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.blockentity.CultureCreatorBlockEntity;
 import org.dawnoftime.onceuponatown.network.OuatPacket;
 import org.dawnoftime.onceuponatown.network.culturecreator.*;
+import org.dawnoftime.onceuponatown.registry.BlockRegistry;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -29,33 +32,27 @@ public class CultureCreatorItem extends BlockItem {
     }
 
     @Override
-    public @NotNull InteractionResult useOn(UseOnContext context) {
-        if (context.getPlayer() == null) {
-            return InteractionResult.PASS;
-        }
-        return handleUse(context.getLevel(), context.getPlayer(), context.getClickedPos(), context.getClickedFace(), context.getHand()).getResult();
+    public @NotNull InteractionResult useOn(@NotNull UseOnContext context) {
+        return handleUse(context).getResult();
     }
 
     @Override
     public @NotNull InteractionResultHolder<ItemStack> use(@NotNull Level level, @NotNull Player player, @NotNull InteractionHand hand) {
-        return handleUse(level, player, player.getOnPos(), Direction.NORTH, hand);
+        return handleUse(new UseOnContext(player, hand, getPlayerPOVHitResult(level, player, ClipContext.Fluid.NONE)));
     }
 
-    private InteractionResultHolder<ItemStack> handleUse(Level level, Player player, @NotNull BlockPos pos, @NotNull Direction direction, InteractionHand hand) {
-        ItemStack stack = player.getItemInHand(hand);
-        if (hand == InteractionHand.OFF_HAND) {
-            return InteractionResultHolder.pass(stack);
-        }
-        return switch (getState(stack)) {
-            case 1 -> this.useCultureCreatorSelect(level, player, stack, pos, direction);
-            case 2 -> this.useCultureCreatorPaste(level, player, stack);
-            case 3 -> this.useCultureCreatorWaypoint(level, player, stack);
-            default -> this.useCultureCreatorDefault(level, player, stack);
+    private InteractionResultHolder<ItemStack> handleUse(@NotNull UseOnContext context) {
+        return switch (getState(context.getItemInHand())) {
+            case 1 -> this.useCultureCreatorSelect(context);
+            case 2 -> this.useCultureCreatorPaste(context);
+            case 3 -> this.useCultureCreatorWaypoint(context);
+            default -> this.useCultureCreatorDefault(context);
         };
     }
 
-    private @NotNull InteractionResultHolder<ItemStack> useCultureCreatorDefault(Level level, @NotNull Player player, @NotNull ItemStack stack) {
-        if (!level.isClientSide() && player instanceof ServerPlayer serverPlayer) {
+    private @NotNull InteractionResultHolder<ItemStack> useCultureCreatorDefault(@NotNull UseOnContext context) {
+        ItemStack stack = context.getItemInHand();
+        if (!context.getLevel().isClientSide() && context.getPlayer() instanceof ServerPlayer serverPlayer) {
             MinecraftServer server = serverPlayer.server;
             if (server.getPlayerList().isOp(serverPlayer.getGameProfile())) {
                 Ouat.COMMON.sendToClient(serverPlayer, this.openStoredScreen(serverPlayer, stack.getOrCreateTag()));
@@ -66,27 +63,89 @@ public class CultureCreatorItem extends BlockItem {
         return InteractionResultHolder.success(stack);
     }
 
-    private @NotNull InteractionResultHolder<ItemStack> useCultureCreatorSelect(Level level, @NotNull Player player, @NotNull ItemStack stack, @NotNull BlockPos pos, @NotNull Direction direction) {
-        if (level.isClientSide()) {
+    private @NotNull InteractionResultHolder<ItemStack> useCultureCreatorSelect(@NotNull UseOnContext context) {
+        Player player = context.getPlayer();
+        if (player == null) {
+            return InteractionResultHolder.pass(ItemStack.EMPTY);
+        }
+        ItemStack stack = player.getItemInHand(context.getHand());
+
+        if (stack.isEmpty()) {
+            return InteractionResultHolder.pass(stack);
+        }
+
+        // If shifting, open the GUI
+        if (player.isShiftKeyDown()) {
+            return InteractionResultHolder.success(stack);
+        }
+
+        Level level = context.getLevel();
+        BlockPos pos = context.getClickedPos();
+        Block ccBlock = BlockRegistry.REGISTRY.CULTURE_CREATOR_BLOCK.get();
+        BlockPos currentCCB = getPairedCCBlockPos(stack);
+        if (currentCCB != null && !level.getBlockState(currentCCB).is(ccBlock)) {
+            this.setPairedCCBlockPos(stack, null);
+            currentCCB = null;
+        }
+        BlockPos targetCCB = level.getBlockState(pos).is(ccBlock) ? pos : null;
+        if (targetCCB != null) {
+            if (targetCCB.equals(currentCCB)) {
+                // Open GUI (code to do later...)
+            } else {
+                // If the target is a different CultureCreatorBlock, bind with it.
+                this.setPairedCCBlockPos(stack, targetCCB);
+                if (level.getBlockEntity(targetCCB) instanceof CultureCreatorBlockEntity ccBE) {
+                    this.changeSelectedPage(stack, ccBE.getCultureId(), ccBE.getBuildingId(), ccBE.getVariantId(), ccBE.getBuildingLevel());
+                }
+            }
+            return InteractionResultHolder.success(stack);
+        }
+
+        if (currentCCB == null) {
+            // First corner : if the target is an empty block, place the ccBlock here.
+            this.place(new BlockPlaceContext(context));
+        } else {
+            // Second corner.
+            if (level.getBlockEntity(currentCCB) instanceof CultureCreatorBlockEntity ccBE) {
+                ccBE.setSecondPos(pos);
+            }
+        }
+        return InteractionResultHolder.success(stack);
+    }
+
+    @Override
+    protected boolean placeBlock(@NotNull BlockPlaceContext context, @NotNull BlockState state) {
+        if (super.placeBlock(context, state)) {
+            this.setPairedCCBlockPos(context.getItemInHand(), context.getClickedPos());
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    protected boolean updateCustomBlockEntityTag(@NotNull BlockPos pos, @NotNull Level level, @Nullable Player player, @NotNull ItemStack stack, @NotNull BlockState state) {
+        boolean updated = super.updateCustomBlockEntityTag(pos, level, player, stack, state);
+        if (!level.isClientSide() && level.getBlockEntity(pos) instanceof CultureCreatorBlockEntity ccBE) {
             CompoundTag currentScreenTag = stack.getOrCreateTag().getCompound("ouat_packet");
             String cultureId = currentScreenTag.getString("culture_id");
             String buildingId = currentScreenTag.getString("building_id");
             String variantId = currentScreenTag.getString("variant_id");
             int buildingLevel = currentScreenTag.getInt("level");
-            Ouat.CLIENT.sendToServer(new C2SUseSelectCCPacket(player.isShiftKeyDown(), Screen.hasControlDown(), pos, direction, cultureId, buildingId, variantId, buildingLevel));
+            ccBE.setParameters(cultureId, buildingId, variantId, buildingLevel);
+            ccBE.setChanged();
+            return true;
         }
-        return InteractionResultHolder.success(stack);
+        return updated;
     }
 
-    private @NotNull InteractionResultHolder<ItemStack> useCultureCreatorPaste(Level level, @NotNull Player player, @NotNull ItemStack stack) {
+    private @NotNull InteractionResultHolder<ItemStack> useCultureCreatorPaste(@NotNull UseOnContext context) {
         System.out.println("Mode Paste Server");
-        return InteractionResultHolder.success(stack);
+        return InteractionResultHolder.success(context.getItemInHand());
     }
 
-    private @NotNull InteractionResultHolder<ItemStack> useCultureCreatorWaypoint(Level level, @NotNull Player player, @NotNull ItemStack stack) {
+    private @NotNull InteractionResultHolder<ItemStack> useCultureCreatorWaypoint(@NotNull UseOnContext context) {
         System.out.println("Mode Waypoint Server");
-        return InteractionResultHolder.success(stack);
-    }
+        return InteractionResultHolder.success(context.getItemInHand());    }
 
     private OuatPacket openStoredScreen(@NotNull Player player, @NotNull CompoundTag tag) {
         OuatPacket packet = null;
@@ -122,7 +181,7 @@ public class CultureCreatorItem extends BlockItem {
         }
     }
 
-    public static void setPairedCCBlockPos(ItemStack ccStack, @Nullable BlockPos pos) {
+    private void setPairedCCBlockPos(ItemStack ccStack, @Nullable BlockPos pos) {
         var tag = ccStack.getOrCreateTag();
         if (pos == null) {
             tag.remove("ouat_paired_cc_block");
@@ -148,7 +207,7 @@ public class CultureCreatorItem extends BlockItem {
         }
     }
 
-    public static void changeSelectedPage(ItemStack ccStack, @NotNull String cultureId, @NotNull String buildingId, @NotNull String variantId, int buildingLevel) {
+    private void changeSelectedPage(ItemStack ccStack, @NotNull String cultureId, @NotNull String buildingId, @NotNull String variantId, int buildingLevel) {
         CompoundTag tag = ccStack.getOrCreateTag();
         CompoundTag packetTag = new CompoundTag();
         packetTag.putString("id", "s2c_open_variant_level_screen_cc");

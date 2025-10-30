@@ -41,16 +41,21 @@ public class CultureCreatorSelectRenderer extends EntityRenderer<CultureCreatorS
 
         BlockPos secondPos = entity.getSecondPos();
 
-        Component text = entity.getText();
+        poseStack.pushPose();
+        poseStack.translate(0, 2, 0);
+        poseStack.mulPose(this.entityRenderDispatcher.cameraOrientation());
+        poseStack.scale(-0.025F, -0.025F, 0.025F);
+        this.renderText(entity.getTextCulture(), poseStack, buffer, packedLight, 0);
+        this.renderText(entity.getTextBuilding(), poseStack, buffer, packedLight, 10);
+        this.renderText(entity.getTextVariant(), poseStack, buffer, packedLight, 20);
+        this.renderText(entity.getTextLevel(), poseStack, buffer, packedLight, 30);
+        poseStack.popPose();
+    }
+
+    private void renderText(Component text, @NotNull PoseStack poseStack, @NotNull MultiBufferSource buffer, int packedLight, int yPx) {
         if (!text.getString().isEmpty()) {
-            poseStack.pushPose();
-            poseStack.translate(entity.position().x, entity.position().y, entity.position().z);
-            poseStack.mulPose(this.entityRenderDispatcher.cameraOrientation());
-            float scale = 0.02F;
-            poseStack.scale(-scale, -scale, scale);
             float textWidth = font.width(text);
-            font.drawInBatch(text, -textWidth / 2, 0, 0xFFFFFF, false, poseStack.last().pose(), buffer, Font.DisplayMode.NORMAL, 0, packedLight);
-            poseStack.popPose();
+            font.drawInBatch(text, -textWidth / 2, yPx, 0xFFFFFF, false, poseStack.last().pose(), buffer, Font.DisplayMode.NORMAL, 0, packedLight);
         }
     }
 
