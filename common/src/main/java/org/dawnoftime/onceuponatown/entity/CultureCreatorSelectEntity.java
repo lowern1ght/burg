@@ -19,7 +19,10 @@ import org.jetbrains.annotations.Nullable;
 public class CultureCreatorSelectEntity extends Entity {
 
     private static final EntityDataAccessor<BlockPos> DATA_SECOND_POS = SynchedEntityData.defineId(CultureCreatorSelectEntity.class, EntityDataSerializers.BLOCK_POS);
-    private static final EntityDataAccessor<Component> DATA_TEXT = SynchedEntityData.defineId(CultureCreatorSelectEntity.class, EntityDataSerializers.COMPONENT);
+    private static final EntityDataAccessor<Component> DATA_CULTURE = SynchedEntityData.defineId(CultureCreatorSelectEntity.class, EntityDataSerializers.COMPONENT);
+    private static final EntityDataAccessor<Component> DATA_BUILDING = SynchedEntityData.defineId(CultureCreatorSelectEntity.class, EntityDataSerializers.COMPONENT);
+    private static final EntityDataAccessor<Component> DATA_VARIANT = SynchedEntityData.defineId(CultureCreatorSelectEntity.class, EntityDataSerializers.COMPONENT);
+    private static final EntityDataAccessor<Component> DATA_LEVEL = SynchedEntityData.defineId(CultureCreatorSelectEntity.class, EntityDataSerializers.COMPONENT);
 
     public CultureCreatorSelectEntity(EntityType<CultureCreatorSelectEntity> entityType, Level level) {
         super(entityType, level);
@@ -35,7 +38,10 @@ public class CultureCreatorSelectEntity extends Entity {
     @Override
     protected void defineSynchedData() {
         this.entityData.define(DATA_SECOND_POS, BlockPos.ZERO);
-        this.entityData.define(DATA_TEXT, Component.empty());
+        this.entityData.define(DATA_CULTURE, Component.empty());
+        this.entityData.define(DATA_BUILDING, Component.empty());
+        this.entityData.define(DATA_VARIANT, Component.empty());
+        this.entityData.define(DATA_LEVEL, Component.empty());
     }
 
     public void setSecondPos(@Nullable BlockPos pos) {
@@ -51,18 +57,27 @@ public class CultureCreatorSelectEntity extends Entity {
     }
 
     public void setText(@NotNull String cultureId, @NotNull String buildingId, @NotNull String variantId, int buildingLevel) {
-        Component text = Component.literal(cultureId).withStyle(ChatFormatting.BOLD, ChatFormatting.YELLOW)
-                .append(Component.literal("\n"))
-                .append(Component.literal(buildingId).withStyle(ChatFormatting.BOLD))
-                .append(Component.literal("\n"))
-                .append(Component.literal(variantId).withStyle(ChatFormatting.GRAY))
-                .append(Component.literal("\nLevel "))
-                .append(Component.literal(String.valueOf(buildingLevel)).withStyle(ChatFormatting.BOLD, ChatFormatting.YELLOW));
-        this.entityData.set(DATA_TEXT, text);
+
+        this.entityData.set(DATA_CULTURE, Component.literal(cultureId).withStyle(ChatFormatting.BOLD, ChatFormatting.GOLD));
+        this.entityData.set(DATA_BUILDING, Component.literal(buildingId).withStyle(ChatFormatting.BOLD));
+        this.entityData.set(DATA_VARIANT, Component.literal(variantId));
+        this.entityData.set(DATA_LEVEL, Component.literal("Level ").append(Component.literal(String.valueOf(buildingLevel)).withStyle(ChatFormatting.BOLD, ChatFormatting.YELLOW)));
     }
 
-    public @NotNull Component getText() {
-        return this.entityData.get(DATA_TEXT);
+    public @NotNull Component getTextCulture() {
+        return this.entityData.get(DATA_CULTURE);
+    }
+
+    public @NotNull Component getTextBuilding() {
+        return this.entityData.get(DATA_BUILDING);
+    }
+
+    public @NotNull Component getTextVariant() {
+        return this.entityData.get(DATA_VARIANT);
+    }
+
+    public @NotNull Component getTextLevel() {
+        return this.entityData.get(DATA_LEVEL);
     }
 
     @Override
@@ -70,11 +85,21 @@ public class CultureCreatorSelectEntity extends Entity {
         if (tag.contains("second_pos")) {
             this.setSecondPos(NbtUtils.readBlockPos(tag.getCompound("second_pos")));
         }
-        if (tag.contains("text", Tag.TAG_STRING)) {
-            Component text = Component.Serializer.fromJson(tag.getString("text"));
-            if (text != null) {
-                this.entityData.set(DATA_TEXT, text);
-            }
+        Component text = Component.Serializer.fromJson(tag.getString("text_culture"));
+        if (text != null) {
+            this.entityData.set(DATA_CULTURE, text);
+        }
+        text = Component.Serializer.fromJson(tag.getString("text_building"));
+        if (text != null) {
+            this.entityData.set(DATA_BUILDING, text);
+        }
+        text = Component.Serializer.fromJson(tag.getString("text_variant"));
+        if (text != null) {
+            this.entityData.set(DATA_VARIANT, text);
+        }
+        text = Component.Serializer.fromJson(tag.getString("text_level"));
+        if (text != null) {
+            this.entityData.set(DATA_LEVEL, text);
         }
     }
 
@@ -84,10 +109,10 @@ public class CultureCreatorSelectEntity extends Entity {
         if (secondPos != null) {
             tag.put("second_pos", NbtUtils.writeBlockPos(secondPos));
         }
-        Component text = this.getText();
-        if (!text.getString().isEmpty()) {
-            tag.putString("text", Component.Serializer.toJson(text));
-        }
+        tag.putString("text_culture", Component.Serializer.toJson(this.getTextCulture()));
+        tag.putString("text_building", Component.Serializer.toJson(this.getTextBuilding()));
+        tag.putString("text_variant", Component.Serializer.toJson(this.getTextVariant()));
+        tag.putString("text_level", Component.Serializer.toJson(this.getTextLevel()));
     }
 
     @Override

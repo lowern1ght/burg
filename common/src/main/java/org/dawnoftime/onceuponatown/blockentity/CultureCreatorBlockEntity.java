@@ -21,10 +21,10 @@ import java.util.List;
 import java.util.Map;
 
 public class CultureCreatorBlockEntity extends BlockEntity {
-    private String cultureId;
-    private String buildingId;
-    private String variantId;
-    private int buildingLevel;
+    private String cultureId = "";
+    private String buildingId = "";
+    private String variantId = "";
+    private int buildingLevel = 0;
     private BlockPos secondPos = null;
     private final Map<BlockPos,String> waypoints = new HashMap<>();
 
@@ -83,6 +83,7 @@ public class CultureCreatorBlockEntity extends BlockEntity {
                 ccEntity.setSecondPos(this.secondPos);
                 this.level.addFreshEntity(ccEntity);
             }
+            ccEntity.setText(cultureId, buildingId, variantId, buildingLevel);
         }
     }
 
@@ -169,6 +170,21 @@ public class CultureCreatorBlockEntity extends BlockEntity {
     }
 
     @Override
+    public void setChanged() {
+        super.setChanged();
+        if (level != null && !level.isClientSide()) {
+            level.sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), 3);
+        }
+    }
+
+    @Override
+    public @NotNull CompoundTag getUpdateTag() {
+        CompoundTag tag = new CompoundTag();
+        this.saveAdditional(tag);
+        return tag;
+    }
+
+    @Override
     public void setRemoved() {
         super.setRemoved();
         if (this.level != null && !this.level.isClientSide()) {
@@ -177,9 +193,5 @@ public class CultureCreatorBlockEntity extends BlockEntity {
 //                this.removeAllAt(..., pos);
 //            }
         }
-    }
-
-    public boolean forSameParameters(String cultureId, String buildingId, String variantId, int buildingLevel) {
-        return this.cultureId.equals(cultureId) && this.buildingId.equals(buildingId) && this.variantId.equals(variantId) && this.buildingLevel == buildingLevel;
     }
 }
