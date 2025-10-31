@@ -1,5 +1,6 @@
 package org.dawnoftime.onceuponatown.item;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
@@ -16,6 +17,7 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.blockentity.CultureCreatorBlockEntity;
@@ -132,7 +134,6 @@ public class CultureCreatorItem extends BlockItem {
             String variantId = currentScreenTag.getString("variant_id");
             int buildingLevel = currentScreenTag.getInt("level");
             ccBE.setParameters(cultureId, buildingId, variantId, buildingLevel);
-            ccBE.setChanged();
             return true;
         }
         return updated;

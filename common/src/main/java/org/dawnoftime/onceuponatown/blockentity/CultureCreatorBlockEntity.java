@@ -5,6 +5,9 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -53,6 +56,7 @@ public class CultureCreatorBlockEntity extends BlockEntity {
         this.buildingId = buildingId;
         this.variantId = variantId;
         this.buildingLevel = buildingLevel;
+        this.updateSelectEntity();
     }
 
     public @Nullable BlockPos getSecondPos() {
@@ -117,15 +121,6 @@ public class CultureCreatorBlockEntity extends BlockEntity {
     }
 
     @Override
-    public void setLevel(@NotNull Level level) {
-        super.setLevel(level);
-        if (!level.isClientSide()) {
-            this.updateSelectEntity();
-        }
-    }
-
-
-    @Override
     public void load(@NotNull CompoundTag tag) {
         this.cultureId = tag.getString("culture_id");
         this.buildingId = tag.getString("building_id");
@@ -169,20 +164,7 @@ public class CultureCreatorBlockEntity extends BlockEntity {
         tag.put("waypoints", list);
     }
 
-    @Override
-    public void setChanged() {
-        super.setChanged();
-        if (level != null && !level.isClientSide()) {
-            level.sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), 3);
-        }
-    }
 
-    @Override
-    public @NotNull CompoundTag getUpdateTag() {
-        CompoundTag tag = new CompoundTag();
-        this.saveAdditional(tag);
-        return tag;
-    }
 
     @Override
     public void setRemoved() {
