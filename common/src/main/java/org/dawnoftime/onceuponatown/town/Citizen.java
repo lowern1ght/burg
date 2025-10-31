@@ -14,6 +14,7 @@ public class Citizen {
     UUID entityUUID;
     Building residence;
     Building workplace;
+    int level = 1;
 
     Citizen(@NotNull Status status, @NotNull Profession profession, @Nullable UUID entityUUID, @Nullable Building residence, @Nullable Building workplace) {
         this.status = status;
@@ -57,6 +58,10 @@ public class Citizen {
 
     public Building getWorkplace() {
         return workplace;
+    }
+
+    public int getLevel() {
+        return level;
     }
 
     public enum Status {

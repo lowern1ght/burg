@@ -35,7 +35,7 @@ public class CommonEvents {
     public static class ForgeBusCommonEvents {
         @SubscribeEvent
         public static void registerCommands(RegisterCommandsEvent event) {
-            CommandRegistry.register(event.getDispatcher());
+            CommandRegistry.register(event.getDispatcher(), event.getBuildContext());
         }
 
         @SubscribeEvent

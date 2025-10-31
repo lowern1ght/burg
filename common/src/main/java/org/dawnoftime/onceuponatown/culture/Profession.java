@@ -37,6 +37,10 @@ public class Profession {
         return levels;
     }
 
+    public Level getLevel(int level) {
+        return (level < 1 || level >= levels.size() + 1) ? null : levels.get(level - 1);
+    }
+
     public record Level(
         HashMap<Item, Pair<Integer, Integer>> production,
         List<Item> crafts,

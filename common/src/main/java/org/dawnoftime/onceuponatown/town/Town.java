@@ -13,6 +13,8 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import org.dawnoftime.onceuponatown.Config;
@@ -42,6 +44,7 @@ import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 public class Town extends ProtoTown {
+    private static final List<ItemStack> INVENTORY_STARTER_PACK = List.of(new ItemStack(Items.BREAD, 32), new ItemStack(Items.APPLE, 16));
     private final ServerLevel level; // The Level this Town belongs to
     private final int id; // Unique Id
     private Component name; // Not unique name
@@ -120,7 +123,7 @@ public class Town extends ProtoTown {
             new ArrayList<>(), // Empty ConstructionProjects
             new ListTag(), // Empty Citizens
             new HashMap<>(), // Empty progression
-            new TownInventory(protoTownTag.getCompound("TownInventory")),
+            new TownInventory(INVENTORY_STARTER_PACK),
             level.getGameTime(), // lastProductionHarvest
             0, // experience
             0 // lastActive
@@ -173,7 +176,7 @@ public class Town extends ProtoTown {
             new ArrayList<>(), // Empty ConstructionProjects
             new ListTag(), // Empty Citizens
             new HashMap<>(), // Empty progression
-            new TownInventory(),
+            new TownInventory(INVENTORY_STARTER_PACK),
             level.getGameTime(), // lastProductionHarvest
             0, // experience
             0 // lastActive
@@ -483,7 +486,7 @@ public class Town extends ProtoTown {
         int availableHarvests = (int) ((now - lastHarvest) / Config.PRODUCTION_HARVEST_RATE);
         if (availableHarvests > 0) {
             for (int i = 0; i < availableHarvests; ++i) {
-                collectProduction();
+                //collectProduction();
             }
             lastProductionHarvest = now;
         }
@@ -510,7 +513,10 @@ public class Town extends ProtoTown {
     }
 
     private void collectProduction() {
-
+        for (Citizen worker : citizens.stream().filter(citizen -> !citizen.isUnemployed()).toList()) {
+            var production = worker.getProfession().getLevel(worker.getLevel()).production();
+            production.forEach((item, integerIntegerPair) -> inventory.add(new ItemStack(item, integerIntegerPair.getA())));
+        }
     }
 
     private void tryStartSurpriseRaid() {
@@ -638,6 +644,10 @@ public class Town extends ProtoTown {
 
     public Component getName() {
         return name;
+    }
+
+    public TownInventory getInventory() {
+        return inventory;
     }
 
     public boolean isActive() {
