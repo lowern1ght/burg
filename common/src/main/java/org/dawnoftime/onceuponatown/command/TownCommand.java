@@ -8,16 +8,21 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.minecraft.ChatFormatting;
+import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.ComponentArgument;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
+import net.minecraft.commands.arguments.item.ItemArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.*;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.Heightmap;
 import org.dawnoftime.onceuponatown.Ouat;
@@ -38,7 +43,7 @@ import java.util.List;
 
 public class TownCommand {
     private static final int CLOSEST_TOWN_MAX_SEARCH_DIST = 100;
-    private static final String CLOSEST = "CLOSEST";
+    private static final String CLOSEST = "CLOSEST_TOWN";
     private static final SuggestionProvider<CommandSourceStack> SUGGEST_TOWNS = (context, suggestionsBuilder) -> {
         List<String> suggestions = new ArrayList<>();
         LevelTowns.of(context.getSource().getLevel()).getAll().forEach(town -> suggestions.add(town.getFancyId()));
@@ -88,7 +93,7 @@ public class TownCommand {
         return SharedSuggestionProvider.suggest(suggestions, suggestionsBuilder);
     };
 
-    public static LiteralArgumentBuilder<CommandSourceStack> register() {
+    public static LiteralArgumentBuilder<CommandSourceStack> register(CommandBuildContext buildContext) {
         return Commands.literal("town")
             .requires(commandSourceStack -> commandSourceStack.hasPermission(2))
             .then(Commands.literal("list")
@@ -208,6 +213,40 @@ public class TownCommand {
                         )
                     )
                 )
+            )
+            .then(Commands.literal("inventory")
+                .then(Commands.literal("show")
+                    .then(Commands.argument("townid", string())
+                        .suggests(SUGGEST_TOWNS)
+                        .executes(context -> showInventory(context.getSource(), getString(context, "townid")))
+                    )
+                )
+                .then(Commands.literal("add")
+                    .then(Commands.argument("townid", string())
+                        .suggests(SUGGEST_TOWNS)
+                        .then(Commands.argument("item", ItemArgument.item(buildContext))
+                            .then(Commands.argument("count", IntegerArgumentType.integer())
+                                .executes(context -> addToInventory(context.getSource(), getString(context, "townid"), ItemArgument.getItem(context, "item").getItem(), IntegerArgumentType.getInteger(context, "count")))
+                            )
+                        )
+                    )
+                )
+                .then(Commands.literal("remove")
+                    .then(Commands.argument("townid", string())
+                        .suggests(SUGGEST_TOWNS)
+                        .then(Commands.argument("item", ItemArgument.item(buildContext))
+                            .then(Commands.argument("count", IntegerArgumentType.integer())
+                                .executes(context -> removeFromInventory(context.getSource(), getString(context, "townid"), ItemArgument.getItem(context, "item").getItem(), IntegerArgumentType.getInteger(context, "count")))
+                            )
+                        )
+                    )
+                )
+                .then(Commands.literal("clear")
+                    .then(Commands.argument("townid", string())
+                        .suggests(SUGGEST_TOWNS)
+                        .executes(context -> clearInventory(context.getSource(), getString(context, "townid")))
+                    )
+                )
             );
     }
 
@@ -220,6 +259,76 @@ public class TownCommand {
             } else {
                 source.sendFailure(Component.literal("The dweller entity must be an Npc (" + Ouat.MOD_ID + ":npc"));
             }
+        } else {
+            source.sendSuccess(() -> Component.literal("Town not founded"), true);
+        }
+        return 1;
+    }
+
+    private static int showInventory(CommandSourceStack source, String townId) {
+        Town town = getTownOrClosest(source, townId);
+        if (town != null) {
+            var inventory = town.getInventory().getContent();
+            if (inventory.isEmpty()) {
+                source.sendSuccess(() -> Component.literal("Town's inventory is empty"), true);
+            } else {
+                MutableComponent output = Component.empty()
+                    .append(Component.literal("Inventory of town "))
+                    .append(town.getName())
+                    .append(" :");
+
+                inventory.forEach((stack) -> output
+                    .append(CommonComponents.NEW_LINE)
+                    .append(Component.literal(stack.toString()).withStyle(ChatFormatting.YELLOW)));
+                source.sendSuccess(() -> output, true);
+            }
+        } else {
+            source.sendSuccess(() -> Component.literal("Town not founded"), true);
+        }
+        return 1;
+    }
+
+    private static int addToInventory(CommandSourceStack source, String townId, Item item, int count) {
+        Town town = getTownOrClosest(source, townId);
+        if (town != null) {
+            if (item == null || item == Items.AIR) {
+                source.sendFailure(Component.literal("Invalid item"));
+            } else if (count < 1) {
+                source.sendFailure(Component.literal("Item count must be greater than 0"));
+            } else if (town.getInventory().add(new ItemStack(item, count))) {
+                source.sendSuccess(() -> Component.literal("Added " + count + " " + item + " in inventory"), true);
+            } else {
+                source.sendFailure(Component.literal("Failed to add the item in inventory"));
+            }
+        } else {
+            source.sendSuccess(() -> Component.literal("Town not founded"), true);
+        }
+        return 1;
+    }
+
+    private static int removeFromInventory(CommandSourceStack source, String townId, Item item, int count) {
+        Town town = getTownOrClosest(source, townId);
+        if (town != null) {
+            if (item == null || item == Items.AIR) {
+                source.sendFailure(Component.literal("Invalid item"));
+            } else if (count < 1) {
+                source.sendFailure(Component.literal("Item count must be greater than 0"));
+            } else if (town.getInventory().remove(new ItemStack(item, count))) {
+                source.sendSuccess(() -> Component.literal("Removed " + count + " " + item + " from inventory"), true);
+            } else {
+                source.sendFailure(Component.literal("Failed to remove the item from inventory"));
+            }
+        } else {
+            source.sendSuccess(() -> Component.literal("Town not founded"), true);
+        }
+        return 1;
+    }
+
+    private static int clearInventory(CommandSourceStack source, String townId) {
+        Town town = getTownOrClosest(source, townId);
+        if (town != null) {
+            town.getInventory().clear();
+            source.sendSuccess(() -> Component.literal("Cleared town inventory"), true);
         } else {
             source.sendSuccess(() -> Component.literal("Town not founded"), true);
         }

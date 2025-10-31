@@ -4,7 +4,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,8 +11,8 @@ import java.util.List;
 public class TownInventory {
     private final List<ItemStack> content = new ArrayList<>();
 
-    public TownInventory() {
-        content.add(new ItemStack(Items.BREAD, 64));
+    public TownInventory(List<ItemStack> initialContent) {
+        content.addAll(initialContent);
     }
 
     public TownInventory(CompoundTag inventoryTag) {
@@ -34,30 +33,43 @@ public class TownInventory {
         return inventoryTag;
     }
 
-    public void add(ItemStack toAdd) {
+    public boolean add(ItemStack toAdd) {
         if (toAdd.isEmpty()) {
-            return;
+            return false;
         }
-        for (ItemStack member : content) { // Merge
+        for (ItemStack member : content) {
             if (ItemStack.isSameItemSameTags(member, toAdd)) {
                 member.grow(toAdd.getCount());
-                return;
+                return true;
             }
         }
         content.add(toAdd);
+        return true;
     }
 
-    public void remove(ItemStack toRemove) {
+    public boolean remove(ItemStack toRemove) {
         if (toRemove.isEmpty()) {
-            return;
+            return false;
         }
+        ItemStack shrinked = null;
         for (ItemStack member : content) {
             if (ItemStack.isSameItemSameTags(member, toRemove)) {
                 member.shrink(toRemove.getCount());
-                return;
+                shrinked = member;
+                break;
             }
         }
-        clean();
+        if (shrinked != null) {
+            if (shrinked.isEmpty()) {
+                content.remove(shrinked);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    public void clear() {
+        content.clear();
     }
 
     public boolean has(ItemStack stack) {
@@ -72,12 +84,7 @@ public class TownInventory {
         return false;
     }
 
-    private void clean() {
-        List<ItemStack> list = new ArrayList<>(content);
-        for (ItemStack stack : list) {
-            if (stack.isEmpty()) {
-                content.remove(stack);
-            }
-        }
+    public List<ItemStack> getContent() {
+        return content;
     }
 }
