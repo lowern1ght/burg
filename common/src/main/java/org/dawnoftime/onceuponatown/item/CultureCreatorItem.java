@@ -1,7 +1,7 @@
 package org.dawnoftime.onceuponatown.item;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.server.MinecraftServer;
@@ -14,11 +14,11 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
-import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.blockentity.CultureCreatorBlockEntity;
 import org.dawnoftime.onceuponatown.network.OuatPacket;
@@ -40,7 +40,8 @@ public class CultureCreatorItem extends BlockItem {
 
     @Override
     public @NotNull InteractionResultHolder<ItemStack> use(@NotNull Level level, @NotNull Player player, @NotNull InteractionHand hand) {
-        return handleUse(new UseOnContext(player, hand, getPlayerPOVHitResult(level, player, ClipContext.Fluid.NONE)));
+        BlockPos pos = player.blockPosition();
+        return handleUse(new UseOnContext(player, hand, new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos, false)));
     }
 
     private InteractionResultHolder<ItemStack> handleUse(@NotNull UseOnContext context) {
@@ -109,7 +110,7 @@ public class CultureCreatorItem extends BlockItem {
         } else {
             // Second corner.
             if (level.getBlockEntity(currentCCB) instanceof CultureCreatorBlockEntity ccBE) {
-                ccBE.setSecondPos(pos);
+                ccBE.setSize(pos);
             }
         }
         return InteractionResultHolder.success(stack);
