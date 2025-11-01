@@ -14,7 +14,7 @@ import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.gui.screens.*;
 import org.dawnoftime.onceuponatown.client.gui.tooltip.*;
 import org.dawnoftime.onceuponatown.client.model.NpcModel;
-import org.dawnoftime.onceuponatown.client.renderer.CultureCreatorSelectRenderer;
+import org.dawnoftime.onceuponatown.client.renderer.CultureCreatorRenderer;
 import org.dawnoftime.onceuponatown.client.renderer.NpcFishingHookRenderer;
 import org.dawnoftime.onceuponatown.client.renderer.NpcRenderer;
 import org.dawnoftime.onceuponatown.item.CultureCreatorItem;
@@ -55,7 +55,7 @@ public class ClientEvents {
         public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
             event.registerEntityRenderer(EntityRegistry.REGISTRY.NPC.get(), NpcRenderer::new);
             event.registerEntityRenderer(EntityRegistry.REGISTRY.NPC_FISHING_HOOK.get(), NpcFishingHookRenderer::new);
-            event.registerEntityRenderer(EntityRegistry.REGISTRY.CULTURE_CREATOR_SELECT_ENTITY.get(), CultureCreatorSelectRenderer::new);
+            event.registerBlockEntityRenderer(BlockEntityRegistry.REGISTRY.CULTURE_CREATOR.get(), CultureCreatorRenderer::new);
         }
 
         @SubscribeEvent

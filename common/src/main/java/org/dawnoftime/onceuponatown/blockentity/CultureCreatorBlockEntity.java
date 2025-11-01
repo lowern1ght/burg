@@ -1,26 +1,23 @@
 package org.dawnoftime.onceuponatown.blockentity;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.AABB;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.entity.CultureCreatorSelectEntity;
 import org.dawnoftime.onceuponatown.registry.BlockEntityRegistry;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class CultureCreatorBlockEntity extends BlockEntity {
@@ -28,7 +25,11 @@ public class CultureCreatorBlockEntity extends BlockEntity {
     private String buildingId = "";
     private String variantId = "";
     private int buildingLevel = 0;
-    private BlockPos secondPos = null;
+    private Component cultureComponent = Component.empty();
+    private Component buildingComponent = Component.empty();
+    private Component variantComponent = Component.empty();
+    private Component buildingLevelComponent = Component.empty();
+    private BlockPos size = null;
     private final Map<BlockPos,String> waypoints = new HashMap<>();
 
     public CultureCreatorBlockEntity(BlockPos pos, BlockState blockState) {
@@ -51,21 +52,45 @@ public class CultureCreatorBlockEntity extends BlockEntity {
         return buildingId;
     }
 
+    public @NotNull Component getCultureComponent() {
+        return cultureComponent;
+    }
+
+    public @NotNull Component getBuildingComponent() {
+        return buildingComponent;
+    }
+
+    public @NotNull Component getVariantComponent() {
+        return variantComponent;
+    }
+
+    public @NotNull Component getBuildingLevelComponent() {
+        return buildingLevelComponent;
+    }
+
     public void setParameters(@NotNull String cultureId, @NotNull String buildingId, @NotNull String variantId, int buildingLevel) {
         this.cultureId = cultureId;
         this.buildingId = buildingId;
         this.variantId = variantId;
         this.buildingLevel = buildingLevel;
-        this.updateSelectEntity();
+        this.cultureComponent = Component.literal(this.cultureId).withStyle(ChatFormatting.BOLD, ChatFormatting.GOLD);
+        this.buildingComponent = Component.literal(this.buildingId).withStyle(ChatFormatting.BOLD);
+        this.variantComponent = Component.literal(this.variantId);
+        this.buildingLevelComponent = Component.literal("Level ").append(Component.literal(String.valueOf(this.buildingLevel)).withStyle(ChatFormatting.BOLD, ChatFormatting.YELLOW));
+        this.setChanged();
     }
 
-    public @Nullable BlockPos getSecondPos() {
-        return this.secondPos;
+    public @Nullable BlockPos getSize() {
+        return this.size;
     }
 
-    public void setSecondPos(@NotNull BlockPos pos) {
-        this.secondPos = pos;
-        this.updateSelectEntity();
+    public void setSize(@NotNull BlockPos secondPos) {
+        this.size = new BlockPos(
+                secondPos.getX() - this.worldPosition.getX(),
+                secondPos.getY() - this.worldPosition.getY(),
+                secondPos.getZ() - this.worldPosition.getZ()
+        );
+        this.setChanged();
     }
 
     public void addWaypoint(BlockPos pos, String type) {
@@ -76,59 +101,27 @@ public class CultureCreatorBlockEntity extends BlockEntity {
 
     }
 
-    private void updateSelectEntity() {
-        if (this.level != null && !this.level.isClientSide()) {
-            CultureCreatorSelectEntity ccEntity = this.getFirstAndRemoveOthers(CultureCreatorSelectEntity.class, this.getBlockPos());
-            if (ccEntity != null) {
-                ccEntity.setPos(this.getBlockPos().getX() + 0.5F, this.getBlockPos().getY() + 0.5F, this.getBlockPos().getZ() + 0.5F);
-                ccEntity.setSecondPos(this.secondPos);
-            } else {
-                ccEntity = new CultureCreatorSelectEntity(level, this.getBlockPos());
-                ccEntity.setSecondPos(this.secondPos);
-                this.level.addFreshEntity(ccEntity);
-            }
-            ccEntity.setText(cultureId, buildingId, variantId, buildingLevel);
+    @Override
+    public void setChanged() {
+        super.setChanged();
+        if (this.level != null && !level.isClientSide()) {
+            this.level.sendBlockUpdated(this.worldPosition, getBlockState(), getBlockState(), 3);
         }
     }
 
-    private void updateWaypointEntity(BlockPos waypointPos) {
-
+    @Nullable
+    @Override
+    public Packet<ClientGamePacketListener> getUpdatePacket() {
+        return ClientboundBlockEntityDataPacket.create(this);
     }
 
-    private <T extends Entity> @Nullable T getFirstAndRemoveOthers(Class<T> entityClass, BlockPos pos) {
-        if (this.level != null) {
-            List<T> entityList = this.level.getEntitiesOfClass(entityClass, new AABB(pos));
-            if (entityList.isEmpty()) {
-                return null;
-            }
-            if (entityList.size() > 1) {
-                for (int i = 1; i < entityList.size(); i++) {
-                    entityList.get(i).discard();
-                }
-            }
-            return entityList.get(0);
-        }
-        return null;
-    }
-
-    private <T extends Entity> void removeAllAt(Class<T> entityClass, BlockPos pos) {
-        if (this.level != null) {
-            List<T> entityList = this.level.getEntitiesOfClass(entityClass, new AABB(pos));
-            for (T entity : entityList) {
-                entity.discard();
-            }
-        }
-    }
 
     @Override
     public void load(@NotNull CompoundTag tag) {
-        this.cultureId = tag.getString("culture_id");
-        this.buildingId = tag.getString("building_id");
-        this.variantId = tag.getString("variant_id");
-        this.buildingLevel = tag.getInt("level");
+        this.setParameters(tag.getString("culture_id"), tag.getString("building_id"), tag.getString("variant_id"), tag.getInt("level"));
         try {
-            if (tag.contains("second_pos")) {
-                this.secondPos = NbtUtils.readBlockPos(tag.getCompound("second_pos"));
+            if (tag.contains("size")) {
+                this.size = NbtUtils.readBlockPos(tag.getCompound("size"));
             }
             this.waypoints.clear();
             if (tag.contains("waypoints", Tag.TAG_LIST)) {
@@ -146,13 +139,18 @@ public class CultureCreatorBlockEntity extends BlockEntity {
     }
 
     @Override
+    public @NotNull CompoundTag getUpdateTag() {
+        return this.saveWithoutMetadata();
+    }
+
+    @Override
     public void saveAdditional(@NotNull CompoundTag tag) {
         tag.putString("culture_id", this.cultureId);
         tag.putString("building_id", this.buildingId);
         tag.putString("variant_id", this.variantId);
         tag.putInt("level", this.buildingLevel);
-        if (secondPos != null) {
-            tag.put("second_pos", NbtUtils.writeBlockPos(secondPos));
+        if (size != null) {
+            tag.put("size", NbtUtils.writeBlockPos(size));
         }
         ListTag list = new ListTag();
         for (Map.Entry<BlockPos, String> entry : waypoints.entrySet()) {
@@ -162,18 +160,5 @@ public class CultureCreatorBlockEntity extends BlockEntity {
             list.add(entryTag);
         }
         tag.put("waypoints", list);
-    }
-
-
-
-    @Override
-    public void setRemoved() {
-        super.setRemoved();
-        if (this.level != null && !this.level.isClientSide()) {
-            this.removeAllAt(CultureCreatorSelectEntity.class, this.getBlockPos());
-//            for (BlockPos pos : this.waypoints.keySet()) {
-//                this.removeAllAt(..., pos);
-//            }
-        }
     }
 }
