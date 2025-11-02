@@ -93,7 +93,9 @@ public class CultureCreatorItem extends BlockItem {
         BlockPos targetCCB = level.getBlockState(pos).is(ccBlock) ? pos : null;
         if (targetCCB != null) {
             if (targetCCB.equals(currentCCB)) {
-                // Open GUI (code to do later...)
+                // Open GUI
+                setClientPlayerCCState(player, (byte) 0);
+                this.useCultureCreatorDefault(context);
             } else {
                 // If the target is a different CultureCreatorBlock, bind with it.
                 this.setPairedCCBlockPos(stack, targetCCB);
@@ -109,8 +111,8 @@ public class CultureCreatorItem extends BlockItem {
             this.place(new BlockPlaceContext(context));
         } else {
             // Second corner.
-            if (level.getBlockEntity(currentCCB) instanceof CultureCreatorBlockEntity ccBE) {
-                ccBE.setSize(pos);
+            if (level.getBlockEntity(currentCCB) instanceof CultureCreatorBlockEntity ccBE && player instanceof ServerPlayer serverPlayer) {
+                ccBE.setSize(serverPlayer, pos);
             }
         }
         return InteractionResultHolder.success(stack);

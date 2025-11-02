@@ -10,8 +10,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import org.apache.logging.log4j.core.jmx.Server;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.registry.BlockEntityRegistry;
 import org.jetbrains.annotations.NotNull;
@@ -29,7 +32,7 @@ public class CultureCreatorBlockEntity extends BlockEntity {
     private Component buildingComponent = Component.empty();
     private Component variantComponent = Component.empty();
     private Component buildingLevelComponent = Component.empty();
-    private BlockPos size = null;
+    private BlockPos size = new BlockPos(1, 0, 1);
     private final Map<BlockPos,String> waypoints = new HashMap<>();
 
     public CultureCreatorBlockEntity(BlockPos pos, BlockState blockState) {
@@ -80,16 +83,17 @@ public class CultureCreatorBlockEntity extends BlockEntity {
         this.setChanged();
     }
 
-    public @Nullable BlockPos getSize() {
+    public @NotNull BlockPos getSize() {
         return this.size;
     }
 
-    public void setSize(@NotNull BlockPos secondPos) {
-        this.size = new BlockPos(
-                secondPos.getX() - this.worldPosition.getX(),
-                secondPos.getY() - this.worldPosition.getY(),
-                secondPos.getZ() - this.worldPosition.getZ()
-        );
+    public void setSize(ServerPlayer player, @NotNull BlockPos secondPos) {
+        int xSize = secondPos.getX() - this.worldPosition.getX();
+        int zSize = secondPos.getZ() - this.worldPosition.getZ();
+        if (xSize <= 0 || zSize <= 0) {
+            Ouat.clientChat(player, "cc", "error_second_pos_out_of_area");
+        }
+        this.size = new BlockPos(Math.max(xSize, 1), secondPos.getY() - this.worldPosition.getY(), Math.max(zSize, 1));
         this.setChanged();
     }
 
@@ -149,9 +153,7 @@ public class CultureCreatorBlockEntity extends BlockEntity {
         tag.putString("building_id", this.buildingId);
         tag.putString("variant_id", this.variantId);
         tag.putInt("level", this.buildingLevel);
-        if (size != null) {
-            tag.put("size", NbtUtils.writeBlockPos(size));
-        }
+        tag.put("size", NbtUtils.writeBlockPos(this.size));
         ListTag list = new ListTag();
         for (Map.Entry<BlockPos, String> entry : waypoints.entrySet()) {
             CompoundTag entryTag = new CompoundTag();
