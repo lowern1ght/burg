@@ -43,15 +43,13 @@ public class CultureCreatorRenderer implements BlockEntityRenderer<CultureCreato
         }
 
         BlockPos size = blockEntity.getSize();
-        if (size != null) {
-            poseStack.pushPose();
-            poseStack.translate(size.getX(), size.getY(), size.getZ());
-            renderTranslucentBox(translucent, poseStack.last().pose(), 0.4F, 0.8F, 0.8F, 0.8F, 0.4F);
-            poseStack.popPose();
+        poseStack.pushPose();
+        poseStack.translate(size.getX(), size.getY(), size.getZ());
+        renderTranslucentBox(translucent, poseStack.last().pose(), 0.4F, 0.8F, 0.8F, 0.8F, 0.4F);
+        poseStack.popPose();
 
-            VertexConsumer lines = buffer.getBuffer(RenderType.lines());
-            this.renderSelectionArea(lines, poseStack, blockEntity.getBlockPos(), size);
-        }
+        VertexConsumer lines = buffer.getBuffer(RenderType.lines());
+        this.renderSelectionArea(lines, poseStack, size);
 
         poseStack.pushPose();
         poseStack.translate(0, 1.5F, 0);
@@ -67,14 +65,10 @@ public class CultureCreatorRenderer implements BlockEntityRenderer<CultureCreato
         poseStack.popPose();
     }
 
-    private void renderSelectionArea(VertexConsumer consumerLines, @NotNull PoseStack poseStack, BlockPos currentPos, BlockPos size) {
-        float relativeX = size.getX() >= 0 ? size.getX() + 0.5F : size.getX() - 0.5F;
+    private void renderSelectionArea(VertexConsumer consumerLines, @NotNull PoseStack poseStack, BlockPos size) {
         float relativeY = size.getY() >= 0 ? size.getY() + 0.5F : size.getY() - 0.5F;
-        float relativeZ = size.getZ() >= 0 ? size.getZ() + 0.5F : size.getZ() - 0.5F;
-        float offsetX = relativeX >= 0 ? -0.5F : 0.5F;
         float offsetY = relativeY >= 0 ? -0.5F : 0.5F;
-        float offsetZ = relativeZ >= 0 ? -0.5F : 0.5F;
-        LevelRenderer.renderLineBox(poseStack, consumerLines, offsetX, offsetY, offsetZ, relativeX, relativeY, relativeZ, 0.9F, 0.9F, 0.9F, 1.0F, 0.5F, 0.5F, 0.5F);
+        LevelRenderer.renderLineBox(poseStack, consumerLines, 0.5F, offsetY, 0.5F, size.getX() + 0.5F, relativeY, size.getZ() + 0.5F, 0.9F, 0.9F, 0.9F, 1.0F, 0.5F, 0.5F, 0.5F);
     }
 
     private void renderText(Component text, @NotNull PoseStack poseStack, @NotNull MultiBufferSource buffer, int packedLight, int yPx) {
