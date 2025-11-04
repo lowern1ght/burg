@@ -388,6 +388,15 @@ public class Culture {
         return professions.getOrDefault(professionId, Profession.UNEMPLOYED);
     }
 
+    @Nullable
+    public Profession getProfessionOrNull(String professionId) {
+        return professions.getOrDefault(professionId, null);
+    }
+
+    public List<Profession> getProfessions() {
+        return professions.values().stream().toList();
+    }
+
     /**
      * Returns a random list of buildings that should spawn in a naturally generated hamlet.
      *
