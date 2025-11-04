@@ -78,7 +78,6 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
     private NpcFishingHook fishingHook;
     private Profession profession;
     private BlockPos attackedBlock;
-    private Town town;
     private int townId = -1;
     private BuildProject project;
     // TODO gossips
@@ -108,15 +107,12 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
     @Override
     public void readAdditionalSaveData(@NotNull CompoundTag tag) {
         super.readAdditionalSaveData(tag);
-        setCultureId(tag.getString("Culture"));
+        setCulture(tag.getString("Culture"));
         entityData.set(PROFESSION, tag.getString("Profession"));
         if (!level().isClientSide()) {
             profession = ServerCultures.getCultureOrDefault(getCultureId()).getProfessionOrDefault(getProfessionId());
         }
         townId = tag.getInt("TownId");
-        if (townId != -1 && level() instanceof ServerLevel serverLevel) {
-            town = LevelTowns.of(serverLevel).getTownById(townId);
-        }
     }
 
     @Override
@@ -214,15 +210,6 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
     protected void customServerAiStep() {
         this.level().getProfiler().push("ouatNpcBrain");
         this.getBrain().tick((ServerLevel) this.level(), this);
-        boolean debugBrain = false;
-        if (debugBrain && level().getGameTime() % 20 == 0) {
-            StringBuilder string = new StringBuilder("Npc " + getUUID() + " brain");
-            for (var behavior : getBrain().getRunningBehaviors()) {
-                string.append("\n").append(behavior.debugString());
-            }
-            Ouat.info(string.toString());
-        }
-
         this.level().getProfiler().pop();
         super.customServerAiStep();
     }
@@ -286,6 +273,15 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         // TODO unregister from town
     }
 
+    public void quitTown() {
+        Town town = getTown();
+        if (town != null) {
+            town.removeCitizen(this);
+        }
+    }
+
+
+
     @Override
     public void die(@NotNull DamageSource cause) {
         Ouat.LOG.info("Npc {} died, message: '{}'", this, cause.getLocalizedDeathMessage(this).getString());
@@ -325,6 +321,7 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
             && !isSleeping()
             && (hand == InteractionHand.MAIN_HAND)
         ) {
+            Town town = getTown();
             if (town != null
                 && !getProfessionId().equals("default")
                 && !getProfessionId().equals("unemployed")
@@ -483,19 +480,18 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         }
     }
 
-    public void assignTown(Town town) {
+    public void setTown(Town town) {
         if (town != null && level() instanceof ServerLevel serverLevel && town.getLevel() == serverLevel) {
             refreshAi(serverLevel);
-            this.town = town;
-            this.townId = town.getId();
+            townId = town.getId();
         }
     }
 
-    public void setCultureId(String cultureId) {
+    public void setCulture(String cultureId) {
         entityData.set(CULTURE, cultureId);
     }
 
-    public void assignProfession(Profession profession) {
+    public void setProfession(Profession profession) {
         entityData.set(PROFESSION, profession.getId());
         this.profession = profession;
     }
@@ -620,17 +616,25 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
         return this.getPosition(partialTicks).add(vec3.yRot(-f));
     }
 
+    @Nullable
+    public Town getTown() {
+        if (townId != -1 && level() instanceof ServerLevel serverLevel) {
+            Town town = LevelTowns.of(serverLevel).getTownById(townId);
+            if (town == null) {
+                townId = -1;
+            }
+            return town;
+        } else {
+            return null;
+        }
+    }
+
     @Override
     public boolean isPersistenceRequired() {
         return true;
     }
 
     // ---- GETTERS & SETTERS ---- //
-
-
-    public Town getTown() {
-        return town;
-    }
 
     public boolean isCrossingArms() {
         return entityData.get(DATA_CROSSING_ARMS);
