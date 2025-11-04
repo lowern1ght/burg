@@ -55,6 +55,7 @@ import org.dawnoftime.onceuponatown.trade.NpcOffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -433,7 +434,8 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
 
     @Override
     public List<NpcOffer> getOffers() {
-        return NpcTrades.getOffers();
+        var lev = profession != null ? profession.getLevel(professionLevel) : null;
+        return lev == null ? new ArrayList<>() : lev.trades();
     }
 
     @Override
