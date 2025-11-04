@@ -25,7 +25,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.Heightmap;
-import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.Utils;
 import org.dawnoftime.onceuponatown.building.instance.Building;
 import org.dawnoftime.onceuponatown.building.type.BuildType;
@@ -33,6 +32,7 @@ import org.dawnoftime.onceuponatown.building.type.BuildingType;
 import org.dawnoftime.onceuponatown.culture.Culture;
 import org.dawnoftime.onceuponatown.culture.ServerCultures;
 import org.dawnoftime.onceuponatown.entity.Npc;
+import org.dawnoftime.onceuponatown.registry.EntityRegistry;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.Town;
 import org.jetbrains.annotations.Nullable;
@@ -55,7 +55,7 @@ public class TownCommand {
         String townId = getString(context, "townid");
         Town town;
         if (townId.equals(CLOSEST)) {
-            town = getClosestTown(context.getSource());
+            town = getClosestTown(context.getSource(), CLOSEST_TOWN_MAX_SEARCH_DIST);
         } else {
             town = LevelTowns.of(context.getSource().getLevel()).getTownByFancyId(townId);
         }
@@ -69,7 +69,7 @@ public class TownCommand {
         String townId = getString(context, "townid");
         Town town;
         if (townId.equals(CLOSEST)) {
-            town = getClosestTown(context.getSource());
+            town = getClosestTown(context.getSource(), CLOSEST_TOWN_MAX_SEARCH_DIST);
         } else {
             town = LevelTowns.of(context.getSource().getLevel()).getTownByFancyId(townId);
         }
@@ -83,7 +83,7 @@ public class TownCommand {
         String townId = getString(context, "townid");
         Town town;
         if (townId.equals(CLOSEST)) {
-            town = getClosestTown(context.getSource());
+            town = getClosestTown(context.getSource(), CLOSEST_TOWN_MAX_SEARCH_DIST);
         } else {
             town = LevelTowns.of(context.getSource().getLevel()).getTownByFancyId(townId);
         }
@@ -99,14 +99,8 @@ public class TownCommand {
             .then(Commands.literal("list")
                 .executes(context -> listTowns(context.getSource()))
             )
-            .then(Commands.literal("debug")
-                .then(Commands.argument("townid", string())
-                    .suggests(SUGGEST_TOWNS)
-                    .executes(context -> debugTown(context.getSource(), getString(context, "townid"), false))
-                    .then(Commands.argument("placemarkerblocks", bool())
-                        .executes(context -> debugTown(context.getSource(), getString(context, "townid"), getBool(context, "placemarkerblocks")))
-                    )
-                )
+            .then(Commands.literal("closest")
+                .executes(context -> showClosestTown(context.getSource()))
             )
             .then(Commands.literal("spawn")
                 .then(Commands.argument("culture", string())
@@ -135,16 +129,85 @@ public class TownCommand {
                     )
                 )
             )
-            .then(Commands.literal("dwellers")
+            .then(Commands.literal("debug")
                 .then(Commands.argument("townid", string())
                     .suggests(SUGGEST_TOWNS)
-                    .then(Commands.literal("welcome")
+                    .executes(context -> debugTown(context.getSource(), getString(context, "townid"), false))
+                    .then(Commands.argument("placemarkerblocks", bool())
+                        .executes(context -> debugTown(context.getSource(), getString(context, "townid"), getBool(context, "placemarkerblocks")))
+                    )
+                )
+            )
+            /* Citizens */
+            .then(Commands.literal("citizen")
+                .then(Commands.literal("list")
+                    .then(Commands.argument("townid", string())
+                        .suggests(SUGGEST_TOWNS)
+                        .executes(context -> listCitizens(context.getSource(), getString(context, "townid")))
+                    )
+                )
+                .then(Commands.literal("add")
+                    .then(Commands.argument("townid", string())
+                        .suggests(SUGGEST_TOWNS)
                         .then(Commands.argument("npc", entity())
-                            .executes(context -> addTownDweller(context.getSource(), getString(context, "townid"), getEntity(context, "npc")))
+                            .executes(context -> addCitizen(context.getSource(), getString(context, "townid"), getEntity(context, "npc")))
+                        )
+                    )
+                )
+                .then(Commands.literal("remove")
+                    .then(Commands.argument("townid", string())
+                        .suggests(SUGGEST_TOWNS)
+                        .then(Commands.argument("npc", entity())
+                            .executes(context -> removeCitizen(context.getSource(), getString(context, "townid"), getEntity(context, "npc")))
                         )
                     )
                 )
             )
+            /* Buildings */
+            .then(Commands.literal("building")
+                .then(Commands.literal("list")
+                    .then(Commands.argument("townid", string())
+                        .suggests(SUGGEST_TOWNS)
+                        .executes(context -> listBuildings(context.getSource(), getString(context, "townid")))
+                    )
+                )
+                .then(Commands.literal("add")
+                    .then(Commands.argument("townid", string())
+                        .suggests(SUGGEST_TOWNS)
+                        .then(Commands.argument("buildingtype", string())
+                            .suggests(SUGGEST_BUILDING_TYPES)
+                            .executes(context -> addBuilding(context.getSource(), getString(context, "townid"), getString(context, "buildingtype"), 1))
+                            .then(Commands.argument("level", IntegerArgumentType.integer(1))
+                                .executes(context -> addBuilding(context.getSource(), getString(context, "townid"), getString(context, "buildingtype"), IntegerArgumentType.getInteger(context, "level")))
+                            )
+                        )
+                    )
+                )
+                .then(Commands.literal("upgrade")
+                    .then(Commands.argument("townid", string())
+                        .suggests(SUGGEST_TOWNS)
+                        .then(Commands.argument("building", string())
+                            .suggests(SUGGEST_BUILDINGS)
+                            .executes(context -> upgradeBuilding(context.getSource(), getString(context, "townid"), getString(context, "building"), -1)) // -1 : special number, means increment the building level by 1.
+                            .then(Commands.argument("targetlevel", IntegerArgumentType.integer(2)) // Specify the wanted level (2 is minimum since buildings start at level 1). If no argument, building level will be incremented by 1.
+                                .executes(context -> upgradeBuilding(context.getSource(), getString(context, "townid"), getString(context, "building"), IntegerArgumentType.getInteger(context, "targetlevel")))
+                            )
+                        )
+                    )
+                )
+                .then(Commands.literal("delete")
+                    .then(Commands.argument("townid", string())
+                        .suggests(SUGGEST_TOWNS)
+                        .then(Commands.argument("building", string())
+                            .suggests(SUGGEST_BUILDINGS)
+                            .then(Commands.argument("demolish", bool())
+                                .executes(context -> deleteBuilding(context.getSource(), getString(context, "townid"), getString(context, "building"), getBool(context, "demolish")))
+                            )
+                        )
+                    )
+                )
+            )
+            /* Projects */
             .then(Commands.literal("project")
                 .then(Commands.literal("list")
                     .then(Commands.argument("townid", string())
@@ -171,49 +234,7 @@ public class TownCommand {
                     )
                 )
             )
-            .then(Commands.literal("building")
-                .then(Commands.literal("list")
-                    .then(Commands.argument("townid", string())
-                        .suggests(SUGGEST_TOWNS)
-                        .executes(context -> listBuildings(context.getSource(), getString(context, "townid")))
-                    )
-                )
-                .then(Commands.literal("add")
-                    .then(Commands.argument("townid", string())
-                        .suggests(SUGGEST_TOWNS)
-                        .then(Commands.argument("buildingtype", string())
-                            .suggests(SUGGEST_BUILDING_TYPES)
-                            .executes(context -> addBuilding(context.getSource(), getString(context, "townid"), getString(context, "buildingtype"), 1))
-                            .then(Commands.argument("level", IntegerArgumentType.integer(1))
-                                .executes(context -> addBuilding(context.getSource(), getString(context, "townid"), getString(context, "buildingtype"), IntegerArgumentType.getInteger(context, "level")))
-                            )
-                        )
-                    )
-                )
-                .then(Commands.literal("upgrade")
-                    .then(Commands.argument("townid", string())
-                        .suggests(SUGGEST_TOWNS)
-                        .then(Commands.argument("building", string())
-                            .suggests(SUGGEST_BUILDINGS)
-                            .executes(context -> upgradeBuilding(context.getSource(), getString(context, "townid"), getString(context, "building"), -1)) // -1 : special number, means increment the building level by 1.
-                            .then(Commands.argument("wantedLevel", IntegerArgumentType.integer(2)) // Specify the wanted level (2 is minimum since buildings start at level 1). If no argument, building level will be incremented by 1.
-                                .executes(context -> upgradeBuilding(context.getSource(), getString(context, "townid"), getString(context, "building"), IntegerArgumentType.getInteger(context, "wantedLevel")))
-                            )
-                        )
-                    )
-                )
-                .then(Commands.literal("delete")
-                    .then(Commands.argument("townid", string())
-                        .suggests(SUGGEST_TOWNS)
-                        .then(Commands.argument("building", string())
-                            .suggests(SUGGEST_BUILDINGS)
-                            .then(Commands.argument("demolish", bool())
-                                .executes(context -> deleteBuilding(context.getSource(), getString(context, "townid"), getString(context, "building"), getBool(context, "demolish")))
-                            )
-                        )
-                    )
-                )
-            )
+            /* Inventory */
             .then(Commands.literal("inventory")
                 .then(Commands.literal("show")
                     .then(Commands.argument("townid", string())
@@ -250,95 +271,35 @@ public class TownCommand {
             );
     }
 
-    private static int addTownDweller(CommandSourceStack source, String townId, Entity entity) {
-        Town town = getTownOrClosest(source, townId);
-        if (town != null) {
-            if (entity instanceof Npc npc) {
-                town.addDweller(npc);
-                source.sendSuccess(() -> Component.literal("Successfully added dweller"), true);
-            } else {
-                source.sendFailure(Component.literal("The dweller entity must be an Npc (" + Ouat.MOD_ID + ":npc"));
-            }
+    private static int showClosestTown(CommandSourceStack source) {
+        Town town = getClosestTown(source, CLOSEST_TOWN_MAX_SEARCH_DIST);
+        MutableComponent output;
+        if (town == null) {
+            output =  Component.literal("No towns founded in a %s blocks radius".formatted(CLOSEST_TOWN_MAX_SEARCH_DIST));
         } else {
-            source.sendSuccess(() -> Component.literal("Town not founded"), true);
+            output = Component.empty()
+                .append("Closest town : ")
+                .append(CommonComponents.NEW_LINE)
+                .append(Component.empty().append(town.getName()).append(Component.literal(" ")).withStyle(ChatFormatting.YELLOW))
+                .append("at ")
+                .append(Component.literal(town.getCenter().getX() + " " + town.getCenter().getY() + " " + town.getCenter().getZ())
+                    .withStyle(style -> style
+                        .withColor(ChatFormatting.AQUA)
+                        .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("Teleport")))
+                        .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/tp @s " + town.getCenter().getX() + " " + town.getCenter().above().getY() + " " + town.getCenter().getZ())))
+                );
         }
-        return 1;
-    }
-
-    private static int showInventory(CommandSourceStack source, String townId) {
-        Town town = getTownOrClosest(source, townId);
-        if (town != null) {
-            var inventory = town.getInventory().getContent();
-            if (inventory.isEmpty()) {
-                source.sendSuccess(() -> Component.literal("Town's inventory is empty"), true);
-            } else {
-                MutableComponent output = Component.empty()
-                    .append(Component.literal("Inventory of town "))
-                    .append(town.getName())
-                    .append(" :");
-
-                inventory.forEach((stack) -> output
-                    .append(CommonComponents.NEW_LINE)
-                    .append(Component.literal(stack.toString()).withStyle(ChatFormatting.YELLOW)));
-                source.sendSuccess(() -> output, true);
-            }
-        } else {
-            source.sendSuccess(() -> Component.literal("Town not founded"), true);
-        }
-        return 1;
-    }
-
-    private static int addToInventory(CommandSourceStack source, String townId, Item item, int count) {
-        Town town = getTownOrClosest(source, townId);
-        if (town != null) {
-            if (item == null || item == Items.AIR) {
-                source.sendFailure(Component.literal("Invalid item"));
-            } else if (count < 1) {
-                source.sendFailure(Component.literal("Item count must be greater than 0"));
-            } else if (town.getInventory().add(new ItemStack(item, count))) {
-                source.sendSuccess(() -> Component.literal("Added " + count + " " + item + " in inventory"), true);
-            } else {
-                source.sendFailure(Component.literal("Failed to add the item in inventory"));
-            }
-        } else {
-            source.sendSuccess(() -> Component.literal("Town not founded"), true);
-        }
-        return 1;
-    }
-
-    private static int removeFromInventory(CommandSourceStack source, String townId, Item item, int count) {
-        Town town = getTownOrClosest(source, townId);
-        if (town != null) {
-            if (item == null || item == Items.AIR) {
-                source.sendFailure(Component.literal("Invalid item"));
-            } else if (count < 1) {
-                source.sendFailure(Component.literal("Item count must be greater than 0"));
-            } else if (town.getInventory().remove(new ItemStack(item, count))) {
-                source.sendSuccess(() -> Component.literal("Removed " + count + " " + item + " from inventory"), true);
-            } else {
-                source.sendFailure(Component.literal("Failed to remove the item from inventory"));
-            }
-        } else {
-            source.sendSuccess(() -> Component.literal("Town not founded"), true);
-        }
-        return 1;
-    }
-
-    private static int clearInventory(CommandSourceStack source, String townId) {
-        Town town = getTownOrClosest(source, townId);
-        if (town != null) {
-            town.getInventory().clear();
-            source.sendSuccess(() -> Component.literal("Cleared town inventory"), true);
-        } else {
-            source.sendSuccess(() -> Component.literal("Town not founded"), true);
-        }
+        source.sendSuccess(() -> output, true);
         return 1;
     }
 
     private static int listTowns(CommandSourceStack source) {
         Collection<Town> towns = LevelTowns.of(source.getLevel()).getAll();
-        if (!towns.isEmpty()) {
-            MutableComponent output = Component.empty()
+        MutableComponent output;
+        if (towns.isEmpty()) {
+            output = Component.literal("No towns founded");
+        } else {
+            output = Component.empty()
                 .append(Component.literal(towns.size() + " ").withStyle(ChatFormatting.GRAY))
                 .append(Component.literal("town" + (towns.size() > 1 ? "s" : "") + " founded : "));
             towns.forEach(town -> output
@@ -352,208 +313,200 @@ public class TownCommand {
                         .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/tp @s " + town.getCenter().getX() + " " + town.getCenter().above().getY() + " " + town.getCenter().getZ())))
                 )
             );
-            source.sendSuccess(() -> output, true);
-        } else {
-            source.sendSuccess(() -> Component.literal("No towns founded"), true);
         }
-        return 1;
-    }
-
-    private static int debugTown(CommandSourceStack source, String townId, boolean placeMarkerBlocks) {
-        Town town = getTownOrClosest(source, townId);
-        if (town != null) {
-            var townInfo = Component.literal("Check the console for a description of town ")
-                .append(Component.empty().append(town.getName()).withStyle(ChatFormatting.YELLOW))
-                .append(Component.literal(" at "))
-                .append((Component.literal(town.getCenter().toShortString())).withStyle((style -> style
-                    .withColor(ChatFormatting.AQUA)
-                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("Teleport")))
-                    .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/tp @s " + town.getCenter().getX() + " " + town.getCenter().above().getY() + " " + town.getCenter().getZ()))
-                )));
-            source.sendSuccess(() -> townInfo, true);
-            town.printConsoleDescription();
-            if (placeMarkerBlocks) {
-                for (int y = 1; y <= 10; ++y) {
-                    source.getLevel().setBlock(town.getNWCorner().above(y), Blocks.RED_WOOL.defaultBlockState(), 2);
-                    source.getLevel().setBlock(town.getSECorner().above(y), Blocks.RED_WOOL.defaultBlockState(), 2);
-                }
-                town.getBuilds().forEach((build -> source.getLevel().setBlock(build.getOriginPos(), Blocks.ORANGE_WOOL.defaultBlockState(), 2)));
-                town.getBuds().forEach((bud -> source.getLevel().setBlock(bud.getPosition(), Blocks.PURPLE_WOOL.defaultBlockState(), 2)));
-            }
-        } else {
-            source.sendSuccess(() -> Component.literal("Town not founded"), true);
-        }
+        source.sendSuccess(() -> output, true);
         return 1;
     }
 
     private static int spawnTown(CommandSourceStack source, String cultureId, Component townName, BlockPos townPos) {
         Culture culture = ServerCultures.getCultureOrNull(cultureId);
-        if (culture != null) {
-            ServerLevel level = source.getLevel();
-            BlockPos pos = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, townPos != null ? townPos : BlockPos.containing(source.getPosition()));
-            Town town = LevelTowns.of(level).trySpawnTown(culture, pos, townName);
-            if (town != null) {
-                source.sendSuccess(() -> Component.literal("Town ")
-                    .append(Component.empty().append(townName).withStyle(ChatFormatting.GREEN))
-                    .append(Component.literal(" was successfully generated")), true);
-            } else {
-                source.sendSuccess(() -> Component.literal("Town ")
-                    .append(Component.empty().append(townName).withStyle(ChatFormatting.YELLOW))
-                    .append(Component.literal(" has failed to generate, probably because there was not enough free space.")), true);
-            }
-        } else {
+        if (culture == null) {
             source.sendFailure(Component.literal("Culture ")
                 .append(Component.literal(cultureId).withStyle(ChatFormatting.YELLOW))
-                .append(Component.literal(" doesn't exist")));
+                .append(Component.literal(" does not exist")));
+            return 0;
         }
+        ServerLevel level = source.getLevel();
+        BlockPos pos = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, townPos != null ? townPos : BlockPos.containing(source.getPosition()));
+        Town town = LevelTowns.of(level).trySpawnTown(culture, pos, townName);
+        if (town == null) {
+            source.sendFailure(Component.literal("Failed to generate the town. Make sure there is enough free space"));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal("Town ")
+            .append(Component.empty().append(townName).withStyle(ChatFormatting.GREEN))
+            .append(Component.literal(" was successfully generated")), true);
         return 1;
     }
 
     private static int deleteTown(CommandSourceStack source, String townId, boolean demolish) {
         Town town = getTownOrClosest(source, townId);
-        if (town != null) {
-            if (LevelTowns.of(source.getLevel()).deleteTown(town.getId(), demolish)) {
-                source.sendSuccess(() -> Component.literal("Successfully " + (demolish ? "demolished" : "deleted") + " town " + townId), true);
-            } else {
-                source.sendFailure(Component.literal("Failed to delete the town"));
-            }
-        } else {
-            source.sendSuccess(() -> Component.literal("Town not founded"), true);
+        if (town == null) {
+            source.sendFailure(Component.literal("Town not founded"));
+            return 0;
         }
+        if (!LevelTowns.of(source.getLevel()).deleteTown(town.getId(), demolish)) {
+            source.sendFailure(Component.literal("Failed to delete the town"));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal("Successfully " + (demolish ? "demolished" : "deleted") + " town " + townId), true);
         return 1;
     }
 
     private static int setTownName(CommandSourceStack source, String townId, Component newName) {
         Town town = getTownOrClosest(source, townId);
-        if (town != null) {
-            if (town.setName(newName)) {
-                source.sendSuccess(() -> Component.literal("Successfully changed town's name"), true);
-            } else {
-                source.sendFailure(Component.literal("Failed to change town's name. Make sure the new name is not blank"));
-            }
-        } else {
-            source.sendSuccess(() -> Component.literal("Town not founded"), true);
+        if (town == null) {
+            source.sendFailure(Component.literal("Town not founded"));
+            return 0;
         }
+        if (!town.setName(newName)) {
+            source.sendFailure(Component.literal("Failed to change town's name. Make sure the new name is not blank"));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal("Successfully changed town's name"), true);
+        return 1;
+    }
+
+    private static int debugTown(CommandSourceStack source, String townId, boolean placeMarkerBlocks) {
+        Town town = getTownOrClosest(source, townId);
+        if (town == null) {
+            source.sendFailure(Component.literal("Town not founded"));
+            return 0;
+        }
+        var townInfo = Component.literal("Check the console for a description of town ")
+            .append(Component.empty().append(town.getName()).withStyle(ChatFormatting.YELLOW))
+            .append(Component.literal(" at "))
+            .append((Component.literal(town.getCenter().toShortString())).withStyle((style -> style
+                .withColor(ChatFormatting.AQUA)
+                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("Teleport")))
+                .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/tp @s " + town.getCenter().getX() + " " + town.getCenter().above().getY() + " " + town.getCenter().getZ()))
+            )));
+        town.printConsoleDescription();
+        if (placeMarkerBlocks) {
+            for (int y = 1; y <= 10; ++y) {
+                source.getLevel().setBlock(town.getNWCorner().above(y), Blocks.RED_WOOL.defaultBlockState(), 2);
+                source.getLevel().setBlock(town.getSECorner().above(y), Blocks.RED_WOOL.defaultBlockState(), 2);
+            }
+            town.getBuilds().forEach((build -> source.getLevel().setBlock(build.getOriginPos(), Blocks.ORANGE_WOOL.defaultBlockState(), 2)));
+            town.getBuds().forEach((bud -> source.getLevel().setBlock(bud.getPosition(), Blocks.PURPLE_WOOL.defaultBlockState(), 2)));
+        }
+        source.sendSuccess(() -> townInfo, true);
+        return 1;
+    }
+
+    private static int listCitizens(CommandSourceStack source, String townId) {
+        Town town = getTownOrClosest(source, townId);
+        if (town == null) {
+            source.sendFailure(Component.literal("Town not founded"));
+            return 0;
+        }
+        var dwellers = town.getCitizens();
+        if (dwellers.isEmpty()) {
+            source.sendSuccess(() -> Component.literal("This town has no dwellers"), true);
+            return 1;
+        }
+        MutableComponent output = Component.empty()
+            .append(Component.literal("Dwellers of town "))
+            .append(town.getName())
+            .append(" :");
+        dwellers.forEach((citizen) -> output
+            .append(CommonComponents.NEW_LINE)
+            .append(Component.literal(citizen.toString()).withStyle(ChatFormatting.YELLOW)));
+        source.sendSuccess(() -> output, true);
+        return 1;
+    }
+
+    private static int addCitizen(CommandSourceStack source, String townId, Entity entity) {
+        Town town = getTownOrClosest(source, townId);
+        if (town == null) {
+            source.sendFailure(Component.literal("Town not founded"));
+            return 0;
+        }
+        if (!(entity instanceof Npc npc)) {
+            source.sendFailure(Component.literal("The dweller entity must be a %s entity".formatted(EntityRegistry.REGISTRY.NPC.get().toString())));
+            return 0;
+        }
+        if (!town.addCitizen(npc)) {
+            source.sendFailure(Component.literal("Failed to add the dweller to the town"));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal("Successfully added the dweller to the town"), true);
+        return 1;
+    }
+
+    private static int removeCitizen(CommandSourceStack source, String townId, Entity entity) {
+        Town town = getTownOrClosest(source, townId);
+        if (town == null) {
+            source.sendFailure(Component.literal("Town not founded"));
+            return 0;
+        }
+        if (!(entity instanceof Npc npc)) {
+            source.sendFailure(Component.literal("The dweller entity must be a %s entity".formatted(EntityRegistry.REGISTRY.NPC.get().toString())));
+            return 0;
+        }
+        if (!town.removeCitizen(npc)) {
+            source.sendFailure(Component.literal("Failed to remove the dweller from the town"));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal("Successfully removed the dweller from the town"), true);
         return 1;
     }
 
     private static int listBuildings(CommandSourceStack source, String townId) {
         Town town = getTownOrClosest(source, townId);
-        if (town != null) {
-            List<String> buildings = new ArrayList<>();
-            town.getBuildings().forEach(building -> buildings.add(building.toSafeString()));
-            MutableComponent output = Component.literal("Town")
-                .append(Component.literal(" " + town.getName()).withStyle(ChatFormatting.YELLOW))
-                .append(" has")
-                .append(Component.literal(" " + buildings.size()).withStyle(ChatFormatting.GRAY))
-                .append(" buildings :");
-            buildings.forEach((building) -> output
-                .append(CommonComponents.NEW_LINE)
-                .append(Component.literal(building).withStyle(ChatFormatting.DARK_AQUA)));
-            source.sendSuccess(() -> output, true);
-        } else {
-            source.sendSuccess(() -> Component.literal("Town not founded"), true);
+        if (town == null) {
+            source.sendFailure(Component.literal("Town not founded"));
+            return 0;
         }
-        return 1;
-    }
-
-    private static int startProject(CommandSourceStack source, String townId, String buildTypeId) {
-        Town town = getTownOrClosest(source, townId);
-        if (town != null) {
-            BuildType type = town.getCulture().getBuildType(buildTypeId);
-            if (type != null) {
-                if (type instanceof BuildingType buildingType) {
-                    if (town.createProject(buildingType)) {
-                        source.sendSuccess(() -> Component.literal("Construction of a ")
-                            .append(Component.literal(buildTypeId).withStyle(ChatFormatting.GREEN))
-                            .append(Component.literal(" building will start soon")), true);
-                    } else {
-                        source.sendFailure(Component.literal("Could not manage to start the project."));
-                    }
-                } else {
-                    source.sendFailure(Component.literal("The build type must be a standard building"));
-                }
-            } else {
-                source.sendFailure(Component.literal("This build type does not exist"));
-            }
-        } else {
-            source.sendSuccess(() -> Component.literal("Town not founded"), true);
+        var buildings = town.getBuildings();
+        if (buildings.isEmpty()) {
+            source.sendSuccess(() -> Component.literal("This town has no buildings"), true);
+            return 1;
         }
-        return 1;
-    }
-
-    private static int finishProject(CommandSourceStack source, String townId, String projectId) {
-        Town town = getTownOrClosest(source, townId);
-        if (town != null) {
-            if (town.finishProject(projectId)) {
-                source.sendSuccess(() -> Component.literal("Construction will end soon !"), true);
-            } else {
-                source.sendFailure(Component.literal("Could not manage to finish the project."));
-            }
-        } else {
-            source.sendSuccess(() -> Component.literal("Town not founded"), true);
-        }
-        return 1;
-    }
-
-    private static int listProjects(CommandSourceStack source, String townId) {
-        Town town = getTownOrClosest(source, townId);
-        if (town != null) {
-            var projects = town.getProjects();
-            int projectsSize = projects.size();
-            MutableComponent output;
-            if (projectsSize > 0) {
-                output = Component.empty()
-                    .append(Component.literal(projectsSize + " ").withStyle(ChatFormatting.GRAY))
-                    .append(Component.literal("project" + (projectsSize > 1 ? "s" : "") + " founded : "));
-                projects.forEach(project -> output
-                    .append(CommonComponents.NEW_LINE)
-                    .append(Component.empty().append(project.toSafeString()).withStyle(ChatFormatting.YELLOW))
-                    .append(" : ").append(project.getProjectType().getDescription())
-                    .append(", progression : ").append(project.getProgression())
-                );
-            } else {
-                output = Component.literal("No projects founded");
-            }
-            source.sendSuccess(() -> output, true);
-        } else {
-            source.sendSuccess(() -> Component.literal("Town not founded"), true);
-        }
+        MutableComponent output = Component.literal("Town")
+            .append(Component.literal(" " + town.getName()).withStyle(ChatFormatting.YELLOW))
+            .append(" has")
+            .append(Component.literal(" " + buildings.size()).withStyle(ChatFormatting.GRAY))
+            .append(" buildings :");
+        buildings.forEach((building) -> output
+            .append(CommonComponents.NEW_LINE)
+            .append(Component.literal(building.toSafeString()).withStyle(ChatFormatting.DARK_AQUA)));
+        source.sendSuccess(() -> output, true);
         return 1;
     }
 
     private static int addBuilding(CommandSourceStack source, String townId, String buildTypeId, int level) {
         // TODO Find a way to also place the blocks of the extended paths.
         Town town = getTownOrClosest(source, townId);
-        if (town != null) {
-            BuildType type = town.getCulture().getBuildType(buildTypeId);
-            if (type != null) {
-                if (type instanceof BuildingType buildingType) {
-                    int maxLevel = buildingType.getLevels().size();
-                    if (level <= maxLevel) {
-                        if (town.build(buildingType, level)) {
-                            source.sendSuccess(() -> Component.literal("Build ")
-                                .append(Component.literal(buildTypeId).withStyle(ChatFormatting.GREEN))
-                                .append(Component.literal(" was successfully generated")), true);
-                        } else {
-                            source.sendFailure(Component.literal("Could not manage to place the build."));
-                        }
-                    } else {
-                        source.sendFailure(Component.literal("The build type level must be between 1 and " + maxLevel));
-                    }
-                } else {
-                    source.sendFailure(Component.literal("The build type must be a standard building"));
-                }
-            } else {
-                source.sendFailure(Component.literal("This build type does not exist"));
-            }
-        } else {
-            source.sendSuccess(() -> Component.literal("Town not founded"), true);
+        if (town == null) {
+            source.sendFailure(Component.literal("Town not founded"));
+            return 0;
         }
+        BuildType type = town.getCulture().getBuildType(buildTypeId);
+        if (type == null) {
+            source.sendFailure(Component.literal("This build type does not exist"));
+            return 0;
+        }
+        if (!(type instanceof BuildingType buildingType)) {
+            source.sendFailure(Component.literal("The build type must be a standard building"));
+            return 0;
+        }
+        int maxLevel = buildingType.getLevels().size();
+        if ((level <= 0 ) || (level > maxLevel)) {
+            source.sendFailure(Component.literal("The build type level must be between 1 and " + maxLevel));
+            return 0;
+        }
+        if (!town.build(buildingType, level)) {
+            source.sendFailure(Component.literal("Could not manage to place the build"));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal("Build ")
+            .append(Component.literal(buildTypeId).withStyle(ChatFormatting.GREEN))
+            .append(Component.literal(" was successfully generated")), true);
         return 1;
     }
 
-    private static int upgradeBuilding(CommandSourceStack source, String townId, String buildingName, int wantedLevel) {
+    private static int upgradeBuilding(CommandSourceStack source, String townId, String buildingName, int targetLevel) {
         // TODO implement
         source.sendSuccess(() -> Component.literal("This is not implemented yet"), true);
         return 1;
@@ -561,20 +514,161 @@ public class TownCommand {
 
     private static int deleteBuilding(CommandSourceStack source, String townId, String buildingName, boolean demolish) {
         Town town = getTownOrClosest(source, townId);
-        if (town != null) {
-            Building building = town.getBuilding(buildingName);
-            if (building != null) {
-                if (town.demolish(building)) {
-                    source.sendSuccess(() -> Component.literal("Building %s was successfully %s".formatted(buildingName, (demolish ? "demolished" : "deleted"))), true);
-                } else {
-                    source.sendFailure(Component.literal("Failed to delete the building"));
-                }
-            } else {
-                source.sendFailure(Component.literal("This building does not exist in this town"));
-            }
-        } else {
-            source.sendSuccess(() -> Component.literal("Town not founded"), true);
+        if (town == null) {
+            source.sendFailure(Component.literal("Town not founded"));
+            return 0;
         }
+        Building building = town.getBuilding(buildingName);
+        if (building == null) {
+            source.sendFailure(Component.literal("This building does not exist in this town"));
+            return 0;
+        }
+        if (!town.demolish(building)) {
+            source.sendFailure(Component.literal("Failed to delete the building"));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal("Building %s was successfully %s".formatted(buildingName, (demolish ? "demolished" : "deleted"))), true);
+        return 1;
+    }
+
+    private static int listProjects(CommandSourceStack source, String townId) {
+        Town town = getTownOrClosest(source, townId);
+        if (town == null) {
+            source.sendFailure(Component.literal("Town not founded"));
+            return 0;
+        }
+        var projects = town.getProjects();
+        if (projects.isEmpty()) {
+            source.sendSuccess(() -> Component.literal("This town has no construction projects"), true);
+            return 1;
+        }
+        MutableComponent output;
+        output = Component.empty()
+            .append(Component.literal(projects.size() + " ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal("project" + (projects.size() > 1 ? "s" : "") + " founded : "));
+        projects.forEach(project -> output
+            .append(CommonComponents.NEW_LINE)
+            .append(Component.empty().append(project.toSafeString()).withStyle(ChatFormatting.YELLOW))
+            .append(" : ").append(project.getProjectType().getDescription())
+            .append(", progression : ").append(project.getProgression())
+        );
+        source.sendSuccess(() -> output, true);
+        return 1;
+    }
+
+    private static int startProject(CommandSourceStack source, String townId, String buildTypeId) {
+        Town town = getTownOrClosest(source, townId);
+        if (town == null) {
+            source.sendFailure(Component.literal("Town not founded"));
+            return 0;
+        }
+        BuildType type = town.getCulture().getBuildType(buildTypeId);
+        if (type == null) {
+            source.sendFailure(Component.literal("This build type does not exist"));
+            return 0;
+        }
+        if (!(type instanceof BuildingType buildingType)) {
+            source.sendFailure(Component.literal("The build type must be a standard building"));
+            return 0;
+        }
+        if (!town.createProject(buildingType)) {
+            source.sendFailure(Component.literal("Could not manage to start the project"));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal("Construction of a ")
+            .append(Component.literal(buildTypeId).withStyle(ChatFormatting.GREEN))
+            .append(Component.literal(" building will start soon")), true);
+        return 1;
+    }
+
+    private static int finishProject(CommandSourceStack source, String townId, String projectId) {
+        Town town = getTownOrClosest(source, townId);
+        if (town == null) {
+            source.sendFailure(Component.literal("Town not founded"));
+            return 0;
+        }
+        if (!town.hasProject(projectId)) {
+            source.sendFailure(Component.literal("Project not founded"));
+            return 0;
+        }
+        if (!town.finishProject(projectId)) {
+            source.sendFailure(Component.literal("Could not manage to finish the project"));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal("Construction will end soon"), true);
+        return 1;
+    }
+
+    private static int showInventory(CommandSourceStack source, String townId) {
+        Town town = getTownOrClosest(source, townId);
+        if (town == null) {
+            source.sendFailure(Component.literal("Town not founded"));
+            return 0;
+        }
+        var inventory = town.getInventory().getContent();
+        if (inventory.isEmpty()) {
+            source.sendSuccess(() -> Component.literal("Town's inventory is empty"), true);
+            return 1;
+        }
+        MutableComponent output = Component.empty()
+            .append(Component.literal("Inventory of town "))
+            .append(town.getName())
+            .append(" :");
+        inventory.forEach((stack) -> output
+            .append(CommonComponents.NEW_LINE)
+            .append(Component.literal(stack.toString()).withStyle(ChatFormatting.YELLOW)));
+        source.sendSuccess(() -> output, true);
+        return 1;
+    }
+
+    private static int addToInventory(CommandSourceStack source, String townId, Item item, int count) {
+        Town town = getTownOrClosest(source, townId);
+        if (town == null) {
+            source.sendFailure(Component.literal("Town not founded"));
+            return 0;
+        }
+        if (item == null || item == Items.AIR) {
+            source.sendFailure(Component.literal("Invalid item"));
+            return 0;
+        } else if (count < 1) {
+            source.sendFailure(Component.literal("Item count must be greater than 0"));
+            return 0;
+        } else if (!town.getInventory().add(new ItemStack(item, count))) {
+            source.sendFailure(Component.literal("Failed to add the item in town's inventory"));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal("Added %s %s in town's inventory".formatted(count, item)), true);
+        return 1;
+    }
+
+    private static int removeFromInventory(CommandSourceStack source, String townId, Item item, int count) {
+        Town town = getTownOrClosest(source, townId);
+        if (town == null) {
+            source.sendFailure(Component.literal("Town not founded"));
+            return 0;
+        }
+        if (item == null || item == Items.AIR) {
+            source.sendFailure(Component.literal("Invalid item"));
+            return 0;
+        } else if (count < 1) {
+            source.sendFailure(Component.literal("Item count must be greater than 0"));
+            return 0;
+        } else if (!town.getInventory().remove(new ItemStack(item, count))) {
+            source.sendFailure(Component.literal("Failed to remove the item from town's inventory"));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal("Removed %s %s from town's inventory".formatted(count, item)), true);
+        return 1;
+    }
+
+    private static int clearInventory(CommandSourceStack source, String townId) {
+        Town town = getTownOrClosest(source, townId);
+        if (town == null) {
+            source.sendFailure(Component.literal("Town not founded"));
+            return 0;
+        }
+        town.getInventory().clear();
+        source.sendSuccess(() -> Component.literal("Cleared town inventory"), true);
         return 1;
     }
 
@@ -584,11 +678,11 @@ public class TownCommand {
      * Else, returns the town with the specified name or null if it does not exist.
      */
     private static @Nullable Town getTownOrClosest(CommandSourceStack source, String townId) {
-        return (townId == null || townId.equals(CLOSEST)) ? getClosestTown(source) : LevelTowns.of(source.getLevel()).getTownByFancyId(townId);
+        return (townId == null || townId.equals(CLOSEST)) ? getClosestTown(source, CLOSEST_TOWN_MAX_SEARCH_DIST) : LevelTowns.of(source.getLevel()).getTownByFancyId(townId);
     }
 
-    private static @Nullable Town getClosestTown(CommandSourceStack source) {
-        return Utils.getNearestTown(source.getLevel(), BlockPos.containing(source.getPosition()), CLOSEST_TOWN_MAX_SEARCH_DIST);
+    private static @Nullable Town getClosestTown(CommandSourceStack source, int maxSearchRadius) {
+        return Utils.getNearestTown(source.getLevel(), BlockPos.containing(source.getPosition()), maxSearchRadius);
     }
 
     private static StringArgumentType string() {
