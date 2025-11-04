@@ -80,6 +80,7 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
     private BlockPos attackedBlock;
     private int townId = -1;
     private BuildProject project;
+    private int professionLevel = 1;
     // TODO gossips
     // TODO golems
     // TODO food
@@ -270,17 +271,16 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
     @Override
     public void remove(RemovalReason reason) {
         super.remove(reason);
-        // TODO unregister from town
+        leaveTown();
     }
 
-    public void quitTown() {
+    public void leaveTown() {
         Town town = getTown();
         if (town != null) {
             town.removeCitizen(this);
+            setTown(null);
         }
     }
-
-
 
     @Override
     public void die(@NotNull DamageSource cause) {
@@ -481,10 +481,14 @@ public class Npc extends AgeableMob implements InteractingNpc, RangedAttackMob, 
     }
 
     public void setTown(Town town) {
-        if (town != null && level() instanceof ServerLevel serverLevel && town.getLevel() == serverLevel) {
-            refreshAi(serverLevel);
-            townId = town.getId();
+        if (!(level() instanceof ServerLevel serverLevel)) {
+            return;
         }
+        if ((town != null) && ((getTown() == town) || (town.getLevel() != serverLevel))) {
+            return;
+        }
+        townId = town == null ? -1 : town.getId();
+        refreshAi(serverLevel);
     }
 
     public void setCulture(String cultureId) {
