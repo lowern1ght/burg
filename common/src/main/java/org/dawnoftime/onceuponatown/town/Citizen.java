@@ -64,6 +64,13 @@ public class Citizen {
         return level;
     }
 
+    @Override
+    public String toString() {
+        return "Citizen(" + profession.getId() + ", "
+            + status.name().toLowerCase() + ", "
+            + (entityUUID == null ? "no entity)" : entityUUID + ")");
+    }
+
     public enum Status {
         NOT_SPAWNED,
         LOADED,

@@ -289,9 +289,30 @@ public class Town extends ProtoTown {
         citizens.addAll(citizenList);
     }
 
-    public void addDweller(Npc npc) {
-        citizens.add(new Citizen(Citizen.Status.LOADED, culture.getProfessionOrDefault(npc.getProfessionId()), npc.getUUID(), null, null));
-        npc.assignTown(this);
+    public boolean addCitizen(Npc npc) {
+        if (citizens.stream().noneMatch(citizen -> citizen.entityUUID.equals(npc.getUUID()))) {
+            citizens.add(new Citizen(Citizen.Status.LOADED, culture.getProfessionOrDefault(npc.getProfessionId()), npc.getUUID(), null, null));
+            npc.setTown(this);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public boolean removeCitizen(Npc npc) {
+        var citizen = citizens.stream()
+            .filter(c -> c.entityUUID.equals(npc.getUUID()))
+            .findFirst().orElse(null);
+        if (citizen != null) {
+            citizens.remove(citizen);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public List<Citizen> getCitizens() {
+        return citizens;
     }
 
     private void updateStatus() {
@@ -385,13 +406,13 @@ public class Town extends ProtoTown {
                         if (npc != null) {
                             npc.moveTo(pos.above(), 0.0F, 0.0F);
                             if (level.addFreshEntity(npc)) {
-                                npc.setCultureId(culture.getId());
+                                npc.setCulture(culture.getId());
                                 if (citizen.profession != null) {
-                                    npc.assignProfession(citizen.profession);
+                                    npc.setProfession(citizen.profession);
                                 } else {
-                                    npc.assignProfession(Profession.UNEMPLOYED);
+                                    npc.setProfession(Profession.UNEMPLOYED);
                                 }
-                                npc.assignTown(this);
+                                npc.setTown(this);
                                 citizen.entityUUID = npc.getUUID();
                                 citizen.status = Citizen.Status.LOADED;
                             }
@@ -463,13 +484,20 @@ public class Town extends ProtoTown {
     }
 
     public boolean finishProject(String projectId) {
-        for (BuildProject project : projects) {
-            if (project.toSafeString().equals(projectId)) {
-                project.rush(true);
-                return true;
-            }
+        var project = projects.stream()
+            .filter(p -> p.toSafeString().equals(projectId))
+            .findFirst()
+            .orElse(null);
+        if (project != null) {
+            project.rush(true);
+            return true;
+        } else {
+            return false;
         }
-        return false;
+    }
+
+    public boolean hasProject(String projectId) {
+        return projects.stream().anyMatch(project -> project.toSafeString().equals(projectId));
     }
 
     public void notifyProjectCompleted(BuildProject project) {
@@ -499,7 +527,7 @@ public class Town extends ProtoTown {
             if (uuid != null) {
                 if (level.getEntity(citizen.entityUUID) instanceof Npc npc) {
                     npc.refreshAi(level);
-                    npc.assignProfession(Profession.UNEMPLOYED);
+                    npc.setProfession(Profession.UNEMPLOYED);
                 }
             }
         }
