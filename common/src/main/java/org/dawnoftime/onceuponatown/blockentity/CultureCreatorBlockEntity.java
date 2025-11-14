@@ -1,5 +1,6 @@
 package org.dawnoftime.onceuponatown.blockentity;
 
+import com.google.gson.JsonObject;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -10,18 +11,28 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import org.apache.logging.log4j.core.jmx.Server;
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.building.schematic.Waypoint;
+import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
 import org.dawnoftime.onceuponatown.registry.BlockEntityRegistry;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+
+import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
+import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.*;
 
 public class CultureCreatorBlockEntity extends BlockEntity {
     private String cultureId = "";
@@ -33,7 +44,7 @@ public class CultureCreatorBlockEntity extends BlockEntity {
     private Component variantComponent = Component.empty();
     private Component buildingLevelComponent = Component.empty();
     private BlockPos size = new BlockPos(1, 0, 1);
-    private final Map<BlockPos,String> waypoints = new HashMap<>();
+    private final Map<BlockPos, Waypoint> waypoints = new HashMap<>();
 
     public CultureCreatorBlockEntity(BlockPos pos, BlockState blockState) {
         super(BlockEntityRegistry.REGISTRY.CULTURE_CREATOR.get(), pos, blockState);
@@ -53,6 +64,10 @@ public class CultureCreatorBlockEntity extends BlockEntity {
 
     public String getBuildingId() {
         return buildingId;
+    }
+
+    public Map<BlockPos, Waypoint> getWaypoints() {
+        return waypoints;
     }
 
     public @NotNull Component getCultureComponent() {
@@ -105,6 +120,43 @@ public class CultureCreatorBlockEntity extends BlockEntity {
 
     }
 
+    public boolean saveBuilding(ServerPlayer player) {
+        if (level instanceof ServerLevel serverLevel) {
+            StructureTemplate template = new StructureTemplate();
+            template.fillFromWorld(serverLevel, this.getBlockPos(), this.getSize(), true, Blocks.STRUCTURE_VOID);
+            template.save(new CompoundTag());
+
+            Path jsonPath = Ouat.COMMON.getConfigFolder().toPath()
+                    .resolve(MOD_ID)
+                    .resolve(CULTURES_FOLDER_NAME)
+                    .resolve(cultureId)
+                    .resolve(BUILDINGS_FOLDER_NAME)
+                    .resolve(buildingId + ".json");
+            BuildingDataHandler data = new BuildingDataHandler(loadJson(jsonPath));
+            Optional<BuildingDataHandler.BuildingVariantHandler> variantOpt = data.variants.stream()
+                    .filter(variant -> variant.name.asString().equals(variantId))
+                    .findFirst();
+            if (variantOpt.isEmpty()) {
+                return false;
+            }
+            BuildingDataHandler.BuildingVariantHandler variant = variantOpt.get();
+            if (variant.levels.size() < this.buildingLevel) {
+                return false;
+            }
+            BuildingDataHandler.BuildingVariantLevelHandler buildingLevel = variant.levels.get(this.buildingLevel - 1);
+            for (Map.Entry<BlockPos, Waypoint> entry : waypoints.entrySet()) {
+                BuildingDataHandler.WaypointHandler wp = new BuildingDataHandler.WaypointHandler(new JsonObject());
+                wp.id.set(entry.getValue().name());
+                wp.x.set(String.valueOf(entry.getKey().getX()));
+                wp.y.set(String.valueOf(entry.getKey().getY()));
+                wp.z.set(String.valueOf(entry.getKey().getZ()));
+                buildingLevel.waypoints.add(wp);
+            }
+            data.saveJson(jsonPath, player, cultureId);
+        }
+        return false;
+    }
+
     @Override
     public void setChanged() {
         super.setChanged();
@@ -134,7 +186,9 @@ public class CultureCreatorBlockEntity extends BlockEntity {
                     CompoundTag entryTag = list.getCompound(i);
                     BlockPos pos = NbtUtils.readBlockPos(entryTag.getCompound("pos"));
                     String label = entryTag.getString("label");
-                    waypoints.put(pos, label);
+                    if (Waypoint.exists(label)) {
+                        waypoints.put(pos, Waypoint.valueOf(label));
+                    }
                 }
             }
         } catch (Exception e) {
@@ -155,10 +209,10 @@ public class CultureCreatorBlockEntity extends BlockEntity {
         tag.putInt("level", this.buildingLevel);
         tag.put("size", NbtUtils.writeBlockPos(this.size));
         ListTag list = new ListTag();
-        for (Map.Entry<BlockPos, String> entry : waypoints.entrySet()) {
+        for (Map.Entry<BlockPos, Waypoint> entry : waypoints.entrySet()) {
             CompoundTag entryTag = new CompoundTag();
             entryTag.put("pos", NbtUtils.writeBlockPos(entry.getKey()));
-            entryTag.putString("label", entry.getValue());
+            entryTag.putString("label", entry.getValue().name());
             list.add(entryTag);
         }
         tag.put("waypoints", list);

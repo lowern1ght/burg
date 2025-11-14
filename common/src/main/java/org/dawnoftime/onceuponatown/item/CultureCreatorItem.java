@@ -148,8 +148,25 @@ public class CultureCreatorItem extends BlockItem {
     }
 
     private @NotNull InteractionResultHolder<ItemStack> useCultureCreatorWaypoint(@NotNull UseOnContext context) {
-        System.out.println("Mode Waypoint Server");
-        return InteractionResultHolder.success(context.getItemInHand());    }
+        ItemStack stack = context.getItemInHand();
+        if (!context.getLevel().isClientSide() && context.getPlayer() instanceof ServerPlayer serverPlayer) {
+            // If shifting, opening the GUI. Otherwise, place waypoint.
+            if (serverPlayer.isShiftKeyDown()) {
+                MinecraftServer server = serverPlayer.server;
+                if (server.getPlayerList().isOp(serverPlayer.getGameProfile())) {
+                    CompoundTag contentTag = OpenScreenPacket.getPacketTag(stack.getOrCreateTag());
+                    if (contentTag != null) {
+                        Ouat.COMMON.sendToClient(serverPlayer, S2COpenWaypointsCCScreenPacket.decode(contentTag));
+                    }
+                } else {
+                    Ouat.clientChat(serverPlayer, "cc", "error_need_admin_rights");
+                }
+            } else {
+                // TODO 1) Vérifier que la blockPos dans le tag correspond bien à un ccBE. Si non, retourner au GUI. Si oui, save le waypoint.
+            }
+        }
+        return InteractionResultHolder.success(stack);
+    }
 
     private OuatPacket openStoredScreen(@NotNull Player player, @NotNull CompoundTag tag) {
         OuatPacket packet = null;

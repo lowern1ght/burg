@@ -74,7 +74,9 @@ public class VariantLevelCCScreen extends BaseCCScreen {
                     this.onClose();
                 }
         ));
-        // TODO IconButtonsInventory
+        // TODO Bouton pour afficher les blocks AIR et GHOST
+        // TODO Bouton pour auto placer ces blocks
+        // TODO Bouton pour save le building
     }
 
     private void save(int cultureCreatorState) {

@@ -16,9 +16,12 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.dawnoftime.onceuponatown.blockentity.CultureCreatorBlockEntity;
+import org.dawnoftime.onceuponatown.building.schematic.Waypoint;
 import org.dawnoftime.onceuponatown.item.CultureCreatorItem;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Matrix4f;
+
+import java.util.Map;
 
 import static org.dawnoftime.onceuponatown.Ouat.MOD_ID;
 
@@ -35,6 +38,7 @@ public class CultureCreatorRenderer implements BlockEntityRenderer<CultureCreato
         poseStack.pushPose();
         poseStack.translate(0.5F, 0.5F, 0.5F);
 
+        // Render block box
         VertexConsumer translucent = buffer.getBuffer(RenderType.entityTranslucentCull(WHITE_TEXTURE));
         if (isPairedWithClientPlayerItem(blockEntity)) {
             renderTranslucentBox(translucent, poseStack.last().pose(), 1.1F, 0.56F, 0.78F, 0.44F, 0.6F);
@@ -42,15 +46,18 @@ public class CultureCreatorRenderer implements BlockEntityRenderer<CultureCreato
             renderTranslucentBox(translucent, poseStack.last().pose(), 1.1F, 0.8F, 0.8F, 0.8F, 0.4F);
         }
 
+        // Render opposite corner box.
         BlockPos size = blockEntity.getSize();
         poseStack.pushPose();
         poseStack.translate(size.getX(), size.getY(), size.getZ());
         renderTranslucentBox(translucent, poseStack.last().pose(), 0.4F, 0.8F, 0.8F, 0.8F, 0.4F);
         poseStack.popPose();
 
+        // Render selection box
         VertexConsumer lines = buffer.getBuffer(RenderType.lines());
         this.renderSelectionArea(lines, poseStack, size);
 
+        // Render text above block.
         poseStack.pushPose();
         poseStack.translate(0, 1.5F, 0);
         Minecraft mc = Minecraft.getInstance();
@@ -63,6 +70,16 @@ public class CultureCreatorRenderer implements BlockEntityRenderer<CultureCreato
         this.renderText(blockEntity.getBuildingLevelComponent(), poseStack, buffer, light, 15);
         poseStack.popPose();
         poseStack.popPose();
+
+        // Render waypoints boxes.
+        for (Map.Entry<BlockPos, Waypoint> entry : blockEntity.getWaypoints().entrySet()) {
+            BlockPos pos = entry.getKey();
+            Waypoint wp = entry.getValue();
+            poseStack.pushPose();
+            poseStack.translate(pos.getX(), pos.getY(), pos.getZ());
+            renderTranslucentBox(translucent, poseStack.last().pose(), 1.1F, wp.getRed(), wp.getGreen(), wp.getBlue(), 0.4F);
+            poseStack.popPose();
+        }
     }
 
     private void renderSelectionArea(VertexConsumer consumerLines, @NotNull PoseStack poseStack, BlockPos size) {
