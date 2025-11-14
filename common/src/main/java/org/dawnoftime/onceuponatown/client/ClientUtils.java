@@ -46,4 +46,8 @@ public class ClientUtils {
     public static void openVariantLevelCCScreen(S2COpenVariantLevelCCScreenPacket packet) {
         Minecraft.getInstance().execute(() -> Minecraft.getInstance().setScreen(new VariantLevelCCScreen(packet)));
     }
+
+    public static void openWaypointsCCScreen(S2COpenWaypointsCCScreenPacket packet) {
+        Minecraft.getInstance().execute(() -> Minecraft.getInstance().setScreen(new WaypointsCCScreen(packet)));
+    }
 }

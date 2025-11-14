@@ -5,29 +5,36 @@ import net.minecraft.util.FastColor;
 import java.util.Arrays;
 
 public enum Waypoint {
-    BED("bed", FastColor.ARGB32.color(255, 100, 100, 100)),
-    ROAD_CONNEXION("road_connexion", FastColor.ARGB32.color(255, 100, 100, 100)),
-    FIELD_CENTER("field_center", FastColor.ARGB32.color(255, 100, 100, 100)),
-    FISHING("fishing", FastColor.ARGB32.color(255, 100, 100, 100)),
-    CRAFTING("crafting", FastColor.ARGB32.color(255, 100, 100, 100));
+    BED (100, 100, 100),
+    MAIN_ENTRANCE (100, 100, 100),
+    FIELD_CENTER (100, 100, 100),
+    FISHER_POS (100, 100, 250),
+    FISHING_WATER (100, 100, 200),
+    CRAFTING (100, 100, 100);
 
-    private final String id;
-    private final int fastColor;
+    private final float red;
+    private final float green;
+    private final float blue;
 
-    Waypoint(String id, int fastColor){
-        this.id = id;
-        this.fastColor = fastColor;
+    Waypoint(int red, int green, int blue){
+        this.red = (float) red / 255;
+        this.green = (float) green / 255;
+        this.blue = (float) blue / 255;
     }
 
-    public String getId(){
-        return this.id;
+    public float getRed() {
+        return red;
     }
 
-    public int getFastColor(){
-        return this.fastColor;
+    public float getGreen() {
+        return green;
     }
 
-    public static boolean exists(String id){
-        return Arrays.stream(Waypoint.values()).anyMatch(wp -> wp.id.equals(id));
+    public float getBlue() {
+        return blue;
+    }
+
+    public static boolean exists(String name){
+        return Arrays.stream(Waypoint.values()).anyMatch(wp -> wp.name().equals(name));
     }
 }

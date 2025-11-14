@@ -50,6 +50,7 @@ public class PacketHandler {
         CHANNEL.registerMessage(i++, S2COpenVariantsCCScreenPacket.class, S2COpenVariantsCCScreenPacket::encode, S2COpenVariantsCCScreenPacket::decode, makeS2CHandler(S2COpenVariantsCCScreenPacket.Handler::handle));
         CHANNEL.registerMessage(i++, S2COpenVariantLevelsCCScreenPacket.class, S2COpenVariantLevelsCCScreenPacket::encode, S2COpenVariantLevelsCCScreenPacket::decode, makeS2CHandler(S2COpenVariantLevelsCCScreenPacket.Handler::handle));
         CHANNEL.registerMessage(i++, S2COpenVariantLevelCCScreenPacket.class, S2COpenVariantLevelCCScreenPacket::encode, S2COpenVariantLevelCCScreenPacket::decode, makeS2CHandler(S2COpenVariantLevelCCScreenPacket.Handler::handle));
+        CHANNEL.registerMessage(i++, S2COpenWaypointsCCScreenPacket.class, S2COpenWaypointsCCScreenPacket::encode, S2COpenWaypointsCCScreenPacket::decode, makeS2CHandler(S2COpenWaypointsCCScreenPacket.Handler::handle));
     }
 
     private static <T> BiConsumer<T, Supplier<NetworkEvent.Context>> makeC2SHandler(TriConsumer<T, MinecraftServer, ServerPlayer> handler) {
