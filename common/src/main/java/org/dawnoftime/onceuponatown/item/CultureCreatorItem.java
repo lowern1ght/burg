@@ -21,6 +21,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.blockentity.CultureCreatorBlockEntity;
+import org.dawnoftime.onceuponatown.building.schematic.Waypoint;
 import org.dawnoftime.onceuponatown.network.OuatPacket;
 import org.dawnoftime.onceuponatown.network.culturecreator.*;
 import org.dawnoftime.onceuponatown.registry.BlockRegistry;
@@ -160,9 +161,24 @@ public class CultureCreatorItem extends BlockItem {
                     }
                 } else {
                     Ouat.clientChat(serverPlayer, "cc", "error_need_admin_rights");
+                    return InteractionResultHolder.pass(stack);
                 }
             } else {
-                // TODO 1) Vérifier que la blockPos dans le tag correspond bien à un ccBE. Si non, retourner au GUI. Si oui, save le waypoint.
+                Waypoint wp = getSelectedWaypoint(stack);
+                if (wp == null) {
+                    Ouat.clientChat(serverPlayer, "cc", "error");
+                    return InteractionResultHolder.pass(stack);
+                }
+                Level level = context.getLevel();
+                BlockPos currentCCB = getPairedCCBlockPos(stack);
+                if (currentCCB != null && level.getBlockEntity(currentCCB) instanceof CultureCreatorBlockEntity ccBE) {
+                    ccBE.setOrRemoveWaypoint(context.getClickedPos(), wp);
+                } else {
+                    Ouat.clientChat(serverPlayer, "cc", "error_missing_paired_block");
+
+                    setClientPlayerCCState(serverPlayer, (byte) 0);
+                    return this.useCultureCreatorDefault(context);
+                }
             }
         }
         return InteractionResultHolder.success(stack);
@@ -226,6 +242,19 @@ public class CultureCreatorItem extends BlockItem {
                 stack.getOrCreateTag().putByte("ouat_culture_creator_state", state);
             }
         }
+    }
+
+    public static @Nullable Waypoint getSelectedWaypoint(ItemStack ccStack) {
+        try {
+            String wpName = ccStack.getOrCreateTag().getString("ouat_culture_creator_waypoint");
+            return Waypoint.valueOf(wpName);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    public static void setSelectedWaypoint(ItemStack ccStack,Waypoint wp) {
+        ccStack.getOrCreateTag().putString("ouat_culture_creator_waypoint", wp.name());
     }
 
     private void changeSelectedPage(ItemStack ccStack, @NotNull String cultureId, @NotNull String buildingId, @NotNull String variantId, int buildingLevel) {
