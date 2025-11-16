@@ -53,7 +53,7 @@ public class WaypointsCCScreen extends BaseCCScreen {
                 if (player != null) {
                     ItemStack stack = player.getItemInHand(player.getUsedItemHand());
                     if (!stack.isEmpty() && stack.getItem() instanceof CultureCreatorItem) {
-                        stack.getOrCreateTag().putString("ouat_culture_creator_waypoint", wp.name());
+                        CultureCreatorItem.setSelectedWaypoint(stack, wp);
                     }
                 }
                 this.onClose();

@@ -13,12 +13,10 @@ import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
-import org.apache.logging.log4j.core.jmx.Server;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.building.schematic.Waypoint;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
@@ -112,12 +110,14 @@ public class CultureCreatorBlockEntity extends BlockEntity {
         this.setChanged();
     }
 
-    public void addWaypoint(BlockPos pos, String type) {
-
-    }
-
-    public void removeWaypoint(BlockPos pos) {
-
+    public void setOrRemoveWaypoint(BlockPos pos, Waypoint wp) {
+        // If the pos is already in the map, and the wp is also the value associated to this key, then delete it.
+        Waypoint existing = this.waypoints.get(pos);
+        if (existing != null && existing.equals(wp)) {
+            this.waypoints.remove(pos);
+        } else {
+            this.waypoints.put(pos, wp);
+        }
     }
 
     public boolean saveBuilding(ServerPlayer player) {
