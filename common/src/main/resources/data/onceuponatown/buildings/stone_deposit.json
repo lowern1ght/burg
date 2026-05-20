@@ -1,0 +1,21 @@
+{
+  "id": "stone_deposit",
+  "nbt": "onceuponatown:plains/jobs/stone_deposit",
+  "entry_pool": "onceuponatown:jobs",
+  "icon_item": "minecraft:cobblestone",
+  "category": "jobs",
+  "production": [
+    {
+      "item": "minecraft:cobblestone",
+      "amount": 1,
+      "every_ticks": 1600,
+      "capacity_stacks": 4
+    }
+  ],
+  "construction_cost": [
+    {
+      "item": "minecraft:oak_log",
+      "amount": 10
+    }
+  ]
+}

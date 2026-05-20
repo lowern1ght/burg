@@ -17,6 +17,9 @@
   "entrypoints": {
     "main": [
       "org.dawnoftime.onceuponatown.OuatFabric"
+    ],
+    "client": [
+      "org.dawnoftime.onceuponatown.OuatFabricClient"
     ]
   },
   "mixins": [

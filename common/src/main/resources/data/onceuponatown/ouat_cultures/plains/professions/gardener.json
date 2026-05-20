@@ -1,7 +1,0 @@
-{
-  "id": "gardener",
-  "schedule": "worker",
-  "work_ai": "gardener",
-  "levels": [
-  ]
-}

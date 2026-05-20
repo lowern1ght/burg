@@ -1,0 +1,15 @@
+{
+  "id": "wild_spot",
+  "nbt": "onceuponatown:plains/gardens/wild_spot",
+  "entry_pool": "onceuponatown:gardens",
+  "icon_item": "minecraft:oak_leaves",
+  "category": "gardens",
+  "production": [],
+  "production_bonus": 0.03,
+  "construction_cost": [
+    {
+      "item": "minecraft:oak_log",
+      "amount": 5
+    }
+  ]
+}

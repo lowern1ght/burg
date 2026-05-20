@@ -1,0 +1,21 @@
+{
+  "id": "cow_field",
+  "nbt": "onceuponatown:plains/jobs/cow_field",
+  "entry_pool": "onceuponatown:jobs",
+  "icon_item": "minecraft:beef",
+  "category": "jobs",
+  "production": [
+    {
+      "item": "minecraft:beef",
+      "amount": 1,
+      "every_ticks": 1600,
+      "capacity_stacks": 1
+    }
+  ],
+  "construction_cost": [
+    {
+      "item": "minecraft:oak_log",
+      "amount": 12
+    }
+  ]
+}

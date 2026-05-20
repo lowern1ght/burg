@@ -1,0 +1,22 @@
+﻿{
+    "id":  "street_3",
+    "nbt":  "onceuponatown:plains/streets/street_3",
+    "entry_pool":  "onceuponatown:streets",
+    "terrain_matching":  true,
+    "icon_item":  "minecraft:dirt_path",
+    "production":  [],
+    "construction_cost":  [],
+    "footprint":  [
+                      "100",
+                      "110",
+                      "110",
+                      "110",
+                      "010",
+                      "110",
+                      "111",
+                      "011",
+                      "011",
+                      "011",
+                      "001"
+                  ]
+}

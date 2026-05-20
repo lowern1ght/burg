@@ -1,698 +1,360 @@
 package org.dawnoftime.onceuponatown.town;
 
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
+import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
-import org.dawnoftime.onceuponatown.Config;
-import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.Utils;
-import org.dawnoftime.onceuponatown.building.BuildProject;
-import org.dawnoftime.onceuponatown.building.instance.Build;
-import org.dawnoftime.onceuponatown.building.instance.Building;
-import org.dawnoftime.onceuponatown.building.instance.Road;
-import org.dawnoftime.onceuponatown.building.schematic.SchematicBlock;
-import org.dawnoftime.onceuponatown.building.schematic.SchematicContent;
-import org.dawnoftime.onceuponatown.building.type.BuildingType;
-import org.dawnoftime.onceuponatown.culture.Culture;
-import org.dawnoftime.onceuponatown.culture.Profession;
-import org.dawnoftime.onceuponatown.culture.ServerCultures;
-import org.dawnoftime.onceuponatown.culture.Specialization;
-import org.dawnoftime.onceuponatown.entity.Npc;
-import org.dawnoftime.onceuponatown.registry.EntityRegistry;
-import org.dawnoftime.onceuponatown.town.generation.ProtoTown;
-import org.dawnoftime.onceuponatown.town.generation.bud.BuildBud;
+import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.function.BiFunction;
-import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
 
-public class Town extends ProtoTown {
-    private static final List<ItemStack> INVENTORY_STARTER_PACK = List.of(new ItemStack(Items.BREAD, 32), new ItemStack(Items.APPLE, 16));
-    private final ServerLevel level; // The Level this Town belongs to
-    private final int id; // Unique Id
-    private Component name; // Not unique name
-    private final List<BuildProject> projects; // List of Builds under construction
-    private final List<Citizen> citizens; // Citizens of this Town
-    private final HashMap<Specialization, Integer> progression;
-    private final TownInventory inventory;
-    private long lastProductionHarvest; // Last time this Town collected resources from its producers
-    private int experience;
-    private long lastActive;
-    // Unsaved attributes
-    private final List<ServerPlayer> visitors = new ArrayList<>(); // Players in Town's boundaries
-    private boolean active;
-    private boolean rushProjects;
-    private boolean ringedBell;
+public class Town {
+    private final List<PlacedBuilding> buildings = new ArrayList<>();
+    private final List<ConnectionPoint> freeConnections = new ArrayList<>();
+    private final Map<Item, Integer> reserveStock = new HashMap<>();
+    // Bounding boxes reserved for pieces that have no building def (starter, vanilla pieces).
+    // Must be serialized - the mixin that populates these only fires during world gen, not on reload.
+    private final List<BoundingBox> blockedZones = new ArrayList<>();
+    private UUID builderNpcId;
+    private String name = "Unknown Town";
+    // null until first NPC tick; empty list once bootstrap is complete (open phase).
+    private List<String> bootstrapQueue = null;
+    // The building ID chosen at spawn for multi-candidate orientations (e.g. food). Persisted to prevent re-roll on reload.
+    private String selectedBootstrapBuilding = null;
 
-    private Town(
-        Culture culture, // ProtoTown attributes
-        BlockPos center,
-        BlockPos NWCorner,
-        BlockPos SECorner,
-        List<BuildBud> buds,
-        List<Build> builds,
-        int buildsWeight,
-        BiFunction<Integer, Integer, Integer> getSurfaceY,
-        ServerLevel level, // Town attributes
-        int id,
-        Component name,
-        List<BuildProject> projects,
-        ListTag citizens,
-        HashMap<Specialization, Integer> progression,
-        TownInventory inventory,
-        long lastProductionHarvest,
-        int experience,
-        long lastActive
-    ) {
-        super(culture, center, NWCorner, SECorner, buds, builds, buildsWeight, getSurfaceY);
-        this.level = level;
-        this.id = id;
-        this.name = name;
-        this.projects = projects;
-        this.citizens = new ArrayList<>();
-        this.progression = progression;
-        this.inventory = inventory;
-        this.lastProductionHarvest = lastProductionHarvest;
-        this.experience = experience;
-        this.lastActive = lastActive;
-        // Common init regardless of how this Town was created (world gen, spawned by command, loaded by NBT)
-        var buildings = getBuildings();
-        for (Tag tag : citizens) {
-            CompoundTag citizenTag = (CompoundTag) tag;
-            this.citizens.add(new Citizen(
-                Citizen.Status.valueOf(citizenTag.getString("Status")),
-                culture.getProfessionOrDefault(citizenTag.getString("Profession")),
-                citizenTag.hasUUID("UUID") ? citizenTag.getUUID("UUID") : null,
-                buildings.stream().filter(building -> building.toSafeString().equals(citizenTag.getString("Residence"))).findFirst().orElse(null),
-                buildings.stream().filter(building -> building.toSafeString().equals(citizenTag.getString("Workplace"))).findFirst().orElse(null)
-            ));
-        }
+    public void registerBuilding(BlockPos worldPos, String defId, List<ConnectionPoint> connections, BoundingBox bb, Rotation rotation) {
+        buildings.add(new PlacedBuilding(defId, worldPos, bb, rotation));
+        freeConnections.addAll(connections);
     }
 
-    static Town createFromProtoTown(ServerLevel level, int id, CompoundTag protoTownTag) {
-        Culture culture = ServerCultures.getCultureOrDefault(protoTownTag.getString("Culture"));
-        Town town = new Town(
-            culture,
-            NbtUtils.readBlockPos(protoTownTag.getCompound("Center")),
-            NbtUtils.readBlockPos(protoTownTag.getCompound("NWCorner")),
-            NbtUtils.readBlockPos(protoTownTag.getCompound("SECorner")),
-            protoTownTag.getList("BuildBuds", Tag.TAG_COMPOUND).stream().map(budTag -> new BuildBud((CompoundTag) budTag)).collect(Collectors.toList()),
-            protoTownTag.getList("Builds", Tag.TAG_COMPOUND).stream().map(buildTag -> Build.load(culture, (CompoundTag) buildTag)).collect(Collectors.toList()),
-            protoTownTag.getInt("BuildsWeight"),
-            (x, z) -> level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) - 1,
-            level,
-            id,
-            getRandomTownName(),
-            new ArrayList<>(), // Empty ConstructionProjects
-            new ListTag(), // Empty Citizens
-            new HashMap<>(), // Empty progression
-            new TownInventory(INVENTORY_STARTER_PACK),
-            level.getGameTime(), // lastProductionHarvest
-            0, // experience
-            0 // lastActive
-        );
-        town.afterSpawnInit();
-        return town;
+    public void addBlockedZone(BoundingBox bb) {
+        blockedZones.add(bb);
     }
 
-    static Town loadNbt(ServerLevel level, CompoundTag townTag) {
-        Culture culture = ServerCultures.getCultureOrDefault(townTag.getString("Culture"));
-        Town town = new Town(
-            culture,
-            NbtUtils.readBlockPos(townTag.getCompound("Center")),
-            NbtUtils.readBlockPos(townTag.getCompound("NWCorner")),
-            NbtUtils.readBlockPos(townTag.getCompound("SECorner")),
-            townTag.getList("BuildBuds", Tag.TAG_COMPOUND).stream().map(budTag -> new BuildBud((CompoundTag) budTag)).collect(Collectors.toList()),
-            townTag.getList("Builds", Tag.TAG_COMPOUND).stream().map(buildTag -> Build.load(culture, (CompoundTag) buildTag)).collect(Collectors.toList()),
-            townTag.getInt("BuildsWeight"),
-            (x, z) -> level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) - 1,
-            level,
-            townTag.getInt("Id"),
-            Component.Serializer.fromJson(townTag.getString("Name")),
-            new ArrayList<>(),
-            townTag.getList("Citizens", Tag.TAG_COMPOUND),
-            new HashMap<>(), // TODO Implement progression
-            new TownInventory(townTag.getCompound("TownInventory")),
-            townTag.getLong("LastProductionHarvest"),
-            townTag.getInt("Experience"),
-            townTag.getLong("LastActive")
-        );
-        townTag.getList("Projects", Tag.TAG_COMPOUND).stream()
-            .map(projectTag -> BuildProject.load(level, town, (CompoundTag) projectTag))
-            .forEach(town.projects::add);
-        return town;
+    // Returns the world bounding boxes of all placed buildings plus blocked zones.
+    // Buildings from saves predating BB tracking have null bb - they are skipped.
+    public List<BoundingBox> getOccupiedBoxes() {
+        List<BoundingBox> all = new ArrayList<>();
+        buildings.stream().map(b -> b.bb).filter(Objects::nonNull).forEach(all::add);
+        all.addAll(blockedZones);
+        return all;
     }
 
-    static Town trySpawnAtPosition(Culture culture, ServerLevel level, int id, BlockPos center, @Nullable Component townName) {
-        Town town = new Town(
-            culture,
-            center, // Center
-            center, // Initial NWCorner
-            center, // Initial SECorner
-            new ArrayList<>(), // Empty BuildingBuds
-            new ArrayList<>(), // Empty Builds
-            0,
-            (x, z) -> (level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) - 1),
-            level,
-            id,
-            (townName != null) ? townName : getRandomTownName(),
-            new ArrayList<>(), // Empty ConstructionProjects
-            new ListTag(), // Empty Citizens
-            new HashMap<>(), // Empty progression
-            new TownInventory(INVENTORY_STARTER_PACK),
-            level.getGameTime(), // lastProductionHarvest
-            0, // experience
-            0 // lastActive
-        );
-        if (town.buildStarterPack()) {
-            // Placing builds
-            for (Build build : town.getBuilds()) {
-                BuildProject project = new BuildProject(level, BuildProject.Type.NEW_BUILD, town, build);
-                project.rush(true);
-                town.projects.add(project);
+    public void addFreeConnection(ConnectionPoint point) {
+        freeConnections.add(point);
+    }
+
+    public void useConnection(ConnectionPoint point) {
+        freeConnections.remove(point);
+    }
+
+    public List<ConnectionPoint> getAvailableConnectionPoints() {
+        return Collections.unmodifiableList(freeConnections);
+    }
+
+    // Returns building defs available to build: all buildings whose construction cost is met by the town inventory.
+    public List<BuildingDef> getBuildableBuildings() {
+        TownInventory inv = getTownInventory();
+        return BuildingDataHandler.getAll().stream()
+            .filter(def -> inv.hasStock(def.constructionCost))
+            .toList();
+    }
+
+    // Returns all building defs whose entry pool matches the connection point, regardless of cost.
+    // Used to distinguish PENDING_RESOURCES (compatible building exists but unaffordable) from DEAD (no compatible building).
+    public List<BuildingDef> getPotentialBuildings(ConnectionPoint point) {
+        return BuildingDataHandler.getAll().stream()
+            .filter(def -> point.targetName().isEmpty() || def.entryPool.equals(point.targetName()))
+            .toList();
+    }
+
+    // Bootstrap state queries
+    public boolean isBootstrapInitialized() { return bootstrapQueue != null; }
+    public boolean isBootstrapping() { return bootstrapQueue != null && !bootstrapQueue.isEmpty(); }
+    public List<String> getBootstrapQueue() { return bootstrapQueue != null ? bootstrapQueue : List.of(); }
+
+    // Lazy bootstrap initialization: called on the first NPC tick after village creation.
+    // Reads orientation from the placed starter building, picks a bootstrap candidate (once), and
+    // populates the queue. Returns true if state changed (needs markDirty).
+    public boolean initBootstrap(RandomSource random) {
+        if (bootstrapQueue != null) return false;
+
+        for (PlacedBuilding b : buildings) {
+            BuildingDef def = BuildingDataHandler.get(b.defId).orElse(null);
+            if (def == null || def.orientation.isEmpty()) continue;
+
+            if (selectedBootstrapBuilding == null && !def.bootstrapCandidates.isEmpty()) {
+                int idx = def.bootstrapCandidates.size() == 1 ? 0
+                    : random.nextInt(def.bootstrapCandidates.size());
+                selectedBootstrapBuilding = def.bootstrapCandidates.get(idx);
             }
-            /*
-            BlockPos.MutableBlockPos cursor = new BlockPos(0, 0, 0).mutable();
-            for (Build build : town.getBuilds()) {
-                SchematicContent schema = build.getSchematicContent(level.getServer().getResourceManager());
-                for (SchematicBlock block : schema.getBlocks()) {
-                    cursor.set(build.getOriginPos().getX(), build.getOriginPos().getY(), build.getOriginPos().getZ());
-                    level.setBlock(cursor.move(block.pos()), block.state(), 2);
-                    // broken return null;
-                }
-                // TODO Do the same for the entities !
-            }
-             */
-            town.afterSpawnInit();
-            town.rushProjects = true;
-            return town;
-        } else {
-            return null;
-        }
-    }
 
-    @Override
-    public CompoundTag saveNbt() {
-        CompoundTag tag = super.saveNbt();
-        tag.putInt("Id", id);
-        tag.putString("Name", Component.Serializer.toJson(name));
-        // ConstructionProjects
-        ListTag projectsTag = new ListTag();
-        projects.forEach(project -> projectsTag.add(project.save(new CompoundTag())));
-        tag.put("Projects", projectsTag);
-        // Citizens
-        ListTag citizensTag = new ListTag();
-        citizens.forEach(citizen -> citizensTag.add(citizen.saveNbt()));
-        tag.put("Citizens", citizensTag);
-        // TODO Implement progression
-        tag.put("TownInventory", inventory.save());
-        tag.putLong("LastProductionHarvest", lastProductionHarvest);
-        tag.putInt("Experience", experience);
-        tag.putLong("LastActive", lastActive);
-        return tag;
-    }
-
-    private void afterSpawnInit() {
-        addCitizens();
-    }
-
-    private void addCitizens() {
-        List<Citizen> citizenList = new ArrayList<>();
-        List<Building> buildings = getBuildings();
-        // Counting the number of dwelling slots
-        int townTotalDwellingSlots = buildings.stream().mapToInt(Building::getTotalBeds).sum();
-        // Adding the proper amount of Citizens
-        for (int i = 0; i < townTotalDwellingSlots; i++) {
-            citizenList.add(new Citizen(Citizen.Status.NOT_SPAWNED, Profession.UNEMPLOYED, null, null, null));
-        }
-        // Professions
-        assigningJobs:
-        for (Citizen citizen : citizenList) {
-            for (Building building : buildings) {
-                Profession available = building.getNextAvailableProfession();
-                if (available != null) {
-                    citizen.profession = available;
-                    citizen.workplace = building;
-                    building.addWorker(available);
-                    continue assigningJobs;
-                }
-            }
-        }
-        // Special profession : Builder
-        Citizen builder = citizenList.stream().filter(Citizen::isUnemployed).findFirst()
-            .orElse(new Citizen(Citizen.Status.NOT_SPAWNED, Profession.UNEMPLOYED, null, null, null));
-        Profession profession = culture.getProfessionOrDefault("builder");
-        if (profession != Profession.UNEMPLOYED) {
-            builder.profession = profession;
-        }
-        if (!citizenList.contains(builder)) {
-            citizenList.add(builder);
-        }
-        // Residences
-        assigningHomes:
-        for (Citizen citizen : citizenList) {
-            // Prioritizing living at the workplace
-            if (!citizen.isUnemployed()) {
-                if (citizen.workplace != null && citizen.workplace.getFreeBeds() > 0) {
-                    citizen.residence = citizen.workplace;
-                    citizen.residence.addResident();
-                    continue;
-                }
-            }
-            for (Building building : buildings) {
-                if (building.getFreeBeds() > 0) {
-                    citizen.residence = building;
-                    building.addResident();
-                    continue assigningHomes;
-                }
-            }
-            Ouat.error("Town %s (id:%s) failed to assign a home to citizen".formatted(name, id));
-            // TODO what if unable to assign a home ?
-        }
-        citizens.addAll(citizenList);
-    }
-
-    public boolean addCitizen(Npc npc) {
-        if (citizens.stream().noneMatch(citizen -> citizen.entityUUID.equals(npc.getUUID()))) {
-            citizens.add(new Citizen(Citizen.Status.LOADED, culture.getProfessionOrDefault(npc.getProfessionId()), npc.getUUID(), null, null));
-            npc.setTown(this);
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    public boolean removeCitizen(Npc npc) {
-        var citizen = citizens.stream()
-            .filter(c -> c.entityUUID.equals(npc.getUUID()))
-            .findFirst().orElse(null);
-        if (citizen != null) {
-            citizens.remove(citizen);
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    public List<Citizen> getCitizens() {
-        return citizens;
-    }
-
-    private void updateStatus() {
-        if (!active && !visitors.isEmpty()) {
-            setActive();
-        } else if (active && visitors.isEmpty()) {
-            setInactive();
-        }
-    }
-
-    private void setActive() {
-        active = true;
-        maybeCollectProduction();
-    }
-
-    private void setInactive() {
-        active = false;
-        lastActive = level.getGameTime();
-    }
-
-    void tick() {
-        // Tick
-        if (active) {
-            // Scheduler
-            TickScheduler.tick(level);
-            // Projects
-            List<BuildProject> rushingProjects = new ArrayList<>(projects.stream().filter(BuildProject::rushing).toList());
-            for (BuildProject project : rushingProjects) {
-                int attempt = 0;
-                while (attempt < 10 &&
-                    project.getNextAction() == BuildProject.Action.NOTHING ||
-                    project.getNextAction() == BuildProject.Action.SPAWN_ENTITY
-                ) {
-                    ++attempt;
-                    project.nextStep();
-                }
-                project.nextNSteps(10);
-            }
-            // Ring bells
-            if (Config.TOWN_RING_BELLS) {
-                var dayTime = level.getDayTime() % 24000L;
-                if (dayTime == 1) {
-                    // Sunrise bells
-                    for (int i = 0; i < 3; i++) {
-                        TickScheduler.schedule(() -> visitors.forEach(player ->
-                            player.playNotifySound(SoundEvents.BELL_BLOCK, SoundSource.AMBIENT, 1.2F, 1.1F)),  40 * i);
-                    }
-                } else if (dayTime == 6001) {
-                    // Noon bells
-                    TickScheduler.schedule(() -> visitors.forEach(player ->
-                        player.playNotifySound(SoundEvents.BELL_BLOCK, SoundSource.AMBIENT, 1.2F, 1.0F)), 0);
-                } else if (dayTime == 12001) {
-                    // Sunset bells
-                    for (int i = 0; i < 3; i++) {
-                        TickScheduler.schedule(() -> visitors.forEach(player ->
-                            player.playNotifySound(SoundEvents.BELL_BLOCK, SoundSource.AMBIENT, 1.2F, 0.5F)),  40 * i);
-                    }
-                }
-            }
-        }
-        // Slow tick
-        if (level.getServer().getTickCount() % (20 * Config.TOWN_TICK_RATE_SECONDS) == 0) {
-            // Visitors
-            updateVisitors();
-            // Status
-            updateStatus();
-            // Active tick
-            if (active) {
-                // Citizens
-                handleCitizens();
-
-                //projects.stream().filter(BuildProject::isCompleted).toList().forEach(projects::remove);
-            }
-        }
-
-    }
-
-    private void handleCitizens() {
-        for (Citizen citizen : citizens) {
-            switch (citizen.status) {
-                case NOT_SPAWNED -> {
-                    BlockPos pos;
-                    if (citizen.residence != null) {
-                        pos = citizen.residence.getOriginPos();
-                        pos.atY(level.getHeight(Heightmap.Types.MOTION_BLOCKING, pos.getX(), pos.getZ()));
-                    } else {
-                        pos = getCenter();
-                    }
-                    if (level.isLoaded(pos.above())) {
-                        Npc npc = EntityRegistry.REGISTRY.NPC.get().create(level);
-                        if (npc != null) {
-                            npc.moveTo(pos.above(), 0.0F, 0.0F);
-                            if (level.addFreshEntity(npc)) {
-                                npc.setCulture(culture.getId());
-                                if (citizen.profession != null) {
-                                    npc.setProfession(citizen.profession);
-                                } else {
-                                    npc.setProfession(Profession.UNEMPLOYED);
-                                }
-                                npc.setTown(this);
-                                citizen.entityUUID = npc.getUUID();
-                                citizen.status = Citizen.Status.LOADED;
-                            }
-                        }
-                    }
-                }
-            }
-            if (citizen.entityUUID != null) {
-                Entity entity = level.getEntity(citizen.entityUUID);
-                if (entity instanceof Npc npc) {
-
-                }
-            }
-        }
-    }
-
-    public boolean build(BuildingType buildingType, int startingLevel) {
-        Building building = tryAddBuilding(buildingType, startingLevel);
-        boolean success = building != null;
-        if (success) {
-            BlockPos.MutableBlockPos cursor = new BlockPos(0, 0, 0).mutable();
-            SchematicContent schema = building.getSchematicContent(level.getServer().getResourceManager());
-            for (SchematicBlock block : schema.getBlocks()) {
-                cursor.set(building.getOriginPos().getX(), building.getOriginPos().getY(), building.getOriginPos().getZ());
-                level.setBlock(cursor.move(block.pos()), block.state(), 2);
-            }
-            building.setStatus(Build.Status.COMPLETED);
-        }
-        return success;
-    }
-
-    private void setForceLoaded(boolean forceLoad, int margin) {
-        margin = Math.max(0, margin);
-        BoundingBox box = townBox.inflatedBy(margin);
-        int chunkXSpan = (int) Math.ceil(box.getXSpan() / 16.0D);
-        int chunkZSpan = (int) Math.ceil(box.getZSpan() / 16.0D);
-        int startX = level.getChunk(new BlockPos(box.minX(), box.minY(), box.minZ())).getPos().x;
-        int startZ = level.getChunk(new BlockPos(box.minX(), box.minY(), box.minZ())).getPos().z;
-        for (int x = startX; x <= startX + chunkXSpan; ++x) {
-            for (int z = startZ; z <= startZ + chunkZSpan; ++z) {
-                //Ouat.info((forceLoad ? "Forced" : "Freed") + "chunk at " + x + " " + z);
-                level.setChunkForced(x, z, forceLoad);
-            }
-        }
-    }
-
-    public boolean demolish(Build build) {
-        boolean success = removeBuild(build);
-        if (success) {
-            BlockPos.MutableBlockPos cursor = new BlockPos(0, 0, 0).mutable();
-            SchematicContent schema = build.getSchematicContent(level.getServer().getResourceManager());
-            for (SchematicBlock block : schema.getBlocks()) {
-                cursor.set(build.getOriginPos().getX(), build.getOriginPos().getY(), build.getOriginPos().getZ());
-                // success &= broken
-                level.destroyBlock(cursor.move(block.pos()), false);
-            }
-        }
-        return success;
-    }
-
-    public boolean createProject(BuildingType buildingType) {
-        Building building = tryAddBuilding(buildingType, 1);
-        if (building != null) {
-            BuildProject project = new BuildProject(level, BuildProject.Type.NEW_BUILD, this, building);
-            projects.add(project);
+            bootstrapQueue = new ArrayList<>();
+            if (selectedBootstrapBuilding != null) bootstrapQueue.add(selectedBootstrapBuilding);
             return true;
         }
+
+        // No orientation building found (manual town, edge case): skip bootstrap.
+        bootstrapQueue = new ArrayList<>();
         return false;
     }
 
-    public boolean finishProject(String projectId) {
-        var project = projects.stream()
-            .filter(p -> p.toSafeString().equals(projectId))
-            .findFirst()
-            .orElse(null);
-        if (project != null) {
-            project.rush(true);
-            return true;
+    // Removes the first occurrence of the given building ID from the bootstrap queue.
+    public void consumeBootstrapItem(String buildingId) {
+        if (bootstrapQueue != null) bootstrapQueue.remove(buildingId);
+    }
+
+    // Replaces a connection point with an incremented failCount.
+    public void incrementConnectionFailCount(ConnectionPoint point) {
+        int idx = freeConnections.indexOf(point);
+        if (idx >= 0) {
+            freeConnections.set(idx, new ConnectionPoint(
+                point.pos(), point.direction(), point.targetName(), point.failCount() + 1));
+        }
+    }
+
+    // Computed aggregate view: buildings + floating reserve
+    public TownInventory getTownInventory() {
+        return new TownInventory(buildings, reserveStock);
+    }
+
+    // Player command injection - into first building if available, otherwise into reserve
+    public void addStock(Item item, int quantity) {
+        if (!buildings.isEmpty()) {
+            buildings.get(0).forceAdd(item, quantity);
         } else {
-            return false;
+            reserveStock.merge(item, quantity, Integer::sum);
         }
     }
 
-    public boolean hasProject(String projectId) {
-        return projects.stream().anyMatch(project -> project.toSafeString().equals(projectId));
-    }
-
-    public void notifyProjectCompleted(BuildProject project) {
-        projects.remove(project);
-    }
-
-    public BuildProject getPendingProject() {
-        return projects.stream().filter(project -> project.isAvailable() && !project.rushing()).findFirst().orElse(null);
-    }
-
-    private void maybeCollectProduction() {
-        long now = level.getGameTime();
-        long lastHarvest = lastProductionHarvest;
-        int availableHarvests = (int) ((now - lastHarvest) / Config.PRODUCTION_HARVEST_RATE);
-        if (availableHarvests > 0) {
-            for (int i = 0; i < availableHarvests; ++i) {
-                //collectProduction();
-            }
-            lastProductionHarvest = now;
-        }
-    }
-
-    void delete(boolean demolish) {
-        //setForceLoaded(true, 64);
-        for (Citizen citizen : citizens) {
-            var uuid = citizen.entityUUID;
-            if (uuid != null) {
-                if (level.getEntity(citizen.entityUUID) instanceof Npc npc) {
-                    npc.refreshAi(level);
-                    npc.setProfession(Profession.UNEMPLOYED);
-                }
-            }
-        }
-        if (demolish) {
-            List<Build> concurrentSafe = new ArrayList<>(getBuilds());
-            for (Build build : concurrentSafe) {
-                demolish(build); // will remove Build from this.builds list
-            }
-        }
-        //setForceLoaded(false, 64);
-    }
-
-    private void collectProduction() {
-        for (Citizen worker : citizens.stream().filter(citizen -> !citizen.isUnemployed()).toList()) {
-            var production = worker.getProfession().getLevel(worker.getLevel()).production();
-            production.forEach((item, integerIntegerPair) -> inventory.add(new ItemStack(item, integerIntegerPair.getA())));
-        }
-    }
-
-    private void tryStartSurpriseRaid() {
-
-    }
-
-    public void ringTownBell(TownBellRingType ringType) {
-    }
-
-    private void updateVisitors() {
-        final List<ServerPlayer> playersInTown = level.getPlayers(player -> playerInsideBoundaries(player, 0));
-        List<ServerPlayer> leaving = new ArrayList<>(visitors);
-        leaving.removeAll(playersInTown);
-        leaving.forEach(this::byePlayer);
-        List<ServerPlayer> entering = new ArrayList<>(playersInTown);
-        entering.removeAll(visitors);
-        entering.forEach(this::greetPlayer);
-        visitors.removeAll(leaving);
-        visitors.addAll(entering);
-    }
-
-    private boolean playerInsideBoundaries(Player player, int margin) {
-        return townBox.inflatedBy(margin).isInside(player.blockPosition());
-    }
-
-    private void greetPlayer(ServerPlayer player) {
-        Component greetings = Component.literal("Entering ").append(getName()).withStyle(ChatFormatting.YELLOW);
-        player.displayClientMessage(greetings, true);
-    }
-
-    private void byePlayer(ServerPlayer player) {
-        Component bye = Component.literal("Leaving ").append(getName()).withStyle(ChatFormatting.YELLOW);
-        player.displayClientMessage(bye, true);
-    }
-
-    private static Component getRandomTownName() {
-        return Component.literal(Ouat.translatable("town_name." + RANDOM.nextInt(1, 20)).getString());
+    // Returns {NWCorner, SECorner} as BlockPos array derived from all occupied boxes.
+    // Y is set to 0 - the map is purely 2D (XZ plane). Returns null if no boxes exist.
+    public BlockPos[] getMapBounds() {
+        List<BoundingBox> boxes = getOccupiedBoxes();
+        if (boxes.isEmpty()) return null;
+        int minX = boxes.stream().mapToInt(BoundingBox::minX).min().getAsInt();
+        int minZ = boxes.stream().mapToInt(BoundingBox::minZ).min().getAsInt();
+        int maxX = boxes.stream().mapToInt(BoundingBox::maxX).max().getAsInt();
+        int maxZ = boxes.stream().mapToInt(BoundingBox::maxZ).max().getAsInt();
+        return new BlockPos[]{ new BlockPos(minX, 0, minZ), new BlockPos(maxX, 0, maxZ) };
     }
 
     public CompoundTag getTownMapData() {
-        CompoundTag mapDataTag = new CompoundTag();
-        mapDataTag.putString("Name", Component.Serializer.toJson(name));
-        mapDataTag.put("NWCorner", NbtUtils.writeBlockPos(getNWCorner()));
-        mapDataTag.put("SECorner", NbtUtils.writeBlockPos(getSECorner()));
-        ListTag elementsTag = new ListTag();
-        for (Build build : getBuilds()) {
-            elementsTag.add(build.getGuiDescription());
+        CompoundTag tag = new CompoundTag();
+        tag.putString("Name", name);
+        BlockPos[] bounds = getMapBounds();
+        if (bounds != null) {
+            tag.put("NWCorner", NbtUtils.writeBlockPos(bounds[0]));
+            tag.put("SECorner", NbtUtils.writeBlockPos(bounds[1]));
+        } else {
+            tag.put("NWCorner", NbtUtils.writeBlockPos(BlockPos.ZERO));
+            tag.put("SECorner", NbtUtils.writeBlockPos(BlockPos.ZERO));
         }
-        for (BuildBud bud : getBuds()) {
-            elementsTag.add(bud.getGuiDescription());
+        ListTag elements = new ListTag();
+        for (PlacedBuilding b : getBuildings()) {
+            elements.add(buildingToMapElement(b));
         }
-        mapDataTag.put("Elements", elementsTag);
-        return mapDataTag;
-    }
-
-    /**
-     * Prints a description of this Town.
-     */
-    public void printConsoleDescription() {
-        System.out.println("//---------------------------------------------- " + getName() + " [" + builds.size() + " Builds ] ---------------------------------------------//");
-        System.out.println("UUID: " + id);
-        System.out.println("Active : " + active);
-        System.out.println("Last active : " + lastActive);
-        System.out.println("Experience : " + experience);
-        System.out.println("Citizens : ");
-        for (Citizen citizen : citizens) {
-            System.out.print("UUID : " + (citizen.entityUUID == null ? "none" : citizen.entityUUID));
-            System.out.print(" | Status : " + (citizen.status == null ? "no status ??" : citizen.status));
-            System.out.print(" | Profession : " + (citizen.profession == null ? "no profession ??" : citizen.profession.getId()));
-            System.out.print(" | Residence : " + (citizen.residence == null ? "none" : citizen.residence.toSafeString()));
-            System.out.println(" | Workplace : " + (citizen.workplace == null ? "none" : citizen.workplace.toSafeString()));
-            System.out.println();
+        for (BoundingBox bz : blockedZones) {
+            elements.add(blockedZoneToMapElement(bz));
         }
-        System.out.println("Builds weight : " + buildsWeight);
-        System.out.println("Town Center: " + Utils.blockPosToString(getCenter()));
-        System.out.println("Size: " + getTownMap()[0].length + "×" + getTownMap().length);
-        System.out.println("North-West corner : " + Utils.blockPosToString(getNWCorner()));
-        System.out.println("South-East corner : " + Utils.blockPosToString(getSECorner()));
-        var buildings = getBuildings();
-        System.out.println("Buildings (" + buildings.size() + ") :");
-        for (Building building : buildings) {
-            System.out.println("    - " + building.getBuildType().getId()
-                + ", variant: " + building.getVariantId()
-                + ", direction: " + building.getDirection().getName()
-                + ", origin: " + Utils.blockPosToString(building.getOriginPos())
-                + ", size: [" + building.getSizeX() + "×" + building.getSizeZ() + "]"
-                + ", level: " + building.getLevel());
+        tag.put("Elements", elements);
+        return tag;
+    }
+
+    private CompoundTag buildingToMapElement(PlacedBuilding b) {
+        CompoundTag el = new CompoundTag();
+        BuildingDef def = BuildingDataHandler.get(b.defId).orElse(null);
+        boolean isStreet = def != null && def.terrainMatching;
+        el.putByte("Category", isStreet ? MapCategory.ROAD : MapCategory.BUILDING);
+        el.putString("BuildType", b.defId);
+        // Use bb NW corner as origin so the map element is aligned with the actual placed footprint.
+        BlockPos origin = b.bb != null
+            ? new BlockPos(b.bb.minX(), b.bb.minY(), b.bb.minZ())
+            : b.worldPos;
+        el.put("OriginPos", NbtUtils.writeBlockPos(origin));
+        if (b.bb != null) {
+            el.putInt("SizeX", b.bb.maxX() - b.bb.minX());
+            el.putInt("SizeZ", b.bb.maxZ() - b.bb.minZ());
+        } else {
+            el.putInt("SizeX", 5);
+            el.putInt("SizeZ", 5);
         }
-        var roads = getRoads();
-        System.out.println("Roads (" + roads.size() + ") :");
-        for (Road road : roads) {
-            System.out.println("    - " + road.getBuildType().getId()
-                + ", direction: " + road.getDirection().getName()
-                + ", origin: " + Utils.blockPosToString(road.getOriginPos())
-                + ", size: [" + road.getSizeX() + "×" + road.getSizeZ() + "]"
-                + ", level: " + road.getLevel());
+        el.putInt("Level", 1);
+        if (def != null) {
+            el.putString("IconItem", def.iconItem);
         }
-        var buds = getBuds();
-        System.out.println("Buds (" + buds.size() + ") :");
-        for (BuildBud buildBud : buds) {
-            System.out.println("    - Bud [origin: " + Utils.blockPosToString(buildBud.getPosition()) + ", distance: " + buildBud.getSqrDistToTownCenter(getCenter()) + ", corner: " + buildBud.getCorner() + "]");
+        if (!isStreet && def != null) {
+            el.putString("BuildingCategory", def.category);
+            ListTag prodTag = new ListTag();
+            for (ProductionEntry pe : def.production) {
+                CompoundTag pt = new CompoundTag();
+                pt.putString("Item", BuiltInRegistries.ITEM.getKey(pe.item()).toString());
+                pt.putInt("Amount", pe.amount());
+                pt.putInt("EveryTicks", pe.everyTicks());
+                prodTag.add(pt);
+            }
+            el.put("Production", prodTag);
         }
-        System.out.println("//------------------------------------------------------------------------------------------------------------------//");
-    }
-
-    public List<BuildProject> getProjects() {
-        return projects;
-    }
-
-    public String getFancyId() {
-        return "town_" + id;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public boolean setName(Component newName) {
-        if (newName != null) {
-            name = newName;
-            return true;
+        if (isStreet && def != null && def.footprint != null && !def.footprint.isEmpty()) {
+            List<String> rotatedFootprint = rotateFootprint(def.footprint, b.rotation);
+            ListTag footprintTag = new ListTag();
+            for (String row : rotatedFootprint) {
+                footprintTag.add(StringTag.valueOf(row));
+            }
+            el.put("Footprint", footprintTag);
         }
-        return false;
+        return el;
     }
 
-    public Component getName() {
-        return name;
+    // Rotates a footprint grid (rows of '0'/'1' chars) by the given Rotation enum value.
+    // The footprint is defined in the structure's default (NONE) orientation.
+    private static List<String> rotateFootprint(List<String> footprint, Rotation rotation) {
+        int times = switch (rotation) {
+            case CLOCKWISE_90 -> 1;
+            case CLOCKWISE_180 -> 2;
+            case COUNTERCLOCKWISE_90 -> 3;
+            default -> 0;
+        };
+        List<String> result = footprint;
+        for (int t = 0; t < times; t++) {
+            result = rotateCW90(result);
+        }
+        return result;
     }
 
-    public TownInventory getInventory() {
-        return inventory;
+    // Rotates a 2D char grid 90 degrees clockwise.
+    // new[col][rows-1-row] = old[row][col]
+    private static List<String> rotateCW90(List<String> grid) {
+        int rows = grid.size();
+        int cols = rows == 0 ? 0 : grid.get(0).length();
+        char[][] rotated = new char[cols][rows];
+        for (int i = 0; i < rows; i++) {
+            String row = grid.get(i);
+            for (int j = 0; j < cols && j < row.length(); j++) {
+                rotated[j][rows - 1 - i] = row.charAt(j);
+            }
+        }
+        List<String> result = new ArrayList<>();
+        for (char[] row : rotated) {
+            result.add(new String(row));
+        }
+        return result;
     }
 
-    public boolean isActive() {
-        return active;
+    private CompoundTag blockedZoneToMapElement(BoundingBox bz) {
+        CompoundTag el = new CompoundTag();
+        el.putByte("Category", MapCategory.BUILDING);
+        el.putString("BuildType", "starter");
+        el.put("OriginPos", NbtUtils.writeBlockPos(new BlockPos(bz.minX(), bz.minY(), bz.minZ())));
+        el.putInt("SizeX", bz.maxX() - bz.minX());
+        el.putInt("SizeZ", bz.maxZ() - bz.minZ());
+        el.putInt("Level", 1);
+        el.putString("IconItem", "minecraft:bell");
+        el.putString("BuildingCategory", "town_center");
+        el.put("Production", new ListTag());
+        return el;
     }
 
-    public ServerLevel getLevel() {
-        return level;
+    public Map<Item, Integer> getReserveStock() { return reserveStock; }
+
+    public List<PlacedBuilding> getBuildings() { return buildings; }
+    public UUID getBuilderNpcId() { return builderNpcId; }
+    public void setBuilderNpcId(UUID id) { this.builderNpcId = id; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public CompoundTag toNbt() {
+        CompoundTag tag = new CompoundTag();
+        tag.putString("Name", name);
+        if (builderNpcId != null) tag.putUUID("BuilderNpcId", builderNpcId);
+        ListTag buildingsTag = new ListTag();
+        buildings.forEach(b -> buildingsTag.add(b.toNbt()));
+        tag.put("Buildings", buildingsTag);
+        ListTag connTag = new ListTag();
+        freeConnections.forEach(c -> connTag.add(connectionToNbt(c)));
+        tag.put("FreeConnections", connTag);
+        CompoundTag reserveTag = new CompoundTag();
+        reserveStock.forEach((item, qty) ->
+            reserveTag.putInt(BuiltInRegistries.ITEM.getKey(item).toString(), qty));
+        tag.put("ReserveStock", reserveTag);
+        ListTag zonesTag = new ListTag();
+        for (BoundingBox bb : blockedZones) {
+            CompoundTag zTag = new CompoundTag();
+            zTag.putInt("MinX", bb.minX()); zTag.putInt("MinY", bb.minY()); zTag.putInt("MinZ", bb.minZ());
+            zTag.putInt("MaxX", bb.maxX()); zTag.putInt("MaxY", bb.maxY()); zTag.putInt("MaxZ", bb.maxZ());
+            zonesTag.add(zTag);
+        }
+        tag.put("BlockedZones", zonesTag);
+        if (bootstrapQueue != null) {
+            ListTag bqTag = new ListTag();
+            bootstrapQueue.forEach(s -> bqTag.add(StringTag.valueOf(s)));
+            tag.put("BootstrapQueue", bqTag);
+        }
+        if (selectedBootstrapBuilding != null) tag.putString("SelectedBootstrapBuilding", selectedBootstrapBuilding);
+        return tag;
     }
 
-    public enum TownBellRingType {
-        DAWN,
-        NOON,
-        DUSK,
-        RAID_ALERT,
-        RAID_VICTORY,
-        TOWN_COMPLETED,
-        CHRISTMAS_EVENT
+    public static Town fromNbt(CompoundTag tag) {
+        Town town = new Town();
+        town.name = tag.contains("Name") ? tag.getString("Name") : "Unknown Town";
+        if (tag.hasUUID("BuilderNpcId")) town.builderNpcId = tag.getUUID("BuilderNpcId");
+        tag.getList("Buildings", Tag.TAG_COMPOUND)
+            .forEach(t -> town.buildings.add(PlacedBuilding.fromNbt((CompoundTag) t)));
+        tag.getList("FreeConnections", Tag.TAG_COMPOUND)
+            .forEach(t -> town.freeConnections.add(connectionFromNbt((CompoundTag) t)));
+        if (tag.contains("ReserveStock")) {
+            CompoundTag reserveTag = tag.getCompound("ReserveStock");
+            for (String key : reserveTag.getAllKeys()) {
+                Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(key));
+                town.reserveStock.put(item, reserveTag.getInt(key));
+            }
+        }
+        tag.getList("BlockedZones", Tag.TAG_COMPOUND).forEach(t -> {
+            CompoundTag zTag = (CompoundTag) t;
+            town.blockedZones.add(new BoundingBox(
+                zTag.getInt("MinX"), zTag.getInt("MinY"), zTag.getInt("MinZ"),
+                zTag.getInt("MaxX"), zTag.getInt("MaxY"), zTag.getInt("MaxZ")
+            ));
+        });
+        if (tag.contains("BootstrapQueue")) {
+            town.bootstrapQueue = new ArrayList<>();
+            tag.getList("BootstrapQueue", Tag.TAG_STRING)
+                .forEach(t -> town.bootstrapQueue.add(t.getAsString()));
+        }
+        if (tag.contains("SelectedBootstrapBuilding")) {
+            town.selectedBootstrapBuilding = tag.getString("SelectedBootstrapBuilding");
+        }
+        return town;
+    }
+
+    private static CompoundTag connectionToNbt(ConnectionPoint c) {
+        CompoundTag tag = new CompoundTag();
+        tag.put("Pos", NbtUtils.writeBlockPos(c.pos()));
+        tag.putString("Dir", c.direction().getName());
+        tag.putString("Pool", c.targetName());
+        if (c.failCount() > 0) tag.putInt("FailCount", c.failCount());
+        return tag;
+    }
+
+    private static ConnectionPoint connectionFromNbt(CompoundTag tag) {
+        BlockPos pos = NbtUtils.readBlockPos(tag.getCompound("Pos"));
+        net.minecraft.core.Direction dir = net.minecraft.core.Direction.byName(tag.getString("Dir"));
+        String pool = tag.getString("Pool");
+        int failCount = tag.contains("FailCount") ? tag.getInt("FailCount") : 0;
+        return new ConnectionPoint(pos, dir != null ? dir : net.minecraft.core.Direction.NORTH, pool, failCount);
     }
 }

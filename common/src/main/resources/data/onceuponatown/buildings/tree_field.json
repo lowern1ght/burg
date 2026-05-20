@@ -1,0 +1,45 @@
+{
+  "id": "tree_field",
+  "nbt": "onceuponatown:plains/jobs/tree_field",
+  "entry_pool": "onceuponatown:jobs",
+  "icon_item": "minecraft:oak_log",
+  "category": "jobs",
+  "production": [
+    {
+      "item": "minecraft:oak_log",
+      "amount": 2,
+      "every_ticks": 1200,
+      "capacity_stacks": 3
+    },
+    {
+      "item": "minecraft:oak_sapling",
+      "amount": 1,
+      "every_ticks": 1200,
+      "capacity_stacks": 4
+    },
+    {
+      "item": "minecraft:apple",
+      "amount": 2,
+      "every_ticks": 1200,
+      "capacity_stacks": 3
+    },
+    {
+      "item": "minecraft:stick",
+      "amount": 2,
+      "every_ticks": 1200,
+      "capacity_stacks": 4
+    },
+    {
+      "item": "minecraft:oak_leaves",
+      "amount": 10,
+      "every_ticks": 1200,
+      "capacity_stacks": 5
+    }
+  ],
+  "construction_cost": [
+    {
+      "item": "minecraft:oak_log",
+      "amount": 8
+    }
+  ]
+}

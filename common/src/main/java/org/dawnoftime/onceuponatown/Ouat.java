@@ -1,87 +1,20 @@
 package org.dawnoftime.onceuponatown;
 
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerPlayer;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.dawnoftime.onceuponatown.client.IPlatformClientHelper;
-
-import java.util.ServiceLoader;
-
+import org.dawnoftime.onceuponatown.registry.BlockEntityRegistry;
+import org.dawnoftime.onceuponatown.registry.BlockRegistry;
+import org.dawnoftime.onceuponatown.registry.EntityRegistry;
 
 public class Ouat {
     public static final String MOD_ID = "onceuponatown";
-    public static final String MOD_NAME = "Once upon a Town";
-    public static final String MOD_ABBREVIATION = "ouat";
-    public static final Logger LOG = LogManager.getLogger(MOD_NAME);
-    // Common and client events and calls.
-    public static final IPlatformHelper COMMON = load(IPlatformHelper.class);
-    public static final IPlatformClientHelper CLIENT = load(IPlatformClientHelper.class);
 
-    public static ResourceLocation modResource(String name) {
-        return new ResourceLocation(MOD_ID, name);
+    public static void init() {
+        BlockRegistry.register();
+        BlockEntityRegistry.register();
+        EntityRegistry.register();
     }
 
-    public static MutableComponent translatable(String prefix, String key, Object... args) {
-        return translatable(prefix + "." + key, args);
-    }
-
-    public static MutableComponent translatable(String key, Object... args) {
-        return Component.translatable(MOD_ID + "." + key, args);
-    }
-
-    /**
-     * Logs an informational message with green color in the console.
-     *
-     * @param info The informational message to be logged.
-     */
-    public static void info(String info) {
-        LOG.info("\u001B[32m{}\u001B[0m", info);
-    }
-
-    /**
-     * Logs a debug-level message with yellow color in the console.
-     *
-     * @param debug The debug message to be logged.
-     */
-    public static void debug(String debug) {
-        LOG.debug("\u001B[33m{}\u001B[0m", debug);
-    }
-
-    /**
-     * Logs an error message with red color in the console.
-     *
-     * @param error The error message to be logged.
-     */
-    public static void error(String error) {
-        LOG.error("\u001B[31m{}\u001B[0m", error);
-    }
-
-    /**
-     * Sends a chat message to a specific player.
-     *
-     * @param player The player who will receive the message.
-     * @param prefix The translation prefix for the message.
-     * @param key The translation key for the message, defined in the language files.
-     * @param args Optional arguments for message formatting, replacing placeholders in the translation key.
-     */
-    public static void clientChat(ServerPlayer player, String prefix, String key, Object... args) {
-        player.sendSystemMessage(Ouat.translatable(prefix, key, args));
-    }
-
-    /**
-     * Load a service for the current environment. Your implementation of the service must be defined
-     * manually by including a text file in META-INF/services named with the fully qualified class name of the service.
-     *
-     * @param clazz Class of the common element that is implemented differently depending on the platform.
-     * @param <T>   Class studied.
-     * @return An instance of the given class.
-     */
-    public static <T> T load(Class<T> clazz) {
-        return ServiceLoader.load(clazz)
-                .findFirst()
-                .orElseThrow(() -> new NullPointerException("Failed to load service for " + clazz.getName()));
+    public static ResourceLocation modResource(String path) {
+        return new ResourceLocation(MOD_ID, path);
     }
 }

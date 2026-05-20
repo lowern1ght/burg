@@ -1,0 +1,26 @@
+﻿{
+    "id":  "street_6",
+    "nbt":  "onceuponatown:plains/streets/street_6",
+    "entry_pool":  "onceuponatown:streets",
+    "terrain_matching":  true,
+    "icon_item":  "minecraft:dirt_path",
+    "production":  [],
+    "construction_cost":  [],
+    "footprint":  [
+                      "010100",
+                      "111110",
+                      "001110",
+                      "000111",
+                      "000111",
+                      "000011",
+                      "000011",
+                      "000011",
+                      "000010",
+                      "000011",
+                      "000011",
+                      "000011",
+                      "000011",
+                      "000011",
+                      "000010"
+                  ]
+}

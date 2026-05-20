@@ -1,6 +1,7 @@
 plugins {
     id 'multiloader-loader'
     id 'fabric-loom'
+    id 'me.modmuss50.mod-publish-plugin'
 }
 dependencies {
     minecraft "com.mojang:minecraft:${minecraft_version}"
@@ -12,6 +13,11 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
     implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
     implementation project(":common")
+}
+
+publishMods {
+    file = remapJar.archiveFile
+    modLoaders.addAll("fabric")
 }
 
 loom {
