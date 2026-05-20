@@ -1,27 +1,20 @@
 package org.dawnoftime.onceuponatown.registry;
 
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.Item;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.SoundType;
-import net.minecraft.world.level.block.state.BlockBehaviour;
-import org.dawnoftime.onceuponatown.block.CultureCreatorBlock;
-import org.dawnoftime.onceuponatown.block.SlabPathBlock;
-import org.dawnoftime.onceuponatown.item.CultureCreatorItem;
+import net.minecraft.core.Registry;
+import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.block.TownAnchorBlock;
 
-import java.util.function.Function;
-import java.util.function.Supplier;
+public class BlockRegistry {
+    public static Block TOWN_ANCHOR;
 
-public abstract class BlockRegistry {
-    public static BlockRegistry REGISTRY;
-
-    public final Supplier<Block> DIRT_PATH_SLAB = register("dirt_path_slab", () -> new SlabPathBlock(Block.Properties.copy(Blocks.DIRT_PATH)));
-    public final Supplier<CultureCreatorBlock> CULTURE_CREATOR_BLOCK = registerWithItem("culture_creator", () -> new CultureCreatorBlock(BlockBehaviour.Properties.of().instabreak().noCollission().sound(SoundType.AMETHYST)), (block -> new CultureCreatorItem(block, new Item.Properties())));
-
-    public <T extends Block> Supplier<T> register(String id, Supplier<T> block) {
-        return this.registerWithItem(id, block, (T blockObject) -> new BlockItem(blockObject, new Item.Properties()));
+    public static void register() {
+        TOWN_ANCHOR = Registry.register(
+            BuiltInRegistries.BLOCK,
+            new ResourceLocation(Ouat.MOD_ID, "town_anchor"),
+            new TownAnchorBlock(TownAnchorBlock.defaultProperties())
+        );
     }
-
-    public abstract <T extends Block, Y extends Item> Supplier<T> registerWithItem(String id, Supplier<T> block, Function<T, Y> item);
 }

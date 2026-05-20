@@ -1,6 +1,7 @@
 plugins {
     id 'multiloader-loader'
     id 'net.neoforged.moddev.legacyforge'
+    id 'me.modmuss50.mod-publish-plugin'
 }
 
 mixin {
@@ -56,4 +57,9 @@ jar {
     manifest.attributes([
             "MixinConfigs": "${mod_id}.mixins.json,${mod_id}.forge.mixins.json"
     ])
+}
+
+publishMods {
+    file = layout.buildDirectory.file("libs/${mod_id}-forge-${minecraft_version}-${project.version}.jar")
+    modLoaders.add("forge")
 }

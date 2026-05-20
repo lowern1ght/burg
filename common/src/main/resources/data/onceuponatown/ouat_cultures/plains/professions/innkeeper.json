@@ -1,7 +1,0 @@
-{
-  "id": "innkeeper",
-  "schedule": "worker",
-  "work_ai": "innkeeper",
-  "levels": [
-  ]
-}

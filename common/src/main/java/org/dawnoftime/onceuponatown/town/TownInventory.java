@@ -1,90 +1,59 @@
 package org.dawnoftime.onceuponatown.town;
 
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Item;
+import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class TownInventory {
-    private final List<ItemStack> content = new ArrayList<>();
+    private final List<PlacedBuilding> buildings;
+    private final Map<Item, Integer> reserve;
 
-    public TownInventory(List<ItemStack> initialContent) {
-        content.addAll(initialContent);
+    public TownInventory(List<PlacedBuilding> buildings, Map<Item, Integer> reserve) {
+        this.buildings = buildings;
+        this.reserve = reserve;
     }
 
-    public TownInventory(CompoundTag inventoryTag) {
-        ListTag contentTag = inventoryTag.getList("content", Tag.TAG_COMPOUND);
-        for (int i = 0; i < contentTag.size(); ++i) {
-            ItemStack stack = ItemStack.of(contentTag.getCompound(i));
-            add(stack);
-        }
+    public int getStock(Item item) {
+        return buildings.stream().mapToInt(b -> b.getStock(item)).sum()
+            + reserve.getOrDefault(item, 0);
     }
 
-    public CompoundTag save() {
-        ListTag contentTag = new ListTag();
-        for (ItemStack member : content) {
-            contentTag.add(member.save(new CompoundTag()));
-        }
-        CompoundTag inventoryTag = new CompoundTag();
-        inventoryTag.put("content", contentTag);
-        return inventoryTag;
+    // Sum of capacity_stacks * 64 for this item across all placed buildings with that production entry
+    public int getMaxStock(Item item) {
+        return buildings.stream()
+            .mapToInt(b -> {
+                BuildingDef def = BuildingDataHandler.get(b.getDefId()).orElse(null);
+                if (def == null) return 0;
+                return def.production.stream()
+                    .filter(p -> p.item() == item)
+                    .mapToInt(ProductionEntry::capacityItems)
+                    .sum();
+            })
+            .sum();
     }
 
-    public boolean add(ItemStack toAdd) {
-        if (toAdd.isEmpty()) {
-            return false;
-        }
-        for (ItemStack member : content) {
-            if (ItemStack.isSameItemSameTags(member, toAdd)) {
-                member.grow(toAdd.getCount());
-                return true;
+    public boolean hasStock(List<ItemCost> costs) {
+        return costs.stream().allMatch(cost -> getStock(cost.item()) >= cost.amount());
+    }
+
+    // Drains from buildings first (fullest first), then from reserve
+    public void removeStock(List<ItemCost> costs) {
+        for (ItemCost cost : costs) {
+            int remaining = cost.amount();
+            List<PlacedBuilding> sorted = buildings.stream()
+                .sorted((a, b) -> b.getStock(cost.item()) - a.getStock(cost.item()))
+                .toList();
+            for (PlacedBuilding building : sorted) {
+                if (remaining <= 0) break;
+                remaining -= building.drain(cost.item(), remaining);
+            }
+            if (remaining > 0 && reserve.containsKey(cost.item())) {
+                int inReserve = reserve.getOrDefault(cost.item(), 0);
+                int taken = Math.min(inReserve, remaining);
+                reserve.put(cost.item(), inReserve - taken);
             }
         }
-        content.add(toAdd);
-        return true;
-    }
-
-    public boolean remove(ItemStack toRemove) {
-        if (toRemove.isEmpty()) {
-            return false;
-        }
-        ItemStack shrinked = null;
-        for (ItemStack member : content) {
-            if (ItemStack.isSameItemSameTags(member, toRemove)) {
-                member.shrink(toRemove.getCount());
-                shrinked = member;
-                break;
-            }
-        }
-        if (shrinked != null) {
-            if (shrinked.isEmpty()) {
-                content.remove(shrinked);
-            }
-            return true;
-        }
-        return false;
-    }
-
-    public void clear() {
-        content.clear();
-    }
-
-    public boolean has(ItemStack stack) {
-        if (stack.isEmpty()) {
-            return false;
-        }
-        for (ItemStack member : content) {
-            if (ItemStack.isSameItemSameTags(member, stack)) {
-                return member.getCount() >= stack.getCount();
-            }
-        }
-        return false;
-    }
-
-    public List<ItemStack> getContent() {
-        return content;
     }
 }

@@ -5,7 +5,8 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
 
 public class ReleaseFocusButton extends Button {
-    public ReleaseFocusButton(int x, int y, int width, int height, Component message, OnPress onPress, Tooltip tooltip) {
+    public ReleaseFocusButton(int x, int y, int width, int height, Component message,
+                               OnPress onPress, Tooltip tooltip) {
         super(x, y, width, height, message, onPress, Button.DEFAULT_NARRATION);
         setTooltip(tooltip);
     }

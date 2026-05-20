@@ -5,24 +5,27 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
-import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.client.gui.GuiUtils;
 import org.dawnoftime.onceuponatown.client.gui.widgets.TownMapWidget;
-import org.dawnoftime.onceuponatown.client.gui.widgets.ReleaseFocusButton;
 
 import java.util.Objects;
 
-import static org.dawnoftime.onceuponatown.client.gui.GuiUtils.drawCenteredString;
-
 public class TownScrollScreen extends Screen {
     private static final int MAP_SIZE = 132;
+    private static final ResourceLocation MAP_TEXTURE =
+        new ResourceLocation("onceuponatown", "textures/gui/npc_screen.png");
+    private static final int ATLAS_W = 581;
+    private static final int ATLAS_H = 531;
+
     private TownMapWidget townMap;
     private final CompoundTag mapData;
     private int mapX;
     private int mapY;
 
     public TownScrollScreen(CompoundTag mapData) {
-        super(Objects.requireNonNullElse(Component.Serializer.fromJson(mapData.getString("Name")), Component.empty()));
+        super(Component.literal(mapData.getString("Name")));
         this.mapData = mapData;
     }
 
@@ -32,25 +35,25 @@ public class TownScrollScreen extends Screen {
         mapX = (width - MAP_SIZE) / 2;
         mapY = (height - MAP_SIZE) / 2;
         townMap = addRenderableWidget(new TownMapWidget(mapX, mapY, MAP_SIZE, MAP_SIZE, mapData));
-        addRenderableWidget(new ReleaseFocusButton(mapX, mapY + MAP_SIZE + 4, 66, 16, Ouat.translatable("center_map"),
-            pressed -> townMap.centerMap(), null));
-        addRenderableWidget(new ReleaseFocusButton(mapX + 67, mapY + MAP_SIZE + 4, 65, 16, Ouat.translatable("debug_view"),
-            pressed -> townMap.toggleDebugView(), null));
-        minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.BOOK_PAGE_TURN, 1.0F));
+        Objects.requireNonNull(minecraft).getSoundManager()
+            .play(SimpleSoundInstance.forUI(SoundEvents.BOOK_PAGE_TURN, 1.0F));
     }
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(graphics);
-        graphics.blit(NpcScreen.BACKGROUND_TEXTURE, mapX, mapY, 0, 399, MAP_SIZE, MAP_SIZE, NpcScreen.BACKGROUND_ATLAS_WIDTH, NpcScreen.BACKGROUND_ATLAS_HEIGHT);
+        graphics.blit(MAP_TEXTURE, mapX, mapY, 0, 399, MAP_SIZE, MAP_SIZE, ATLAS_W, ATLAS_H);
         super.render(graphics, mouseX, mouseY, partialTick);
-        drawCenteredString(graphics, font, Ouat.translatable("map_of").append(" ").append(title), mapX, mapY - 12, MAP_SIZE, 16777215);
+        GuiUtils.drawCenteredString(graphics, font,
+            Component.translatable("onceuponatown.map_of").append(" ").append(title),
+            mapX, mapY - 12, MAP_SIZE, 0xFFFFFF);
     }
 
     @Override
     public void onClose() {
         super.onClose();
-        minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.BOOK_PAGE_TURN, 1.0F));
+        Objects.requireNonNull(minecraft).getSoundManager()
+            .play(SimpleSoundInstance.forUI(SoundEvents.BOOK_PAGE_TURN, 1.0F));
     }
 
     @Override

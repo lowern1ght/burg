@@ -1,239 +1,130 @@
 package org.dawnoftime.onceuponatown.datapack;
 
-import com.google.gson.JsonArray;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import org.dawnoftime.onceuponatown.building.type.BuildingPurpose;
-import org.dawnoftime.onceuponatown.datapack.core.DataHandler;
-import org.dawnoftime.onceuponatown.datapack.core.IntegerDataHandler;
-import org.dawnoftime.onceuponatown.datapack.core.StringDataHandler;
-import org.dawnoftime.onceuponatown.datapack.core.StringEnumDataHandler;
-import org.jetbrains.annotations.NotNull;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.world.item.Item;
+import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.town.BuildingDef;
+import org.dawnoftime.onceuponatown.town.ItemCost;
+import org.dawnoftime.onceuponatown.town.ProductionEntry;
+import org.dawnoftime.onceuponatown.town.TransformationRecipe;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.function.Supplier;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
-public class BuildingDataHandler extends DataHandler {
-    public final StringDataHandler id;
-    public final StringEnumDataHandler<BuildingPurpose> category;
-    public final IntegerDataHandler weight;
-    public final StringDataHandler item;
-    public final ArrayList<BuildingLevelHandler> levels = new ArrayList<>();
-    public final ArrayList<BuildingVariantHandler> variants = new ArrayList<>();
+public class BuildingDataHandler {
+    private static final Gson GSON = new GsonBuilder().create();
+    private static final Logger LOGGER = LoggerFactory.getLogger(BuildingDataHandler.class);
+    private static final Map<String, BuildingDef> REGISTRY = new HashMap<>();
 
-    public BuildingDataHandler(@NotNull JsonObject rootJson) {
-        id = new StringDataHandler(rootJson, "id");
-        category = new StringEnumDataHandler<>(rootJson, "category", BuildingPurpose.class);
-        weight = new IntegerDataHandler(rootJson, "weight", 0, Integer.MAX_VALUE);
-        item = new StringDataHandler(rootJson, "item", "minecraft:oak_planks");
-        this.getJsonArrayObjects(rootJson, "levels")
-                .forEach(obj -> levels.add(new BuildingLevelHandler(obj)));
-        this.getJsonArrayObjects(rootJson, "variants")
-                .forEach(obj -> variants.add(new BuildingVariantHandler(obj)));
+    // Called from OuatFabric via ServerLifecycleEvents.SERVER_STARTING
+    public static void reload(MinecraftServer server) {
+        REGISTRY.clear();
+        ResourceManager rm = server.getResourceManager();
+        rm.listResources("buildings", path -> path.getPath().endsWith(".json"))
+            .forEach((location, resource) -> {
+                if (!location.getNamespace().equals(Ouat.MOD_ID)) return;
+                try (InputStreamReader reader = new InputStreamReader(resource.open())) {
+                    JsonObject json = GSON.fromJson(reader, JsonObject.class);
+                    BuildingDef def = parseDef(json);
+                    REGISTRY.put(def.id, def);
+                    LOGGER.debug("[OUAT] Loaded building def: {}", def.id);
+                } catch (Exception e) {
+                    LOGGER.error("[OUAT] Failed to load building def {}: {}", location, e.getMessage());
+                }
+            });
+        LOGGER.info("[OUAT] Loaded {} building definitions: {}", REGISTRY.size(), REGISTRY.keySet());
     }
 
-    @Override
-    public JsonObject toJson(@NotNull JsonObject rootJson) {
-        id.toJson(rootJson);
-        category.toJson(rootJson);
-        weight.toJson(rootJson);
-        item.toJson(rootJson);
-        JsonArray levelsJson = new JsonArray();
-        levels.forEach(level -> levelsJson.add(level.toJson(new JsonObject())));
-        rootJson.add("levels", levelsJson);
-        JsonArray variantsJson = new JsonArray();
-        variants.forEach(variant -> variantsJson.add(variant.toJson(new JsonObject())));
-        rootJson.add("variants", variantsJson);
-        return rootJson;
-    }
+    private static BuildingDef parseDef(JsonObject json) {
+        String id = json.get("id").getAsString();
+        ResourceLocation nbt = new ResourceLocation(json.get("nbt").getAsString());
 
-    @Override
-    public @NotNull ArrayList<String> getErrors() {
-        ArrayList<String> errors = new ArrayList<>();
-        errors.addAll(id.getErrors());
-        errors.addAll(category.getErrors());
-        errors.addAll(weight.getErrors());
-        errors.addAll(item.getErrors());
-        levels.forEach(level -> errors.addAll(level.getErrors()));
-        variants.forEach(era -> errors.addAll(era.getErrors()));
-        return errors;
-    }
-
-    public void resizeLevelLists(int numberOfLevel) {
-        resizeList(levels, numberOfLevel, () -> new BuildingLevelHandler(new JsonObject()));
-        for (BuildingVariantHandler variant : variants) {
-            resizeList(variant.levels, numberOfLevel, () -> new BuildingVariantLevelHandler(new JsonObject()));
-        }
-    }
-
-    private static <T> void resizeList(ArrayList<T> list, int targetSize, Supplier<T> supplier) {
-        int currentSize = list.size();
-        if (currentSize > targetSize) {
-            list.subList(targetSize, currentSize).clear();
-        } else {
-            for (int i = currentSize; i < targetSize; i++) {
-                list.add(supplier.get());
+        List<ProductionEntry> production = new ArrayList<>();
+        if (json.has("production")) {
+            for (JsonElement el : json.getAsJsonArray("production")) {
+                JsonObject p = el.getAsJsonObject();
+                Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(p.get("item").getAsString()));
+                production.add(new ProductionEntry(
+                    item,
+                    p.get("amount").getAsInt(),
+                    p.get("every_ticks").getAsInt(),
+                    p.get("capacity_stacks").getAsInt()
+                ));
             }
         }
+
+        List<ItemCost> costs = new ArrayList<>();
+        if (json.has("construction_cost")) {
+            for (JsonElement el : json.getAsJsonArray("construction_cost")) {
+                JsonObject c = el.getAsJsonObject();
+                Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(c.get("item").getAsString()));
+                costs.add(new ItemCost(item, c.get("amount").getAsInt()));
+            }
+        }
+
+        String entryPool = json.has("entry_pool") ? json.get("entry_pool").getAsString() : "";
+        boolean terrainMatching = json.has("terrain_matching") && json.get("terrain_matching").getAsBoolean();
+        String iconItem = json.has("icon_item") ? json.get("icon_item").getAsString() : "minecraft:dirt";
+        String category = json.has("category") ? json.get("category").getAsString() : "buildings";
+
+        List<String> footprint = null;
+        if (json.has("footprint")) {
+            footprint = new ArrayList<>();
+            for (JsonElement el : json.getAsJsonArray("footprint")) {
+                footprint.add(el.getAsString());
+            }
+        }
+
+        List<TransformationRecipe> transformations = new ArrayList<>();
+        if (json.has("transformations")) {
+            for (JsonElement el : json.getAsJsonArray("transformations")) {
+                JsonObject t = el.getAsJsonObject();
+                List<ItemCost> inputs = new ArrayList<>();
+                for (JsonElement inputEl : t.getAsJsonArray("inputs")) {
+                    JsonObject inp = inputEl.getAsJsonObject();
+                    Item inputItem = BuiltInRegistries.ITEM.get(new ResourceLocation(inp.get("item").getAsString()));
+                    inputs.add(new ItemCost(inputItem, inp.get("amount").getAsInt()));
+                }
+                Item outputItem = BuiltInRegistries.ITEM.get(new ResourceLocation(t.get("output").getAsString()));
+                transformations.add(new TransformationRecipe(
+                    inputs,
+                    outputItem,
+                    t.get("output_amount").getAsInt(),
+                    t.get("output_capacity_stacks").getAsInt()
+                ));
+            }
+        }
+        float transformInputRatio = json.has("transform_input_ratio") ? json.get("transform_input_ratio").getAsFloat() : 0.1f;
+        int transformEveryTicks = json.has("transform_every_ticks") ? json.get("transform_every_ticks").getAsInt() : 1600;
+
+        String orientation = json.has("orientation") ? json.get("orientation").getAsString() : "";
+        List<String> bootstrapCandidates = new ArrayList<>();
+        if (json.has("bootstrapCandidates")) {
+            for (JsonElement el : json.getAsJsonArray("bootstrapCandidates")) {
+                bootstrapCandidates.add(el.getAsString());
+            }
+        }
+
+        double productionBonus = json.has("production_bonus") ? json.get("production_bonus").getAsDouble() : 0.0;
+
+        return new BuildingDef(id, nbt, entryPool, production, costs, terrainMatching, iconItem, category, footprint,
+            transformations, transformInputRatio, transformEveryTicks, orientation, bootstrapCandidates, productionBonus);
     }
 
-    public static class BuildingLevelHandler extends DataHandler {
-        public final IntegerDataHandler requiredEra;
-        public final IntegerDataHandler dwellingSlots;
-        public final ArrayList<WorkingSlotHandler> workingSlots = new ArrayList<>();
-
-        public BuildingLevelHandler(@NotNull JsonObject rootJson) {
-            this.requiredEra = new IntegerDataHandler(rootJson, "required_era", 0, 100, 0);
-            this.dwellingSlots = new IntegerDataHandler(rootJson, "dwelling_slots", 0, 100, 0);
-            this.getJsonArrayObjects(rootJson, "working_slots")
-                    .forEach(obj -> workingSlots.add(new WorkingSlotHandler(obj)));
-        }
-
-        @Override
-        public JsonObject toJson(@NotNull JsonObject rootJson) {
-            requiredEra.toJson(rootJson);
-            dwellingSlots.toJson(rootJson);
-            JsonArray worksJson = new JsonArray();
-            workingSlots.forEach(slot -> worksJson.add(slot.toJson(new JsonObject())));
-            rootJson.add("working_slots", worksJson);
-            return rootJson;
-        }
-
-        @Override
-        public @NotNull ArrayList<String> getErrors() {
-            ArrayList<String> errors = new ArrayList<>();
-            errors.addAll(requiredEra.getErrors());
-            errors.addAll(dwellingSlots.getErrors());
-            workingSlots.forEach(slot -> errors.addAll(slot.getErrors()));
-            return errors;
-        }
-    }
-
-    public static class WorkingSlotHandler extends DataHandler {
-        public final StringDataHandler profession;
-        public final IntegerDataHandler slots;
-        public final IntegerDataHandler maxLevel;
-
-        public WorkingSlotHandler(@NotNull JsonObject rootJson) {
-            this.profession = new StringDataHandler(rootJson, "profession");
-            this.slots = new IntegerDataHandler(rootJson, "slots", 0, Integer.MAX_VALUE, 1);
-            this.maxLevel = new IntegerDataHandler(rootJson, "max_level", 0, Integer.MAX_VALUE, Integer.MAX_VALUE);
-        }
-
-        @Override
-        public JsonObject toJson(@NotNull JsonObject rootJson) {
-            profession.toJson(rootJson);
-            slots.toJson(rootJson);
-            maxLevel.toJson(rootJson);
-            return rootJson;
-        }
-
-        @Override
-        public @NotNull ArrayList<String> getErrors() {
-            ArrayList<String> errors = profession.getErrors();
-            errors.addAll(slots.getErrors());
-            errors.addAll(maxLevel.getErrors());
-            return errors;
-        }
-    }
-
-    public static class BuildingVariantHandler extends DataHandler {
-        public final StringDataHandler name;
-        public final IntegerDataHandler sizeX;
-        public final IntegerDataHandler sizeY;
-        public final IntegerDataHandler sizeZ;
-        public final ArrayList<BuildingVariantLevelHandler> levels = new ArrayList<>();
-
-        public BuildingVariantHandler(@NotNull JsonObject rootJson) {
-            this.name = new StringDataHandler(rootJson, "name");
-            JsonObject sizeJson = this.getJsonObject(rootJson, "size");
-            this.sizeX = new IntegerDataHandler(sizeJson, "x", 1, 1000);
-            this.sizeY = new IntegerDataHandler(sizeJson, "y", 1, 1000);
-            this.sizeZ = new IntegerDataHandler(sizeJson, "z", 1, 1000);
-            this.getJsonArrayObjects(rootJson, "levels")
-                    .forEach(level -> levels.add(new BuildingVariantLevelHandler(level)));
-        }
-
-        @Override
-        public JsonObject toJson(@NotNull JsonObject rootJson) {
-            name.toJson(rootJson);
-            JsonObject sizeJson = new JsonObject();
-            sizeX.toJson(sizeJson);
-            sizeY.toJson(sizeJson);
-            sizeZ.toJson(sizeJson);
-            rootJson.add("size", sizeJson);
-            JsonArray levelsJson = new JsonArray();
-            levels.forEach(level -> levelsJson.add(level.toJson(new JsonObject())));
-            rootJson.add("levels", levelsJson);
-            return rootJson;
-        }
-
-        @Override
-        public @NotNull ArrayList<String> getErrors() {
-            ArrayList<String> errors = name.getErrors();
-            errors.addAll(sizeX.getErrors());
-            errors.addAll(sizeY.getErrors());
-            errors.addAll(sizeZ.getErrors());
-            levels.forEach(level -> errors.addAll(level.getErrors()));
-            return errors;
-        }
-    }
-
-    public static class BuildingVariantLevelHandler extends DataHandler {
-        public final StringDataHandler schematic;
-        public final ArrayList<WaypointHandler> waypoints = new ArrayList<>();
-
-        public BuildingVariantLevelHandler(@NotNull JsonObject rootJson) {
-            this.schematic = new StringDataHandler(rootJson, "schematic");
-            this.getJsonArrayObjects(rootJson, "waypoints")
-                    .forEach(waypoint -> waypoints.add(new WaypointHandler(waypoint)));
-        }
-
-        @Override
-        public JsonObject toJson(@NotNull JsonObject rootJson) {
-            schematic.toJson(rootJson);
-            JsonArray wpJson = new JsonArray();
-            waypoints.forEach(wp -> wpJson.add(wp.toJson(new JsonObject())));
-            rootJson.add("waypoints", wpJson);
-            return rootJson;
-        }
-
-        @Override
-        public @NotNull ArrayList<String> getErrors() {
-            ArrayList<String> errors = schematic.getErrors();
-            waypoints.forEach(wp -> errors.addAll(wp.getErrors()));
-            return errors;
-        }
-    }
-
-    public static class WaypointHandler extends DataHandler {
-        public final StringDataHandler id;
-        public final IntegerDataHandler x;
-        public final IntegerDataHandler y;
-        public final IntegerDataHandler z;
-
-        public WaypointHandler(@NotNull JsonObject rootJson) {;
-            this.id = new StringDataHandler(rootJson, "id");
-            this.x = new IntegerDataHandler(rootJson, "x", 1, 1000);
-            this.y = new IntegerDataHandler(rootJson, "y", 1, 1000);
-            this.z = new IntegerDataHandler(rootJson, "z", 1, 1000);
-        }
-
-        @Override
-        public JsonObject toJson(@NotNull JsonObject rootJson) {
-            id.toJson(rootJson);
-            x.toJson(rootJson);
-            y.toJson(rootJson);
-            z.toJson(rootJson);
-            return rootJson;
-        }
-
-        @Override
-        public @NotNull ArrayList<String> getErrors() {
-            ArrayList<String> errors = id.getErrors();
-            errors.addAll(x.getErrors());
-            errors.addAll(y.getErrors());
-            errors.addAll(z.getErrors());
-            return errors;
-        }
-    }
+    public static Optional<BuildingDef> get(String id) { return Optional.ofNullable(REGISTRY.get(id)); }
+    public static Collection<BuildingDef> getAll() { return REGISTRY.values(); }
 }

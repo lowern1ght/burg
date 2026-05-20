@@ -8,19 +8,17 @@ import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.sounds.SoundManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FastColor;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
-import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.Utils;
-import org.dawnoftime.onceuponatown.building.instance.Build;
-import org.dawnoftime.onceuponatown.client.gui.tooltip.ItemAndTitleTooltip;
-import oshi.util.tuples.Triplet;
+import net.minecraft.core.registries.BuiltInRegistries;
+import org.dawnoftime.onceuponatown.client.gui.tooltip.BuildingProductionTooltip;
+import org.dawnoftime.onceuponatown.town.MapCategory;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -28,15 +26,20 @@ import java.util.List;
 import java.util.Optional;
 
 public class TownMapWidget extends AbstractWidget {
-    private static final Triplet<Integer, Integer, Integer> BUILDING_RGB = new Triplet<>(99, 83, 49);
-    private static final Triplet<Integer, Integer, Integer> ROAD_RGB = new Triplet<>(147, 147, 147);
-    private static final Triplet<Integer, Integer, Integer> BUD_RGB = new Triplet<>(201, 49, 43);
-    private static final Triplet<Integer, Integer, Integer> HOVER_RGB = new Triplet<>(234, 200, 190);
+    private record Rgb(int r, int g, int b) {}
+
+    private static final Rgb BUILDING_RGB    = new Rgb(99, 83, 49);
+    private static final Rgb JOB_RGB         = new Rgb(180, 50, 50);
+    private static final Rgb GARDEN_RGB      = new Rgb(55, 130, 55);
+    private static final Rgb ROAD_RGB        = new Rgb(147, 147, 147);
+    private static final Rgb HOVER_RGB       = new Rgb(234, 200, 190);
+    private static final Rgb TOWN_CENTER_RGB = new Rgb(220, 180, 40);
+
     private static final int MAP_MARGIN = 6;
     private static int xDrag;
     private static int yDrag;
     private static int mapZoom = 1;
-    private static boolean debugView;
+
     private int mapWindowLeftBound;
     private int mapWindowRightBound;
     private int mapWindowTopBound;
@@ -53,133 +56,184 @@ public class TownMapWidget extends AbstractWidget {
 
     private void setupMap(CompoundTag mapData) {
         mapElements.clear();
-        var NWCorner = NbtUtils.readBlockPos(mapData.getCompound("NWCorner"));
-        var SECorner = NbtUtils.readBlockPos(mapData.getCompound("SECorner"));
+        BlockPos nwCorner = NbtUtils.readBlockPos(mapData.getCompound("NWCorner"));
+        BlockPos seCorner = NbtUtils.readBlockPos(mapData.getCompound("SECorner"));
         Iterator<Tag> it = mapData.getList("Elements", 10).iterator();
-        while (it.hasNext() && it.next() instanceof CompoundTag tag) {
+        while (it.hasNext()) {
+            Tag next = it.next();
+            if (!(next instanceof CompoundTag tag)) continue;
             switch (tag.getByte("Category")) {
-                case Build.BUD -> mapElements.add(createBudMapElement(tag, NWCorner));
-                case Build.ROAD -> mapElements.add(createRoadMapElement(tag, NWCorner));
-                case Build.BUILDING -> mapElements.add(createBuildingMapElement(tag, NWCorner));
+                case MapCategory.ROAD     -> mapElements.add(createRoadMapElement(tag, nwCorner));
+                case MapCategory.BUILDING -> mapElements.add(createBuildingMapElement(tag, nwCorner));
             }
         }
-        mapInitialWidth = SECorner.getX() - NWCorner.getX();
-        mapInitialHeight = SECorner.getZ() - NWCorner.getZ();
-        mapWindowLeftBound = getX() + MAP_MARGIN;
-        mapWindowTopBound = getY() + MAP_MARGIN;
-        mapWindowRightBound = getX() + width - MAP_MARGIN;
+        mapInitialWidth  = seCorner.getX() - nwCorner.getX();
+        mapInitialHeight = seCorner.getZ() - nwCorner.getZ();
+        mapWindowLeftBound   = getX() + MAP_MARGIN;
+        mapWindowTopBound    = getY() + MAP_MARGIN;
+        mapWindowRightBound  = getX() + width - MAP_MARGIN;
         mapWindowBottomBound = getY() + height - MAP_MARGIN;
         mapZoom = 1;
     }
 
-    private MapElement createBudMapElement(CompoundTag tag, BlockPos NWCorner) {
-        var realPos = NbtUtils.readBlockPos(tag.getCompound("Position"));
-        var name = Ouat.translatable("bud");
-        var position = Ouat.translatable("coordinates").append(" : ").append(realPos.toShortString()).withStyle(ChatFormatting.GRAY);
-        int minX = realPos.getX() - NWCorner.getX();
-        int minZ = realPos.getZ() - NWCorner.getZ();
-        return new MapElement(Build.BUD, Optional.empty(), List.of(name, position), List.of(name, position), minX, minX + 1, minZ, minZ + 1);
-    }
+    private MapElement createRoadMapElement(CompoundTag tag, BlockPos nwCorner) {
+        String buildType = tag.getString("BuildType");
+        Component name = Component.translatable("onceuponatown.building." + buildType);
 
-    private MapElement createRoadMapElement(CompoundTag tag, BlockPos NWCorner) {
-        var nameAndLevel = Ouat.translatable(tag.getString("BuildType")).append(" ")
-            .append(Component.literal(Utils.intToRoman(tag.getInt("Level"))).withStyle(ChatFormatting.YELLOW));
-        var originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
+        BlockPos originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
         int sizeX = tag.getInt("SizeX");
         int sizeZ = tag.getInt("SizeZ");
-        var northWestCorner = Ouat.translatable("north_west_corner").append(" : " + originPos.toShortString()).withStyle(ChatFormatting.GRAY);
-        var direction = Ouat.translatable("direction").append(" : " + tag.getString("Direction")).withStyle(ChatFormatting.GRAY);
-        var length = Ouat.translatable("length").append(" : " + Math.max(sizeX, sizeZ)).withStyle(ChatFormatting.GRAY);
-        var width = Ouat.translatable("width").append(" : " + Math.min(sizeX, sizeZ)).withStyle(ChatFormatting.GRAY);
-        var isWide = Component.literal("isWide = " + tag.getBoolean("IsWide")).withStyle(ChatFormatting.ITALIC, ChatFormatting.DARK_GRAY);
-        var canGrow = Component.literal("canGrow = " + tag.getBoolean("CanGrow")).withStyle(ChatFormatting.ITALIC, ChatFormatting.DARK_GRAY);
-        int minX = originPos.getX() - NWCorner.getX();
-        int minZ = originPos.getZ() - NWCorner.getZ();
-        return new MapElement(Build.ROAD, Optional.empty(),
-            List.of(nameAndLevel, CommonComponents.EMPTY, northWestCorner, direction, length, width),
-            List.of(nameAndLevel, CommonComponents.EMPTY, northWestCorner, direction, length, width, isWide, canGrow), minX, minX + sizeX, minZ, minZ + sizeZ);
+        int minX = originPos.getX() - nwCorner.getX();
+        int minZ = originPos.getZ() - nwCorner.getZ();
+
+        List<String> footprint = null;
+        if (tag.contains("Footprint")) {
+            footprint = new ArrayList<>();
+            for (Tag t : tag.getList("Footprint", Tag.TAG_STRING)) {
+                footprint.add(t.getAsString());
+            }
+        }
+
+        return new MapElement(MapCategory.ROAD, "", List.of(name), Optional.empty(),
+            footprint, minX, minX + sizeX, minZ, minZ + sizeZ);
     }
 
-    private MapElement createBuildingMapElement(CompoundTag tag, BlockPos NWCorner) {
-        var nameAndLevel = Ouat.translatable("building", tag.getString("BuildType")).append(" ")
-            .append(Component.literal(Utils.intToRoman(tag.getInt("Level"))).withStyle(ChatFormatting.YELLOW));
-        var originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
-        var direction = Component.translatable("direction").append(" : " + tag.getString("Direction")).withStyle(ChatFormatting.GRAY);
+    private MapElement createBuildingMapElement(CompoundTag tag, BlockPos nwCorner) {
+        String buildType = tag.getString("BuildType");
+        Component name = Component.translatable("onceuponatown.building." + buildType);
+        String buildingCategory = tag.getString("BuildingCategory");
+
+        BlockPos originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
         int sizeX = tag.getInt("SizeX");
         int sizeZ = tag.getInt("SizeZ");
-        var coordinates = Ouat.translatable("coordinates").append(" : " + originPos.toShortString()).withStyle(ChatFormatting.GRAY);
-        var plotSize = Ouat.translatable("plot_size").append(" : " + sizeX + "×" + sizeZ).withStyle(ChatFormatting.GRAY);
-        int minX = originPos.getX() - NWCorner.getX();
-        int minZ = originPos.getZ() - NWCorner.getZ();
-        return new MapElement(Build.BUILDING,
-            Optional.of(new ItemAndTitleTooltip(nameAndLevel, new ItemStack(Ouat.COMMON.getItem(new ResourceLocation(tag.getString("IconItem")))))),
-            List.of(CommonComponents.EMPTY, coordinates, direction, plotSize),
-            List.of(CommonComponents.EMPTY, coordinates, direction, plotSize), minX, minX + sizeX, minZ, minZ + sizeZ);
+
+        List<BuildingProductionTooltip.Row> rows = new ArrayList<>();
+        ListTag prod = tag.getList("Production", Tag.TAG_COMPOUND);
+        for (Tag t : prod) {
+            CompoundTag pt = (CompoundTag) t;
+            String itemId = pt.getString("Item");
+            String shortName = itemId.contains(":") ? itemId.substring(itemId.indexOf(':') + 1) : itemId;
+            int amount = pt.getInt("Amount");
+            int seconds = pt.getInt("EveryTicks") / 20;
+            ItemStack stack = new ItemStack(BuiltInRegistries.ITEM.get(new ResourceLocation(itemId)));
+            Component text = Component.literal("x" + amount + " " + shortName + " / " + seconds + "s")
+                .withStyle(ChatFormatting.GRAY);
+            rows.add(new BuildingProductionTooltip.Row(stack, text));
+        }
+
+        Optional<TooltipComponent> productionTooltip = rows.isEmpty()
+            ? Optional.empty()
+            : Optional.of(new BuildingProductionTooltip(rows));
+
+        int minX = originPos.getX() - nwCorner.getX();
+        int minZ = originPos.getZ() - nwCorner.getZ();
+        return new MapElement(MapCategory.BUILDING, buildingCategory, List.of(name), productionTooltip,
+            null, minX, minX + sizeX, minZ, minZ + sizeZ);
     }
 
     @Override
     protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         int alpha = 255;
         for (MapElement mapElement : mapElements) {
-            int buildWidth = mapElement.maxX - mapElement.minX;
+            int buildWidth  = mapElement.maxX - mapElement.minX;
             int buildHeight = mapElement.maxZ - mapElement.minZ;
-            int buildMinX = scaledMapX() + mapElement.minX * mapZoom;
-            int buildMaxX = buildMinX + (buildWidth * mapZoom);
-            int buildMinZ = scaledMapY() + mapElement.minZ * mapZoom;
-            int buildMaxZ = buildMinZ + (buildHeight * mapZoom);
-            boolean outsideMapWindow = buildMinX > mapWindowRightBound || buildMaxX < mapWindowLeftBound || buildMinZ > mapWindowBottomBound || buildMaxZ < mapWindowTopBound;
-            if (!outsideMapWindow) {
-                buildMinX = Math.max(mapWindowLeftBound, buildMinX);
-                buildMaxX = Math.min(mapWindowRightBound, buildMaxX);
-                buildMinZ = Math.max(mapWindowTopBound, buildMinZ);
-                buildMaxZ = Math.min(mapWindowBottomBound, buildMaxZ);
+            int originX = scaledMapX() + mapElement.minX * mapZoom;
+            int originZ = scaledMapY() + mapElement.minZ * mapZoom;
+            int buildMinX = originX;
+            int buildMaxX = originX + (buildWidth * mapZoom);
+            int buildMinZ = originZ;
+            int buildMaxZ = originZ + (buildHeight * mapZoom);
 
-                boolean mouseOver = mouseX >= buildMinX && mouseX < buildMaxX && mouseY >= buildMinZ && mouseY < buildMaxZ;
-                if (mapElement.category == Build.BUD && debugView) {
-                    graphics.fill(buildMinX, buildMinZ, buildMaxX, buildMaxZ, color(mouseOver ? 235 : 255, mouseOver ? HOVER_RGB : BUD_RGB));
-                } else if (mapElement.category == Build.ROAD) {
-                    graphics.fill(buildMinX, buildMinZ, buildMaxX, buildMaxZ, color(mouseOver ? 235 : 255, mouseOver ? HOVER_RGB : ROAD_RGB));
-                } else if (mapElement.category == Build.BUILDING) {
-                    drawRectangleWithShadow(graphics, buildMinX, buildMaxX, buildMinZ, buildMaxZ, mouseOver ? 235 : alpha, mouseOver ? HOVER_RGB : BUILDING_RGB);
+            boolean outside = buildMinX > mapWindowRightBound || buildMaxX < mapWindowLeftBound
+                || buildMinZ > mapWindowBottomBound || buildMaxZ < mapWindowTopBound;
+            if (!outside) {
+                int clampedMinX = Math.max(mapWindowLeftBound,   buildMinX);
+                int clampedMaxX = Math.min(mapWindowRightBound,  buildMaxX);
+                int clampedMinZ = Math.max(mapWindowTopBound,    buildMinZ);
+                int clampedMaxZ = Math.min(mapWindowBottomBound, buildMaxZ);
+
+                boolean mouseOver = mouseX >= clampedMinX && mouseX < clampedMaxX
+                    && mouseY >= clampedMinZ && mouseY < clampedMaxZ;
+
+                if (mapElement.category == MapCategory.ROAD) {
+                    if (mapElement.footprint != null) {
+                        renderFootprint(graphics, mapElement.footprint, originX, originZ, mouseOver);
+                    } else {
+                        graphics.fill(clampedMinX, clampedMinZ, clampedMaxX, clampedMaxZ,
+                            color(mouseOver ? 235 : 255, mouseOver ? HOVER_RGB : ROAD_RGB));
+                    }
+                } else if (mapElement.category == MapCategory.BUILDING) {
+                    Rgb rgb = mouseOver ? HOVER_RGB : buildingColor(mapElement.buildingCategory);
+                    drawRectangleWithShadow(graphics, clampedMinX, clampedMaxX, clampedMinZ, clampedMaxZ,
+                        mouseOver ? 235 : alpha, rgb);
                 }
-                if (mouseOver && !(mapElement.category == Build.BUD && !debugView)) {
-                    graphics.renderTooltip(Minecraft.getInstance().font, debugView ? mapElement.debugDescription : mapElement.description, mapElement.titleWithIcon, mouseX, mouseY);
+
+                if (mouseOver) {
+                    graphics.renderTooltip(Minecraft.getInstance().font,
+                        mapElement.description,
+                        mapElement.productionTooltip, mouseX, mouseY);
                 }
             }
+
             alpha -= 5;
-            if (alpha < 235) {
-                alpha = 240;
+            if (alpha < 235) alpha = 240;
+        }
+    }
+
+    private Rgb buildingColor(String category) {
+        return switch (category) {
+            case "jobs"        -> JOB_RGB;
+            case "gardens"     -> GARDEN_RGB;
+            case "town_center" -> TOWN_CENTER_RGB;
+            default            -> BUILDING_RGB;
+        };
+    }
+
+    private void renderFootprint(GuiGraphics graphics, List<String> footprint,
+                                  int baseX, int baseZ, boolean mouseOver) {
+        int roadColor = color(mouseOver ? 235 : 255, mouseOver ? HOVER_RGB : ROAD_RGB);
+        for (int fz = 0; fz < footprint.size(); fz++) {
+            String row = footprint.get(fz);
+            for (int fx = 0; fx < row.length(); fx++) {
+                if (row.charAt(fx) != '1') continue;
+                int cx1 = baseX + fx * mapZoom;
+                int cx2 = cx1 + mapZoom;
+                int cz1 = baseZ + fz * mapZoom;
+                int cz2 = cz1 + mapZoom;
+                boolean cellOutside = cx1 > mapWindowRightBound || cx2 < mapWindowLeftBound
+                    || cz1 > mapWindowBottomBound || cz2 < mapWindowTopBound;
+                if (cellOutside) continue;
+                cx1 = Math.max(mapWindowLeftBound,   cx1);
+                cx2 = Math.min(mapWindowRightBound,  cx2);
+                cz1 = Math.max(mapWindowTopBound,    cz1);
+                cz2 = Math.min(mapWindowBottomBound, cz2);
+                graphics.fill(cx1, cz1, cx2, cz2, roadColor);
             }
         }
     }
 
-    private void drawRectangleWithShadow(GuiGraphics graphics, int minX, int maxX, int minZ, int maxZ, int alpha, Triplet<Integer, Integer, Integer> rgb) {
-        graphics.fill(minX, minZ, maxX - 1, maxZ - 1, color(alpha, rgb)); // Lighted part
+    private void drawRectangleWithShadow(GuiGraphics graphics, int minX, int maxX, int minZ, int maxZ,
+                                          int alpha, Rgb rgb) {
+        graphics.fill(minX, minZ, maxX - 1, maxZ - 1, color(alpha, rgb));
         int shadowColor = color(Math.min(255, alpha + 20), rgb);
-        graphics.fill(minX, maxZ - 1, maxX, maxZ, shadowColor); // Bottom shadow
-        graphics.fill(maxX - 1, minZ, maxX, maxZ - 1, shadowColor); // Right Shadow
+        graphics.fill(minX, maxZ - 1, maxX, maxZ, shadowColor);
+        graphics.fill(maxX - 1, minZ, maxX, maxZ - 1, shadowColor);
     }
 
-    private int color(int alpha, Triplet<Integer, Integer, Integer> rgb) {
-        return FastColor.ARGB32.color(alpha, rgb.getA(), rgb.getB(), rgb.getC());
+    private int color(int alpha, Rgb rgb) {
+        return FastColor.ARGB32.color(alpha, rgb.r(), rgb.g(), rgb.b());
     }
 
     private int scaledMapX() {
-        return mapWindowLeftBound + ((mapWindowRightBound - mapWindowLeftBound - (mapInitialWidth * mapZoom)) / 2) + xDrag;
+        return mapWindowLeftBound
+            + ((mapWindowRightBound - mapWindowLeftBound - (mapInitialWidth * mapZoom)) / 2)
+            + xDrag;
     }
 
     private int scaledMapY() {
-        return mapWindowTopBound + ((mapWindowBottomBound - mapWindowTopBound - (mapInitialHeight * mapZoom)) / 2) + yDrag;
-    }
-
-    public void centerMap() {
-        mapZoom = 1;
-        xDrag = 0;
-        yDrag = 0;
-    }
-
-    public void toggleDebugView() {
-        debugView = !debugView;
+        return mapWindowTopBound
+            + ((mapWindowBottomBound - mapWindowTopBound - (mapInitialHeight * mapZoom)) / 2)
+            + yDrag;
     }
 
     @Override
@@ -197,25 +251,17 @@ public class TownMapWidget extends AbstractWidget {
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         draggingMap = false;
-        if (!isHovered()) {
-            setFocused(false);
-        }
+        if (!isHovered()) setFocused(false);
         return super.mouseReleased(mouseX, mouseY, button);
     }
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         if (draggingMap) {
-            if (dragX > 0.4D && dragX < 1.0D) {
-                dragX = 1.0D;
-            } else if (dragX < -0.4D && dragX > -1.0D) {
-                dragX = -1.0D;
-            }
-            if (dragY > 0.4D && dragY < 1.0D) {
-                dragY = 1.0D;
-            } else if (dragY < -0.4D && dragY > -1.0D) {
-                dragY = -1.0D;
-            }
+            if (dragX > 0.4D && dragX < 1.0D)   dragX = 1.0D;
+            else if (dragX < -0.4D && dragX > -1.0D) dragX = -1.0D;
+            if (dragY > 0.4D && dragY < 1.0D)   dragY = 1.0D;
+            else if (dragY < -0.4D && dragY > -1.0D) dragY = -1.0D;
             xDrag += (int) dragX;
             yDrag += (int) dragY;
             return true;
@@ -225,7 +271,8 @@ public class TownMapWidget extends AbstractWidget {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        if (mouseX >= getX() && mouseX <= getX() + width && mouseY >= getY() && mouseY <= getY() + height) {
+        if (mouseX >= getX() && mouseX <= getX() + width
+            && mouseY >= getY() && mouseY <= getY() + height) {
             int windowCenterX = (mapWindowRightBound - mapWindowLeftBound) / 2;
             int windowCenterY = (mapWindowBottomBound - mapWindowTopBound) / 2;
             if (delta > 0) {
@@ -242,14 +289,13 @@ public class TownMapWidget extends AbstractWidget {
     }
 
     @Override
-    public void playDownSound(SoundManager handler) {
-    }
+    public void playDownSound(SoundManager handler) {}
 
     @Override
-    protected void updateWidgetNarration(NarrationElementOutput narrationElementOutput) {
-    }
+    protected void updateWidgetNarration(NarrationElementOutput narrationElementOutput) {}
 
-    private record MapElement(byte category, Optional<TooltipComponent> titleWithIcon, List<Component> description,
-                              List<Component> debugDescription, int minX, int maxX, int minZ, int maxZ) {
-    }
+    private record MapElement(byte category, String buildingCategory,
+                               List<Component> description, Optional<TooltipComponent> productionTooltip,
+                               List<String> footprint,
+                               int minX, int maxX, int minZ, int maxZ) {}
 }
