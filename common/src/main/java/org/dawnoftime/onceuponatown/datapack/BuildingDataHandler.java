@@ -112,17 +112,20 @@ public class BuildingDataHandler {
         int transformEveryTicks = json.has("transform_every_ticks") ? json.get("transform_every_ticks").getAsInt() : 1600;
 
         String orientation = json.has("orientation") ? json.get("orientation").getAsString() : "";
-        List<String> bootstrapCandidates = new ArrayList<>();
-        if (json.has("bootstrapCandidates")) {
-            for (JsonElement el : json.getAsJsonArray("bootstrapCandidates")) {
-                bootstrapCandidates.add(el.getAsString());
+        // bootstrapBuildings: fixed ordered list of building IDs to place during bootstrap (all placed, no random pick).
+        // Fallback to legacy "bootstrapCandidates" key so old saves/datapacks keep working.
+        String bootstrapKey = json.has("bootstrapBuildings") ? "bootstrapBuildings" : "bootstrapCandidates";
+        List<String> bootstrapBuildings = new ArrayList<>();
+        if (json.has(bootstrapKey)) {
+            for (JsonElement el : json.getAsJsonArray(bootstrapKey)) {
+                bootstrapBuildings.add(el.getAsString());
             }
         }
 
         double productionBonus = json.has("production_bonus") ? json.get("production_bonus").getAsDouble() : 0.0;
 
         return new BuildingDef(id, nbt, entryPool, production, costs, terrainMatching, iconItem, category, footprint,
-            transformations, transformInputRatio, transformEveryTicks, orientation, bootstrapCandidates, productionBonus);
+            transformations, transformInputRatio, transformEveryTicks, orientation, bootstrapBuildings, productionBonus);
     }
 
     public static Optional<BuildingDef> get(String id) { return Optional.ofNullable(REGISTRY.get(id)); }

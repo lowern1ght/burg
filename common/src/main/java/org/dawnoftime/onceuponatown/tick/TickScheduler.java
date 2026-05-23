@@ -1,6 +1,7 @@
 package org.dawnoftime.onceuponatown.tick;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -15,6 +16,8 @@ import org.dawnoftime.onceuponatown.town.ProductionEntry;
 import org.dawnoftime.onceuponatown.town.Town;
 import org.dawnoftime.onceuponatown.town.TownInventory;
 import org.dawnoftime.onceuponatown.town.TransformationRecipe;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,7 +27,9 @@ import java.util.UUID;
 
 public class TickScheduler {
 
-    // Called from OuatFabric via ServerTickEvents.END_SERVER_TICK
+    private static final Logger LOGGER = LoggerFactory.getLogger(TickScheduler.class);
+
+    // Called from OuatForge via TickEvent.ServerTickEvent (Phase.END)
     public static void tick(MinecraftServer server) {
         for (ServerLevel level : server.getAllLevels()) {
             LevelTowns levelTowns = LevelTowns.get(level);
@@ -36,9 +41,9 @@ public class TickScheduler {
 
                 // Sum additive production bonus from all buildings in this town (e.g. gardens: +3% each).
                 double bonusMultiplier = 1.0 + town.getBuildings().stream()
-                    .mapToDouble(b -> BuildingDataHandler.get(b.getDefId())
-                        .map(d -> d.productionBonus).orElse(0.0))
-                    .sum();
+                        .mapToDouble(b -> BuildingDataHandler.get(b.getDefId())
+                                .map(d -> d.productionBonus).orElse(0.0))
+                        .sum();
 
                 for (PlacedBuilding building : town.getBuildings()) {
                     BuildingDef def = BuildingDataHandler.get(building.getDefId()).orElse(null);
@@ -48,9 +53,12 @@ public class TickScheduler {
                         int current = inv.getStock(entry.item());
                         int max = inv.getMaxStock(entry.item());
                         if (current < max) {
-                            int boostedAmount = (int) Math.round(entry.amount() * bonusMultiplier);
+                            // Village-wide bonus (from gardens etc.) * per-instance orientation bonus.
+                            double totalMultiplier = bonusMultiplier * building.getInstanceProductionMultiplier();
+                            int boostedAmount = (int) Math.round(entry.amount() * totalMultiplier);
                             building.forceAdd(entry.item(), Math.min(boostedAmount, max - current));
                             anyChange = true;
+
                         }
                     }
 
@@ -72,11 +80,24 @@ public class TickScheduler {
                     // Without this, getEntity() returns null for unloaded chunks and incorrectly
                     // triggers a respawn while the real builder still exists in an unloaded chunk.
                     boolean playerNearby = level.players().stream().anyMatch(p ->
-                        p.distanceToSqr(anchorPos.getX() + 0.5, anchorPos.getY(), anchorPos.getZ() + 0.5) < 128.0 * 128.0);
+                            p.distanceToSqr(anchorPos.getX() + 0.5, anchorPos.getY(), anchorPos.getZ() + 0.5) < 128.0 * 128.0);
                     if (!playerNearby) continue;
 
+                    // DEBUG: log the state of the builder check once per minute (1200t) to avoid spam
+                    net.minecraft.world.entity.Entity existingEntity = builderId != null ? level.getEntity(builderId) : null;
+                    if (gameTime % 1200 == 0) {
+                        LOGGER.info("[OUAT-DEBUG] Town='{}' anchor={} builderId={} entityFound={} playerNearby=true",
+                                town.getName(), anchorPos, builderId, existingEntity != null);
+                    }
+
                     // Skip if builder entity is already alive in the world
-                    if (builderId != null && level.getEntity(builderId) != null) continue;
+                    if (existingEntity != null) continue;
+
+                    // DEBUG: warn explicitly when a respawn is triggered despite a stored builderId
+                    if (builderId != null) {
+                        LOGGER.warn("[OUAT-DEBUG] RESPAWN TRIGGERED for town='{}' -- stored builderId={} not found in level (chunk may have just loaded or entity was lost)",
+                                town.getName(), builderId);
+                    }
 
                     Npc builder = EntityRegistry.NPC.create(level);
                     if (builder == null) continue;
@@ -85,10 +106,12 @@ public class TickScheduler {
                     builder.setPersistenceRequired();
 
                     int surfaceY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
-                        anchorPos.getX(), anchorPos.getZ());
+                            anchorPos.getX(), anchorPos.getZ());
                     builder.moveTo(anchorPos.getX() + 0.5, surfaceY + 1.0, anchorPos.getZ() + 0.5);
 
                     if (level.addFreshEntity(builder)) {
+                        LOGGER.warn("[OUAT-DEBUG] NEW NPC SPAWNED uuid={} for town='{}' (replaced old builderId={})",
+                                builder.getUUID(), town.getName(), builderId);
                         town.setBuilderNpcId(builder.getUUID());
                         anyChange = true;
                     }
@@ -119,7 +142,7 @@ public class TickScheduler {
             passProduced = false;
             for (TransformationRecipe recipe : def.transformations) {
                 boolean canAfford = recipe.inputs().stream()
-                    .allMatch(input -> budget.getOrDefault(input.item(), 0) >= input.amount());
+                        .allMatch(input -> budget.getOrDefault(input.item(), 0) >= input.amount());
                 int currentOutput = building.getStock(recipe.outputItem());
                 if (!canAfford || currentOutput + recipe.outputAmount() > recipe.outputCapacityItems()) continue;
                 for (ItemCost input : recipe.inputs()) {

@@ -365,6 +365,12 @@ public class BuildSchematic {
                 // OCEAN_FLOOR now returns the true solid terrain surface (ignores plants, ferns, leaves).
                 int solidSurfaceY = level.getHeight(Heightmap.Types.OCEAN_FLOOR, x, z) - 1;
 
+                if (solidSurfaceY != roadBlockPos.getY()) {
+                    LOGGER.warn("[OUAT-TERRAIN] PATH SUNK at ({},{},{}) : was Y={} -> placed Y={} (delta={})",
+                        x, roadBlockPos.getY(), z,
+                        roadBlockPos.getY(), solidSurfaceY,
+                        solidSurfaceY - roadBlockPos.getY());
+                }
                 BlockPos finalPathPos = new BlockPos(x, solidSurfaceY, z);
                 level.setBlock(finalPathPos, Blocks.DIRT_PATH.defaultBlockState(), Block.UPDATE_ALL);
 

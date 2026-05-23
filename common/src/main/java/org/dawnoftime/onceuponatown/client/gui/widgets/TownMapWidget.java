@@ -12,10 +12,12 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FastColor;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.core.registries.BuiltInRegistries;
 import org.dawnoftime.onceuponatown.client.gui.tooltip.BuildingProductionTooltip;
 import org.dawnoftime.onceuponatown.town.MapCategory;
@@ -95,12 +97,17 @@ public class TownMapWidget extends AbstractWidget {
         }
 
         return new MapElement(MapCategory.ROAD, "", List.of(name), Optional.empty(),
-            footprint, minX, minX + sizeX, minZ, minZ + sizeZ);
+            footprint, minX, minX + sizeX, minZ, minZ + sizeZ, false);
     }
 
     private MapElement createBuildingMapElement(CompoundTag tag, BlockPos nwCorner) {
         String buildType = tag.getString("BuildType");
-        Component name = Component.translatable("onceuponatown.building." + buildType);
+        double instanceBonus = tag.getDouble("InstanceBonus");
+        // Append a gold star to the name for orientation-boosted buildings.
+        MutableComponent name = Component.translatable("onceuponatown.building." + buildType);
+        if (instanceBonus > 0) {
+            name = name.append(Component.literal(" ★").withStyle(ChatFormatting.GOLD));
+        }
         String buildingCategory = tag.getString("BuildingCategory");
 
         BlockPos originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
@@ -108,17 +115,78 @@ public class TownMapWidget extends AbstractWidget {
         int sizeZ = tag.getInt("SizeZ");
 
         List<BuildingProductionTooltip.Row> rows = new ArrayList<>();
+
+        // --- Section: Produces ---
         ListTag prod = tag.getList("Production", Tag.TAG_COMPOUND);
-        for (Tag t : prod) {
-            CompoundTag pt = (CompoundTag) t;
-            String itemId = pt.getString("Item");
-            String shortName = itemId.contains(":") ? itemId.substring(itemId.indexOf(':') + 1) : itemId;
-            int amount = pt.getInt("Amount");
-            int seconds = pt.getInt("EveryTicks") / 20;
-            ItemStack stack = new ItemStack(BuiltInRegistries.ITEM.get(new ResourceLocation(itemId)));
-            Component text = Component.literal("x" + amount + " " + shortName + " / " + seconds + "s")
-                .withStyle(ChatFormatting.GRAY);
-            rows.add(new BuildingProductionTooltip.Row(stack, text));
+        if (!prod.isEmpty()) {
+            rows.add(new BuildingProductionTooltip.Row(null,
+                Component.translatable("onceuponatown.tooltip.produces")));
+            for (Tag t : prod) {
+                CompoundTag pt = (CompoundTag) t;
+                String itemId = pt.getString("Item");
+                int amount    = pt.getInt("Amount");
+                int seconds   = pt.getInt("EveryTicks") / 20;
+                net.minecraft.world.item.Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(itemId));
+                ItemStack stack = new ItemStack(item);
+                Component itemName = Component.translatable(item.getDescriptionId());
+                Component text = Component.literal("x" + amount + " ")
+                    .append(itemName)
+                    .append(Component.literal(" / " + seconds + "s"))
+                    .withStyle(ChatFormatting.GRAY);
+                rows.add(new BuildingProductionTooltip.Row(stack, text));
+            }
+        }
+
+        // --- Section: Transforms ---
+        ListTag transforms = tag.getList("Transforms", Tag.TAG_COMPOUND);
+        if (!transforms.isEmpty()) {
+            rows.add(new BuildingProductionTooltip.Row(null,
+                Component.translatable("onceuponatown.tooltip.transforms")));
+            for (Tag t : transforms) {
+                CompoundTag tt = (CompoundTag) t;
+                ListTag inputs     = tt.getList("Inputs", Tag.TAG_COMPOUND);
+                String outputId    = tt.getString("OutputItem");
+                int outputAmount   = tt.getInt("OutputAmount");
+
+                net.minecraft.world.item.Item outputItem = BuiltInRegistries.ITEM.get(new ResourceLocation(outputId));
+                ItemStack outputStack = new ItemStack(outputItem);
+
+                // Build text: "1 Oak Log + 2 Stone into 4 Oak Planks" using vanilla item names.
+                MutableComponent text = Component.empty();
+                for (int i = 0; i < inputs.size(); i++) {
+                    CompoundTag inp = (CompoundTag) inputs.get(i);
+                    net.minecraft.world.item.Item inputItem =
+                        BuiltInRegistries.ITEM.get(new ResourceLocation(inp.getString("Item")));
+                    int inputAmount = inp.getInt("Amount");
+                    if (i > 0) text.append(" + ");
+                    text.append(Component.literal(inputAmount + " ")
+                        .append(Component.translatable(inputItem.getDescriptionId())));
+                }
+                text.append(Component.literal(" into " + outputAmount + " ")
+                    .append(Component.translatable(outputItem.getDescriptionId())));
+                text.withStyle(ChatFormatting.GRAY);
+
+                rows.add(new BuildingProductionTooltip.Row(outputStack, text));
+            }
+        }
+
+        // --- Section: Perks (village-wide bonus and/or orientation instance bonus) ---
+        double productionBonus = tag.getDouble("ProductionBonus");
+        if (productionBonus > 0 || instanceBonus > 0) {
+            rows.add(new BuildingProductionTooltip.Row(null,
+                Component.translatable("onceuponatown.tooltip.perks")));
+            if (productionBonus > 0) {
+                int percent = (int) Math.round(productionBonus * 100);
+                rows.add(new BuildingProductionTooltip.Row(new ItemStack(Items.NETHER_STAR),
+                    Component.translatable("onceuponatown.tooltip.production_bonus", percent)
+                        .withStyle(ChatFormatting.GRAY)));
+            }
+            if (instanceBonus > 0) {
+                int percent = (int) Math.round(instanceBonus * 100);
+                rows.add(new BuildingProductionTooltip.Row(new ItemStack(Items.GOLD_INGOT),
+                    Component.translatable("onceuponatown.tooltip.orientation_bonus", percent)
+                        .withStyle(ChatFormatting.GOLD)));
+            }
         }
 
         Optional<TooltipComponent> productionTooltip = rows.isEmpty()
@@ -128,7 +196,7 @@ public class TownMapWidget extends AbstractWidget {
         int minX = originPos.getX() - nwCorner.getX();
         int minZ = originPos.getZ() - nwCorner.getZ();
         return new MapElement(MapCategory.BUILDING, buildingCategory, List.of(name), productionTooltip,
-            null, minX, minX + sizeX, minZ, minZ + sizeZ);
+            null, minX, minX + sizeX, minZ, minZ + sizeZ, instanceBonus > 0);
     }
 
     @Override
@@ -166,6 +234,21 @@ public class TownMapWidget extends AbstractWidget {
                     Rgb rgb = mouseOver ? HOVER_RGB : buildingColor(mapElement.buildingCategory);
                     drawRectangleWithShadow(graphics, clampedMinX, clampedMaxX, clampedMinZ, clampedMaxZ,
                         mouseOver ? 235 : alpha, rgb);
+                    // Draw a centered gold star on orientation-boosted buildings.
+                    if (mapElement.hasOrientationBonus()) {
+                        int centerX = (buildMinX + buildMaxX) / 2;
+                        int centerZ = (buildMinZ + buildMaxZ) / 2;
+                        net.minecraft.client.gui.Font font = Minecraft.getInstance().font;
+                        String star = "★";
+                        int textW = font.width(star);
+                        int textH = font.lineHeight;
+                        int textX = centerX - textW / 2;
+                        int textY = centerZ - textH / 2;
+                        if (textX >= mapWindowLeftBound && textX + textW <= mapWindowRightBound
+                                && textY >= mapWindowTopBound && textY + textH <= mapWindowBottomBound) {
+                            graphics.drawString(font, star, textX, textY, 0xFFFFAA00, false);
+                        }
+                    }
                 }
 
                 if (mouseOver) {
@@ -297,5 +380,6 @@ public class TownMapWidget extends AbstractWidget {
     private record MapElement(byte category, String buildingCategory,
                                List<Component> description, Optional<TooltipComponent> productionTooltip,
                                List<String> footprint,
-                               int minX, int maxX, int minZ, int maxZ) {}
+                               int minX, int maxX, int minZ, int maxZ,
+                               boolean hasOrientationBonus) {}
 }

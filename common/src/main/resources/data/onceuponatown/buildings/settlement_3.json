@@ -1,9 +1,9 @@
 {
-  "id": "settlement",
-  "nbt": "onceuponatown:plains/starters/settlement",
+  "id": "settlement_3",
+  "nbt": "onceuponatown:plains/starters/settlement_3",
   "entry_pool": "onceuponatown:starters",
-  "orientation": "stone",
-  "bootstrapBuildings": ["tree_field", "stone_deposit"],
+  "orientation": "wood",
+  "bootstrapBuildings": ["tree_field", "farm_field"],
   "icon_item": "minecraft:campfire",
   "category": "town_center",
   "production": [
@@ -14,27 +14,27 @@
       "capacity_stacks": 3
     },
     {
-      "item": "minecraft:cobblestone",
-      "amount": 3,
-      "every_ticks": 1800,
-      "capacity_stacks": 3
-    },
-    {
       "item": "minecraft:apple",
       "amount": 1,
       "every_ticks": 1600,
       "capacity_stacks": 1
     },
     {
-      "item": "minecraft:stick",
-      "amount": 1,
+      "item": "minecraft:wheat_seeds",
+      "amount": 2,
       "every_ticks": 1600,
-      "capacity_stacks": 1
+      "capacity_stacks": 3
     },
     {
-      "item": "minecraft:oak_sapling",
+      "item": "minecraft:wheat",
       "amount": 1,
-      "every_ticks": 1800,
+      "every_ticks": 2100,
+      "capacity_stacks": 2
+    },
+    {
+      "item": "minecraft:bone_meal",
+      "amount": 1,
+      "every_ticks": 2000,
       "capacity_stacks": 1
     }
   ],
@@ -49,16 +49,10 @@
       "output_capacity_stacks": 2
     },
     {
-      "inputs": [{ "item": "minecraft:oak_log", "amount": 1 }],
-      "output": "minecraft:charcoal",
+      "inputs": [{ "item": "minecraft:wheat", "amount": 3 }],
+      "output": "minecraft:bread",
       "output_amount": 1,
       "output_capacity_stacks": 2
-    },
-    {
-      "inputs": [{ "item": "minecraft:cobblestone", "amount": 1 }],
-      "output": "minecraft:stone",
-      "output_amount": 1,
-      "output_capacity_stacks": 1
     },
     {
       "inputs": [{ "item": "minecraft:oak_planks", "amount": 3 }],
