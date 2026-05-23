@@ -16,6 +16,24 @@
                 "projection": "rigid",
                 "location": "onceuponatown:plains/starters/settlement"
             }
+        },
+        {
+            "weight": 1,
+            "element": {
+                "element_type": "minecraft:single_pool_element",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "location": "onceuponatown:plains/starters/settlement_2"
+            }
+        },
+        {
+            "weight": 1,
+            "element": {
+                "element_type": "minecraft:single_pool_element",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "location": "onceuponatown:plains/starters/settlement_3"
+            }
         }
     ]
 }

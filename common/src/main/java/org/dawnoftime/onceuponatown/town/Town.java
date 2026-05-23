@@ -8,7 +8,6 @@ import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
@@ -33,8 +32,6 @@ public class Town {
     private String name = "Unknown Town";
     // null until first NPC tick; empty list once bootstrap is complete (open phase).
     private List<String> bootstrapQueue = null;
-    // The building ID chosen at spawn for multi-candidate orientations (e.g. food). Persisted to prevent re-roll on reload.
-    private String selectedBootstrapBuilding = null;
 
     public void registerBuilding(BlockPos worldPos, String defId, List<ConnectionPoint> connections, BoundingBox bb, Rotation rotation) {
         buildings.add(new PlacedBuilding(defId, worldPos, bb, rotation));
@@ -88,23 +85,17 @@ public class Town {
     public List<String> getBootstrapQueue() { return bootstrapQueue != null ? bootstrapQueue : List.of(); }
 
     // Lazy bootstrap initialization: called on the first NPC tick after village creation.
-    // Reads orientation from the placed starter building, picks a bootstrap candidate (once), and
-    // populates the queue. Returns true if state changed (needs markDirty).
-    public boolean initBootstrap(RandomSource random) {
+    // Reads orientation from the placed starter building and copies its full bootstrapBuildings
+    // list into the queue. All listed buildings are placed; no random selection occurs.
+    // Returns true if state changed (needs markDirty).
+    public boolean initBootstrap() {
         if (bootstrapQueue != null) return false;
 
         for (PlacedBuilding b : buildings) {
             BuildingDef def = BuildingDataHandler.get(b.defId).orElse(null);
             if (def == null || def.orientation.isEmpty()) continue;
 
-            if (selectedBootstrapBuilding == null && !def.bootstrapCandidates.isEmpty()) {
-                int idx = def.bootstrapCandidates.size() == 1 ? 0
-                    : random.nextInt(def.bootstrapCandidates.size());
-                selectedBootstrapBuilding = def.bootstrapCandidates.get(idx);
-            }
-
-            bootstrapQueue = new ArrayList<>();
-            if (selectedBootstrapBuilding != null) bootstrapQueue.add(selectedBootstrapBuilding);
+            bootstrapQueue = new ArrayList<>(def.bootstrapBuildings);
             return true;
         }
 
@@ -199,6 +190,8 @@ public class Town {
         }
         if (!isStreet && def != null) {
             el.putString("BuildingCategory", def.category);
+
+            // --- Production entries ---
             ListTag prodTag = new ListTag();
             for (ProductionEntry pe : def.production) {
                 CompoundTag pt = new CompoundTag();
@@ -208,6 +201,35 @@ public class Town {
                 prodTag.add(pt);
             }
             el.put("Production", prodTag);
+
+            // --- Transformation recipes ---
+            if (!def.transformations.isEmpty()) {
+                ListTag transformsTag = new ListTag();
+                for (TransformationRecipe tr : def.transformations) {
+                    CompoundTag tt = new CompoundTag();
+                    ListTag inputsTag = new ListTag();
+                    for (ItemCost ic : tr.inputs()) {
+                        CompoundTag it = new CompoundTag();
+                        it.putString("Item", BuiltInRegistries.ITEM.getKey(ic.item()).toString());
+                        it.putInt("Amount", ic.amount());
+                        inputsTag.add(it);
+                    }
+                    tt.put("Inputs", inputsTag);
+                    tt.putString("OutputItem", BuiltInRegistries.ITEM.getKey(tr.outputItem()).toString());
+                    tt.putInt("OutputAmount", tr.outputAmount());
+                    transformsTag.add(tt);
+                }
+                el.put("Transforms", transformsTag);
+            }
+
+            // --- Production bonus: village-wide perk (from BuildingDef) ---
+            if (def.productionBonus > 0) {
+                el.putDouble("ProductionBonus", def.productionBonus);
+            }
+        }
+        // --- Per-instance orientation bonus (set during bootstrap placement) ---
+        if (b.getInstanceProductionMultiplier() > 1.0) {
+            el.putDouble("InstanceBonus", b.getInstanceProductionMultiplier() - 1.0);
         }
         if (isStreet && def != null && def.footprint != null && !def.footprint.isEmpty()) {
             List<String> rotatedFootprint = rotateFootprint(def.footprint, b.rotation);
@@ -304,7 +326,6 @@ public class Town {
             bootstrapQueue.forEach(s -> bqTag.add(StringTag.valueOf(s)));
             tag.put("BootstrapQueue", bqTag);
         }
-        if (selectedBootstrapBuilding != null) tag.putString("SelectedBootstrapBuilding", selectedBootstrapBuilding);
         return tag;
     }
 
@@ -334,9 +355,6 @@ public class Town {
             town.bootstrapQueue = new ArrayList<>();
             tag.getList("BootstrapQueue", Tag.TAG_STRING)
                 .forEach(t -> town.bootstrapQueue.add(t.getAsString()));
-        }
-        if (tag.contains("SelectedBootstrapBuilding")) {
-            town.selectedBootstrapBuilding = tag.getString("SelectedBootstrapBuilding");
         }
         return town;
     }

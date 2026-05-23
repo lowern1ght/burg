@@ -30,8 +30,8 @@ public class BuildingDef {
     public final int transformEveryTicks;
     // Village orientation this starter building provides ("food", "wood", "stone"). Empty for non-starters.
     public final String orientation;
-    // Ordered list of building IDs to place at zero cost during bootstrap. Empty for non-starters.
-    public final List<String> bootstrapCandidates;
+    // Ordered list of building IDs to place during bootstrap. All entries are placed (no random pick). Empty for non-starters.
+    public final List<String> bootstrapBuildings;
     // Additive bonus applied to village-wide production amounts (e.g. 0.03 = +3% per building).
     public final double productionBonus;
 
@@ -41,7 +41,7 @@ public class BuildingDef {
                        List<String> footprint,
                        List<TransformationRecipe> transformations,
                        float transformInputRatio, int transformEveryTicks,
-                       String orientation, List<String> bootstrapCandidates,
+                       String orientation, List<String> bootstrapBuildings,
                        double productionBonus) {
         this.id = id;
         this.nbt = nbt;
@@ -56,7 +56,7 @@ public class BuildingDef {
         this.transformInputRatio = transformInputRatio;
         this.transformEveryTicks = transformEveryTicks;
         this.orientation = orientation;
-        this.bootstrapCandidates = bootstrapCandidates;
+        this.bootstrapBuildings = bootstrapBuildings;
         this.productionBonus = productionBonus;
     }
 

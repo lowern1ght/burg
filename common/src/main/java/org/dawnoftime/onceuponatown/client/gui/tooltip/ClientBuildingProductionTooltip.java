@@ -7,9 +7,13 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import org.joml.Matrix4f;
 
 public class ClientBuildingProductionTooltip implements ClientTooltipComponent {
-    private static final int ROW_HEIGHT = 18;
-    private static final int ICON_SIZE  = 16;
-    private static final int GAP        = 3;
+    private static final int ROW_HEIGHT    = 18;
+    private static final int ICON_SIZE     = 16;
+    private static final int GAP           = 3;
+    /** ARGB green used for section header text. */
+    private static final int COLOR_HEADER  = 0xFF55FF55;
+    /** ARGB light-gray used for regular item and perk rows. */
+    private static final int COLOR_CONTENT = 0xFFAAAAAA;
 
     private final BuildingProductionTooltip data;
 
@@ -26,7 +30,8 @@ public class ClientBuildingProductionTooltip implements ClientTooltipComponent {
     public int getWidth(Font font) {
         int max = 0;
         for (BuildingProductionTooltip.Row row : data.rows()) {
-            int w = ICON_SIZE + GAP + font.width(row.text());
+            // Headers have no icon prefix, item rows do.
+            int w = (row.isHeader() ? 0 : ICON_SIZE + GAP) + font.width(row.text());
             if (w > max) max = w;
         }
         return max;
@@ -35,7 +40,11 @@ public class ClientBuildingProductionTooltip implements ClientTooltipComponent {
     @Override
     public void renderImage(Font font, int x, int y, GuiGraphics graphics) {
         for (int i = 0; i < data.rows().size(); i++) {
-            graphics.renderItem(data.rows().get(i).stack(), x, y + i * ROW_HEIGHT + 1);
+            BuildingProductionTooltip.Row row = data.rows().get(i);
+            // Header rows have no icon.
+            if (!row.isHeader()) {
+                graphics.renderItem(row.stack(), x, y + i * ROW_HEIGHT + 1);
+            }
         }
     }
 
@@ -43,11 +52,14 @@ public class ClientBuildingProductionTooltip implements ClientTooltipComponent {
     public void renderText(Font font, int x, int y, Matrix4f matrix4f, MultiBufferSource.BufferSource bufferSource) {
         for (int i = 0; i < data.rows().size(); i++) {
             BuildingProductionTooltip.Row row = data.rows().get(i);
+            // Headers start at x with no icon offset and use green color.
+            int textX = row.isHeader() ? x : x + ICON_SIZE + GAP;
+            int color  = row.isHeader() ? COLOR_HEADER : COLOR_CONTENT;
             font.drawInBatch(
                 row.text().getVisualOrderText(),
-                x + ICON_SIZE + GAP,
+                textX,
                 y + i * ROW_HEIGHT + 5,
-                0xFFAAAAAA,
+                color,
                 true,
                 matrix4f,
                 bufferSource,

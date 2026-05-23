@@ -7,5 +7,12 @@ import net.minecraft.world.item.ItemStack;
 import java.util.List;
 
 public record BuildingProductionTooltip(List<Row> rows) implements TooltipComponent {
-    public record Row(ItemStack stack, Component text) {}
+    /**
+     * A single tooltip row.
+     * When {@code stack} is null the row is a section header: no icon, text starts at x=0.
+     * When {@code stack} is non-null it is rendered as an item icon with text beside it.
+     */
+    public record Row(ItemStack stack, Component text) {
+        public boolean isHeader() { return stack == null; }
+    }
 }

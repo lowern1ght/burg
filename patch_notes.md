@@ -1,19 +1,15 @@
-## 🏘️ Once Upon a Town v0.0.3 [Alpha]
-### Heavily improved the Town map:
-- The town map now show what the buildings are producing
-- There is different colors depending what's the building type, green for gardens, yellow for towncenter, red for jobs and brown for houses
-- Improved UI appearance
-### New village orientations and settlements:
-- Once the village spawns it start as the 'settlement' tier, the lowest. The settlement produces a bit of ressources to start the village: logs, planks, cobblestone and apples
-- Each settlement has a dedicated starting orientation: food/stone/wood . The orientation gives to the village a free building following it's orientation, and instantly build it at the beginning
-
-**Orientations:**
-- Wood: tree_field
-- Stone: stone_deposit
-- Food: [One of the following] pig_field, cow_field, farm_field
-### Building system improvements:
-- The roads are now going to use planks instead of dirt path when they are placed near water, as vanilla villages are already doing
-- The NPC is going to prioritize the building locations closer from the center instead of always expending the roads, it means, the village should be less stuck and expend less too far. The villages should be more dense
-- Added a few extra rules to optimize the NPC building choice and order
-### New buildings:
-- Added new road types, job buildings and house variations
+## 🏘️ Once Upon a Town v0.0.4 [Alpha]
+### Town Map!
+- Added the town map to let you check the status and building composition of each village! /give player onceuponatown:town_scroll
+- Added a tooltip for each building on the townmap to let you check the building production and transformation
+- Added colors depending the type of structures: Yellow, Red, Green, Brown, Gray
+### Added village orientation
+- There is now 3 village orientation: Wood, Meat and Wheat. Each village is going to make available for construction the orientation structures and they are going to benefits from a 15% production boost
+- The orientation is defined randomly, depending which structure NBT is selected at village spawn
+- The villages are now oriented around the 'settlement' theme, making them looking more poor, I removed some roads and houses that made the villages too fancy
+### Garden boost
+- The gardens in the village are now providing a +3% of production cumulative per gardens
+### Various improvements
+- Tweak to the builder AI that should have less dead points to extend the village further
+- Improved the path placement system
+- Some buildings can now 'transform' 10% of the village production into new ressources

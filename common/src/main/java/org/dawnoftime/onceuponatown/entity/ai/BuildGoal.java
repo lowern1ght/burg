@@ -10,11 +10,15 @@ import org.dawnoftime.onceuponatown.town.BuildingDef;
 import org.dawnoftime.onceuponatown.town.ConnectionPoint;
 import org.dawnoftime.onceuponatown.town.ItemCost;
 import org.dawnoftime.onceuponatown.town.Town;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 public class BuildGoal {
     private enum Phase { MOVING, PLACING, DONE }
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(BuildGoal.class);
 
     private final Npc npc;
     private final BuildingDef def;
@@ -30,9 +34,10 @@ public class BuildGoal {
     private final Town town;
     private Phase phase = Phase.MOVING;
     private final GoToPosition goTo;
-    private int movingTicks = 0;
-    private static final int MOVE_TIMEOUT_TICKS = 3600; // 3 minutes
     private boolean failed = false;
+    // Tick counters for stuck-detection logs.
+    private int movingTicks = 0;
+    private int placingTicks = 0;
 
     public BuildGoal(Npc npc, BuildingDef def, ConnectionPoint usedConnection,
                      BlockPos finalPlacementPos, Rotation rotation, BlockPos entryConnectorWorldPos,
@@ -45,27 +50,47 @@ public class BuildGoal {
         this.entryConnectorWorldPos = entryConnectorWorldPos;
         this.constructionCost = constructionCost;
         this.town = town;
-        this.goTo = new GoToPosition(npc, usedConnection.pos(), 0.8, 3.0);
+        // arrivalRadius raised from 3.0 to 5.5: the vanilla pathfinder stops naturally at ~4-5 blocks
+        // from its target, so 3.0 caused an infinite re-issue loop where the NPC was right next to
+        // the connection point but never triggered the PLACING phase.
+        this.goTo = new GoToPosition(npc, usedConnection.pos(), 0.8, 5.5);
     }
 
     public boolean isFailed() { return failed; }
     public ConnectionPoint getUsedConnection() { return usedConnection; }
+    public String getDefId() { return def.id; }
+    public BlockPos getFinalPlacementPos() { return finalPlacementPos; }
 
-    // Returns true when construction is complete (check isFailed() to distinguish success from timeout).
+    // Returns true when construction is complete (success or failure).
     public boolean tick() {
         return switch (phase) {
             case MOVING -> {
+                movingTicks++;
+                // Log every 200t while stuck navigating so we can detect infinite MOVING states.
+                if (movingTicks % 200 == 0) {
+                    LOGGER.warn("[OUAT-BUILD] NPC {} STUCK IN MOVING phase -- building='{}' target={} elapsedMovingTicks={}",
+                        npc.getUUID(), def.id, usedConnection.pos(), movingTicks);
+                }
                 if (goTo.tick()) {
+                    LOGGER.debug("[OUAT-BUILD] NPC {} reached connection pos={} after {}t, starting placement of '{}'",
+                        npc.getUUID(), usedConnection.pos(), movingTicks, def.id);
                     phase = Phase.PLACING;
-                } else if (++movingTicks > MOVE_TIMEOUT_TICKS) {
-                    // NPC took over 3 minutes to reach the spot - treat as permanently failed
-                    failed = true;
-                    yield true;
                 }
                 yield false;
             }
             case PLACING -> {
-                if (!(npc.level() instanceof ServerLevel serverLevel)) yield false;
+                placingTicks++;
+                if (!(npc.level() instanceof ServerLevel serverLevel)) {
+                    // Not a server level -- log once per 20t to avoid spam.
+                    if (placingTicks % 20 == 0) {
+                        LOGGER.warn("[OUAT-BUILD] NPC {} PLACING: level is not ServerLevel (tick={}), building='{}'",
+                            npc.getUUID(), placingTicks, def.id);
+                    }
+                    yield false;
+                }
+
+                LOGGER.debug("[OUAT-BUILD] NPC {} attempting placement -- building='{}' pos={} rotation={} terrainMatching={} placingTick={}",
+                    npc.getUUID(), def.id, finalPlacementPos, rotation, def.terrainMatching, placingTicks);
 
                 // Step 1: carve terrain above layer 0 before placement so carve only touches
                 // pre-existing terrain, never the building's own blocks.
@@ -83,6 +108,8 @@ public class BuildGoal {
                     : BuildSchematic.place(serverLevel, finalPlacementPos, def.nbt, rotation);
 
                 if (placed) {
+                    LOGGER.info("[OUAT-BUILD] Placement SUCCESS -- building='{}' pos={} rotation={} movingTicks={} placingTicks={}",
+                        def.id, finalPlacementPos, rotation, movingTicks, placingTicks);
                     // Deduct resources only after successful placement - not upfront.
                     // This prevents resource loss when the NPC fails to reach the target.
                     town.getTownInventory().removeStock(constructionCost);
@@ -103,6 +130,10 @@ public class BuildGoal {
                     phase = Phase.DONE;
                     yield true;
                 }
+
+                // placement returned false -- this should only happen if the NBT is missing.
+                LOGGER.error("[OUAT-BUILD] Placement FAILED (place() returned false) -- building='{}' nbt='{}' pos={} rotation={} placingTick={}",
+                    def.id, def.nbt, finalPlacementPos, rotation, placingTicks);
                 yield false;
             }
             case DONE -> true;

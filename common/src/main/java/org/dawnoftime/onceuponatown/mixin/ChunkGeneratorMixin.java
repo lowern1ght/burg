@@ -148,9 +148,13 @@ public class ChunkGeneratorMixin {
     private String extractDefId(PoolElementStructurePiece piece) {
         String templatePath = piece.getElement().toString();
         if (!templatePath.contains(Ouat.MOD_ID)) return null;
-        for (org.dawnoftime.onceuponatown.town.BuildingDef def : BuildingDataHandler.getAll()) {
-            if (templatePath.contains(def.id)) return def.id;
-        }
-        return null;
+        // Sort by id length descending so "settlement_2" is checked before "settlement",
+        // preventing the shorter id from matching as a substring of a longer one.
+        return BuildingDataHandler.getAll().stream()
+            .sorted((a, b) -> Integer.compare(b.id.length(), a.id.length()))
+            .filter(def -> templatePath.contains(def.id))
+            .map(def -> def.id)
+            .findFirst()
+            .orElse(null);
     }
 }

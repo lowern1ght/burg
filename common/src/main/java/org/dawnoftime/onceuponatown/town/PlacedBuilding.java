@@ -18,6 +18,8 @@ public class PlacedBuilding {
     public final BoundingBox bb;
     // Rotation applied when this building was placed. NONE for saves that predate this field.
     public final Rotation rotation;
+    // Per-instance production multiplier. 1.0 = normal. Set to 1.15 for orientation bootstrap buildings.
+    private double instanceProductionMultiplier = 1.0;
     private final Map<Item, Integer> stock = new HashMap<>();
 
     public PlacedBuilding(String defId, BlockPos worldPos, BoundingBox bb, Rotation rotation) {
@@ -52,6 +54,9 @@ public class PlacedBuilding {
     public java.util.Set<Item> getStockedItems() { return stock.keySet(); }
     public String getDefId() { return defId; }
 
+    public double getInstanceProductionMultiplier() { return instanceProductionMultiplier; }
+    public void setInstanceProductionMultiplier(double value) { this.instanceProductionMultiplier = value; }
+
     public CompoundTag toNbt() {
         CompoundTag tag = new CompoundTag();
         tag.putString("DefId", defId);
@@ -73,6 +78,8 @@ public class PlacedBuilding {
             tag.put("BoundingBox", bbTag);
         }
         tag.putInt("Rotation", rotation.ordinal());
+        if (instanceProductionMultiplier != 1.0)
+            tag.putDouble("InstanceProductionMultiplier", instanceProductionMultiplier);
         return tag;
     }
 
@@ -91,6 +98,8 @@ public class PlacedBuilding {
             ? Rotation.values()[tag.getInt("Rotation")]
             : Rotation.NONE;
         PlacedBuilding b = new PlacedBuilding(defId, pos, bb, rotation);
+        if (tag.contains("InstanceProductionMultiplier"))
+            b.instanceProductionMultiplier = tag.getDouble("InstanceProductionMultiplier");
         CompoundTag stockTag = tag.getCompound("Stock");
         for (String key : stockTag.getAllKeys()) {
             Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(key));
