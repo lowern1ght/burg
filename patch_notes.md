@@ -1,15 +1,15 @@
-## 🏘️ Once Upon a Town v0.0.4 [Alpha]
-### Town Map!
-- Added the town map to let you check the status and building composition of each village! /give player onceuponatown:town_scroll
-- Added a tooltip for each building on the townmap to let you check the building production and transformation
-- Added colors depending the type of structures: Yellow, Red, Green, Brown, Gray
-### Added village orientation
-- There is now 3 village orientation: Wood, Meat and Wheat. Each village is going to make available for construction the orientation structures and they are going to benefits from a 15% production boost
-- The orientation is defined randomly, depending which structure NBT is selected at village spawn
-- The villages are now oriented around the 'settlement' theme, making them looking more poor, I removed some roads and houses that made the villages too fancy
-### Garden boost
-- The gardens in the village are now providing a +3% of production cumulative per gardens
-### Various improvements
-- Tweak to the builder AI that should have less dead points to extend the village further
-- Improved the path placement system
-- Some buildings can now 'transform' 10% of the village production into new ressources
+## 🏘️ Once Upon a Town v0.0.5 [Beta]
+### Village management panel
+- The town map and the village chest are now merged! Everything in one single interface: click on the campfire from every village starting point and it will open the village interface
+- New construction tab: you can add building from the building list when there is enough ressources in the village, you can also remove a building from the queue
+- New upgrade tab: you can upgrade the already existing buildings in your village to make them produce more, quicker and have more stock
+- Whole new draggable widget section. Town map and village summary that you can open and close to manage your town and take decisions
+### Builder fully implemented
+- The builder is now fully implemented with it's two roles: building and upgrades
+- The builder will start by adding the orientation buildings then adding randomly streets until the player place buildings in the construction queue
+- Improved behavior, it is going to check the map before construction and check the map time to time while building
+- The Npc will have basic animations to make the process smoother
+### New buildings and upgrades
+- I started to implement new upgrades to the buildings for the 'House' and the 'Workshop'. I will add more structures in the future
+- Added new houses variations, reworked the basic job building to make them smaller
+- Added a ton of new job buildings: fishing pond, wild stone, grove, wild field
