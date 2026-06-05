@@ -10,7 +10,7 @@
       "amount": 2,
       "every_ticks": 1600,
       "capacity_stacks": 1
-    },
+    }
   ],
   "construction_cost": [
     {

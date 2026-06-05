@@ -114,7 +114,12 @@ public class SimpleStateMachine {
         if (!(npc.level() instanceof ServerLevel serverLevel)) return;
 
         Town town = findTown(serverLevel);
-        if (town == null) return;
+        if (town == null) {
+            if (idleTimer == 1)
+                LOGGER.warn("[OUAT-NPC] {} cannot find its town. AnchorPos: {}",
+                    npc.getUUID(), npc.getTownAnchorPos());
+            return;
+        }
 
         if (town.getBuildings().size() >= MAX_BUILDINGS) {
             return;

@@ -37,6 +37,11 @@ public class TickScheduler {
             long gameTime = level.getGameTime();
             boolean anyChange = false;
 
+            if (gameTime % 1200 == 0) {
+                LOGGER.info("[OUAT-TICK] Scheduler alive. Towns in level {}: {}",
+                    level.dimension().location(), levelTowns.getAllTowns().size());
+            }
+
             for (Town town : levelTowns.getAllTowns()) {
                 TownInventory inv = town.getTownInventory();
 
