@@ -1,7 +1,0 @@
-{
-  "id": "beekeeper",
-  "schedule": "worker",
-  "work_ai": "beekeeper",
-  "levels": [
-  ]
-}
