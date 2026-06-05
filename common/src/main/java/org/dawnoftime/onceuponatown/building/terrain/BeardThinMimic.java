@@ -15,15 +15,10 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.HashSet;
 import java.util.Set;
 
 public class BeardThinMimic {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(BeardThinMimic.class);
 
     private static final int MAX_ANCHOR_DEPTH = 12;
 
@@ -32,7 +27,8 @@ public class BeardThinMimic {
             Blocks.GRASS_BLOCK, Blocks.DIRT, Blocks.COARSE_DIRT, Blocks.ROOTED_DIRT,
             Blocks.PODZOL, Blocks.STONE, Blocks.ANDESITE, Blocks.DIORITE,
             Blocks.GRANITE, Blocks.DEEPSLATE, Blocks.TUFF, Blocks.GRAVEL,
-            Blocks.SAND, Blocks.SANDSTONE, Blocks.RED_SAND, Blocks.RED_SANDSTONE
+            Blocks.SAND, Blocks.SANDSTONE, Blocks.RED_SAND, Blocks.RED_SANDSTONE,
+            Blocks.COAL_ORE, Blocks.DEEPSLATE_COAL_ORE
     );
 
     // Natural surface clutter treated as replaceable terrain in Pass C outline fill.
@@ -48,6 +44,7 @@ public class BeardThinMimic {
             Blocks.OAK_LOG, Blocks.OAK_WOOD, Blocks.BIRCH_LOG, Blocks.BIRCH_WOOD,
             Blocks.SPRUCE_LOG, Blocks.SPRUCE_WOOD, Blocks.JUNGLE_LOG, Blocks.JUNGLE_WOOD,
             Blocks.ACACIA_LOG, Blocks.ACACIA_WOOD, Blocks.DARK_OAK_LOG, Blocks.DARK_OAK_WOOD,
+            Blocks.CHERRY_LOG, Blocks.CHERRY_WOOD, Blocks.CHERRY_LEAVES,
             Blocks.VINE, Blocks.SUGAR_CANE, Blocks.CACTUS, Blocks.BAMBOO,
             Blocks.HANGING_ROOTS
     );
@@ -69,7 +66,7 @@ public class BeardThinMimic {
                     floorY + 1, size.getY() - 1, noTouchColumns, occupiedColumns);
 
         } catch (Exception e) {
-            LOGGER.warn("BeardThinMimic.prePlace: FAILED at {}: {}", origin, e.getMessage(), e);
+            // silently ignored -- terrain carve failure does not block placement
         }
     }
 
@@ -79,13 +76,12 @@ public class BeardThinMimic {
     // Pass D: applies surface rules (grass/dirt/stone) over all blocks placed by B and C.
     public static void postPlace(ServerLevel level, BlockPos origin, StructureTemplate template, Rotation rotation) {
         try {
-            int[] fp = computeFootprint(origin, template, rotation);
             int floorY = origin.getY();
 
             Set<Long> noTouchColumns = scanStructureVoidColumns(template, origin, rotation);
 
-            // Scan the world at floorY AFTER placement to get the actual solid building shape.
-            Set<Long> solidFootprint = buildSolidFootprint(level, fp, floorY);
+            // Derive footprint from template NBT (y=0 layer) so this can run before or after world placement.
+            Set<Long> solidFootprint = scanOccupiedColumns(template, origin, rotation);
 
             // Build outline from the full footprint so the shape is correct,
             // then strip void columns before any world modification.
@@ -99,7 +95,7 @@ public class BeardThinMimic {
             passD_surfaceRules(level, solidFootprint, outline, floorY);
 
         } catch (Exception e) {
-            LOGGER.warn("[OUAT-DEBUG] BeardThinMimic.postPlace: FAILED at {}: {}", origin, e.getMessage(), e);
+            // silently ignored -- terrain fill failure does not block placement
         }
     }
 
@@ -258,9 +254,7 @@ public class BeardThinMimic {
                 }
             }
 
-            if (voidIndex < 0) {
-                LOGGER.debug("voidScan: NO structure_void found in palette at {} - terrain will not be protected", origin);
-            } else {
+            if (voidIndex >= 0) {
                 for (int i = 0; i < blocks.size(); i++) {
                     CompoundTag entry = blocks.getCompound(i);
                     if (entry.getInt("state") == voidIndex) {
@@ -275,7 +269,7 @@ public class BeardThinMimic {
                 }
             }
         } catch (Exception e) {
-            LOGGER.warn("voidScan: FAILED at {}: {}", origin, e.getMessage(), e);
+            // silently ignored
         }
         return columns;
     }
@@ -309,7 +303,7 @@ public class BeardThinMimic {
                 columns.add(packXZ(origin.getX() + rotated.getX(), origin.getZ() + rotated.getZ()));
             }
         } catch (Exception e) {
-            LOGGER.warn("scanOccupiedColumns: FAILED at {}: {}", origin, e.getMessage(), e);
+            // silently ignored
         }
         return columns;
     }

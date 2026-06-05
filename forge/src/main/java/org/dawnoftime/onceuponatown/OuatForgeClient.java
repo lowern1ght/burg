@@ -21,6 +21,11 @@ import org.dawnoftime.onceuponatown.client.model.NpcModel;
 import org.dawnoftime.onceuponatown.client.renderer.NpcRenderer;
 import org.dawnoftime.onceuponatown.client.screen.VillageChestScreen;
 import org.dawnoftime.onceuponatown.entity.Npc;
+import org.dawnoftime.onceuponatown.network.C2SQueueBuildingPacket;
+import org.dawnoftime.onceuponatown.network.C2SRemoveQueuedBuildingPacket;
+import org.dawnoftime.onceuponatown.network.C2SUpgradeBuildingPacket;
+import org.dawnoftime.onceuponatown.network.NetworkHelper;
+import org.dawnoftime.onceuponatown.network.S2CBuildingDefsPacket;
 import org.dawnoftime.onceuponatown.registry.MenuRegistry;
 
 @Mod.EventBusSubscriber(modid = Constants.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
@@ -47,8 +52,14 @@ public class OuatForgeClient {
         event.enqueueWork(() -> {
             Block townAnchor = ForgeRegistries.BLOCKS
                 .getValue(new ResourceLocation(Constants.MOD_ID, "town_anchor"));
-            ItemBlockRenderTypes.setRenderLayer(townAnchor, RenderType.translucent());
+            ItemBlockRenderTypes.setRenderLayer(townAnchor, RenderType.cutout());
             MenuScreens.register(MenuRegistry.VILLAGE_CHEST, VillageChestScreen::new);
+            NetworkHelper.sendQueueBuildingPacket = (pos, defId) ->
+                OuatForge.CHANNEL.sendToServer(new C2SQueueBuildingPacket(pos, defId));
+            NetworkHelper.sendRemoveQueuedBuildingPacket = (pos, index) ->
+                OuatForge.CHANNEL.sendToServer(new C2SRemoveQueuedBuildingPacket(pos, index));
+            NetworkHelper.sendUpgradeBuildingPacket = (pos, worldPosLong) ->
+                OuatForge.CHANNEL.sendToServer(new C2SUpgradeBuildingPacket(pos, worldPosLong));
         });
     }
 

@@ -14,43 +14,7 @@
                 "element_type": "minecraft:single_pool_element",
                 "processors": "minecraft:empty",
                 "projection": "rigid",
-                "location": "onceuponatown:plains/jobs/lumberjack"
-            }
-        },
-        {
-            "weight": 1,
-            "element": {
-                "element_type": "minecraft:single_pool_element",
-                "processors": "minecraft:empty",
-                "projection": "rigid",
-                "location": "onceuponatown:plains/jobs/farm_field"
-            }
-        },
-        {
-            "weight": 1,
-            "element": {
-                "element_type": "minecraft:single_pool_element",
-                "processors": "minecraft:empty",
-                "projection": "rigid",
-                "location": "onceuponatown:plains/jobs/pig_field"
-            }
-        },
-        {
-            "weight": 1,
-            "element": {
-                "element_type": "minecraft:single_pool_element",
-                "processors": "minecraft:empty",
-                "projection": "rigid",
-                "location": "onceuponatown:plains/jobs/cow_field"
-            }
-        },
-        {
-            "weight": 1,
-            "element": {
-                "element_type": "minecraft:single_pool_element",
-                "processors": "minecraft:empty",
-                "projection": "rigid",
-                "location": "onceuponatown:plains/jobs/stone_deposit"
+                "location": "onceuponatown:plains/jobs/wild_stone"
             }
         },
         {
@@ -68,7 +32,25 @@
                 "element_type": "minecraft:single_pool_element",
                 "processors": "minecraft:empty",
                 "projection": "rigid",
-                "location": "onceuponatown:plains/jobs/tree_field"
+                "location": "onceuponatown:plains/jobs/grove"
+            }
+        },
+        {
+            "weight": 1,
+            "element": {
+                "element_type": "minecraft:single_pool_element",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "location": "onceuponatown:plains/jobs/fishing_pond"
+            }
+        },
+        {
+            "weight": 1,
+            "element": {
+                "element_type": "minecraft:single_pool_element",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "location": "onceuponatown:plains/jobs/mixed_wild_field"
             }
         }
     ]

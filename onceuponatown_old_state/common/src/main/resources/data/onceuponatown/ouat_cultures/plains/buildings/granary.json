@@ -1,0 +1,28 @@
+{
+  "id": "granary",
+  "category": "special",
+  "weight": 10,
+  "item": "minecraft:chest",
+  "levels": [
+    {
+      "required_era": 1
+    }
+  ],
+  "variants": [
+    {
+      "name": "variant_small",
+      "size": {
+        "x": 17,
+        "y": 10,
+        "z": 12
+      },
+      "levels": [
+        {
+          "schematic": "small_granary",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

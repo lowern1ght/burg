@@ -43,9 +43,11 @@ public class NpcModel<T extends Npc> extends HumanoidModel<T> {
         PartDefinition body = root.addOrReplaceChild("body", CubeListBuilder.create().texOffs(16, 20).addBox(-4.0F, 0.0F, -3.0F, 8.0F, 12.0F, 6.0F), PartPose.ZERO);
         body.addOrReplaceChild("jacket", CubeListBuilder.create().texOffs(0, 38).addBox(-4.0F, 0.0F, -3.0F, 8.0F, 20.0F, 6.0F, new CubeDeformation(0.5F)), PartPose.ZERO);
         body.addOrReplaceChild("crossed_arms", CubeListBuilder.create().texOffs(40, 38).addBox(-4.0F, 2.0F, -2.0F, 8.0F, 4.0F, 4.0F, new CubeDeformation(0.0F)).texOffs(44, 22).addBox(-8.0F, -2.0F, -2.0F, 4.0F, 8.0F, 4.0F, new CubeDeformation(0.0F)).texOffs(44, 22).mirror().addBox(4.0F, -2.0F, -2.0F, 4.0F, 8.0F, 4.0F, new CubeDeformation(0.0F)).mirror(false), PartPose.offsetAndRotation(0.0F, 3.0F, -1.0F, -0.75F, 0.0F, 0.0F));
-        // Arms
-        root.addOrReplaceChild("right_arm", CubeListBuilder.create().texOffs(44, 22).addBox(-3.0F, -2.0F, -2.0F, 4.0F, 12.0F, 4.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, 0.0F, 0.0F));
-        root.addOrReplaceChild("left_arm", CubeListBuilder.create().texOffs(44, 22).mirror().addBox(-1.0F, -2.0F, -2.0F, 4.0F, 12.0F, 4.0F, new CubeDeformation(0.0F)).mirror(false), PartPose.offset(0.0F, 0.0F, 0.0F));
+        // Arms -- pivot at shoulder position matching vanilla HumanoidModel convention.
+        // (0,0,0) placed the pivot at the model center, hiding the arm inside the body mesh
+        // and making all rotation animations invisible. Correct positions: (-5,2,0) / (5,2,0).
+        root.addOrReplaceChild("right_arm", CubeListBuilder.create().texOffs(44, 22).addBox(-3.0F, -2.0F, -2.0F, 4.0F, 12.0F, 4.0F, new CubeDeformation(0.0F)), PartPose.offset(-5.0F, 2.0F, 0.0F));
+        root.addOrReplaceChild("left_arm", CubeListBuilder.create().texOffs(44, 22).mirror().addBox(-1.0F, -2.0F, -2.0F, 4.0F, 12.0F, 4.0F, new CubeDeformation(0.0F)).mirror(false), PartPose.offset(5.0F, 2.0F, 0.0F));
         // Legs
         root.addOrReplaceChild("right_leg", CubeListBuilder.create().texOffs(0, 22).addBox(-2.0F, 0.0F, -2.0F, 4.0F, 12.0F, 4.0F), PartPose.offset(-2.0F, 12.0F, 0.0F));
         root.addOrReplaceChild("left_leg", CubeListBuilder.create().texOffs(0, 22).mirror().addBox(-2.0F, 0.0F, -2.0F, 4.0F, 12.0F, 4.0F), PartPose.offset(2.0F, 12.0F, 0.0F));
@@ -72,12 +74,31 @@ public class NpcModel<T extends Npc> extends HumanoidModel<T> {
     @Override
     public void setupAnim(T npc, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch) {
         super.setupAnim(npc, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch);
-        if (npc.getUnhappyCounter() > 0) {
-            this.head.zRot = 0.3F * Mth.sin(0.45F * ageInTicks);
-            this.head.xRot = 0.4F;
-        } else {
-            this.head.zRot = 0.0F;
+        // Suppress vanilla head pitch (vertical nodding) -- NPC head stays level always.
+        this.head.xRot = 0.0F;
+        this.head.zRot = 0.0F;
+        this.hat.xRot = 0.0F;
+
+        // Detect a new block placement: generation counter changed since last frame.
+        int gen = npc.getBuildGeneration();
+        if (gen != npc.clientLastBuildGeneration) {
+            npc.clientLastBuildGeneration = gen;
+            npc.clientBuildPlacedAtAge = ageInTicks;
         }
+
+        float elapsed = ageInTicks - npc.clientBuildPlacedAtAge;
+        float duration = 7.0f; // ticks for the swing animation to complete
+        if (elapsed >= 0 && elapsed <= duration) {
+            // t = 1.0 at placement, 0.0 at end of animation.
+            float t = 1.0f - (elapsed / duration);
+            // Ease-out quadratic: fast start, decelerates to rest.
+            float swing = t * (2.0f - t);
+            // Lateral arc: peaks mid-animation to give the arm a natural curved path.
+            float arc = Mth.sin((float) Math.PI * (1.0f - t));
+            this.rightArm.xRot -= swing * 1.2F;
+            this.rightArm.zRot -= arc * 0.18F;
+        }
+
         animateReadingPose(npc);
     }
 

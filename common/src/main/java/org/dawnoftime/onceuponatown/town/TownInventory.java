@@ -34,6 +34,12 @@ public class TownInventory {
             .sum();
     }
 
+    public void addStock(List<ItemCost> costs) {
+        for (ItemCost cost : costs) {
+            reserve.merge(cost.item(), cost.amount(), Integer::sum);
+        }
+    }
+
     public boolean hasStock(List<ItemCost> costs) {
         return costs.stream().allMatch(cost -> getStock(cost.item()) >= cost.amount());
     }

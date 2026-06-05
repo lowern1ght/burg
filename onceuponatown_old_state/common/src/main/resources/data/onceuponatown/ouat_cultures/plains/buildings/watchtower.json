@@ -1,0 +1,28 @@
+{
+  "id": "watchtower",
+  "category": "work",
+  "weight": 10,
+  "item": "minecraft:bow",
+  "levels": [
+    {
+      "required_era": 1
+    }
+  ],
+  "variants": [
+    {
+      "name": "big_church",
+      "size": {
+        "x": 14,
+        "y": 27,
+        "z": 12
+      },
+      "levels": [
+        {
+          "schematic": "watchtower",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

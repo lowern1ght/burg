@@ -4,11 +4,40 @@
   "entry_pool": "onceuponatown:houses",
   "icon_item": "minecraft:yellow_bed",
   "category": "buildings",
+  "residents": 1,
   "production": [],
   "construction_cost": [
     {
       "item": "minecraft:oak_log",
       "amount": 8
+    }
+  ],
+  "nbt_levels": [
+    "onceuponatown:plains/houses/house_lvl1",
+    "onceuponatown:plains/houses/house_lvl2",
+    "onceuponatown:plains/houses/house_lvl3",
+    "onceuponatown:plains/houses/house_lvl4",
+    "onceuponatown:plains/houses/house_lvl5",
+    "onceuponatown:plains/houses/house_lvl6"
+  ],
+  "upgrades": [
+    {
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 20 }]
+    },
+    {
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 30 }]
+    },
+    {
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 40 }]
+    },
+    {
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 60 }]
+    },
+    {
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 80 }]
+    },
+    {
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 100 }]
     }
   ]
 }

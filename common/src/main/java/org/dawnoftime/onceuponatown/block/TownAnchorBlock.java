@@ -8,19 +8,24 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.BlockHitResult;
 import org.dawnoftime.onceuponatown.blockentity.TownAnchorBlockEntity;
+import org.dawnoftime.onceuponatown.network.NetworkHelper;
+import org.dawnoftime.onceuponatown.registry.BlockEntityRegistry;
+import org.jetbrains.annotations.Nullable;
 
 public class TownAnchorBlock extends BaseEntityBlock {
 
     public static Properties defaultProperties() {
         return BlockBehaviour.Properties.of()
-            .noCollission()
-            .noOcclusion()
-            .strength(-1.0f, Float.MAX_VALUE)
-            .lightLevel(s -> 0);
+            .noOcclusion()                     // campfire model is not a full cube visually
+            .strength(-1.0f, Float.MAX_VALUE)  // indestructible except by creative players
+            .lightLevel(s -> 15);              // emits warm light like a lit campfire
     }
 
     public TownAnchorBlock(Properties props) { super(props); }
@@ -41,6 +46,7 @@ public class TownAnchorBlock extends BaseEntityBlock {
         if (!level.isClientSide) {
             TownAnchorBlockEntity be = (TownAnchorBlockEntity) level.getBlockEntity(pos);
             if (be != null) {
+                NetworkHelper.sendVillageHubPacket.accept((ServerPlayer) player, be.getTown().getHubData(pos));
                 player.openMenu(be);
             }
         }
@@ -52,5 +58,14 @@ public class TownAnchorBlock extends BaseEntityBlock {
     public void playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
         if (!player.isCreative()) return;
         super.playerWillDestroy(level, pos, state, player);
+    }
+
+    // Register a client-side ticker so particles/sounds run every tick like vanilla CampfireBlockEntity
+    @Nullable
+    @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
+        return level.isClientSide
+            ? createTickerHelper(type, BlockEntityRegistry.TOWN_ANCHOR, TownAnchorBlockEntity::clientTick)
+            : null;
     }
 }

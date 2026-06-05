@@ -1,0 +1,59 @@
+{
+  "id": "medium_house",
+  "category": "dwelling",
+  "weight": 5,
+  "item": "minecraft:red_bed",
+  "levels": [
+    {
+      "required_era": 1,
+      "dwelling_slots": 4
+    }
+  ],
+  "variants": [
+    {
+      "name": "regular1",
+      "size": {
+        "x": 13,
+        "y": 10,
+        "z": 12
+      },
+      "levels": [
+        {
+          "schematic": "medium_house",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "regular2",
+      "size": {
+        "x": 14,
+        "y": 12,
+        "z": 14
+      },
+      "levels": [
+        {
+          "schematic": "medium_house_2",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "regular3",
+      "size": {
+        "x": 18,
+        "y": 11,
+        "z": 16
+      },
+      "levels": [
+        {
+          "schematic": "medium_house_3",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

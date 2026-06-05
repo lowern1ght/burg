@@ -18,7 +18,6 @@ import org.dawnoftime.onceuponatown.town.TownInventory;
 import org.dawnoftime.onceuponatown.town.TransformationRecipe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,6 +27,8 @@ import java.util.UUID;
 public class TickScheduler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TickScheduler.class);
+    // DEBUG: log production snapshot every 1200 ticks (1 real-time minute at 20 TPS)
+
 
     // Called from OuatForge via TickEvent.ServerTickEvent (Phase.END)
     public static void tick(MinecraftServer server) {
@@ -48,8 +49,14 @@ public class TickScheduler {
                 for (PlacedBuilding building : town.getBuildings()) {
                     BuildingDef def = BuildingDataHandler.get(building.getDefId()).orElse(null);
                     if (def == null) continue;
-                    for (ProductionEntry entry : def.production) {
-                        if (entry.everyTicks() <= 0 || gameTime % entry.everyTicks() != 0) continue;
+                    BuildingDef.ResolvedBuildingStats stats = def.resolveAtLevel(building.getUpgradeLevel());
+                    for (ProductionEntry entry : stats.production()) {
+                        if (entry.everyTicks() <= 0) continue;
+                        // Apply cadence multiplier: higher multiplier = shorter interval = faster production.
+                        int effectiveTicks = stats.totalCadenceMultiplier() > 0
+                            ? (int) Math.max(1, Math.round(entry.everyTicks() / (1.0 + stats.totalCadenceMultiplier())))
+                            : entry.everyTicks();
+                        if (gameTime % effectiveTicks != 0) continue;
                         int current = inv.getStock(entry.item());
                         int max = inv.getMaxStock(entry.item());
                         if (current < max) {
@@ -58,7 +65,6 @@ public class TickScheduler {
                             int boostedAmount = (int) Math.round(entry.amount() * totalMultiplier);
                             building.forceAdd(entry.item(), Math.min(boostedAmount, max - current));
                             anyChange = true;
-
                         }
                     }
 
@@ -67,7 +73,9 @@ public class TickScheduler {
                         anyChange |= tickTransformer(building, def, inv);
                     }
                 }
-            }
+
+
+            } // end for (Town town)
 
             // Spawn builder for towns that have none, once a player is nearby
             if (gameTime % 20 == 0) {
@@ -83,35 +91,23 @@ public class TickScheduler {
                             p.distanceToSqr(anchorPos.getX() + 0.5, anchorPos.getY(), anchorPos.getZ() + 0.5) < 128.0 * 128.0);
                     if (!playerNearby) continue;
 
-                    // DEBUG: log the state of the builder check once per minute (1200t) to avoid spam
                     net.minecraft.world.entity.Entity existingEntity = builderId != null ? level.getEntity(builderId) : null;
-                    if (gameTime % 1200 == 0) {
-                        LOGGER.info("[OUAT-DEBUG] Town='{}' anchor={} builderId={} entityFound={} playerNearby=true",
-                                town.getName(), anchorPos, builderId, existingEntity != null);
-                    }
 
                     // Skip if builder entity is already alive in the world
                     if (existingEntity != null) continue;
-
-                    // DEBUG: warn explicitly when a respawn is triggered despite a stored builderId
-                    if (builderId != null) {
-                        LOGGER.warn("[OUAT-DEBUG] RESPAWN TRIGGERED for town='{}' -- stored builderId={} not found in level (chunk may have just loaded or entity was lost)",
-                                town.getName(), builderId);
-                    }
 
                     Npc builder = EntityRegistry.NPC.create(level);
                     if (builder == null) continue;
 
                     // Prevent Minecraft from naturally despawning the builder when players move away
                     builder.setPersistenceRequired();
+                    builder.setTownAnchorPos(anchorPos);
 
                     int surfaceY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
                             anchorPos.getX(), anchorPos.getZ());
                     builder.moveTo(anchorPos.getX() + 0.5, surfaceY + 1.0, anchorPos.getZ() + 0.5);
 
                     if (level.addFreshEntity(builder)) {
-                        LOGGER.warn("[OUAT-DEBUG] NEW NPC SPAWNED uuid={} for town='{}' (replaced old builderId={})",
-                                builder.getUUID(), town.getName(), builderId);
                         town.setBuilderNpcId(builder.getUUID());
                         anyChange = true;
                     }

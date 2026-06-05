@@ -1,6 +1,3 @@
 {
-  "parent": "minecraft:block/cube_all",
-  "textures": {
-    "all": "onceuponatown:block/town_anchor"
-  }
+  "parent": "minecraft:block/campfire"
 }

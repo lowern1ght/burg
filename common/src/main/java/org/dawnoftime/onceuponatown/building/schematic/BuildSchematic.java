@@ -26,8 +26,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.Collections;
@@ -88,22 +90,6 @@ public class BuildSchematic {
             .setRotation(rotation)
             .addProcessor(SKIP_AIR);
         template.get().placeInWorld(level, pos, pos, settings, level.random, Block.UPDATE_ALL);
-
-        // Diagnostic: check if any structure_void blocks leaked into the world after placement.
-        // If voidCount > 0 here, it means placeInWorld is NOT skipping them natively.
-        int voidCount = 0;
-        Vec3i size = template.get().getSize();
-        for (int dx = -(size.getX()); dx <= size.getX(); dx++) {
-            for (int dy = 0; dy < size.getY(); dy++) {
-                for (int dz = -(size.getZ()); dz <= size.getZ(); dz++) {
-                    if (level.getBlockState(pos.offset(dx, dy, dz)).is(Blocks.STRUCTURE_VOID)) voidCount++;
-                }
-            }
-        }
-        if (voidCount > 0) {
-            LOGGER.warn("place: {} STRUCTURE_VOID blocks found in world after placeInWorld at {} - they were NOT skipped natively!", voidCount, pos);
-        }
-
         replaceJigsawBlocks(level, pos, template.get(), rotation);
         return true;
     }
@@ -365,12 +351,6 @@ public class BuildSchematic {
                 // OCEAN_FLOOR now returns the true solid terrain surface (ignores plants, ferns, leaves).
                 int solidSurfaceY = level.getHeight(Heightmap.Types.OCEAN_FLOOR, x, z) - 1;
 
-                if (solidSurfaceY != roadBlockPos.getY()) {
-                    LOGGER.warn("[OUAT-TERRAIN] PATH SUNK at ({},{},{}) : was Y={} -> placed Y={} (delta={})",
-                        x, roadBlockPos.getY(), z,
-                        roadBlockPos.getY(), solidSurfaceY,
-                        solidSurfaceY - roadBlockPos.getY());
-                }
                 BlockPos finalPathPos = new BlockPos(x, solidSurfaceY, z);
                 level.setBlock(finalPathPos, Blocks.DIRT_PATH.defaultBlockState(), Block.UPDATE_ALL);
 
@@ -398,13 +378,7 @@ public class BuildSchematic {
         if (def == null) return Set.of();
         Optional<StructureTemplate> tpl = level.getStructureManager().get(def.nbt);
         if (tpl.isEmpty()) return Set.of();
-        Vec3i size = tpl.get().getSize();
-        BlockPos origin = switch (pieceRotation) {
-            case CLOCKWISE_90        -> new BlockPos(bbMinPos.getX() + size.getZ() - 1, bbMinPos.getY(), bbMinPos.getZ());
-            case CLOCKWISE_180       -> new BlockPos(bbMinPos.getX() + size.getX() - 1, bbMinPos.getY(), bbMinPos.getZ() + size.getZ() - 1);
-            case COUNTERCLOCKWISE_90 -> new BlockPos(bbMinPos.getX(), bbMinPos.getY(), bbMinPos.getZ() + size.getX() - 1);
-            default                  -> bbMinPos;
-        };
+        BlockPos origin = originFromBbMin(bbMinPos, tpl.get().getSize(), pieceRotation);
         Set<BlockPos> positions = new HashSet<>();
         for (StructureTemplate.StructureBlockInfo info :
                 tpl.get().filterBlocks(BlockPos.ZERO, new StructurePlaceSettings(), Blocks.JIGSAW)) {
@@ -412,6 +386,25 @@ public class BuildSchematic {
             positions.add(origin.offset(rotatedRel));
         }
         return positions;
+    }
+
+    // Converts the bounding-box minimum of a vanilla jigsaw piece to the template placement origin.
+    // The origin is where local [0,0,0] of the NBT maps to in world space. For NONE rotation the
+    // two are identical; for other rotations the origin is at a different corner of the bounding box.
+    public static BlockPos computeOriginFromBbMin(ServerLevel level, BlockPos bbMin,
+                                                   ResourceLocation nbt, Rotation rotation) {
+        Optional<StructureTemplate> tpl = level.getStructureManager().get(nbt);
+        if (tpl.isEmpty()) return bbMin;
+        return originFromBbMin(bbMin, tpl.get().getSize(), rotation);
+    }
+
+    private static BlockPos originFromBbMin(BlockPos bbMin, Vec3i size, Rotation rotation) {
+        return switch (rotation) {
+            case CLOCKWISE_90        -> new BlockPos(bbMin.getX() + size.getZ() - 1, bbMin.getY(), bbMin.getZ());
+            case CLOCKWISE_180       -> new BlockPos(bbMin.getX() + size.getX() - 1, bbMin.getY(), bbMin.getZ() + size.getZ() - 1);
+            case COUNTERCLOCKWISE_90 -> new BlockPos(bbMin.getX(), bbMin.getY(), bbMin.getZ() + size.getX() - 1);
+            default                  -> bbMin;
+        };
     }
 
     // Overload for ChunkGeneratorMixin: the piece was placed by vanilla with a known rotation,
@@ -422,13 +415,7 @@ public class BuildSchematic {
         if (def == null) return List.of();
         Optional<StructureTemplate> tpl = level.getStructureManager().get(def.nbt);
         if (tpl.isEmpty()) return List.of();
-        Vec3i size = tpl.get().getSize();
-        BlockPos origin = switch (pieceRotation) {
-            case CLOCKWISE_90        -> new BlockPos(bbMinPos.getX() + size.getZ() - 1, bbMinPos.getY(), bbMinPos.getZ());
-            case CLOCKWISE_180       -> new BlockPos(bbMinPos.getX() + size.getX() - 1, bbMinPos.getY(), bbMinPos.getZ() + size.getZ() - 1);
-            case COUNTERCLOCKWISE_90 -> new BlockPos(bbMinPos.getX(), bbMinPos.getY(), bbMinPos.getZ() + size.getX() - 1);
-            default                  -> bbMinPos;
-        };
+        BlockPos origin = originFromBbMin(bbMinPos, tpl.get().getSize(), pieceRotation);
         return readJigsawPoints(level, origin, defId, pieceRotation, BlockPos.ZERO.below(9999));
     }
 
@@ -464,5 +451,71 @@ public class BuildSchematic {
             points.add(ConnectionPoint.of(worldPos, rotatedDir, target));
         }
         return points;
+    }
+
+    // Reads jigsaw connection points from a specific NBT resource (used for upgrade-level NBTs).
+    // Skips terminators; includes all non-terminator jigsaw blocks found in the template.
+    public static List<ConnectionPoint> readJigsawPointsFromNbt(ServerLevel level, BlockPos originPos,
+                                                                  ResourceLocation nbtLocation, Rotation rotation) {
+        Optional<StructureTemplate> template = level.getStructureManager().get(nbtLocation);
+        if (template.isEmpty()) return List.of();
+
+        List<ConnectionPoint> points = new ArrayList<>();
+        for (StructureTemplate.StructureBlockInfo info :
+                template.get().filterBlocks(BlockPos.ZERO, new StructurePlaceSettings(), Blocks.JIGSAW)) {
+            if (info.nbt() == null) continue;
+            String pool = info.nbt().getString("pool");
+            if (pool.isEmpty() || pool.equals("minecraft:empty")) continue;
+
+            BlockPos rotatedRel = StructureTemplate.transform(info.pos(), Mirror.NONE, rotation, BlockPos.ZERO);
+            BlockPos worldPos = originPos.offset(rotatedRel);
+            Direction rawDir = info.state().getValue(JigsawBlock.ORIENTATION).front();
+            Direction rotatedDir = rotation.rotate(rawDir);
+            String target = info.nbt().getString("target");
+            points.add(ConnectionPoint.of(worldPos, rotatedDir, target));
+        }
+        return points;
+    }
+
+    // Result of a diff between two upgrade-level NBTs at the same origin and rotation.
+    public record DiffResult(List<SchematicBlock> toAdd, List<BlockPos> toRemove) {}
+
+    // Computes the visual diff between two structure NBTs (fromNbt = current level, toNbt = next level).
+    // toAdd: blocks present in toNbt but absent or different in fromNbt.
+    // toRemove: block positions present in fromNbt but absent in toNbt.
+    public static DiffResult computeDiff(ServerLevel level, ResourceLocation fromNbt,
+                                          ResourceLocation toNbt, Rotation rotation) {
+        Optional<StructureTemplate> fromTpl = level.getStructureManager().get(fromNbt);
+        Optional<StructureTemplate> toTpl   = level.getStructureManager().get(toNbt);
+        if (fromTpl.isEmpty() || toTpl.isEmpty()) {
+            LOGGER.warn("[OUAT] computeDiff: template not found -- from='{}' to='{}'", fromNbt, toNbt);
+            return new DiffResult(List.of(), List.of());
+        }
+
+        List<SchematicBlock> fromBlocks = SchematicReader.readSortedBlocks(fromTpl.get(), rotation);
+        List<SchematicBlock> toBlocks   = SchematicReader.readSortedBlocks(toTpl.get(), rotation);
+
+        Map<BlockPos, BlockState> fromMap = new HashMap<>();
+        for (SchematicBlock b : fromBlocks) fromMap.put(b.localPos(), b.state());
+
+        Map<BlockPos, SchematicBlock> toMap = new HashMap<>();
+        for (SchematicBlock b : toBlocks) toMap.put(b.localPos(), b);
+
+        List<SchematicBlock> toAdd = new ArrayList<>();
+        for (SchematicBlock b : toBlocks) {
+            net.minecraft.world.level.block.state.BlockState fromState = fromMap.get(b.localPos());
+            if (fromState == null || !fromState.equals(b.state())) {
+                toAdd.add(b);
+            }
+        }
+
+        List<BlockPos> toRemove = new ArrayList<>();
+        for (SchematicBlock b : fromBlocks) {
+            if (!toMap.containsKey(b.localPos())) {
+                toRemove.add(b.localPos());
+            }
+        }
+
+        return new DiffResult(toAdd, toRemove);
     }
 }

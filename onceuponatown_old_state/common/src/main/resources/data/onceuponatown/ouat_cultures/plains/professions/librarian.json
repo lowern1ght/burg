@@ -1,0 +1,7 @@
+{
+  "id": "librarian",
+  "schedule": "worker",
+  "work_ai": "librarian",
+  "levels": [
+  ]
+}

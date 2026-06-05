@@ -1,0 +1,7 @@
+{
+  "id": "farrier",
+  "schedule": "worker",
+  "work_ai": "farrier",
+  "levels": [
+  ]
+}

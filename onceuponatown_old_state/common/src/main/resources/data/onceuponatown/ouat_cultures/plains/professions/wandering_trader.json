@@ -1,0 +1,7 @@
+{
+  "id": "wandering_trader",
+  "schedule": "worker",
+  "work_ai": "wandering_trader",
+  "levels": [
+  ]
+}

@@ -34,6 +34,19 @@ public class BuildingDef {
     public final List<String> bootstrapBuildings;
     // Additive bonus applied to village-wide production amounts (e.g. 0.03 = +3% per building).
     public final double productionBonus;
+    // Number of resident slots this building adds to the village.
+    public final int residents;
+    // Ordered upgrade levels. Entry [0] = level 1, [1] = level 2, etc. Empty = not upgradable.
+    public final List<UpgradeLevel> upgrades;
+    // NBT files for each visual upgrade tier. Entry [0] = visual for level 1, [1] = visual for level 2, etc.
+    // If absent for a given level, the upgrade is stat-only (no visual change).
+    public final List<ResourceLocation> nbtLevels;
+
+    // One upgrade step: cost + what it changes. All fields are additive deltas.
+    public record UpgradeLevel(float cadenceMultiplier, int capacityStacksAdd, int amountAdd, List<ItemCost> upgradeCost) {}
+
+    // Effective stats for a building at a given upgrade level (cached by PlacedBuilding).
+    public record ResolvedBuildingStats(List<ProductionEntry> production, double totalCadenceMultiplier) {}
 
     public BuildingDef(String id, ResourceLocation nbt, String entryPool,
                        List<ProductionEntry> production, List<ItemCost> constructionCost,
@@ -42,7 +55,8 @@ public class BuildingDef {
                        List<TransformationRecipe> transformations,
                        float transformInputRatio, int transformEveryTicks,
                        String orientation, List<String> bootstrapBuildings,
-                       double productionBonus) {
+                       double productionBonus, int residents,
+                       List<UpgradeLevel> upgrades, List<ResourceLocation> nbtLevels) {
         this.id = id;
         this.nbt = nbt;
         this.entryPool = entryPool;
@@ -58,6 +72,39 @@ public class BuildingDef {
         this.orientation = orientation;
         this.bootstrapBuildings = bootstrapBuildings;
         this.productionBonus = productionBonus;
+        this.residents = residents;
+        this.upgrades = upgrades;
+        this.nbtLevels = nbtLevels;
+    }
+
+    // Returns effective production and cadence multiplier for the given upgrade level.
+    // Level 0 = base stats with no upgrades applied.
+    public ResolvedBuildingStats resolveAtLevel(int level) {
+        if (level <= 0 || upgrades.isEmpty()) {
+            return new ResolvedBuildingStats(production, 0.0);
+        }
+        int capped = Math.min(level, upgrades.size());
+        double totalCadence = 0.0;
+        int totalCapAdd = 0;
+        int totalAmountAdd = 0;
+        for (int i = 0; i < capped; i++) {
+            totalCadence    += upgrades.get(i).cadenceMultiplier();
+            totalCapAdd     += upgrades.get(i).capacityStacksAdd();
+            totalAmountAdd  += upgrades.get(i).amountAdd();
+        }
+        if (totalCapAdd == 0 && totalAmountAdd == 0) {
+            return new ResolvedBuildingStats(production, totalCadence);
+        }
+        int finalCapAdd    = totalCapAdd;
+        int finalAmountAdd = totalAmountAdd;
+        List<ProductionEntry> adjusted = production.stream()
+            .map(e -> new ProductionEntry(
+                e.item(),
+                e.amount() + finalAmountAdd,
+                e.everyTicks(),
+                e.capacityStacks() + finalCapAdd))
+            .toList();
+        return new ResolvedBuildingStats(adjusted, totalCadence);
     }
 
     public boolean isTransformer() { return !transformations.isEmpty(); }

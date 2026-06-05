@@ -1,0 +1,26 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "onceuponatown:item/culture_creator"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "onceuponatown:culture_creator_state": 1
+      },
+      "model": "onceuponatown:item/culture_creator_select"
+    },
+    {
+      "predicate": {
+        "onceuponatown:culture_creator_state": 2
+      },
+      "model": "onceuponatown:item/culture_creator_paste"
+    },
+    {
+      "predicate": {
+        "onceuponatown:culture_creator_state": 3
+      },
+      "model": "onceuponatown:item/culture_creator_waypoint"
+    }
+  ]
+}

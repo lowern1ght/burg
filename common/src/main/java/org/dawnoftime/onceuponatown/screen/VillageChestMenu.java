@@ -49,10 +49,10 @@ public class VillageChestMenu extends AbstractContainerMenu {
     private void addSlots(Inventory playerInventory) {
         checkContainerSize(chestContainer, CHEST_SIZE);
 
-        // Village chest slots - take-only
+        // Village chest slots
         for (int row = 0; row < ROWS; row++) {
             for (int col = 0; col < COLS; col++) {
-                addSlot(new TakeOnlySlot(chestContainer, row * COLS + col,
+                addSlot(new Slot(chestContainer, row * COLS + col,
                     8 + col * 18, 18 + row * 18));
             }
         }
@@ -121,11 +121,21 @@ public class VillageChestMenu extends AbstractContainerMenu {
         }
 
         List<ItemCost> taken = new ArrayList<>();
-        for (Map.Entry<Item, Integer> entry : openSnapshot.entrySet()) {
-            int delta = entry.getValue() - remaining.getOrDefault(entry.getKey(), 0);
-            if (delta > 0) taken.add(new ItemCost(entry.getKey(), delta));
+        List<ItemCost> deposited = new ArrayList<>();
+        Set<Item> allItems = new HashSet<>();
+        allItems.addAll(openSnapshot.keySet());
+        allItems.addAll(remaining.keySet());
+
+        for (Item item : allItems) {
+            int before = openSnapshot.getOrDefault(item, 0);
+            int after = remaining.getOrDefault(item, 0);
+            int delta = after - before;
+            if (delta < 0) taken.add(new ItemCost(item, -delta));
+            else if (delta > 0) deposited.add(new ItemCost(item, delta));
         }
+
         if (!taken.isEmpty()) townInventory.removeStock(taken);
+        if (!deposited.isEmpty()) townInventory.addStock(deposited);
     }
 
     @Override
@@ -148,8 +158,10 @@ public class VillageChestMenu extends AbstractContainerMenu {
                 return ItemStack.EMPTY;
             }
         } else {
-            // Player inventory -> chest: not allowed
-            return ItemStack.EMPTY;
+            // Player inventory -> chest
+            if (!this.moveItemStackTo(stack, 0, CHEST_SIZE, false)) {
+                return ItemStack.EMPTY;
+            }
         }
 
         if (stack.isEmpty()) slot.set(ItemStack.EMPTY);
@@ -158,14 +170,4 @@ public class VillageChestMenu extends AbstractContainerMenu {
         return result;
     }
 
-    private static class TakeOnlySlot extends Slot {
-        TakeOnlySlot(net.minecraft.world.Container container, int index, int x, int y) {
-            super(container, index, x, y);
-        }
-
-        @Override
-        public boolean mayPlace(ItemStack stack) {
-            return false;
-        }
-    }
 }
