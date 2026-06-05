@@ -1,0 +1,90 @@
+package org.dawnoftime.onceuponatown.client.gui.culture_creator;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.network.chat.Component;
+import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.client.gui.culture_creator.widgets_cc.ButtonWidgetCC;
+import org.dawnoftime.onceuponatown.client.gui.culture_creator.widgets_cc.CoordinatesWidgetCC;
+import org.dawnoftime.onceuponatown.client.gui.culture_creator.widgets_cc.SelectBoundingBoxWidgetCC;
+import org.dawnoftime.onceuponatown.client.gui.culture_creator.widgets_cc.SelectWaypointsWidgetCC;
+import org.dawnoftime.onceuponatown.item.CultureCreatorItem;
+import org.dawnoftime.onceuponatown.network.culturecreator.*;
+
+import java.util.Arrays;
+import java.util.List;
+
+import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.BUILDINGS_FOLDER_NAME;
+import static org.dawnoftime.onceuponatown.datapack.core.DataHandler.CULTURES_FOLDER_NAME;
+
+public class VariantLevelCCScreen extends BaseCCScreen {
+
+    private final String cultureId;
+    private final String buildingId;
+    private final String variantId;
+    private final int level;
+
+    public VariantLevelCCScreen(S2COpenVariantLevelCCScreenPacket packet) {
+        super(Ouat.translatable("cc", "level_nav", packet.getLevel() + 1));
+        cultureId = packet.getCultureId();
+        buildingId = packet.getBuildingId();
+        variantId = packet.getVariantId();
+        level = packet.getLevel();
+    }
+
+    @Override
+    public List<NavigationTab> createNavigationMap() {
+        return Arrays.asList(
+                new NavigationTab(CULTURES_FOLDER_NAME, Ouat.translatable("cc", "cultures_nav"), C2SRequestCulturesCCPacket::new),
+                new NavigationTab(cultureId, Component.literal(cultureId), () -> new C2SRequestCultureCCPacket(cultureId)),
+                new NavigationTab(BUILDINGS_FOLDER_NAME, Ouat.translatable("cc", "buildings_nav"), () -> new C2SRequestBuildingsCCPacket(cultureId)),
+                new NavigationTab(null, Component.literal(buildingId), () -> new C2SRequestBuildingCCPacket(cultureId, buildingId)),
+                new NavigationTab(null, Ouat.translatable("cc", "variants_nav"), () -> new C2SRequestVariantsCCPacket(cultureId, buildingId)),
+                new NavigationTab(null, Component.literal(variantId), () -> new C2SRequestVariantLevelsCCPacket(cultureId, buildingId, variantId)),
+                new NavigationTab(null, title, () -> null)
+        );
+    }
+
+    @Override
+    public void initWidgets() {
+        int realLevel = level + 1;
+        String fileName = buildingId + "_" + variantId + "_" + realLevel + ".nbt";
+        this.addWidget("file_name", new ButtonWidgetCC(posX, Ouat.translatable("cc", "building_variant_file_name", fileName)));
+        this.addWidget("select_mode", new SelectBoundingBoxWidgetCC(
+                posX,
+                Ouat.translatable("cc", "building_variant_level_select_mode"),
+                Ouat.translatable("cc", "switch_to_select_mode"),
+                btn -> {
+                    this.save(1);
+                    this.onClose();
+                },
+                Ouat.translatable("cc", "switch_to_paste_mode"),
+                btn -> {
+                    this.save(2);
+                    this.onClose();
+                }
+        ));
+        this.addWidget("size_selector", new CoordinatesWidgetCC(posX, font));
+        this.addWidget("waypoint_mode", new SelectWaypointsWidgetCC(
+                posX,
+                Ouat.translatable("cc", "building_variant_level_waypoint_mode"),
+                Ouat.translatable("cc", "switch_to_waypoint_mode"),
+                btn -> {
+                    this.save(3);
+                    this.onClose();
+                }
+        ));
+        // TODO Bouton pour afficher les blocks AIR et GHOST
+        // TODO Bouton pour auto placer ces blocks
+        // TODO Bouton pour save le building
+    }
+
+    private void save(int cultureCreatorState) {
+        String x = widgets.get("size_selector").get("x");
+        String y = widgets.get("size_selector").get("y");
+        String z = widgets.get("size_selector").get("z");
+        LocalPlayer player = Minecraft.getInstance().player;
+        CultureCreatorItem.setClientPlayerCCState(player, (byte) cultureCreatorState); //Change state on client side, and the packet below send the change to the server.
+        Ouat.CLIENT.sendToServer(new C2SSaveVariantLevelCCPacket(cultureId, buildingId, variantId, level, x, y, z, (byte) cultureCreatorState));
+    }
+}

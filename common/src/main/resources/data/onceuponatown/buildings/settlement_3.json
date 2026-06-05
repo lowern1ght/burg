@@ -2,8 +2,8 @@
   "id": "settlement_3",
   "nbt": "onceuponatown:plains/starters/settlement_3",
   "entry_pool": "onceuponatown:starters",
-  "orientation": "wood",
-  "bootstrapBuildings": ["tree_field", "farm_field"],
+  "orientation": "agricultural",
+  "bootstrapBuildings": ["grove", "wheat_field"],
   "icon_item": "minecraft:campfire",
   "category": "town_center",
   "production": [
@@ -43,15 +43,15 @@
   "transform_every_ticks": 1600,
   "transformations": [
     {
-      "inputs": [{ "item": "minecraft:oak_log", "amount": 1 }],
-      "output": "minecraft:oak_planks",
-      "output_amount": 4,
-      "output_capacity_stacks": 2
-    },
-    {
       "inputs": [{ "item": "minecraft:wheat", "amount": 3 }],
       "output": "minecraft:bread",
       "output_amount": 1,
+      "output_capacity_stacks": 2
+    },
+    {
+      "inputs": [{ "item": "minecraft:oak_log", "amount": 1 }],
+      "output": "minecraft:oak_planks",
+      "output_amount": 4,
       "output_capacity_stacks": 2
     },
     {

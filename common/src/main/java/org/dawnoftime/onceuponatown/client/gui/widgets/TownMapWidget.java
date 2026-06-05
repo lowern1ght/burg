@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public class TownMapWidget extends AbstractWidget {
     private record Rgb(int r, int g, int b) {}
@@ -37,6 +38,13 @@ public class TownMapWidget extends AbstractWidget {
     private static final Rgb HOVER_RGB       = new Rgb(234, 200, 190);
     private static final Rgb TOWN_CENTER_RGB = new Rgb(220, 180, 40);
 
+    private static final int CONSTRUCTION_YELLOW = 0xFFFFC800;
+    private static final int CONSTRUCTION_BLACK  = 0xFF1E1E1E;
+    private static final int UPGRADE_YELLOW = 0xAAFFC800;
+    private static final int UPGRADE_BLACK  = 0xAA1E1E1E;
+    private static final int STRIPE_SPACING = 7;
+    private static final int STRIPE_WIDTH   = 3;
+
     private static final int MAP_MARGIN = 6;
     private static int xDrag;
     private static int yDrag;
@@ -47,6 +55,7 @@ public class TownMapWidget extends AbstractWidget {
     private int mapWindowTopBound;
     private int mapWindowBottomBound;
     private boolean draggingMap;
+    private Consumer<Long> onBuildingClicked = null;
     private final List<MapElement> mapElements = new ArrayList<>();
     private int mapInitialWidth;
     private int mapInitialHeight;
@@ -54,6 +63,21 @@ public class TownMapWidget extends AbstractWidget {
     public TownMapWidget(int x, int y, int width, int height, CompoundTag mapData) {
         super(x, y, width, height, Component.empty());
         setupMap(mapData);
+    }
+
+    public void setOnBuildingClicked(Consumer<Long> callback) {
+        this.onBuildingClicked = callback;
+    }
+
+    public void reposition(int newX, int newY, int newW, int newH) {
+        setX(newX);
+        setY(newY);
+        this.width = newW;
+        this.height = newH;
+        mapWindowLeftBound   = newX + MAP_MARGIN;
+        mapWindowTopBound    = newY + MAP_MARGIN;
+        mapWindowRightBound  = newX + newW - MAP_MARGIN;
+        mapWindowBottomBound = newY + newH - MAP_MARGIN;
     }
 
     private void setupMap(CompoundTag mapData) {
@@ -65,8 +89,9 @@ public class TownMapWidget extends AbstractWidget {
             Tag next = it.next();
             if (!(next instanceof CompoundTag tag)) continue;
             switch (tag.getByte("Category")) {
-                case MapCategory.ROAD     -> mapElements.add(createRoadMapElement(tag, nwCorner));
-                case MapCategory.BUILDING -> mapElements.add(createBuildingMapElement(tag, nwCorner));
+                case MapCategory.ROAD               -> mapElements.add(createRoadMapElement(tag, nwCorner));
+                case MapCategory.BUILDING           -> mapElements.add(createBuildingMapElement(tag, nwCorner));
+                case MapCategory.UNDER_CONSTRUCTION -> mapElements.add(createUnderConstructionMapElement(tag, nwCorner));
             }
         }
         mapInitialWidth  = seCorner.getX() - nwCorner.getX();
@@ -97,7 +122,23 @@ public class TownMapWidget extends AbstractWidget {
         }
 
         return new MapElement(MapCategory.ROAD, "", List.of(name), Optional.empty(),
-            footprint, minX, minX + sizeX, minZ, minZ + sizeZ, false);
+            footprint, minX, minX + sizeX, minZ, minZ + sizeZ, false, 0L, false);
+    }
+
+    private MapElement createUnderConstructionMapElement(CompoundTag tag, BlockPos nwCorner) {
+        String buildType = tag.getString("BuildType");
+        BlockPos originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
+        int sizeX = tag.getInt("SizeX");
+        int sizeZ = tag.getInt("SizeZ");
+        int minX = originPos.getX() - nwCorner.getX();
+        int minZ = originPos.getZ() - nwCorner.getZ();
+        List<Component> desc = List.of(
+            Component.translatable("onceuponatown.building." + buildType),
+            Component.translatable("onceuponatown.tooltip.under_construction")
+                .withStyle(net.minecraft.ChatFormatting.YELLOW)
+        );
+        return new MapElement(MapCategory.UNDER_CONSTRUCTION, "", desc, Optional.empty(),
+            null, minX, minX + sizeX, minZ, minZ + sizeZ, false, 0L, false);
     }
 
     private MapElement createBuildingMapElement(CompoundTag tag, BlockPos nwCorner) {
@@ -144,28 +185,15 @@ public class TownMapWidget extends AbstractWidget {
                 Component.translatable("onceuponatown.tooltip.transforms")));
             for (Tag t : transforms) {
                 CompoundTag tt = (CompoundTag) t;
-                ListTag inputs     = tt.getList("Inputs", Tag.TAG_COMPOUND);
-                String outputId    = tt.getString("OutputItem");
-                int outputAmount   = tt.getInt("OutputAmount");
-
+                String outputId   = tt.getString("OutputItem");
+                int outputAmount  = tt.getInt("OutputAmount");
+                int seconds       = tt.getInt("EveryTicks") / 20;
                 net.minecraft.world.item.Item outputItem = BuiltInRegistries.ITEM.get(new ResourceLocation(outputId));
                 ItemStack outputStack = new ItemStack(outputItem);
-
-                // Build text: "1 Oak Log + 2 Stone into 4 Oak Planks" using vanilla item names.
-                MutableComponent text = Component.empty();
-                for (int i = 0; i < inputs.size(); i++) {
-                    CompoundTag inp = (CompoundTag) inputs.get(i);
-                    net.minecraft.world.item.Item inputItem =
-                        BuiltInRegistries.ITEM.get(new ResourceLocation(inp.getString("Item")));
-                    int inputAmount = inp.getInt("Amount");
-                    if (i > 0) text.append(" + ");
-                    text.append(Component.literal(inputAmount + " ")
-                        .append(Component.translatable(inputItem.getDescriptionId())));
-                }
-                text.append(Component.literal(" into " + outputAmount + " ")
-                    .append(Component.translatable(outputItem.getDescriptionId())));
-                text.withStyle(ChatFormatting.GRAY);
-
+                Component text = Component.literal("x" + outputAmount + " ")
+                    .append(Component.translatable(outputItem.getDescriptionId()))
+                    .append(Component.literal(" / " + seconds + "s"))
+                    .withStyle(ChatFormatting.GRAY);
                 rows.add(new BuildingProductionTooltip.Row(outputStack, text));
             }
         }
@@ -189,14 +217,33 @@ public class TownMapWidget extends AbstractWidget {
             }
         }
 
+        // --- Section: Adds (residents) ---
+        int residents = tag.getInt("Residents");
+        if (residents > 0) {
+            rows.add(new BuildingProductionTooltip.Row(null,
+                Component.translatable("onceuponatown.tooltip.adds")));
+            net.minecraft.world.item.Item villagerEgg = BuiltInRegistries.ITEM.get(
+                new ResourceLocation("minecraft:villager_spawn_egg"));
+            rows.add(new BuildingProductionTooltip.Row(new ItemStack(villagerEgg),
+                Component.translatable("onceuponatown.tooltip.residents", residents)
+                    .withStyle(ChatFormatting.GRAY)));
+        }
+
         Optional<TooltipComponent> productionTooltip = rows.isEmpty()
             ? Optional.empty()
             : Optional.of(new BuildingProductionTooltip(rows));
 
+        long worldPosLong = tag.getLong("WorldPos");
+        boolean isUpgrading = tag.getBoolean("IsUpgrading");
         int minX = originPos.getX() - nwCorner.getX();
         int minZ = originPos.getZ() - nwCorner.getZ();
-        return new MapElement(MapCategory.BUILDING, buildingCategory, List.of(name), productionTooltip,
-            null, minX, minX + sizeX, minZ, minZ + sizeZ, instanceBonus > 0);
+        List<Component> desc = new ArrayList<>(List.of(name));
+        if (isUpgrading) {
+            desc.add(Component.translatable("onceuponatown.tooltip.under_upgrade")
+                .withStyle(ChatFormatting.YELLOW));
+        }
+        return new MapElement(MapCategory.BUILDING, buildingCategory, desc, productionTooltip,
+            null, minX, minX + sizeX, minZ, minZ + sizeZ, instanceBonus > 0, worldPosLong, isUpgrading);
     }
 
     @Override
@@ -228,20 +275,36 @@ public class TownMapWidget extends AbstractWidget {
                         renderFootprint(graphics, mapElement.footprint, originX, originZ, mouseOver);
                     } else {
                         graphics.fill(clampedMinX, clampedMinZ, clampedMaxX, clampedMaxZ,
-                            color(mouseOver ? 235 : 255, mouseOver ? HOVER_RGB : ROAD_RGB));
+                            color(mouseOver ? 245 : 255, mouseOver ? HOVER_RGB : ROAD_RGB));
                     }
+                } else if (mapElement.category == MapCategory.UNDER_CONSTRUCTION) {
+                    drawUnderConstructionPattern(graphics, clampedMinX, clampedMaxX, clampedMinZ, clampedMaxZ);
                 } else if (mapElement.category == MapCategory.BUILDING) {
                     Rgb rgb = mouseOver ? HOVER_RGB : buildingColor(mapElement.buildingCategory);
                     drawRectangleWithShadow(graphics, clampedMinX, clampedMaxX, clampedMinZ, clampedMaxZ,
-                        mouseOver ? 235 : alpha, rgb);
-                    // Draw a centered gold star on orientation-boosted buildings.
-                    if (mapElement.hasOrientationBonus()) {
+                        mouseOver ? 245 : alpha, rgb);
+                    net.minecraft.client.gui.Font font = Minecraft.getInstance().font;
+                    if (mapElement.isUpgrading()) {
+                        drawUpgradePattern(graphics, clampedMinX, clampedMaxX, clampedMinZ, clampedMaxZ);
+                        // Draw "UP" centered on the building.
+                        String label = "UP";
+                        int textW = font.width(label);
+                        int textH = font.lineHeight;
                         int centerX = (buildMinX + buildMaxX) / 2;
                         int centerZ = (buildMinZ + buildMaxZ) / 2;
-                        net.minecraft.client.gui.Font font = Minecraft.getInstance().font;
+                        int textX = centerX - textW / 2;
+                        int textY = centerZ - textH / 2;
+                        if (textX >= mapWindowLeftBound && textX + textW <= mapWindowRightBound
+                                && textY >= mapWindowTopBound && textY + textH <= mapWindowBottomBound) {
+                            graphics.drawString(font, label, textX, textY, 0xFFFFFFFF, true);
+                        }
+                    } else if (mapElement.hasOrientationBonus()) {
+                        // Draw a centered gold star on orientation-boosted buildings.
                         String star = "★";
                         int textW = font.width(star);
                         int textH = font.lineHeight;
+                        int centerX = (buildMinX + buildMaxX) / 2;
+                        int centerZ = (buildMinZ + buildMaxZ) / 2;
                         int textX = centerX - textW / 2;
                         int textY = centerZ - textH / 2;
                         if (textX >= mapWindowLeftBound && textX + textW <= mapWindowRightBound
@@ -259,7 +322,7 @@ public class TownMapWidget extends AbstractWidget {
             }
 
             alpha -= 5;
-            if (alpha < 235) alpha = 240;
+            if (alpha < 245) alpha = 248;
         }
     }
 
@@ -303,6 +366,46 @@ public class TownMapWidget extends AbstractWidget {
         graphics.fill(maxX - 1, minZ, maxX, maxZ - 1, shadowColor);
     }
 
+    private void drawUnderConstructionPattern(GuiGraphics graphics, int minX, int maxX, int minZ, int maxZ) {
+        graphics.fill(minX, minZ, maxX, maxZ, CONSTRUCTION_YELLOW);
+        // Diagonal black stripes (top-left to bottom-right): pixel (x,z) is black when
+        // ((x - minX) + (z - minZ)) % STRIPE_SPACING < STRIPE_WIDTH.
+        for (int z = minZ; z < maxZ; z++) {
+            int dz = z - minZ;
+            int runStart = -1;
+            for (int x = minX; x <= maxX; x++) {
+                boolean black = x < maxX && ((x - minX) + dz) % STRIPE_SPACING < STRIPE_WIDTH;
+                if (black && runStart < 0) {
+                    runStart = x;
+                } else if (!black && runStart >= 0) {
+                    graphics.fill(runStart, z, x, z + 1, CONSTRUCTION_BLACK);
+                    runStart = -1;
+                }
+            }
+        }
+    }
+
+    // Semi-transparent yellow/black stripes overlaid on a building being upgraded.
+    private void drawUpgradePattern(GuiGraphics graphics, int minX, int maxX, int minZ, int maxZ) {
+        for (int z = minZ; z < maxZ; z++) {
+            int dz = z - minZ;
+            int runStart = -1;
+            boolean runYellow = false;
+            for (int x = minX; x <= maxX; x++) {
+                int diag = (x < maxX) ? ((x - minX) + dz) % STRIPE_SPACING : -1;
+                boolean yellow = diag >= 0 && diag >= STRIPE_WIDTH;
+                boolean black  = diag >= 0 && diag < STRIPE_WIDTH;
+                boolean cur = diag >= 0;
+                if (cur && runStart < 0) { runStart = x; runYellow = yellow; }
+                else if ((!cur || yellow != runYellow) && runStart >= 0) {
+                    graphics.fill(runStart, z, x, z + 1, runYellow ? UPGRADE_YELLOW : UPGRADE_BLACK);
+                    runStart = cur ? x : -1;
+                    runYellow = yellow;
+                }
+            }
+        }
+    }
+
     private int color(int alpha, Rgb rgb) {
         return FastColor.ARGB32.color(alpha, rgb.r(), rgb.g(), rgb.b());
     }
@@ -319,9 +422,32 @@ public class TownMapWidget extends AbstractWidget {
             + yDrag;
     }
 
+    private MapElement getBuildingAt(int mx, int my) {
+        for (MapElement el : mapElements) {
+            if (el.category() != MapCategory.BUILDING || el.worldPosLong() == 0L) continue;
+            int originX = scaledMapX() + el.minX() * mapZoom;
+            int originZ = scaledMapY() + el.minZ() * mapZoom;
+            int minX = Math.max(mapWindowLeftBound,  originX);
+            int maxX = Math.min(mapWindowRightBound, originX + (el.maxX() - el.minX()) * mapZoom);
+            int minZ = Math.max(mapWindowTopBound,   originZ);
+            int maxZ = Math.min(mapWindowBottomBound, originZ + (el.maxZ() - el.minZ()) * mapZoom);
+            if (minX >= maxX || minZ >= maxZ) continue;
+            if (mx >= minX && mx < maxX && my >= minZ && my < maxZ) return el;
+        }
+        return null;
+    }
+
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (isHovered()) {
+            if (button == 0 && onBuildingClicked != null) {
+                MapElement hit = getBuildingAt((int) mouseX, (int) mouseY);
+                if (hit != null) {
+                    onBuildingClicked.accept(hit.worldPosLong());
+                    setFocused(true);
+                    return true;
+                }
+            }
             draggingMap = true;
             setFocused(true);
         } else {
@@ -381,5 +507,5 @@ public class TownMapWidget extends AbstractWidget {
                                List<Component> description, Optional<TooltipComponent> productionTooltip,
                                List<String> footprint,
                                int minX, int maxX, int minZ, int maxZ,
-                               boolean hasOrientationBonus) {}
+                               boolean hasOrientationBonus, long worldPosLong, boolean isUpgrading) {}
 }

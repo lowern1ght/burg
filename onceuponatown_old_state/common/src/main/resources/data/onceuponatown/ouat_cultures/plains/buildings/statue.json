@@ -1,0 +1,43 @@
+{
+  "id": "statue",
+  "category": "decoration",
+  "weight": 0,
+  "item": "minecraft:player_head",
+  "levels": [
+    {
+      "required_era": 1
+    }
+  ],
+  "variants": [
+    {
+      "name": "variant1",
+      "size": {
+        "x": 30,
+        "y": 12,
+        "z": 27
+      },
+      "levels": [
+        {
+          "schematic": "statue",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "variant2",
+      "size": {
+        "x": 35,
+        "y": 20,
+        "z": 28
+      },
+      "levels": [
+        {
+          "schematic": "statue_2",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

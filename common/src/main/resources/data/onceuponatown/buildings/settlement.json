@@ -2,8 +2,8 @@
   "id": "settlement",
   "nbt": "onceuponatown:plains/starters/settlement",
   "entry_pool": "onceuponatown:starters",
-  "orientation": "stone",
-  "bootstrapBuildings": ["tree_field", "stone_deposit"],
+  "orientation": "industrial",
+  "bootstrapBuildings": ["workshop", "stone_deposit", "grove"],
   "icon_item": "minecraft:campfire",
   "category": "town_center",
   "production": [
@@ -43,6 +43,12 @@
   "transform_every_ticks": 1600,
   "transformations": [
     {
+      "inputs": [{ "item": "minecraft:cobblestone", "amount": 1 }],
+      "output": "minecraft:stone",
+      "output_amount": 1,
+      "output_capacity_stacks": 1
+    },
+    {
       "inputs": [{ "item": "minecraft:oak_log", "amount": 1 }],
       "output": "minecraft:oak_planks",
       "output_amount": 4,
@@ -53,12 +59,6 @@
       "output": "minecraft:charcoal",
       "output_amount": 1,
       "output_capacity_stacks": 2
-    },
-    {
-      "inputs": [{ "item": "minecraft:cobblestone", "amount": 1 }],
-      "output": "minecraft:stone",
-      "output_amount": 1,
-      "output_capacity_stacks": 1
     },
     {
       "inputs": [{ "item": "minecraft:oak_planks", "amount": 3 }],

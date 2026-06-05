@@ -1,0 +1,7 @@
+{
+  "id": "cartographer",
+  "schedule": "worker",
+  "work_ai": "cartographer",
+  "levels": [
+  ]
+}

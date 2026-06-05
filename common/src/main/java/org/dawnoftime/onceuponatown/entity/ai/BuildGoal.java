@@ -1,142 +1,216 @@
 package org.dawnoftime.onceuponatown.entity.ai;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.block.Rotation;
-import org.dawnoftime.onceuponatown.building.schematic.BuildSchematic;
-import org.dawnoftime.onceuponatown.building.terrain.BeardThinMimic;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.phys.Vec3;
+import org.dawnoftime.onceuponatown.building.schematic.SchematicBlock;
 import org.dawnoftime.onceuponatown.entity.Npc;
-import org.dawnoftime.onceuponatown.town.BuildingDef;
-import org.dawnoftime.onceuponatown.town.ConnectionPoint;
-import org.dawnoftime.onceuponatown.town.ItemCost;
 import org.dawnoftime.onceuponatown.town.Town;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-public class BuildGoal {
-    private enum Phase { MOVING, PLACING, DONE }
+// Unified NPC construction executor. Pluggable behavior is provided by a BuildAction:
+//   - NewBuildAction: places a full NBT template block-by-block
+//   - UpgradeAction:  applies a visual diff between two NBT levels
+// Future modes (e.g. demolition) follow the same interface.
+//
+// Phase flow:
+//   MOVING   -- NPC walks to action.getTargetPos() (connection point or building origin)
+//   BUILDING -- waits for any reading animation, then places blocks one-by-one with burst rhythm
+//   DONE     -- task complete (success or failure)
+//
+// For instant (terrain-matched) builds the BUILDING phase is skipped:
+//   MOVING -> executeInstant() -> DONE
+public class BuildGoal implements BuildTask {
+    private enum Phase { MOVING, BUILDING, DONE }
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BuildGoal.class);
+    // Ticks between blocks within the same burst (fast "pop pop" feel).
+    private static final int BLOCK_DELAY = 4;
+    // Ticks between bursts: random in [BURST_PAUSE_MIN, BURST_PAUSE_MAX].
+    private static final int BURST_PAUSE_MIN = 10;
+    private static final int BURST_PAUSE_MAX = 18;
+    // Max extra follow-up blocks after the first in a burst (0 = burst of 1, 2 = burst of 3).
+    private static final int MAX_BURST_EXTRA = 2;
+    private static final double REACH_DIST = 6.0;
+    private static final int STUCK_FALLBACK_TICKS = 100;
+    private static final int MOVING_TIMEOUT_TICKS = 3600;
 
     private final Npc npc;
-    private final BuildingDef def;
-    private final ConnectionPoint usedConnection;
-    private final BlockPos finalPlacementPos;
-    // Rotation precomputed by SimpleStateMachine from connector alignment (not hardcoded SOUTH assumption).
-    private final Rotation rotation;
-    // World position of the entry connector in the newly placed template.
-    // Passed to readJigsawPoints so it is excluded from the list of new free connections.
-    private final BlockPos entryConnectorWorldPos;
-    // Construction cost stored here so resources are only deducted on successful placement, not upfront.
-    private final List<ItemCost> constructionCost;
-    private final Town town;
+    private final BuildAction action;
     private Phase phase = Phase.MOVING;
     private final GoToPosition goTo;
     private boolean failed = false;
-    // Tick counters for stuck-detection logs.
     private int movingTicks = 0;
-    private int placingTicks = 0;
 
-    public BuildGoal(Npc npc, BuildingDef def, ConnectionPoint usedConnection,
-                     BlockPos finalPlacementPos, Rotation rotation, BlockPos entryConnectorWorldPos,
-                     List<ItemCost> constructionCost, Town town) {
+    // BUILDING state
+    private List<SchematicBlock> blocks = null;
+    private int buildProgress = 0;
+    private int buildSpeedCooldown = 0;
+    private int burstBlocksLeft = 0;
+    private GoToPosition buildGoTo = null;
+    private BlockPos currentBuildTarget = null;
+    private int stuckTicks = 0;
+
+    public BuildGoal(Npc npc, BuildAction action) {
         this.npc = npc;
-        this.def = def;
-        this.usedConnection = usedConnection;
-        this.finalPlacementPos = finalPlacementPos;
-        this.rotation = rotation;
-        this.entryConnectorWorldPos = entryConnectorWorldPos;
-        this.constructionCost = constructionCost;
-        this.town = town;
-        // arrivalRadius raised from 3.0 to 5.5: the vanilla pathfinder stops naturally at ~4-5 blocks
-        // from its target, so 3.0 caused an infinite re-issue loop where the NPC was right next to
-        // the connection point but never triggered the PLACING phase.
-        this.goTo = new GoToPosition(npc, usedConnection.pos(), 0.8, 5.5);
+        this.action = action;
+        this.goTo = new GoToPosition(npc, action.getTargetPos(), 0.6, 5.5);
     }
 
-    public boolean isFailed() { return failed; }
-    public ConnectionPoint getUsedConnection() { return usedConnection; }
-    public String getDefId() { return def.id; }
-    public BlockPos getFinalPlacementPos() { return finalPlacementPos; }
+    @Override
+    public boolean isFailed() { return failed || action.isFailed(); }
 
-    // Returns true when construction is complete (success or failure).
+    @Override
+    public BlockPos getFinalPlacementPos() { return action.getOrigin(); }
+
+    @Override
     public boolean tick() {
         return switch (phase) {
-            case MOVING -> {
-                movingTicks++;
-                // Log every 200t while stuck navigating so we can detect infinite MOVING states.
-                if (movingTicks % 200 == 0) {
-                    LOGGER.warn("[OUAT-BUILD] NPC {} STUCK IN MOVING phase -- building='{}' target={} elapsedMovingTicks={}",
-                        npc.getUUID(), def.id, usedConnection.pos(), movingTicks);
-                }
-                if (goTo.tick()) {
-                    LOGGER.debug("[OUAT-BUILD] NPC {} reached connection pos={} after {}t, starting placement of '{}'",
-                        npc.getUUID(), usedConnection.pos(), movingTicks, def.id);
-                    phase = Phase.PLACING;
-                }
-                yield false;
-            }
-            case PLACING -> {
-                placingTicks++;
-                if (!(npc.level() instanceof ServerLevel serverLevel)) {
-                    // Not a server level -- log once per 20t to avoid spam.
-                    if (placingTicks % 20 == 0) {
-                        LOGGER.warn("[OUAT-BUILD] NPC {} PLACING: level is not ServerLevel (tick={}), building='{}'",
-                            npc.getUUID(), placingTicks, def.id);
-                    }
-                    yield false;
-                }
-
-                LOGGER.debug("[OUAT-BUILD] NPC {} attempting placement -- building='{}' pos={} rotation={} terrainMatching={} placingTick={}",
-                    npc.getUUID(), def.id, finalPlacementPos, rotation, def.terrainMatching, placingTicks);
-
-                // Step 1: carve terrain above layer 0 before placement so carve only touches
-                // pre-existing terrain, never the building's own blocks.
-                // Paths use placeTerrainMatched and must not go through BeardThinMimic.
-                if (!def.terrainMatching) {
-                    serverLevel.getStructureManager().get(def.nbt).ifPresent(template ->
-                        BeardThinMimic.prePlace(serverLevel, finalPlacementPos, template, rotation)
-                    );
-                }
-
-                // Step 2: place the structure.
-                // BuildSchematic.place() skips AIR blocks from the NBT so existing terrain is not excavated.
-                boolean placed = def.terrainMatching
-                    ? BuildSchematic.placeTerrainMatched(serverLevel, finalPlacementPos, def.nbt, rotation)
-                    : BuildSchematic.place(serverLevel, finalPlacementPos, def.nbt, rotation);
-
-                if (placed) {
-                    LOGGER.info("[OUAT-BUILD] Placement SUCCESS -- building='{}' pos={} rotation={} movingTicks={} placingTicks={}",
-                        def.id, finalPlacementPos, rotation, movingTicks, placingTicks);
-                    // Deduct resources only after successful placement - not upfront.
-                    // This prevents resource loss when the NPC fails to reach the target.
-                    town.getTownInventory().removeStock(constructionCost);
-                    BuildSchematic.replaceJigsawInWorld(serverLevel, usedConnection.pos());
-                    npc.onBuildComplete(finalPlacementPos, def.id, usedConnection, rotation, entryConnectorWorldPos);
-
-                    // Step 3: fill gaps below the building and apply perimeter skirt after placement.
-                    if (!def.terrainMatching) {
-                        serverLevel.getStructureManager().get(def.nbt).ifPresent(template ->
-                            BeardThinMimic.postPlace(serverLevel, finalPlacementPos, template, rotation)
-                        );
-                    } else {
-                        // Pond-edge pass: replace DIRT_PATH blocks bordering water with OAK_PLANKS.
-                        BuildSchematic.computeBoundingBox(serverLevel, finalPlacementPos, def.nbt, rotation)
-                            .ifPresent(bb -> BuildSchematic.applyPondEdgeRules(serverLevel, bb));
-                    }
-
-                    phase = Phase.DONE;
-                    yield true;
-                }
-
-                // placement returned false -- this should only happen if the NBT is missing.
-                LOGGER.error("[OUAT-BUILD] Placement FAILED (place() returned false) -- building='{}' nbt='{}' pos={} rotation={} placingTick={}",
-                    def.id, def.nbt, finalPlacementPos, rotation, placingTicks);
-                yield false;
-            }
+            case MOVING -> tickMoving();
+            case BUILDING -> tickBuilding();
             case DONE -> true;
         };
+    }
+
+    private boolean tickMoving() {
+        if (++movingTicks > MOVING_TIMEOUT_TICKS) {
+            LOGGER.warn("[OUAT-BUILD] MOVING timeout -- target={}", action.getTargetPos());
+            failed = true;
+            return true;
+        }
+        if (!goTo.tick()) return false;
+
+        action.onArrived(npc);
+
+        if (action.isInstant()) {
+            if (!(npc.level() instanceof ServerLevel sl)) return false;
+            if (action.executeInstant(sl, npc)) {
+                action.onComplete(sl, npc);
+                phase = Phase.DONE;
+                return true;
+            }
+            // Placement failed; retry next tick.
+            LOGGER.error("[OUAT-BUILD] Instant placement failed -- retrying next tick, origin={}",
+                action.getOrigin());
+            return false;
+        }
+
+        phase = Phase.BUILDING;
+        return false;
+    }
+
+    private boolean tickBuilding() {
+        if (!(npc.level() instanceof ServerLevel sl)) return false;
+
+        // Wait for any pre-build animation (e.g. reading the plan) to finish.
+        if (npc.isReading()) return false;
+
+        // Load block list on first BUILDING tick.
+        if (blocks == null) {
+            blocks = action.prepareBlocks(sl, npc);
+        }
+
+        // Empty list or action marked itself failed (e.g. fallback instant placement already ran).
+        if (blocks.isEmpty() || action.isFailed()) {
+            if (!action.isFailed()) action.onComplete(sl, npc);
+            phase = Phase.DONE;
+            return true;
+        }
+
+        if (buildProgress >= blocks.size()) {
+            action.onComplete(sl, npc);
+            phase = Phase.DONE;
+            return true;
+        }
+
+        // Keep the NPC facing the current block every tick for smooth head tracking.
+        BlockPos nextWorldPos = action.getOrigin().offset(blocks.get(buildProgress).localPos());
+        npc.getLookControl().setLookAt(nextWorldPos.getX() + 0.5, nextWorldPos.getY() + 0.5, nextWorldPos.getZ() + 0.5);
+
+        // Navigate toward the next block before placing it.
+        double distSq = npc.distanceToSqr(Vec3.atCenterOf(nextWorldPos));
+        boolean inReach = distSq <= REACH_DIST * REACH_DIST;
+
+        if (!inReach && stuckTicks < STUCK_FALLBACK_TICKS) {
+            stuckTicks++;
+            if (!nextWorldPos.equals(currentBuildTarget)) {
+                currentBuildTarget = nextWorldPos;
+                if (buildGoTo == null) buildGoTo = new GoToPosition(npc, nextWorldPos, 0.6, REACH_DIST);
+                else buildGoTo.updateTarget(nextWorldPos);
+            }
+            buildGoTo.tick();
+            return false;
+        }
+
+        npc.getNavigation().stop();
+        stuckTicks = 0;
+
+        if (buildSpeedCooldown > 0) { buildSpeedCooldown--; return false; }
+
+        // Place exactly one block.
+        SchematicBlock b = blocks.get(buildProgress);
+        BlockPos worldPos = action.getOrigin().offset(b.localPos());
+
+        ItemStack handItem = new ItemStack(b.state().getBlock().asItem());
+        if (!handItem.isEmpty()) npc.holdInMainHand(handItem);
+
+        npc.getLookControl().setLookAt(worldPos.getX() + 0.5, worldPos.getY() + 0.5, worldPos.getZ() + 0.5);
+        sl.setBlock(worldPos, b.state(), Block.UPDATE_ALL);
+
+        if (b.nbt() != null) {
+            BlockEntity be = sl.getBlockEntity(worldPos);
+            if (be != null) be.load(b.nbt().copy());
+        }
+
+        buildProgress++;
+        npc.notifyBlockPlaced();
+        npc.swing(InteractionHand.MAIN_HAND);
+
+        // Burst rhythm: quick follow-up within a burst, longer pause between bursts.
+        if (burstBlocksLeft > 0) {
+            burstBlocksLeft--;
+            buildSpeedCooldown = BLOCK_DELAY;
+        } else {
+            burstBlocksLeft = npc.getRandom().nextInt(MAX_BURST_EXTRA + 1);
+            buildSpeedCooldown = BURST_PAUSE_MIN + npc.getRandom().nextInt(BURST_PAUSE_MAX - BURST_PAUSE_MIN + 1);
+            // 5% chance to consult the plan between bursts -- a brief, rare map-check moment.
+            if (npc.getRandom().nextFloat() < 0.05f) {
+                npc.startReading(15 + npc.getRandom().nextInt(20));
+            }
+        }
+
+        if (buildProgress >= blocks.size()) {
+            action.onComplete(sl, npc);
+            phase = Phase.DONE;
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void saveTo(CompoundTag tag) {
+        if (phase != Phase.BUILDING) return;
+        action.saveTo(tag);
+        // Only persist progress if the action wrote data (UpgradeAction writes nothing).
+        if (!tag.isEmpty()) tag.putInt("build_progress", buildProgress);
+    }
+
+    // Reconstructs a BuildGoal from saved NBT after a server restart.
+    // The NPC re-walks to the build site (MOVING phase) but skips terrain prep and the reading animation.
+    public static BuildGoal resumeFrom(CompoundTag tag, Npc npc, Town town, ServerLevel level) {
+        NewBuildAction action = NewBuildAction.resumeFrom(tag, npc, town);
+        if (action == null) return null;
+        BuildGoal goal = new BuildGoal(npc, action);
+        goal.buildProgress = tag.getInt("build_progress");
+        action.registerAsUnderConstruction(town, level);
+        return goal;
     }
 }

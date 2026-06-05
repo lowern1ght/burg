@@ -1,0 +1,7 @@
+{
+  "id": "pig_farmer",
+  "schedule": "worker",
+  "work_ai": "pig_farmer",
+  "levels": [
+  ]
+}

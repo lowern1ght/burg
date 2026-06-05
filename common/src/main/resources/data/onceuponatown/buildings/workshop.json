@@ -60,5 +60,31 @@
       "output_amount": 3,
       "output_capacity_stacks": 1
     }
+  ],
+  "nbt_levels": [
+    "onceuponatown:plains/jobs/workshop_lvl1",
+    "onceuponatown:plains/jobs/workshop_lvl2",
+    "onceuponatown:plains/jobs/workshop_lvl3",
+    "onceuponatown:plains/jobs/workshop_lvl4"
+  ],
+  "upgrades": [
+    {
+      "cadence_multiplier": 0.10,
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 20 }]
+    },
+    {
+      "capacity_stacks_add": 1,
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 30 }]
+    },
+    {
+      "cadence_multiplier": 0.10,
+      "capacity_stacks_add": 1,
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 40 }]
+    },
+    {
+      "cadence_multiplier": 0.20,
+      "amount_add": 1,
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 60 }]
+    }
   ]
 }

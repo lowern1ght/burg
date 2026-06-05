@@ -5,7 +5,7 @@
   "terrain_adaptation": "beard_thin",
   "spawn_overrides": {},
   "start_pool": "onceuponatown:plains/starters",
-  "size": 1,
+  "size": 2,
   "start_height": {
     "absolute": 0
   },

@@ -1,0 +1,7 @@
+{
+  "id": "weaponsmith",
+  "schedule": "worker",
+  "work_ai": "weaponsmith",
+  "levels": [
+  ]
+}

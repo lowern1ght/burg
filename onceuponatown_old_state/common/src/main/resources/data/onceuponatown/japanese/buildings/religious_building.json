@@ -1,0 +1,43 @@
+{
+  "id": "religious_building",
+  "category": "work",
+  "weight": 10,
+  "levels": [
+    {
+      "required_era": 1
+    }
+  ],
+  "item": "minecraft:bell",
+  "variants": [
+    {
+      "name": "small_temple",
+      "size": {
+        "x": 7,
+        "y": 15,
+        "z": 8
+      },
+      "levels": [
+        {
+          "schematic": "shrine_1",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "priest_house",
+      "size": {
+        "x": 15,
+        "y": 35,
+        "z": 15
+      },
+      "levels": [
+        {
+          "schematic": "shrine_2",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

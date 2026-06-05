@@ -6,6 +6,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -15,6 +16,7 @@ import net.minecraftforge.common.extensions.IForgeMenuType;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
@@ -34,8 +36,13 @@ import org.dawnoftime.onceuponatown.command.TownCommand;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.item.TownScrollItem;
+import org.dawnoftime.onceuponatown.network.C2SQueueBuildingPacket;
+import org.dawnoftime.onceuponatown.network.C2SRemoveQueuedBuildingPacket;
+import org.dawnoftime.onceuponatown.network.C2SUpgradeBuildingPacket;
 import org.dawnoftime.onceuponatown.network.NetworkHelper;
+import org.dawnoftime.onceuponatown.network.S2CBuildingDefsPacket;
 import org.dawnoftime.onceuponatown.network.S2CTownScrollScreenPacket;
+import org.dawnoftime.onceuponatown.network.S2CVillageHubPacket;
 import org.dawnoftime.onceuponatown.registry.BlockEntityRegistry;
 import org.dawnoftime.onceuponatown.registry.BlockRegistry;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
@@ -97,6 +104,10 @@ public class OuatForge {
         ITEMS.register("town_scroll",
             () -> new TownScrollItem(new Item.Properties().stacksTo(1)));
 
+    private static final RegistryObject<Item> TOWN_ANCHOR_ITEM_OBJ =
+        ITEMS.register("town_anchor",
+            () -> new BlockItem(TOWN_ANCHOR_OBJ.get(), new Item.Properties()));
+
     public OuatForge() {
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
 
@@ -112,6 +123,7 @@ public class OuatForge {
         MinecraftForge.EVENT_BUS.addListener(this::onRegisterCommands);
         MinecraftForge.EVENT_BUS.addListener(this::onServerStarting);
         MinecraftForge.EVENT_BUS.addListener(this::onServerTick);
+        MinecraftForge.EVENT_BUS.addListener(this::onPlayerLoggedIn);
     }
 
     // Populate the common static fields after all DeferredRegister suppliers have run
@@ -122,6 +134,7 @@ public class OuatForge {
         EntityRegistry.NPC = (EntityType<Npc>) NPC_OBJ.get();
         MenuRegistry.VILLAGE_CHEST = (MenuType<VillageChestMenu>) VILLAGE_CHEST_OBJ.get();
         ItemRegistry.TOWN_SCROLL = TOWN_SCROLL_OBJ.get();
+        ItemRegistry.TOWN_ANCHOR = TOWN_ANCHOR_ITEM_OBJ.get();
 
         CHANNEL.registerMessage(0,
             S2CTownScrollScreenPacket.class,
@@ -134,8 +147,71 @@ public class OuatForge {
             Optional.of(NetworkDirection.PLAY_TO_CLIENT)
         );
 
+        CHANNEL.registerMessage(1,
+            S2CVillageHubPacket.class,
+            S2CVillageHubPacket::encode,
+            S2CVillageHubPacket::decode,
+            (msg, ctx) -> {
+                ctx.get().enqueueWork(() -> S2CVillageHubPacket.Handler.handle(msg));
+                ctx.get().setPacketHandled(true);
+            },
+            Optional.of(NetworkDirection.PLAY_TO_CLIENT)
+        );
+
+        CHANNEL.registerMessage(2,
+            C2SQueueBuildingPacket.class,
+            C2SQueueBuildingPacket::encode,
+            C2SQueueBuildingPacket::decode,
+            (msg, ctx) -> {
+                ctx.get().enqueueWork(() -> C2SQueueBuildingPacket.Handler.handle(msg, ctx.get().getSender()));
+                ctx.get().setPacketHandled(true);
+            },
+            Optional.of(NetworkDirection.PLAY_TO_SERVER)
+        );
+
+        CHANNEL.registerMessage(3,
+            C2SRemoveQueuedBuildingPacket.class,
+            C2SRemoveQueuedBuildingPacket::encode,
+            C2SRemoveQueuedBuildingPacket::decode,
+            (msg, ctx) -> {
+                ctx.get().enqueueWork(() ->
+                    C2SRemoveQueuedBuildingPacket.Handler.handle(msg, ctx.get().getSender()));
+                ctx.get().setPacketHandled(true);
+            },
+            Optional.of(NetworkDirection.PLAY_TO_SERVER)
+        );
+
+        CHANNEL.registerMessage(4,
+            C2SUpgradeBuildingPacket.class,
+            C2SUpgradeBuildingPacket::encode,
+            C2SUpgradeBuildingPacket::decode,
+            (msg, ctx) -> {
+                ctx.get().enqueueWork(() ->
+                    C2SUpgradeBuildingPacket.Handler.handle(msg, ctx.get().getSender()));
+                ctx.get().setPacketHandled(true);
+            },
+            Optional.of(NetworkDirection.PLAY_TO_SERVER)
+        );
+
+        CHANNEL.registerMessage(5,
+            S2CBuildingDefsPacket.class,
+            S2CBuildingDefsPacket::encode,
+            S2CBuildingDefsPacket::decode,
+            (msg, ctx) -> {
+                ctx.get().enqueueWork(() -> S2CBuildingDefsPacket.Handler.handle(msg));
+                ctx.get().setPacketHandled(true);
+            },
+            Optional.of(NetworkDirection.PLAY_TO_CLIENT)
+        );
+
         NetworkHelper.sendTownScrollPacket = (player, data) ->
             CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CTownScrollScreenPacket(data));
+
+        NetworkHelper.sendVillageHubPacket = (player, data) ->
+            CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CVillageHubPacket(data));
+
+        NetworkHelper.sendBuildingDefsPacket = (player, data) ->
+            CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CBuildingDefsPacket(data));
     }
 
     @SuppressWarnings("unchecked")
@@ -154,6 +230,12 @@ public class OuatForge {
     private void onServerTick(TickEvent.ServerTickEvent event) {
         if (event.phase == TickEvent.Phase.END) {
             TickScheduler.tick(ServerLifecycleHooks.getCurrentServer());
+        }
+    }
+
+    private void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
+        if (event.getEntity() instanceof net.minecraft.server.level.ServerPlayer player) {
+            NetworkHelper.sendBuildingDefsPacket.accept(player, BuildingDataHandler.buildDefsPacketData());
         }
     }
 }

@@ -1,7 +1,13 @@
 package org.dawnoftime.onceuponatown.entity;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.PathfinderMob;
@@ -10,25 +16,53 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import org.dawnoftime.onceuponatown.building.schematic.BuildSchematic;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
 import org.dawnoftime.onceuponatown.entity.ai.SimpleStateMachine;
+import org.dawnoftime.onceuponatown.registry.ItemRegistry;
 import org.dawnoftime.onceuponatown.town.ConnectionPoint;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
+import org.dawnoftime.onceuponatown.town.Town;
 
 import java.util.List;
 
 public class Npc extends PathfinderMob {
+    private static final EntityDataAccessor<Boolean> DATA_IS_READING =
+        SynchedEntityData.defineId(Npc.class, EntityDataSerializers.BOOLEAN);
+    // Incremented on each block placement; client reads changes to trigger the swing animation.
+    private static final EntityDataAccessor<Integer> DATA_BUILD_GENERATION =
+        SynchedEntityData.defineId(Npc.class, EntityDataSerializers.INT);
+
+    // Client-side animation state: written by NpcModel.setupAnim(), never synced or saved.
+    public int clientLastBuildGeneration = -1;
+    public float clientBuildPlacedAtAge = -1000f;
+
     private SimpleStateMachine stateMachine;
+    // Server-side countdown -- cleared to 0 when the reading animation ends.
+    private int readingTicksRemaining = 0;
+    // Saved build state from readAdditionalSaveData, consumed once by SimpleStateMachine on first tick.
+    private CompoundTag pendingBuildResume = null;
+    // Anchor position of the town this builder belongs to; saved so the builder can self-validate on load.
+    private BlockPos townAnchorPos = null;
+    // Whether the anchor ownership check has been performed this session.
+    private boolean anchorValidated = false;
 
     public Npc(EntityType<? extends Npc> type, Level level) {
         super(type, level);
         // Builders must never despawn naturally — Minecraft would silently remove them
         // when no player is nearby, breaking the town's builder UUID reference.
         setPersistenceRequired();
+    }
+
+    @Override
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        this.entityData.define(DATA_IS_READING, false);
+        this.entityData.define(DATA_BUILD_GENERATION, 0);
     }
 
     @Override
@@ -42,9 +76,45 @@ public class Npc extends PathfinderMob {
     public void tick() {
         super.tick();
         if (!level().isClientSide) {
+            if (!anchorValidated && townAnchorPos != null && level() instanceof ServerLevel sl) {
+                anchorValidated = true;
+                Town town = LevelTowns.get(sl).getTownAt(townAnchorPos).orElse(null);
+                if (town == null || !getUUID().equals(town.getBuilderNpcId())) {
+                    discard();
+                    return;
+                }
+            }
             if (stateMachine == null) stateMachine = new SimpleStateMachine(this);
             stateMachine.tick();
+            if (readingTicksRemaining > 0 && --readingTicksRemaining == 0) {
+                entityData.set(DATA_IS_READING, false);
+                setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+            }
         }
+    }
+
+    @Override
+    public void addAdditionalSaveData(CompoundTag tag) {
+        super.addAdditionalSaveData(tag);
+        if (stateMachine != null) stateMachine.saveBuildState(tag);
+        if (townAnchorPos != null) tag.put("TownAnchorPos", NbtUtils.writeBlockPos(townAnchorPos));
+    }
+
+    @Override
+    public void readAdditionalSaveData(CompoundTag tag) {
+        super.readAdditionalSaveData(tag);
+        if (tag.contains("active_build")) pendingBuildResume = tag.getCompound("active_build");
+        if (tag.contains("TownAnchorPos")) townAnchorPos = NbtUtils.readBlockPos(tag.getCompound("TownAnchorPos"));
+    }
+
+    public void setTownAnchorPos(BlockPos pos) { this.townAnchorPos = pos; }
+    public BlockPos getTownAnchorPos() { return townAnchorPos; }
+
+    // Called once by SimpleStateMachine on its first idle tick to retrieve any saved build state.
+    public CompoundTag pollPendingBuildResume() {
+        CompoundTag result = pendingBuildResume;
+        pendingBuildResume = null;
+        return result;
     }
 
     // Called by BuildGoal when construction is complete.
@@ -103,8 +173,33 @@ public class Npc extends PathfinderMob {
             .add(Attributes.FOLLOW_RANGE, 48.0);
     }
 
+    // --- Hand and animation helpers called by BuildGoal ---
+
+    // Starts the "reading plan" animation for the given number of ticks.
+    // Puts the town scroll in the main hand; tick() clears it when the timer expires.
+    public void startReading(int durationTicks) {
+        setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(ItemRegistry.TOWN_SCROLL));
+        readingTicksRemaining = durationTicks;
+        entityData.set(DATA_IS_READING, true);
+    }
+
+    public void holdInOffHand(ItemStack stack) { setItemInHand(InteractionHand.OFF_HAND, stack); }
+    public void holdInMainHand(ItemStack stack) { setItemInHand(InteractionHand.MAIN_HAND, stack); }
+
+    public void freeHands() {
+        setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        setItemInHand(InteractionHand.OFF_HAND, ItemStack.EMPTY);
+    }
+
+    // Called by BuildGoal each time a block is placed; increments the synced generation counter
+    // so NpcModel.setupAnim() detects the change and triggers the swing animation on the client.
+    public void notifyBlockPlaced() {
+        entityData.set(DATA_BUILD_GENERATION, entityData.get(DATA_BUILD_GENERATION) + 1);
+    }
+
     // Stub accessors used by NpcModel for animations - simplified in v1
     public int getUnhappyCounter() { return 0; }
     public boolean isCrossingArms() { return false; }
-    public boolean isReading() { return false; }
+    public boolean isReading() { return entityData.get(DATA_IS_READING); }
+    public int getBuildGeneration() { return entityData.get(DATA_BUILD_GENERATION); }
 }

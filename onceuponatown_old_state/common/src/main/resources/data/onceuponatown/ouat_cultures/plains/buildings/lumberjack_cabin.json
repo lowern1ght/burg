@@ -1,0 +1,35 @@
+{
+  "id": "lumberjack_cabin",
+  "category": "work",
+  "weight": 10,
+  "item": "minecraft:oak_sapling",
+  "levels": [
+    {
+      "required_era": 1,
+      "dwelling_slots": 2,
+      "working_slots": [
+        {
+          "profession": "lumberjack",
+          "slots": 1
+        }
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "name": "lumberjack",
+      "size": {
+        "x": 22,
+        "y": 8,
+        "z": 18
+      },
+      "levels": [
+        {
+          "schematic": "lumberjack",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

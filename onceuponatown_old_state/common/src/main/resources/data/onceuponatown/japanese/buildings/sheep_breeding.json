@@ -1,0 +1,28 @@
+{
+  "id": "sheep_breeding",
+  "category": "work",
+  "weight": 10,
+  "levels": [
+    {
+      "required_era": 1
+    }
+  ],
+  "item": "minecraft:white_wool",
+  "variants": [
+    {
+      "name": "variant1",
+      "size": {
+        "x": 10,
+        "y": 10,
+        "z": 10
+      },
+      "levels": [
+        {
+          "schematic": "small_house",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

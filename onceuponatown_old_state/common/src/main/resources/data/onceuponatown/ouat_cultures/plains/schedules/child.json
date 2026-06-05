@@ -1,0 +1,29 @@
+{
+  "id": "worker",
+  "schedule": [
+    {
+      "time": 10,
+      "activity": "idle"
+    },
+    {
+      "time": 3000,
+      "activity": "play"
+    },
+    {
+      "time": 6000,
+      "activity": "idle"
+    },
+    {
+      "time": 9000,
+      "activity": "meet"
+    },
+    {
+      "time": 10000,
+      "activity": "play"
+    },
+    {
+      "time": 11000,
+      "activity": "rest"
+    }
+  ]
+}

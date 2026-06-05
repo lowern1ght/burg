@@ -20,6 +20,7 @@ public class PlacedBuilding {
     public final Rotation rotation;
     // Per-instance production multiplier. 1.0 = normal. Set to 1.15 for orientation bootstrap buildings.
     private double instanceProductionMultiplier = 1.0;
+    private int upgradeLevel = 0;
     private final Map<Item, Integer> stock = new HashMap<>();
 
     public PlacedBuilding(String defId, BlockPos worldPos, BoundingBox bb, Rotation rotation) {
@@ -57,6 +58,9 @@ public class PlacedBuilding {
     public double getInstanceProductionMultiplier() { return instanceProductionMultiplier; }
     public void setInstanceProductionMultiplier(double value) { this.instanceProductionMultiplier = value; }
 
+    public int getUpgradeLevel() { return upgradeLevel; }
+    public void setUpgradeLevel(int level) { this.upgradeLevel = level; }
+
     public CompoundTag toNbt() {
         CompoundTag tag = new CompoundTag();
         tag.putString("DefId", defId);
@@ -80,6 +84,8 @@ public class PlacedBuilding {
         tag.putInt("Rotation", rotation.ordinal());
         if (instanceProductionMultiplier != 1.0)
             tag.putDouble("InstanceProductionMultiplier", instanceProductionMultiplier);
+        if (upgradeLevel != 0)
+            tag.putInt("UpgradeLevel", upgradeLevel);
         return tag;
     }
 
@@ -100,6 +106,8 @@ public class PlacedBuilding {
         PlacedBuilding b = new PlacedBuilding(defId, pos, bb, rotation);
         if (tag.contains("InstanceProductionMultiplier"))
             b.instanceProductionMultiplier = tag.getDouble("InstanceProductionMultiplier");
+        if (tag.contains("UpgradeLevel"))
+            b.upgradeLevel = tag.getInt("UpgradeLevel");
         CompoundTag stockTag = tag.getCompound("Stock");
         for (String key : stockTag.getAllKeys()) {
             Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(key));

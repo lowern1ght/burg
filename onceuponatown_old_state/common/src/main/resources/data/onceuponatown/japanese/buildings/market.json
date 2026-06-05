@@ -1,0 +1,58 @@
+{
+  "id": "market",
+  "category": "special",
+  "weight": 30,
+  "levels": [
+    {
+      "required_era": 1
+    }
+  ],
+  "item": "minecraft:emerald",
+  "variants": [
+    {
+      "name": "merchant_shop",
+      "size": {
+        "x": 17,
+        "y": 13,
+        "z": 16
+      },
+      "levels": [
+        {
+          "schematic": "merchant_shop",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "small_market",
+      "size": {
+        "x": 25,
+        "y": 9,
+        "z": 18
+      },
+      "levels": [
+        {
+          "schematic": "small_market",
+          "waypoints": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "fancy_market",
+      "size": {
+        "x": 34,
+        "y": 13,
+        "z": 28
+      },
+      "levels": [
+        {
+          "schematic": "fancy_market",
+          "waypoints": [
+          ]
+        }
+      ]
+    }
+  ]
+}

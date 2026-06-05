@@ -34,6 +34,15 @@
                 "projection": "rigid",
                 "location": "onceuponatown:plains/houses/house_3"
             }
+        },
+        {
+            "weight": 1,
+            "element": {
+                "element_type": "minecraft:single_pool_element",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "location": "onceuponatown:plains/houses/house_4"
+            }
         }
     ]
 }

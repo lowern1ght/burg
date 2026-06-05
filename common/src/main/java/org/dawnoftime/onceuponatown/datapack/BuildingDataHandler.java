@@ -5,6 +5,8 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -41,7 +43,6 @@ public class BuildingDataHandler {
                     JsonObject json = GSON.fromJson(reader, JsonObject.class);
                     BuildingDef def = parseDef(json);
                     REGISTRY.put(def.id, def);
-                    LOGGER.debug("[OUAT] Loaded building def: {}", def.id);
                 } catch (Exception e) {
                     LOGGER.error("[OUAT] Failed to load building def {}: {}", location, e.getMessage());
                 }
@@ -123,9 +124,70 @@ public class BuildingDataHandler {
         }
 
         double productionBonus = json.has("production_bonus") ? json.get("production_bonus").getAsDouble() : 0.0;
+        int residents = json.has("residents") ? json.get("residents").getAsInt() : 0;
+
+        List<BuildingDef.UpgradeLevel> upgrades = new ArrayList<>();
+        if (json.has("upgrades")) {
+            for (JsonElement el : json.getAsJsonArray("upgrades")) {
+                JsonObject u = el.getAsJsonObject();
+                float cadenceMult = u.has("cadence_multiplier") ? u.get("cadence_multiplier").getAsFloat() : 0f;
+                int capAdd    = u.has("capacity_stacks_add") ? u.get("capacity_stacks_add").getAsInt() : 0;
+                int amountAdd = u.has("amount_add") ? u.get("amount_add").getAsInt() : 0;
+                List<ItemCost> upgradeCost = new ArrayList<>();
+                if (u.has("upgrade_cost")) {
+                    for (JsonElement ce : u.getAsJsonArray("upgrade_cost")) {
+                        JsonObject c = ce.getAsJsonObject();
+                        Item costItem = BuiltInRegistries.ITEM.get(new ResourceLocation(c.get("item").getAsString()));
+                        upgradeCost.add(new ItemCost(costItem, c.get("amount").getAsInt()));
+                    }
+                }
+                upgrades.add(new BuildingDef.UpgradeLevel(cadenceMult, capAdd, amountAdd, upgradeCost));
+            }
+        }
+
+        List<ResourceLocation> nbtLevels = new ArrayList<>();
+        if (json.has("nbt_levels")) {
+            for (JsonElement el : json.getAsJsonArray("nbt_levels")) {
+                nbtLevels.add(new ResourceLocation(el.getAsString()));
+            }
+        }
 
         return new BuildingDef(id, nbt, entryPool, production, costs, terrainMatching, iconItem, category, footprint,
-            transformations, transformInputRatio, transformEveryTicks, orientation, bootstrapBuildings, productionBonus);
+            transformations, transformInputRatio, transformEveryTicks, orientation, bootstrapBuildings,
+            productionBonus, residents, upgrades, nbtLevels);
+    }
+
+    // Builds the NBT payload sent to the client on player join (upgrade info only).
+    public static CompoundTag buildDefsPacketData() {
+        CompoundTag tag = new CompoundTag();
+        ListTag defsTag = new ListTag();
+        for (BuildingDef def : REGISTRY.values()) {
+            if (def.upgrades.isEmpty()) continue;
+            CompoundTag dt = new CompoundTag();
+            dt.putString("Id", def.id);
+            dt.putInt("BaseCapacity", def.production.isEmpty() ? 0 : def.production.get(0).capacityStacks());
+            dt.putInt("BaseAmount", def.production.isEmpty() ? 0 : def.production.get(0).amount());
+            ListTag upgsTag = new ListTag();
+            for (BuildingDef.UpgradeLevel upg : def.upgrades) {
+                CompoundTag ut = new CompoundTag();
+                ut.putFloat("CadenceMult", upg.cadenceMultiplier());
+                ut.putInt("CapAdd", upg.capacityStacksAdd());
+                ut.putInt("AmountAdd", upg.amountAdd());
+                ListTag costTag = new ListTag();
+                for (ItemCost ic : upg.upgradeCost()) {
+                    CompoundTag ct = new CompoundTag();
+                    ct.putString("Item", BuiltInRegistries.ITEM.getKey(ic.item()).toString());
+                    ct.putInt("Amount", ic.amount());
+                    costTag.add(ct);
+                }
+                ut.put("Cost", costTag);
+                upgsTag.add(ut);
+            }
+            dt.put("Upgrades", upgsTag);
+            defsTag.add(dt);
+        }
+        tag.put("Defs", defsTag);
+        return tag;
     }
 
     public static Optional<BuildingDef> get(String id) { return Optional.ofNullable(REGISTRY.get(id)); }

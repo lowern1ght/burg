@@ -2,7 +2,7 @@
   "id": "settlement_2",
   "nbt": "onceuponatown:plains/starters/settlement_2",
   "entry_pool": "onceuponatown:starters",
-  "orientation": "food",
+  "orientation": "pastoral",
   "bootstrapBuildings": ["pig_field", "cow_field"],
   "icon_item": "minecraft:campfire",
   "category": "town_center",
