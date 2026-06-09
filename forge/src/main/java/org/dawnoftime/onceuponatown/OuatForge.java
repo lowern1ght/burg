@@ -34,8 +34,13 @@ import org.dawnoftime.onceuponatown.block.TownAnchorBlock;
 import org.dawnoftime.onceuponatown.blockentity.TownAnchorBlockEntity;
 import org.dawnoftime.onceuponatown.command.TownCommand;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
+import org.dawnoftime.onceuponatown.datapack.EraTransitionDataHandler;
+import org.dawnoftime.onceuponatown.datapack.QuestDataHandler;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.item.TownScrollItem;
+import org.dawnoftime.onceuponatown.network.C2SAdvanceEraPacket;
+import org.dawnoftime.onceuponatown.network.C2SClaimQuestPacket;
+import org.dawnoftime.onceuponatown.network.C2SDepositPacket;
 import org.dawnoftime.onceuponatown.network.C2SQueueBuildingPacket;
 import org.dawnoftime.onceuponatown.network.C2SRemoveQueuedBuildingPacket;
 import org.dawnoftime.onceuponatown.network.C2SUpgradeBuildingPacket;
@@ -204,6 +209,42 @@ public class OuatForge {
             Optional.of(NetworkDirection.PLAY_TO_CLIENT)
         );
 
+        CHANNEL.registerMessage(6,
+            C2SAdvanceEraPacket.class,
+            C2SAdvanceEraPacket::encode,
+            C2SAdvanceEraPacket::decode,
+            (msg, ctx) -> {
+                ctx.get().enqueueWork(() ->
+                    C2SAdvanceEraPacket.Handler.handle(msg, ctx.get().getSender()));
+                ctx.get().setPacketHandled(true);
+            },
+            Optional.of(NetworkDirection.PLAY_TO_SERVER)
+        );
+
+        CHANNEL.registerMessage(7,
+            C2SDepositPacket.class,
+            C2SDepositPacket::encode,
+            C2SDepositPacket::decode,
+            (msg, ctx) -> {
+                ctx.get().enqueueWork(() ->
+                    C2SDepositPacket.Handler.handle(msg, ctx.get().getSender()));
+                ctx.get().setPacketHandled(true);
+            },
+            Optional.of(NetworkDirection.PLAY_TO_SERVER)
+        );
+
+        CHANNEL.registerMessage(8,
+            C2SClaimQuestPacket.class,
+            C2SClaimQuestPacket::encode,
+            C2SClaimQuestPacket::decode,
+            (msg, ctx) -> {
+                ctx.get().enqueueWork(() ->
+                    C2SClaimQuestPacket.Handler.handle(msg, ctx.get().getSender()));
+                ctx.get().setPacketHandled(true);
+            },
+            Optional.of(NetworkDirection.PLAY_TO_SERVER)
+        );
+
         NetworkHelper.sendTownScrollPacket = (player, data) ->
             CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CTownScrollScreenPacket(data));
 
@@ -225,6 +266,8 @@ public class OuatForge {
 
     private void onServerStarting(ServerStartingEvent event) {
         BuildingDataHandler.reload(event.getServer());
+        EraTransitionDataHandler.reload(event.getServer());
+        QuestDataHandler.reload(event.getServer());
     }
 
     private void onServerTick(TickEvent.ServerTickEvent event) {

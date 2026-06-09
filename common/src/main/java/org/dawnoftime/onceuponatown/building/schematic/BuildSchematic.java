@@ -482,9 +482,15 @@ public class BuildSchematic {
 
     // Computes the visual diff between two structure NBTs (fromNbt = current level, toNbt = next level).
     // toAdd: blocks present in toNbt but absent or different in fromNbt.
-    // toRemove: block positions present in fromNbt but absent in toNbt.
+    // toRemove: block positions present in fromNbt but absent in toNbt (expressed in toNbt coordinate space).
+    //
+    // fromYOffset: how many blocks lower the toNbt origin sits relative to fromNbt.
+    // When the target level has underground_depth=N, toNbt local Y=N is the ground floor while
+    // fromNbt local Y=0 is the ground floor. Shifting fromNbt positions up by N brings both
+    // templates into the same coordinate space before comparing, so identical surface blocks
+    // are not flagged as changed and the TownAnchorBlock is never re-placed needlessly.
     public static DiffResult computeDiff(ServerLevel level, ResourceLocation fromNbt,
-                                          ResourceLocation toNbt, Rotation rotation) {
+                                          ResourceLocation toNbt, Rotation rotation, int fromYOffset) {
         Optional<StructureTemplate> fromTpl = level.getStructureManager().get(fromNbt);
         Optional<StructureTemplate> toTpl   = level.getStructureManager().get(toNbt);
         if (fromTpl.isEmpty() || toTpl.isEmpty()) {
@@ -495,24 +501,31 @@ public class BuildSchematic {
         List<SchematicBlock> fromBlocks = SchematicReader.readSortedBlocks(fromTpl.get(), rotation);
         List<SchematicBlock> toBlocks   = SchematicReader.readSortedBlocks(toTpl.get(), rotation);
 
+        // Shift fromNbt positions into toNbt coordinate space so that ground-level blocks
+        // at fromNbt Y=0 align with toNbt Y=fromYOffset (the target ground floor).
         Map<BlockPos, BlockState> fromMap = new HashMap<>();
-        for (SchematicBlock b : fromBlocks) fromMap.put(b.localPos(), b.state());
+        for (SchematicBlock b : fromBlocks) {
+            BlockPos shifted = fromYOffset == 0 ? b.localPos() : b.localPos().offset(0, fromYOffset, 0);
+            fromMap.put(shifted, b.state());
+        }
 
         Map<BlockPos, SchematicBlock> toMap = new HashMap<>();
         for (SchematicBlock b : toBlocks) toMap.put(b.localPos(), b);
 
         List<SchematicBlock> toAdd = new ArrayList<>();
         for (SchematicBlock b : toBlocks) {
-            net.minecraft.world.level.block.state.BlockState fromState = fromMap.get(b.localPos());
+            BlockState fromState = fromMap.get(b.localPos());
             if (fromState == null || !fromState.equals(b.state())) {
                 toAdd.add(b);
             }
         }
 
+        // toRemove positions are in toNbt space (shifted fromNbt positions not present in toNbt).
         List<BlockPos> toRemove = new ArrayList<>();
         for (SchematicBlock b : fromBlocks) {
-            if (!toMap.containsKey(b.localPos())) {
-                toRemove.add(b.localPos());
+            BlockPos shifted = fromYOffset == 0 ? b.localPos() : b.localPos().offset(0, fromYOffset, 0);
+            if (!toMap.containsKey(shifted)) {
+                toRemove.add(shifted);
             }
         }
 

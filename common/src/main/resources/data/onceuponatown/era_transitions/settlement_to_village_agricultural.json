@@ -1,0 +1,15 @@
+{
+  "id": "settlement_to_village_agricultural",
+  "from_era": 0,
+  "from_orientation": "agricultural",
+  "display_name": "Village (Agricultural)",
+  "icon_item": "minecraft:wheat",
+  "min_weight": 18,
+  "resource_cost": [
+    { "item": "minecraft:oak_log", "amount": 20 }
+  ],
+  "required_residents": 0,
+  "required_buildings": [],
+  "unlocked_building_ids": ["lumberjack"],
+  "next_orientation": "agricultural"
+}

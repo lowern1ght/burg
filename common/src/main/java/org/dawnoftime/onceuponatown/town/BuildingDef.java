@@ -28,25 +28,50 @@ public class BuildingDef {
     public final float transformInputRatio;
     // Ticks between each transformation pass.
     public final int transformEveryTicks;
-    // Village orientation this starter building provides ("food", "wood", "stone"). Empty for non-starters.
+    // Village orientation this starter building provides ("industrial", "pastoral", "agricultural"). Empty for non-starters.
     public final String orientation;
-    // Ordered list of building IDs to place during bootstrap. All entries are placed (no random pick). Empty for non-starters.
-    public final List<String> bootstrapBuildings;
+    // Building defIds that receive the orientation production bonus (+15%) when built by the player. Empty for non-starters.
+    public final List<String> boosted;
     // Additive bonus applied to village-wide production amounts (e.g. 0.03 = +3% per building).
     public final double productionBonus;
+    // Extra capacity stacks added to every productive building in the village (e.g. 1 = +64 items per building).
+    public final int stockBonus;
     // Number of resident slots this building adds to the village.
     public final int residents;
     // Ordered upgrade levels. Entry [0] = level 1, [1] = level 2, etc. Empty = not upgradable.
     public final List<UpgradeLevel> upgrades;
     // NBT files for each visual upgrade tier. Entry [0] = visual for level 1, [1] = visual for level 2, etc.
     // If absent for a given level, the upgrade is stat-only (no visual change).
-    public final List<ResourceLocation> nbtLevels;
+    public final List<NbtLevel> nbtLevels;
+
+    // Per-level NBT metadata. undergroundDepth = how many blocks deeper than the base template this level goes.
+    // Used to shift the upgrade diff origin downward so underground galleries land at the correct Y.
+    public record NbtLevel(ResourceLocation nbt, int undergroundDepth) {}
+    // Minimum era required for this building to appear in the village catalog. Default 0 (always available).
+    public final int requiredEra;
+    // Orientation tag required for this building to appear in the catalog. Empty = available to all orientations.
+    public final String requiredOrientation;
+    // Minimum total village residents required before this building can be constructed.
+    public final int requiredResidents;
+    // Specific buildings that must already exist in the village before this one can be constructed.
+    public final List<BuildingRequirement> requiredBuildings;
+    // Food units consumed per resident per day at level 0. Only meaningful for residential buildings.
+    public final float consumptionPerResident;
 
     // One upgrade step: cost + what it changes. All fields are additive deltas.
-    public record UpgradeLevel(float cadenceMultiplier, int capacityStacksAdd, int amountAdd, List<ItemCost> upgradeCost) {}
+    public record UpgradeLevel(float cadenceMultiplier, int capacityStacksAdd, int amountAdd,
+                                int residentsAdd, float consumptionPerResidentAdd,
+                                double productionBonusAdd,
+                                int stockBonusAdd,
+                                List<String> unlockedDisplay,
+                                List<ItemCost> upgradeCost) {}
+
+    // A single building prerequisite: N copies of a given defId must already be placed.
+    public record BuildingRequirement(String defId, int count) {}
 
     // Effective stats for a building at a given upgrade level (cached by PlacedBuilding).
-    public record ResolvedBuildingStats(List<ProductionEntry> production, double totalCadenceMultiplier) {}
+    public record ResolvedBuildingStats(List<ProductionEntry> production, double totalCadenceMultiplier,
+                                         int resolvedResidents, float resolvedConsumptionPerResident) {}
 
     public BuildingDef(String id, ResourceLocation nbt, String entryPool,
                        List<ProductionEntry> production, List<ItemCost> constructionCost,
@@ -54,9 +79,12 @@ public class BuildingDef {
                        List<String> footprint,
                        List<TransformationRecipe> transformations,
                        float transformInputRatio, int transformEveryTicks,
-                       String orientation, List<String> bootstrapBuildings,
-                       double productionBonus, int residents,
-                       List<UpgradeLevel> upgrades, List<ResourceLocation> nbtLevels) {
+                       String orientation, List<String> boosted,
+                       double productionBonus, int stockBonus, int residents,
+                       List<UpgradeLevel> upgrades, List<NbtLevel> nbtLevels,
+                       int requiredEra, String requiredOrientation,
+                       int requiredResidents, List<BuildingRequirement> requiredBuildings,
+                       float consumptionPerResident) {
         this.id = id;
         this.nbt = nbt;
         this.entryPool = entryPool;
@@ -70,41 +98,68 @@ public class BuildingDef {
         this.transformInputRatio = transformInputRatio;
         this.transformEveryTicks = transformEveryTicks;
         this.orientation = orientation;
-        this.bootstrapBuildings = bootstrapBuildings;
+        this.boosted = boosted;
         this.productionBonus = productionBonus;
+        this.stockBonus = stockBonus;
         this.residents = residents;
         this.upgrades = upgrades;
         this.nbtLevels = nbtLevels;
+        this.requiredEra = requiredEra;
+        this.requiredOrientation = requiredOrientation;
+        this.requiredResidents = requiredResidents;
+        this.requiredBuildings = requiredBuildings;
+        this.consumptionPerResident = consumptionPerResident;
     }
 
-    // Returns effective production and cadence multiplier for the given upgrade level.
+    // Weight cost by building category. Shared between server (Town) and client (VillageChestScreen).
+    public static int weightForCategory(String category) {
+        return switch (category) {
+            case "natural"   -> 1;
+            case "buildings" -> 2;
+            case "gardens"   -> 3;
+            case "jobs"      -> 3;
+            default          -> 0;
+        };
+    }
+
+    // Returns effective production, cadence, residents, and consumption per resident at a given upgrade level.
     // Level 0 = base stats with no upgrades applied.
     public ResolvedBuildingStats resolveAtLevel(int level) {
+        List<ProductionEntry> activeProduction = production.stream()
+            .filter(e -> e.unlockAtLevel() == -1 || e.unlockAtLevel() <= level)
+            .toList();
         if (level <= 0 || upgrades.isEmpty()) {
-            return new ResolvedBuildingStats(production, 0.0);
+            return new ResolvedBuildingStats(activeProduction, 0.0, residents, consumptionPerResident);
         }
         int capped = Math.min(level, upgrades.size());
         double totalCadence = 0.0;
         int totalCapAdd = 0;
         int totalAmountAdd = 0;
+        int totalResidentsAdd = 0;
+        float totalConsumptionAdd = 0f;
         for (int i = 0; i < capped; i++) {
-            totalCadence    += upgrades.get(i).cadenceMultiplier();
-            totalCapAdd     += upgrades.get(i).capacityStacksAdd();
-            totalAmountAdd  += upgrades.get(i).amountAdd();
+            totalCadence         += upgrades.get(i).cadenceMultiplier();
+            totalCapAdd          += upgrades.get(i).capacityStacksAdd();
+            totalAmountAdd       += upgrades.get(i).amountAdd();
+            totalResidentsAdd    += upgrades.get(i).residentsAdd();
+            totalConsumptionAdd  += upgrades.get(i).consumptionPerResidentAdd();
         }
+        int resolvedResidents       = residents + totalResidentsAdd;
+        float resolvedConsumption   = consumptionPerResident + totalConsumptionAdd;
         if (totalCapAdd == 0 && totalAmountAdd == 0) {
-            return new ResolvedBuildingStats(production, totalCadence);
+            return new ResolvedBuildingStats(activeProduction, totalCadence, resolvedResidents, resolvedConsumption);
         }
         int finalCapAdd    = totalCapAdd;
         int finalAmountAdd = totalAmountAdd;
-        List<ProductionEntry> adjusted = production.stream()
+        List<ProductionEntry> adjusted = activeProduction.stream()
             .map(e -> new ProductionEntry(
                 e.item(),
                 e.amount() + finalAmountAdd,
                 e.everyTicks(),
-                e.capacityStacks() + finalCapAdd))
+                e.capacityStacks() + finalCapAdd,
+                e.unlockAtLevel()))
             .toList();
-        return new ResolvedBuildingStats(adjusted, totalCadence);
+        return new ResolvedBuildingStats(adjusted, totalCadence, resolvedResidents, resolvedConsumption);
     }
 
     public boolean isTransformer() { return !transformations.isEmpty(); }

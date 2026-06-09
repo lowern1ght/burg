@@ -61,6 +61,26 @@ public class PlacedBuilding {
     public int getUpgradeLevel() { return upgradeLevel; }
     public void setUpgradeLevel(int level) { this.upgradeLevel = level; }
 
+    // Returns the effective village-wide production bonus contributed by this building at its current upgrade level.
+    public double resolvedProductionBonus(org.dawnoftime.onceuponatown.town.BuildingDef def) {
+        double bonus = def.productionBonus;
+        int capped = Math.min(upgradeLevel, def.upgrades.size());
+        for (int i = 0; i < capped; i++) {
+            bonus += def.upgrades.get(i).productionBonusAdd();
+        }
+        return bonus;
+    }
+
+    // Returns the extra capacity stacks this building adds to every productive building in the village.
+    public int resolvedStockBonus(org.dawnoftime.onceuponatown.town.BuildingDef def) {
+        int bonus = def.stockBonus;
+        int capped = Math.min(upgradeLevel, def.upgrades.size());
+        for (int i = 0; i < capped; i++) {
+            bonus += def.upgrades.get(i).stockBonusAdd();
+        }
+        return bonus;
+    }
+
     public CompoundTag toNbt() {
         CompoundTag tag = new CompoundTag();
         tag.putString("DefId", defId);

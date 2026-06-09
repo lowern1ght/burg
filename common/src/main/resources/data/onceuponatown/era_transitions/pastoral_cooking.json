@@ -1,0 +1,16 @@
+{
+  "id": "pastoral_cooking",
+  "from_era": 1,
+  "from_orientation": "pastoral",
+  "display_name": "Cooking",
+  "icon_item": "minecraft:smoker",
+  "min_weight": 25,
+  "resource_cost": [
+    { "item": "minecraft:oak_log", "amount": 42 },
+    { "item": "minecraft:cobblestone", "amount": 10 }
+  ],
+  "required_residents": 5,
+  "required_buildings": [],
+  "unlocked_building_ids": [],
+  "next_orientation": "pastoral_cooking"
+}

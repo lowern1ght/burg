@@ -1,5 +1,6 @@
 package org.dawnoftime.onceuponatown.screen;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -9,55 +10,66 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
 import org.dawnoftime.onceuponatown.registry.MenuRegistry;
-import org.dawnoftime.onceuponatown.town.ItemCost;
 import org.dawnoftime.onceuponatown.town.PlacedBuilding;
 import org.dawnoftime.onceuponatown.town.Town;
 import org.dawnoftime.onceuponatown.town.TownInventory;
 
-import java.util.*;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public class VillageChestMenu extends AbstractContainerMenu {
 
-    static final int ROWS = 6;
+    static final int ROWS = 5;
     static final int COLS = 9;
     static final int CHEST_SIZE = ROWS * COLS;
+    static final int DEPOSIT_SLOTS = 8;
 
     private final SimpleContainer chestContainer;
-    // Snapshot of what was placed in the container when the menu opened (server only)
-    private final Map<Item, Integer> openSnapshot;
-    // null on the client side
-    private final TownInventory townInventory;
+    // Separate container for the 8 deposit slots (indices 90-97 in the menu)
+    private final SimpleContainer depositContainer;
+    // Anchor block position used server-side to identify which town this menu belongs to.
+    private final BlockPos anchorPos;
 
     // Called by MenuType factory on the client
     public VillageChestMenu(int syncId, Inventory playerInventory) {
         super(MenuRegistry.VILLAGE_CHEST, syncId);
         this.chestContainer = new SimpleContainer(CHEST_SIZE);
-        this.townInventory = null;
-        this.openSnapshot = Collections.emptyMap();
+        this.depositContainer = new SimpleContainer(DEPOSIT_SLOTS);
+        this.anchorPos = null;
         addSlots(playerInventory);
     }
 
     // Called server-side when the player opens the anchor block
-    public VillageChestMenu(int syncId, Inventory playerInventory, Town town) {
+    public VillageChestMenu(int syncId, Inventory playerInventory, Town town, BlockPos anchorPos) {
         super(MenuRegistry.VILLAGE_CHEST, syncId);
         this.chestContainer = buildContainer(town);
-        this.townInventory = town.getTownInventory();
-        this.openSnapshot = snapshotContainer(this.chestContainer);
+        this.depositContainer = new SimpleContainer(DEPOSIT_SLOTS);
+        this.anchorPos = anchorPos;
         addSlots(playerInventory);
+    }
+
+    public BlockPos getAnchorPos() { return anchorPos; }
+
+    public SimpleContainer getDepositContainer() {
+        return depositContainer;
     }
 
     private void addSlots(Inventory playerInventory) {
         checkContainerSize(chestContainer, CHEST_SIZE);
 
-        // Village chest slots
+        // Village chest slots (0-53): read-only display, no player interaction
         for (int row = 0; row < ROWS; row++) {
             for (int col = 0; col < COLS; col++) {
-                addSlot(new Slot(chestContainer, row * COLS + col,
-                    8 + col * 18, 18 + row * 18));
+                addSlot(new Slot(chestContainer, row * COLS + col, 8 + col * 18, 18 + row * 18) {
+                    @Override
+                    public boolean mayPlace(ItemStack stack) { return false; }
+                    @Override
+                    public boolean mayPickup(Player player) { return false; }
+                });
             }
         }
 
-        // Player inventory
+        // Player inventory (54-80)
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
                 addSlot(new Slot(playerInventory, col + row * 9 + 9,
@@ -65,9 +77,14 @@ public class VillageChestMenu extends AbstractContainerMenu {
             }
         }
 
-        // Hotbar
+        // Hotbar (81-89)
         for (int col = 0; col < 9; col++) {
             addSlot(new Slot(playerInventory, col, 8 + col * 18, 198));
+        }
+
+        // Deposit slots: 8 green slots aligned with texture row at Y=108
+        for (int col = 0; col < DEPOSIT_SLOTS; col++) {
+            addSlot(new Slot(depositContainer, col, 8 + col * 18, 108));
         }
     }
 
@@ -98,44 +115,17 @@ public class VillageChestMenu extends AbstractContainerMenu {
         return container;
     }
 
-    // Records item counts present in the container at open time
-    private static Map<Item, Integer> snapshotContainer(SimpleContainer c) {
-        Map<Item, Integer> snap = new LinkedHashMap<>();
-        for (int i = 0; i < CHEST_SIZE; i++) {
-            ItemStack s = c.getItem(i);
-            if (!s.isEmpty()) snap.merge(s.getItem(), s.getCount(), Integer::sum);
-        }
-        return snap;
-    }
-
     @Override
     public void removed(Player player) {
         super.removed(player);
-        // Server-side only: drain TownInventory for what the player actually took
-        if (townInventory == null) return;
-
-        Map<Item, Integer> remaining = new HashMap<>();
-        for (int i = 0; i < CHEST_SIZE; i++) {
-            ItemStack s = chestContainer.getItem(i);
-            if (!s.isEmpty()) remaining.merge(s.getItem(), s.getCount(), Integer::sum);
+        // Return any items left in deposit slots to the player (same behavior as crafting table grid).
+        for (int i = 0; i < depositContainer.getContainerSize(); i++) {
+            ItemStack stack = depositContainer.getItem(i);
+            if (!stack.isEmpty()) {
+                player.addItem(stack);
+                depositContainer.setItem(i, ItemStack.EMPTY);
+            }
         }
-
-        List<ItemCost> taken = new ArrayList<>();
-        List<ItemCost> deposited = new ArrayList<>();
-        Set<Item> allItems = new HashSet<>();
-        allItems.addAll(openSnapshot.keySet());
-        allItems.addAll(remaining.keySet());
-
-        for (Item item : allItems) {
-            int before = openSnapshot.getOrDefault(item, 0);
-            int after = remaining.getOrDefault(item, 0);
-            int delta = after - before;
-            if (delta < 0) taken.add(new ItemCost(item, -delta));
-            else if (delta > 0) deposited.add(new ItemCost(item, delta));
-        }
-
-        if (!taken.isEmpty()) townInventory.removeStock(taken);
-        if (!deposited.isEmpty()) townInventory.addStock(deposited);
     }
 
     @Override
@@ -152,14 +142,22 @@ public class VillageChestMenu extends AbstractContainerMenu {
         ItemStack stack = slot.getItem();
         result = stack.copy();
 
+        int playerStart = CHEST_SIZE;             // 54
+        int playerEnd   = CHEST_SIZE + 36;        // 90
+        int depositStart = playerEnd;             // 90
+        int depositEnd   = playerEnd + DEPOSIT_SLOTS; // 98
+
         if (slotIndex < CHEST_SIZE) {
-            // Chest -> player inventory (shift-click)
-            if (!this.moveItemStackTo(stack, CHEST_SIZE, this.slots.size(), true)) {
+            // Chest slots are read-only, cannot shift-click out
+            return ItemStack.EMPTY;
+        } else if (slotIndex < playerEnd) {
+            // Player inv/hotbar -> deposit slots only (never into chest)
+            if (!this.moveItemStackTo(stack, depositStart, depositEnd, false)) {
                 return ItemStack.EMPTY;
             }
         } else {
-            // Player inventory -> chest
-            if (!this.moveItemStackTo(stack, 0, CHEST_SIZE, false)) {
+            // Deposit slots -> player inventory
+            if (!this.moveItemStackTo(stack, playerStart, playerEnd, true)) {
                 return ItemStack.EMPTY;
             }
         }

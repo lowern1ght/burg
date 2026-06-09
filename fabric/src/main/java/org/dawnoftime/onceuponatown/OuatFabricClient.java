@@ -16,6 +16,9 @@ import org.dawnoftime.onceuponatown.client.gui.tooltip.ItemAndTitleTooltip;
 import org.dawnoftime.onceuponatown.client.model.NpcModel;
 import org.dawnoftime.onceuponatown.client.renderer.NpcRenderer;
 import org.dawnoftime.onceuponatown.client.screen.VillageChestScreen;
+import org.dawnoftime.onceuponatown.network.C2SAdvanceEraPacket;
+import org.dawnoftime.onceuponatown.network.C2SClaimQuestPacket;
+import org.dawnoftime.onceuponatown.network.C2SDepositPacket;
 import org.dawnoftime.onceuponatown.network.C2SQueueBuildingPacket;
 import org.dawnoftime.onceuponatown.network.C2SRemoveQueuedBuildingPacket;
 import org.dawnoftime.onceuponatown.network.C2SUpgradeBuildingPacket;
@@ -68,6 +71,21 @@ public class OuatFabricClient implements ClientModInitializer {
             var buf = PacketByteBufs.create();
             new C2SUpgradeBuildingPacket(pos, worldPosLong).encode(buf);
             ClientPlayNetworking.send(C2SUpgradeBuildingPacket.ID, buf);
+        };
+        NetworkHelper.sendAdvanceEraPacket = (pos, pathId) -> {
+            var buf = PacketByteBufs.create();
+            new C2SAdvanceEraPacket(pos, pathId).encode(buf);
+            ClientPlayNetworking.send(C2SAdvanceEraPacket.ID, buf);
+        };
+        NetworkHelper.sendDepositPacket = pos -> {
+            var buf = PacketByteBufs.create();
+            new C2SDepositPacket(pos).encode(buf);
+            ClientPlayNetworking.send(C2SDepositPacket.ID, buf);
+        };
+        NetworkHelper.sendClaimQuestPacket = (pos, questId) -> {
+            var buf = PacketByteBufs.create();
+            new C2SClaimQuestPacket(pos, questId).encode(buf);
+            ClientPlayNetworking.send(C2SClaimQuestPacket.ID, buf);
         };
     }
 }

@@ -4,39 +4,18 @@
   "entry_pool": "onceuponatown:jobs",
   "icon_item": "minecraft:porkchop",
   "category": "jobs",
-  "production": [
-    {
-      "item": "minecraft:porkchop",
-      "amount": 1,
-      "every_ticks": 1600,
-      "capacity_stacks": 1
-    }
-  ],
   "construction_cost": [
     {
       "item": "minecraft:oak_log",
       "amount": 12
     }
   ],
-  "upgrades": [
+  "production": [
     {
-      "cadence_multiplier": 0.10,
-      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 20 }]
-    },
-    {
-      "capacity_stacks_add": 1,
-      "amount_add": 1,
-      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 30 }]
-    },
-    {
-      "cadence_multiplier": 0.10,
-      "capacity_stacks_add": 1,
-      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 40 }]
-    },
-    {
-      "cadence_multiplier": 0.20,
-      "amount_add": 2,
-      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 60 }]
+      "item": "minecraft:porkchop",
+      "amount": 1,
+      "every_ticks": 1600,
+      "capacity_stacks": 1
     }
   ]
 }

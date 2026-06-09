@@ -4,8 +4,6 @@
     "entry_pool":  "onceuponatown:streets",
     "terrain_matching":  true,
     "icon_item":  "minecraft:dirt_path",
-    "production":  [],
-    "construction_cost":  [],
     "footprint":  [
                       "010100",
                       "111110",

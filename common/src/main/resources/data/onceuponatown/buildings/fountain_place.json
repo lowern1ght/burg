@@ -4,12 +4,21 @@
   "entry_pool": "onceuponatown:gardens",
   "icon_item": "minecraft:bell",
   "category": "gardens",
-  "production": [],
-  "production_bonus": 0.03,
+  "required_era": 2,
+  "production_bonus": 0.05,
+  "required_residents": 10,
   "construction_cost": [
     {
       "item": "minecraft:oak_log",
-      "amount": 8
+      "amount": 35
+    },
+    {
+      "item": "minecraft:cobblestone",
+      "amount": 10
+    },
+    {
+      "item": "minecraft:wool",
+      "amount": 5
     }
   ]
 }

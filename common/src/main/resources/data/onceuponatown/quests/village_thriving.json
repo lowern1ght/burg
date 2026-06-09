@@ -1,0 +1,9 @@
+{
+  "id": "onceuponatown:village_thriving",
+  "type": "NOTE",
+  "icon": "minecraft:paper",
+  "title": "quest.onceuponatown.village_thriving.title",
+  "description": "quest.onceuponatown.village_thriving.desc",
+  "spawn_weight": 10,
+  "ttl_ticks": 12000
+}

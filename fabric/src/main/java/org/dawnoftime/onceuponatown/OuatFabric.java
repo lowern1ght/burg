@@ -14,8 +14,13 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.BlockItem;
 import org.dawnoftime.onceuponatown.command.TownCommand;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
+import org.dawnoftime.onceuponatown.datapack.EraTransitionDataHandler;
+import org.dawnoftime.onceuponatown.datapack.QuestDataHandler;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.item.TownScrollItem;
+import org.dawnoftime.onceuponatown.network.C2SAdvanceEraPacket;
+import org.dawnoftime.onceuponatown.network.C2SClaimQuestPacket;
+import org.dawnoftime.onceuponatown.network.C2SDepositPacket;
 import org.dawnoftime.onceuponatown.network.C2SQueueBuildingPacket;
 import org.dawnoftime.onceuponatown.network.C2SRemoveQueuedBuildingPacket;
 import org.dawnoftime.onceuponatown.network.C2SUpgradeBuildingPacket;
@@ -48,6 +53,8 @@ public class OuatFabric implements ModInitializer {
         CommandRegistrationCallback.EVENT.register((dispatcher, context, env) ->
             TownCommand.register(dispatcher, context));
         ServerLifecycleEvents.SERVER_STARTING.register(BuildingDataHandler::reload);
+        ServerLifecycleEvents.SERVER_STARTING.register(EraTransitionDataHandler::reload);
+        ServerLifecycleEvents.SERVER_STARTING.register(QuestDataHandler::reload);
         ServerTickEvents.END_SERVER_TICK.register(TickScheduler::tick);
         NetworkHelper.sendTownScrollPacket = (player, data) -> {
             var buf = PacketByteBufs.create();
@@ -73,6 +80,21 @@ public class OuatFabric implements ModInitializer {
             (server, player, handler, buf, responseSender) -> {
                 C2SUpgradeBuildingPacket packet = C2SUpgradeBuildingPacket.decode(buf);
                 server.execute(() -> C2SUpgradeBuildingPacket.Handler.handle(packet, player));
+            });
+        ServerPlayNetworking.registerGlobalReceiver(C2SAdvanceEraPacket.ID,
+            (server, player, handler, buf, responseSender) -> {
+                C2SAdvanceEraPacket packet = C2SAdvanceEraPacket.decode(buf);
+                server.execute(() -> C2SAdvanceEraPacket.Handler.handle(packet, player));
+            });
+        ServerPlayNetworking.registerGlobalReceiver(C2SDepositPacket.ID,
+            (server, player, handler, buf, responseSender) -> {
+                C2SDepositPacket packet = C2SDepositPacket.decode(buf);
+                server.execute(() -> C2SDepositPacket.Handler.handle(packet, player));
+            });
+        ServerPlayNetworking.registerGlobalReceiver(C2SClaimQuestPacket.ID,
+            (server, player, handler, buf, responseSender) -> {
+                C2SClaimQuestPacket packet = C2SClaimQuestPacket.decode(buf);
+                server.execute(() -> C2SClaimQuestPacket.Handler.handle(packet, player));
             });
         NetworkHelper.sendBuildingDefsPacket = (player, data) -> {
             var buf = PacketByteBufs.create();

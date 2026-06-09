@@ -15,10 +15,15 @@ public class ClientBuildingDefsRegistry {
 
     public record CostEntry(String itemId, int amount) {}
 
-    public record UpgradeLevelClient(float cadenceMultiplier, int capacityStacksAdd, int amountAdd, List<CostEntry> upgradeCost) {}
+    public record UpgradeLevelClient(float cadenceMultiplier, int capacityStacksAdd, int amountAdd,
+                                      int residentsAdd, float consumptionPerResidentAdd,
+                                      double productionBonusAdd,
+                                      List<String> unlockedDisplay,
+                                      List<CostEntry> upgradeCost) {}
 
     // baseCapacity/baseAmount = first production entry's values at level 0, used for bar scaling.
-    public record DefEntry(int baseCapacity, int baseAmount, List<UpgradeLevelClient> upgrades) {}
+    public record DefEntry(int baseCapacity, int baseAmount, int baseResidents, float baseConsumption,
+                            double baseProductionBonus, List<UpgradeLevelClient> upgrades) {}
 
     private static final Map<String, DefEntry> DEFS = new HashMap<>();
 
@@ -28,22 +33,33 @@ public class ClientBuildingDefsRegistry {
         for (Tag rawDef : defsTag) {
             CompoundTag dt = (CompoundTag) rawDef;
             String id = dt.getString("Id");
-            int baseCap    = dt.getInt("BaseCapacity");
-            int baseAmount = dt.getInt("BaseAmount");
+            int baseCap     = dt.getInt("BaseCapacity");
+            int baseAmount  = dt.getInt("BaseAmount");
+            int baseResidents = dt.getInt("BaseResidents");
+            float baseConsumption = dt.getFloat("BaseConsumption");
+            double baseProdBonus = dt.getDouble("BaseProductionBonus");
             List<UpgradeLevelClient> upgrades = new ArrayList<>();
             for (Tag rawUpg : dt.getList("Upgrades", Tag.TAG_COMPOUND)) {
                 CompoundTag ut = (CompoundTag) rawUpg;
                 float cadenceMult = ut.getFloat("CadenceMult");
-                int capAdd    = ut.getInt("CapAdd");
-                int amountAdd = ut.getInt("AmountAdd");
+                int capAdd        = ut.getInt("CapAdd");
+                int amountAdd     = ut.getInt("AmountAdd");
+                int residentsAdd  = ut.getInt("ResidentsAdd");
+                float consumptionAdd = ut.getFloat("ConsumptionAdd");
+                double prodBonusAdd = ut.getDouble("ProductionBonusAdd");
+                List<String> unlocksDisplay = new ArrayList<>();
+                for (Tag t : ut.getList("UnlocksDisplay", Tag.TAG_STRING)) {
+                    unlocksDisplay.add(t.getAsString());
+                }
                 List<CostEntry> cost = new ArrayList<>();
                 for (Tag rawCost : ut.getList("Cost", Tag.TAG_COMPOUND)) {
                     CompoundTag ct = (CompoundTag) rawCost;
                     cost.add(new CostEntry(ct.getString("Item"), ct.getInt("Amount")));
                 }
-                upgrades.add(new UpgradeLevelClient(cadenceMult, capAdd, amountAdd, cost));
+                upgrades.add(new UpgradeLevelClient(cadenceMult, capAdd, amountAdd, residentsAdd, consumptionAdd,
+                    prodBonusAdd, unlocksDisplay, cost));
             }
-            DEFS.put(id, new DefEntry(baseCap, baseAmount, upgrades));
+            DEFS.put(id, new DefEntry(baseCap, baseAmount, baseResidents, baseConsumption, baseProdBonus, upgrades));
         }
     }
 
