@@ -3,7 +3,7 @@
   "nbt": "onceuponatown:plains/starters/settlement",
   "entry_pool": "onceuponatown:starters",
   "orientation": "industrial",
-  "bootstrapBuildings": ["workshop", "stone_deposit", "grove"],
+  "boosted": ["workshop", "grove"],
   "icon_item": "minecraft:campfire",
   "category": "town_center",
   "production": [
@@ -15,7 +15,7 @@
     },
     {
       "item": "minecraft:cobblestone",
-      "amount": 3,
+      "amount": 2,
       "every_ticks": 1800,
       "capacity_stacks": 3
     },
@@ -38,48 +38,7 @@
       "capacity_stacks": 1
     }
   ],
-  "construction_cost": [],
-  "transform_input_ratio": 0.1,
-  "transform_every_ticks": 1600,
-  "transformations": [
-    {
-      "inputs": [{ "item": "minecraft:cobblestone", "amount": 1 }],
-      "output": "minecraft:stone",
-      "output_amount": 1,
-      "output_capacity_stacks": 1
-    },
-    {
-      "inputs": [{ "item": "minecraft:oak_log", "amount": 1 }],
-      "output": "minecraft:oak_planks",
-      "output_amount": 4,
-      "output_capacity_stacks": 2
-    },
-    {
-      "inputs": [{ "item": "minecraft:oak_log", "amount": 1 }],
-      "output": "minecraft:charcoal",
-      "output_amount": 1,
-      "output_capacity_stacks": 2
-    },
-    {
-      "inputs": [{ "item": "minecraft:oak_planks", "amount": 3 }],
-      "output": "minecraft:oak_slab",
-      "output_amount": 6,
-      "output_capacity_stacks": 1
-    },
-    {
-      "inputs": [{ "item": "minecraft:oak_planks", "amount": 6 }],
-      "output": "minecraft:oak_stairs",
-      "output_amount": 4,
-      "output_capacity_stacks": 1
-    },
-    {
-      "inputs": [
-        { "item": "minecraft:oak_planks", "amount": 4 },
-        { "item": "minecraft:stick", "amount": 2 }
-      ],
-      "output": "minecraft:oak_fence",
-      "output_amount": 3,
-      "output_capacity_stacks": 1
-    }
+  "nbt_levels": [
+    { "nbt": "onceuponatown:plains/starters/settlement_lvl1", "underground_depth": 2 }
   ]
 }

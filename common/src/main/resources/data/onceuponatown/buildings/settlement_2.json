@@ -3,7 +3,7 @@
   "nbt": "onceuponatown:plains/starters/settlement_2",
   "entry_pool": "onceuponatown:starters",
   "orientation": "pastoral",
-  "bootstrapBuildings": ["pig_field", "cow_field"],
+  "boosted": ["pig_field", "cow_field", "sheep_field"],
   "icon_item": "minecraft:campfire",
   "category": "town_center",
   "production": [
@@ -68,5 +68,8 @@
       "output_amount": 1,
       "output_capacity_stacks": 1
     }
+  ],
+  "nbt_levels": [
+    "onceuponatown:plains/starters/settlement_2_lvl1"
   ]
 }

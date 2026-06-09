@@ -1,0 +1,12 @@
+{
+  "id": "onceuponatown:rotten_offering",
+  "type": "TASK",
+  "icon": "minecraft:rotten_flesh",
+  "title": "quest.onceuponatown.rotten_offering.title",
+  "description": "quest.onceuponatown.rotten_offering.desc",
+  "spawn_weight": 1,
+  "conditions": [
+    { "type": "DELIVERY", "item": "minecraft:rotten_flesh", "required": 10 }
+  ],
+  "reward": { "type": "PLAYER", "item": "minecraft:emerald", "amount": 1 }
+}

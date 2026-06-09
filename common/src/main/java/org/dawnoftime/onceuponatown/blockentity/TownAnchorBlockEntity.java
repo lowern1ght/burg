@@ -93,7 +93,7 @@ public class TownAnchorBlockEntity extends BlockEntity implements MenuProvider {
 
     @Override
     public AbstractContainerMenu createMenu(int syncId, Inventory playerInventory, Player player) {
-        return new VillageChestMenu(syncId, playerInventory, town);
+        return new VillageChestMenu(syncId, playerInventory, town, getBlockPos());
     }
 
     @Override

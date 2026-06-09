@@ -55,11 +55,39 @@ public class VillageSummaryDraggableWidget extends DraggableWidget {
         int freeSlotsBuildings = summaryData.getInt("FreeSlotsBuildings");
         int freeSlotsJobs      = summaryData.getInt("FreeSlotsJobs");
         int freeSlotsGardens   = summaryData.getInt("FreeSlotsGardens");
+        int totalResidents     = summaryData.getInt("TotalResidents");
+        int activeResidents    = summaryData.getInt("ActiveResidents");
+        int totalFoodDemand    = summaryData.getInt("TotalFoodDemand");
 
         rows.add(new Row(null,
             Component.literal("Orientation: " + capitalize(orientation))
                 .withStyle(s -> s.withColor(COLOR_ORIENT_TEXT)),
             false));
+
+        // Residents row: active/total with color based on fed ratio
+        if (totalResidents > 0) {
+            int resColor;
+            if (activeResidents >= totalResidents) {
+                resColor = 0xFF55FF55;
+            } else if (activeResidents * 2 >= totalResidents) {
+                resColor = 0xFFFFAA00;
+            } else {
+                resColor = 0xFFFF5555;
+            }
+            Item villagerEgg = BuiltInRegistries.ITEM.get(new ResourceLocation("minecraft:villager_spawn_egg"));
+            MutableComponent resText = Component.literal("Residents: ")
+                .withStyle(s -> s.withColor(0xFFCCCCCC))
+                .append(Component.literal(String.valueOf(activeResidents)).withStyle(s -> s.withColor(resColor)))
+                .append(Component.literal(" / " + totalResidents).withStyle(s -> s.withColor(0xFFCCCCCC)));
+            rows.add(new Row(new ItemStack(villagerEgg), resText, false));
+        }
+
+        // Food demand row directly after residents
+        if (totalFoodDemand > 0) {
+            rows.add(new Row(new ItemStack(Items.BREAD),
+                Component.literal(totalFoodDemand + " food units / day").withStyle(s -> s.withColor(0xFFDDDDDD)),
+                false));
+        }
 
         // Count buildings per category from map elements
         int houseCount = 0, jobCount = 0, gardenCount = 0, streetCount = 0;
@@ -100,47 +128,6 @@ public class VillageSummaryDraggableWidget extends DraggableWidget {
             }
         }
 
-        // Buildings section header
-        rows.add(new Row(null, Component.literal("Buildings").withStyle(s -> s.withColor(COLOR_SECTION_TEXT)), true));
-
-        // House count + free slots
-        if (houseCount > 0 || freeSlotsBuildings > 0) {
-            MutableComponent text = Component.literal("Houses: " + houseCount + "  ")
-                .withStyle(s -> s.withColor(COLOR_BUILDINGS));
-            if (freeSlotsBuildings > 0) {
-                text = text.append(Component.literal("(+" + freeSlotsBuildings + " free)").withStyle(ChatFormatting.YELLOW));
-            }
-            rows.add(new Row(new ItemStack(Items.OAK_PLANKS), text, false));
-        }
-
-        // Jobs count + free slots
-        if (jobCount > 0 || freeSlotsJobs > 0) {
-            MutableComponent text = Component.literal("Jobs: " + jobCount + "  ")
-                .withStyle(s -> s.withColor(COLOR_JOBS));
-            if (freeSlotsJobs > 0) {
-                text = text.append(Component.literal("(+" + freeSlotsJobs + " free)").withStyle(ChatFormatting.YELLOW));
-            }
-            rows.add(new Row(new ItemStack(Items.FURNACE), text, false));
-        }
-
-        // Gardens count + free slots
-        if (gardenCount > 0 || freeSlotsGardens > 0) {
-            MutableComponent text = Component.literal("Gardens: " + gardenCount + "  ")
-                .withStyle(s -> s.withColor(COLOR_GARDENS));
-            if (freeSlotsGardens > 0) {
-                text = text.append(Component.literal("(+" + freeSlotsGardens + " free)").withStyle(ChatFormatting.YELLOW));
-            }
-            rows.add(new Row(new ItemStack(Items.OAK_SAPLING), text, false));
-        }
-
-        // Streets count
-        if (streetCount > 0) {
-            rows.add(new Row(new ItemStack(Items.DIRT_PATH),
-                Component.literal("Streets: " + streetCount)
-                    .withStyle(s -> s.withColor(0xFFAAAAAA)),
-                false));
-        }
-
         if (!prodData.isEmpty()) {
             rows.add(new Row(null, Component.literal("Production").withStyle(s -> s.withColor(COLOR_SECTION_TEXT)), true));
             for (Map.Entry<String, int[]> e : prodData.entrySet()) {
@@ -162,6 +149,36 @@ public class VillageSummaryDraggableWidget extends DraggableWidget {
                     .withStyle(s -> s.withColor(0xFFDDDDDD));
                 rows.add(new Row(new ItemStack(item), text, false));
             }
+        }
+
+        // Buildings section last
+        rows.add(new Row(null, Component.literal("Buildings").withStyle(s -> s.withColor(COLOR_SECTION_TEXT)), true));
+
+        if (houseCount > 0 || freeSlotsBuildings > 0) {
+            MutableComponent text = Component.literal("Houses: " + houseCount + "  ")
+                .withStyle(s -> s.withColor(COLOR_BUILDINGS));
+            if (freeSlotsBuildings > 0) {
+                text = text.append(Component.literal("(+" + freeSlotsBuildings + " free)").withStyle(ChatFormatting.YELLOW));
+            }
+            rows.add(new Row(new ItemStack(Items.OAK_PLANKS), text, false));
+        }
+
+        if (jobCount > 0 || freeSlotsJobs > 0) {
+            MutableComponent text = Component.literal("Jobs: " + jobCount + "  ")
+                .withStyle(s -> s.withColor(COLOR_JOBS));
+            if (freeSlotsJobs > 0) {
+                text = text.append(Component.literal("(+" + freeSlotsJobs + " free)").withStyle(ChatFormatting.YELLOW));
+            }
+            rows.add(new Row(new ItemStack(Items.FURNACE), text, false));
+        }
+
+        if (gardenCount > 0 || freeSlotsGardens > 0) {
+            MutableComponent text = Component.literal("Gardens: " + gardenCount + "  ")
+                .withStyle(s -> s.withColor(COLOR_GARDENS));
+            if (freeSlotsGardens > 0) {
+                text = text.append(Component.literal("(+" + freeSlotsGardens + " free)").withStyle(ChatFormatting.YELLOW));
+            }
+            rows.add(new Row(new ItemStack(Items.OAK_SAPLING), text, false));
         }
 
         totalH = PADDING;

@@ -18,19 +18,24 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.ClientBuildingDefsRegistry;
+import org.dawnoftime.onceuponatown.town.BuildingDef;
 import org.dawnoftime.onceuponatown.client.VillageHubClientState;
 import org.dawnoftime.onceuponatown.client.gui.tooltip.BuildingProductionTooltip;
 import org.dawnoftime.onceuponatown.client.gui.widgets.BuildingProductionDraggableWidget;
 import org.dawnoftime.onceuponatown.client.gui.widgets.DraggableWidget;
+import org.dawnoftime.onceuponatown.client.gui.widgets.EraProgressDraggableWidget;
 import org.dawnoftime.onceuponatown.client.gui.widgets.MapDraggableWidget;
+import org.dawnoftime.onceuponatown.client.gui.widgets.QuestDraggableWidget;
 import org.dawnoftime.onceuponatown.client.gui.widgets.VillageSummaryDraggableWidget;
 import org.dawnoftime.onceuponatown.network.NetworkHelper;
 import org.dawnoftime.onceuponatown.screen.VillageChestMenu;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu> {
 
@@ -45,6 +50,7 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
     private static final int COLOR_TOWN_CENTER = 0xFFFFAA00;
     private static final int COLOR_JOBS        = 0xFFCC3333;
     private static final int COLOR_GARDENS     = 0xFF33AA33;
+    private static final int COLOR_NATURAL     = 0xFF666666;
     private static final int COLOR_BUILDINGS   = 0xFF885533;
     private static final int COLOR_UNKNOWN     = 0xFF888888;
 
@@ -59,20 +65,33 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
     private static final int QUEUE_GRID_Y      = 18;
     private static final int QUEUE_ROWS        = 6;
     private static final int QUEUE_COLS        = 9;
-    private static final int AVAIL_GRID_Y_ROW0 = 140; // player inventory first row
+    private static final int AVAIL_GRID_Y_ROW0 = 140;
     private static final int AVAIL_ROWS        = 4;   // 3 player inv rows + 1 hotbar row
+    private static final int CATALOG_ROWS      = 3;   // construction tab: player inv rows only (no hotbar)
     private static final int AVAIL_COLS        = 9;
     private static final int CELL              = 18;
 
     // Session-persistent widget layout (reset on Minecraft restart)
     private static int savedMapX = -1, savedMapY = -1;
     private static int savedSummaryX = -1, savedSummaryY = -1;
+    private static int savedEraX = -1, savedEraY = -1;
     private static boolean savedMapOpen = true;
     private static boolean savedSummaryOpen = true;
+    private static boolean savedEraOpen = false;
     private static int savedActiveTab = 0;
     private static final List<String> savedWidgetOrder = new ArrayList<>();
+    private static final Map<String, int[]> savedQuestPositions = new HashMap<>();
+    private static final List<String> savedQuestOrder = new ArrayList<>();
 
-    private final List<DraggableWidget> widgets = new ArrayList<>();
+    private static final float L1_Z_BASE =    0f;
+    private static final float L1_Z_STEP =  500f;
+    private static final int   L1_MAX    =   10;
+    private static final float L2_Z_BASE = L1_Z_BASE + L1_MAX * L1_Z_STEP; // 5000
+    private static final float L3_Z_BASE = L2_Z_BASE + L1_Z_STEP;          // 5500
+    private static final float L3_Z_STEP =  500f;
+
+    private final List<DraggableWidget> layer1Widgets = new ArrayList<>();
+    private final List<DraggableWidget> layer3Widgets = new ArrayList<>();
     private boolean mapWidgetCreated = false;
     private BuildingProductionDraggableWidget productionPopup = null;
     private static int lastProductionPopupX = -1;
@@ -82,6 +101,18 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
     private CompoundTag cachedHubData;
     private boolean mapClosed = false;
     private boolean summaryClosed = false;
+    private boolean eraClosed = true;
+    private EraProgressDraggableWidget eraWidget = null;
+
+    // Era state parsed from hub data
+    private int currentEra = 0;
+    private int totalResidents = 0;
+    private int activeResidents = 0;
+    private int totalFoodDemand = 0;
+    private int currentWeight = 0;
+    private int maxWeight = 20;
+    private List<EraProgressDraggableWidget.EraPathOption> eraTransitions = new ArrayList<>();
+    private int lastKnownEra = -1;
 
     // Construction tab state (parsed from hub data)
     private int activeTab = 0; // 0 = Stock, 1 = Construction, 2 = Upgrade
@@ -89,6 +120,7 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
     private final List<BuildingEntry> buildingCatalog = new ArrayList<>();
     private final List<ClientQueueEntry> constructionQueueClient = new ArrayList<>();
     private final Map<String, Integer> stockSnapshot = new HashMap<>();
+    private final List<String> boostedBuildingIds = new ArrayList<>();
     private int catalogScrollOffset = 0;
 
     // Slot index of the queue entry the cursor is hovering over (-1 = none)
@@ -100,10 +132,25 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
     private int upgradeGridScrollOffset = 0;
     private int hoveredUpgradeSlot = -1;
 
+    // Upgrade tab bar hover state (populated each frame in renderUpgradeTab, read in renderUpgradeTooltips)
+    private final int[] barLabelYs = new int[6];
+    private final String[] barTooltips = new String[6];
+    private int numActiveBars = 0;
+    // Unlock icon hover state
+    private final List<int[]> unlockIconBounds = new ArrayList<>(); // {x, y}
+    private final List<String> unlockIconItemIds = new ArrayList<>();
+
     private record BuildingEntry(String id, String category, String iconItem,
                                  List<CostEntry> cost,
-                                 List<BuildingProductionTooltip.Row> productionRows) {}
+                                 List<BuildingProductionTooltip.Row> productionRows,
+                                 int requiredResidents,
+                                 List<ReqBuildingEntry> requiredBuildings,
+                                 double productionBonus,
+                                 float baseConsumption,
+                                 float maxConsumption,
+                                 int maxResidents) {}
     private record CostEntry(String itemId, int amount) {}
+    private record ReqBuildingEntry(String defId, int required, int have) {}
     private record UpgradeBuildingEntry(String defId, long worldPosLong, int upgradeLevel,
                                         String category, String iconItem) {}
     private record ClientQueueEntry(String type, String defId, long buildingWorldPos) {
@@ -151,6 +198,14 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
                 int startY = (savedSummaryY >= 0) ? Math.min(savedSummaryY, Math.max(0, this.height - summaryH)) : centerY(this.height, summaryH);
                 newWidgets.add(new VillageSummaryDraggableWidget(hub.getCompound("MapData"), hub.getCompound("SummaryData"), startX, startY, freeZoneW, this.height));
             }
+            if (savedEraOpen) {
+                int startX = (savedEraX >= 0) ? Math.min(savedEraX, Math.max(0, freeZoneW - EraProgressDraggableWidget.WIDGET_W)) : centerX(freeZoneW, EraProgressDraggableWidget.WIDGET_W);
+                int startY = (savedEraY >= 0) ? savedEraY : centerY(this.height, DraggableWidget.TITLE_BAR_H + 80);
+                eraWidget = new EraProgressDraggableWidget(startX, startY, freeZoneW, this.height,
+                    currentEra, eraTransitions,
+                    pathId -> NetworkHelper.sendAdvanceEraPacket.accept(anchorPos, pathId));
+                newWidgets.add(eraWidget);
+            }
             if (!savedWidgetOrder.isEmpty()) {
                 newWidgets.sort((a, b) -> {
                     int ia = savedWidgetOrder.indexOf(a.getClass().getSimpleName());
@@ -160,7 +215,7 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
                     return Integer.compare(ia, ib);
                 });
             }
-            widgets.addAll(newWidgets);
+            layer1Widgets.addAll(newWidgets);
             mapWidgetCreated = true;
         }
     }
@@ -169,6 +224,15 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
     // Safe to call both at init and during render (live refresh from C2S responses).
     private void parseHubData(CompoundTag hub) {
         anchorPos = NbtUtils.readBlockPos(hub.getCompound("AnchorPos"));
+        int prevEra = currentEra;
+        currentEra      = hub.getInt("CurrentEra");
+        totalResidents  = hub.getInt("TotalResidents");
+        activeResidents = hub.getInt("ActiveResidents");
+        totalFoodDemand = hub.getInt("TotalFoodDemand");
+        currentWeight  = hub.getInt("CurrentWeight");
+        maxWeight      = hub.getInt("MaxWeight");
+
+        eraTransitions = parseEraTransitions(hub);
 
         constructionQueueClient.clear();
         hub.getList("ConstructionQueue", Tag.TAG_COMPOUND).forEach(raw -> {
@@ -247,7 +311,21 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
                         .withStyle(ChatFormatting.GRAY)));
             }
 
-            buildingCatalog.add(new BuildingEntry(id, category, iconItem, cost, productionRows));
+            int requiredResidents = dt.getInt("RequiredResidents");
+            List<ReqBuildingEntry> requiredBuildings = new ArrayList<>();
+            dt.getList("RequiredBuildings", Tag.TAG_COMPOUND).forEach(rt -> {
+                CompoundTag req = (CompoundTag) rt;
+                requiredBuildings.add(new ReqBuildingEntry(
+                    req.getString("DefId"), req.getInt("Count"), req.getInt("Have")));
+            });
+
+            float baseConsumption = dt.getFloat("BaseConsumptionPerResident");
+            float maxConsumption  = dt.getFloat("MaxConsumptionPerResident");
+            int maxResidents      = dt.getInt("MaxResidents");
+
+            buildingCatalog.add(new BuildingEntry(id, category, iconItem, cost, productionRows,
+                requiredResidents, requiredBuildings,
+                productionBonus, baseConsumption, maxConsumption, maxResidents));
         });
 
         stockSnapshot.clear();
@@ -255,6 +333,9 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
         for (String key : stockTag.getAllKeys()) {
             stockSnapshot.put(key, stockTag.getInt(key));
         }
+
+        boostedBuildingIds.clear();
+        hub.getList("BoostedBuildings", Tag.TAG_STRING).forEach(t -> boostedBuildingIds.add(t.getAsString()));
 
         upgradeBuildingsList.clear();
         hub.getList("UpgradeBuildings", Tag.TAG_COMPOUND).forEach(raw -> {
@@ -267,6 +348,107 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
                 ubt.getString("IconItem")
             ));
         });
+        // Sort: non-maxed buildings first (by category weight, then upgrade level, then defId),
+        // fully-upgraded buildings grouped at the end (same secondary sort).
+        upgradeBuildingsList.sort((a, b) -> {
+            ClientBuildingDefsRegistry.DefEntry da = ClientBuildingDefsRegistry.get(a.defId());
+            ClientBuildingDefsRegistry.DefEntry db = ClientBuildingDefsRegistry.get(b.defId());
+            int maxA = da != null ? da.upgrades().size() : 0;
+            int maxB = db != null ? db.upgrades().size() : 0;
+            boolean atMaxA = maxA > 0 && a.upgradeLevel() >= maxA;
+            boolean atMaxB = maxB > 0 && b.upgradeLevel() >= maxB;
+            if (atMaxA != atMaxB) return atMaxA ? 1 : -1;
+            int catA = BuildingDef.weightForCategory(a.category());
+            int catB = BuildingDef.weightForCategory(b.category());
+            if (catA != catB) return Integer.compare(catA, catB);
+            if (a.upgradeLevel() != b.upgradeLevel()) return Integer.compare(a.upgradeLevel(), b.upgradeLevel());
+            return a.defId().compareTo(b.defId());
+        });
+
+        // Update era widget with fresh data
+        if (eraWidget != null) {
+            eraWidget.updateData(currentEra, eraTransitions);
+        }
+        // Play firework sound when era advances
+        if (lastKnownEra >= 0 && currentEra > prevEra) {
+            var mc = net.minecraft.client.Minecraft.getInstance();
+            if (mc.level != null && mc.player != null) {
+                mc.level.playLocalSound(mc.player.blockPosition(),
+                    net.minecraft.sounds.SoundEvents.FIREWORK_ROCKET_BLAST,
+                    net.minecraft.sounds.SoundSource.PLAYERS, 1.0f, 1.0f, false);
+            }
+        }
+        lastKnownEra = currentEra;
+
+        // Sync quest cards: add/update/remove based on what the hub packet contains
+        List<CompoundTag> questTagList = new ArrayList<>();
+        hub.getList("Quests", Tag.TAG_COMPOUND).forEach(t -> questTagList.add((CompoundTag) t));
+        syncQuestWidgets(questTagList);
+    }
+
+    private void syncQuestWidgets(List<CompoundTag> questTags) {
+        Set<String> incomingIds = new HashSet<>();
+        for (CompoundTag qt : questTags) incomingIds.add(qt.getString("QuestId"));
+
+        // Remove widgets for quests that are gone (claimed or expired), save their positions
+        layer3Widgets.removeIf(w -> {
+            if (w instanceof QuestDraggableWidget qw && !incomingIds.contains(qw.getQuestId())) {
+                savedQuestPositions.put(qw.getQuestId(), new int[]{ qw.getX(), qw.getY() });
+                return true;
+            }
+            return false;
+        });
+
+        // Collect IDs of quest widgets already present
+        Set<String> existingIds = new HashSet<>();
+        for (DraggableWidget w : layer3Widgets) {
+            if (w instanceof QuestDraggableWidget qw) existingIds.add(qw.getQuestId());
+        }
+
+        // Update existing widgets; collect new ones for ordered insertion
+        List<QuestDraggableWidget> newQuests = new ArrayList<>();
+        int questIdx = 0;
+        for (CompoundTag qt : questTags) {
+            String questId = qt.getString("QuestId");
+            if (existingIds.contains(questId)) {
+                for (DraggableWidget w : layer3Widgets) {
+                    if (w instanceof QuestDraggableWidget qw && qw.getQuestId().equals(questId)) {
+                        qw.update(qt);
+                        break;
+                    }
+                }
+            } else {
+                int[] pos = savedQuestPositions.get(questId);
+                int startX, startY;
+                if (pos != null) {
+                    startX = pos[0];
+                    startY = pos[1];
+                } else {
+                    int maxX = Math.max(1, leftPos - QuestDraggableWidget.WIDGET_W - 10);
+                    int maxY = Math.max(1, height - 80);
+                    startX = (int)(Math.random() * maxX);
+                    startY = (int)(Math.random() * maxY);
+                }
+                QuestDraggableWidget qw = new QuestDraggableWidget(qt,
+                    id -> NetworkHelper.sendClaimQuestPacket.accept(anchorPos, id),
+                    startX, startY, leftPos, height);
+                qw.setMoveCallback(() -> savedQuestPositions.put(qw.getQuestId(), new int[]{ qw.getX(), qw.getY() }));
+                newQuests.add(qw);
+            }
+            questIdx++;
+        }
+
+        // Restore saved z-order for newly added quests
+        if (!savedQuestOrder.isEmpty() && !newQuests.isEmpty()) {
+            newQuests.sort((a, b) -> {
+                int ia = savedQuestOrder.indexOf(a.getQuestId());
+                int ib = savedQuestOrder.indexOf(b.getQuestId());
+                if (ia < 0) ia = Integer.MAX_VALUE;
+                if (ib < 0) ib = Integer.MAX_VALUE;
+                return Integer.compare(ia, ib);
+            });
+        }
+        layer3Widgets.addAll(newQuests);
     }
 
     @Override
@@ -290,14 +472,8 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
 
         this.renderBackground(guiGraphics);
 
-        if (activeTab == 1 || activeTab == 2) {
-            // Bypass super.render() entirely so inventory slots (rendered at z=232) never reach the frame
-            renderBg(guiGraphics, partialTick, mouseX, mouseY);
-        } else {
-            super.render(guiGraphics, mouseX, mouseY, partialTick);
-        }
-
-        widgets.removeIf(w -> {
+        // Remove closed layer 1 widgets, saving their last-known state
+        layer1Widgets.removeIf(w -> {
             if (w.isClosed()) {
                 if (w == productionPopup) {
                     lastProductionPopupX = productionPopup.getX();
@@ -314,40 +490,69 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
                     savedSummaryY = w.getY();
                     savedSummaryOpen = false;
                 }
+                if (w instanceof EraProgressDraggableWidget) {
+                    savedEraX = w.getX();
+                    savedEraY = w.getY();
+                    savedEraOpen = false;
+                    eraWidget = null;
+                }
             }
             return w.isClosed();
         });
-        mapClosed     = widgets.stream().noneMatch(w -> w instanceof MapDraggableWidget);
-        summaryClosed = widgets.stream().noneMatch(w -> w instanceof VillageSummaryDraggableWidget);
+        mapClosed     = layer1Widgets.stream().noneMatch(w -> w instanceof MapDraggableWidget);
+        summaryClosed = layer1Widgets.stream().noneMatch(w -> w instanceof VillageSummaryDraggableWidget);
+        eraClosed     = layer1Widgets.stream().noneMatch(w -> w instanceof EraProgressDraggableWidget);
 
-        // Each widget is rendered at a higher z-band (500 units apart) so that
-        // fills AND items (which Minecraft auto-translates to z+232) from a later
-        // widget always appear in front of everything from an earlier widget.
-        for (int i = 0; i < widgets.size(); i++) {
+        // Layer 1: left draggable widgets (Map, Summary, Era, Production popup)
+        for (int i = 0; i < layer1Widgets.size(); i++) {
             guiGraphics.pose().pushPose();
-            guiGraphics.pose().translate(0, 0, i * 500.0f);
-            widgets.get(i).render(guiGraphics, mouseX, mouseY, partialTick);
+            guiGraphics.pose().translate(0, 0, L1_Z_BASE + i * L1_Z_STEP);
+            layer1Widgets.get(i).render(guiGraphics, mouseX, mouseY, partialTick);
             guiGraphics.pose().popPose();
         }
 
+        // Layer 2: right fixed panel -- single z-band always above Layer 1
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(0, 0, L2_Z_BASE);
+        if (activeTab == 1 || activeTab == 2) {
+            // Skip inventory slot rendering for non-stock tabs
+            renderBg(guiGraphics, partialTick, mouseX, mouseY);
+        } else {
+            super.render(guiGraphics, mouseX, mouseY, partialTick);
+        }
         renderReopenButtons(guiGraphics, mouseX, mouseY);
         renderTabs(guiGraphics, mouseX, mouseY);
-
         if (activeTab == 1) {
             renderConstructionTab(guiGraphics, mouseX, mouseY);
+            renderWeightBar(guiGraphics, mouseX, mouseY);
         } else if (activeTab == 2) {
             renderUpgradeTab(guiGraphics, mouseX, mouseY);
         }
+        guiGraphics.pose().popPose();
 
-        // Render tooltips above all draggable widgets by pushing z higher than the topmost widget.
+        // Layer 3: quest cards -- always above the right panel
+        for (int i = 0; i < layer3Widgets.size(); i++) {
+            guiGraphics.pose().pushPose();
+            guiGraphics.pose().translate(0, 0, L3_Z_BASE + i * L3_Z_STEP);
+            layer3Widgets.get(i).render(guiGraphics, mouseX, mouseY, partialTick);
+            guiGraphics.pose().popPose();
+        }
+
+        // Tooltips above everything
         guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(0, 0, (widgets.size() + 1) * 500.0f);
+        guiGraphics.pose().translate(0, 0, L3_Z_BASE + (layer3Widgets.size() + 1) * L3_Z_STEP);
         if (activeTab == 1) {
             renderConstructionTooltips(guiGraphics, mouseX, mouseY);
         } else if (activeTab == 2) {
             renderUpgradeTooltips(guiGraphics, mouseX, mouseY);
         } else {
             this.renderTooltip(guiGraphics, mouseX, mouseY);
+        }
+        if (eraWidget != null) {
+            List<Component> eraTooltip = eraWidget.getHoveredTooltip(mouseX, mouseY);
+            if (!eraTooltip.isEmpty()) {
+                guiGraphics.renderComponentTooltip(font, eraTooltip, mouseX, mouseY);
+            }
         }
         guiGraphics.pose().popPose();
     }
@@ -373,10 +578,10 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
         hoveredQueueSlot = -1;
         hoveredCatalogSlot = -1;
 
-        // Queue grid (chest slot area)
-        for (int i = 0; i < QUEUE_ROWS * QUEUE_COLS; i++) {
+        // Queue grid (chest slot area) - starts at row 1; row 0 is occupied by the weight bar
+        for (int i = 0; i < (QUEUE_ROWS - 1) * QUEUE_COLS; i++) {
             int col = i % QUEUE_COLS;
-            int row = i / QUEUE_COLS;
+            int row = i / QUEUE_COLS + 1;
             int sx = leftPos + QUEUE_GRID_X + col * CELL;
             int sy = topPos + QUEUE_GRID_Y + row * CELL;
 
@@ -403,10 +608,10 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
             }
         }
 
-        // Available buildings grid (player inventory + hotbar area)
+        // Available buildings grid (player inventory area only, hotbar row removed)
         int visibleStart = catalogScrollOffset * AVAIL_COLS;
-        int[] rowYOffsets = {AVAIL_GRID_Y_ROW0, AVAIL_GRID_Y_ROW0 + 18, AVAIL_GRID_Y_ROW0 + 36, 198};
-        for (int row = 0; row < AVAIL_ROWS; row++) {
+        int[] rowYOffsets = {AVAIL_GRID_Y_ROW0, AVAIL_GRID_Y_ROW0 + 18, AVAIL_GRID_Y_ROW0 + 36};
+        for (int row = 0; row < CATALOG_ROWS; row++) {
             for (int col = 0; col < AVAIL_COLS; col++) {
                 int catalogIdx = visibleStart + row * AVAIL_COLS + col;
                 int sx = leftPos + QUEUE_GRID_X + col * CELL;
@@ -422,6 +627,22 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
                         // Diagonal cross to signal unaffordable
                         g.fill(sx, sy, sx + CELL - 2, sy + 1, 0x88CC0000);
                     }
+                    if (!meetsPrerequisites(entry)) {
+                        // Lock pixel (top-left corner) for unmet prerequisites
+                        g.fill(sx, sy, sx + 3, sy + 3, 0xFF886600);
+                    }
+                    // Yellow diamond star (bottom-right) for orientation-boosted buildings
+                    if (boostedBuildingIds.contains(entry.id())) {
+                        g.pose().pushPose();
+                        g.pose().translate(0, 0, 300);
+                        int bx = sx + CELL - 6;
+                        int by = sy + CELL - 6;
+                        int bc = 0xFFFFDD44;
+                        g.fill(bx + 1, by,     bx + 2, by + 1, bc);
+                        g.fill(bx,     by + 1, bx + 3, by + 2, bc);
+                        g.fill(bx + 1, by + 2, bx + 2, by + 3, bc);
+                        g.pose().popPose();
+                    }
                 } else {
                     g.fill(sx, sy, sx + CELL - 2, sy + CELL - 2, COLOR_SLOT_EMPTY);
                 }
@@ -435,10 +656,10 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
 
         // Scroll indicator (small text bottom-right of catalog area if scrollable)
         int totalRows = (buildingCatalog.size() + AVAIL_COLS - 1) / AVAIL_COLS;
-        if (totalRows > AVAIL_ROWS) {
-            String scrollText = (catalogScrollOffset + 1) + "/" + (totalRows - AVAIL_ROWS + 1);
+        if (totalRows > CATALOG_ROWS) {
+            String scrollText = (catalogScrollOffset + 1) + "/" + (totalRows - CATALOG_ROWS + 1);
             g.drawString(font, scrollText, leftPos + imageWidth - 4 - font.width(scrollText),
-                topPos + 210, 0xFFAAAAAA, false);
+                topPos + 201, 0xFFAAAAAA, false);
         }
     }
 
@@ -481,6 +702,19 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
             if (!isAffordable(entry)) {
                 lines.add(Component.literal("Not enough resources").withStyle(s -> s.withColor(0xFF5555)));
             }
+            if (entry.requiredResidents() > 0 || !entry.requiredBuildings().isEmpty()) {
+                lines.add(Component.literal("Requires:").withStyle(s -> s.withColor(0xCCCCCC)));
+                if (entry.requiredResidents() > 0) {
+                    boolean met = activeResidents >= entry.requiredResidents();
+                    lines.add(Component.literal("  " + activeResidents + "/" + entry.requiredResidents() + " active residents")
+                        .withStyle(s -> s.withColor(met ? 0x55FF55 : 0xFF5555)));
+                }
+                for (ReqBuildingEntry req : entry.requiredBuildings()) {
+                    boolean met = req.have() >= req.required();
+                    lines.add(Component.literal("  " + req.have() + "/" + req.required() + "x " + formatId(req.defId()))
+                        .withStyle(s -> s.withColor(met ? 0x55FF55 : 0xFF5555)));
+                }
+            }
             if (!entry.productionRows().isEmpty()) {
                 lines.add(Component.literal("Right-click: View production").withStyle(s -> s.withColor(0x888888)));
             }
@@ -491,11 +725,14 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
 
     private void renderUpgradeTab(GuiGraphics g, int mx, int my) {
         hoveredUpgradeSlot = -1;
+        numActiveBars = 0;
+        unlockIconBounds.clear();
+        unlockIconItemIds.clear();
+
         int panelX = leftPos + 11;
         int panelW = imageWidth - 22;
-
-        // Vertical padding inside the dark info rectangle
         final int vPad = 3;
+        final int BAR_SPACING = 19;
 
         UpgradeBuildingEntry sel = getSelectedUpgradeEntry();
         if (sel == null) {
@@ -513,74 +750,169 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
             g.drawString(font, levelStr, leftPos + imageWidth - 11 - font.width(levelStr), topPos + 19 + vPad, levelColor, false);
 
             if (defEntry != null && maxLevel > 0) {
+                // Accumulate cumulative stats per dimension
                 double maxCadence = 0, curCadence = 0, nextCadence = 0;
                 int maxCapAdd = 0, curCapAdd = 0, nextCapAdd = 0;
                 int maxAmountAdd = 0, curAmountAdd = 0, nextAmountAdd = 0;
+                int maxResidentsAdd = 0, curResidentsAdd = 0, nextResidentsAdd = 0;
+                float maxConsumptionAdd = 0, curConsumptionAdd = 0, nextConsumptionAdd = 0;
+                double maxBonusAdd = 0, curBonusAdd = 0, nextBonusAdd = 0;
+
                 for (int i = 0; i < defEntry.upgrades().size(); i++) {
                     ClientBuildingDefsRegistry.UpgradeLevelClient u = defEntry.upgrades().get(i);
-                    maxCadence    += u.cadenceMultiplier();
-                    maxCapAdd     += u.capacityStacksAdd();
-                    maxAmountAdd  += u.amountAdd();
+                    maxCadence       += u.cadenceMultiplier();
+                    maxCapAdd        += u.capacityStacksAdd();
+                    maxAmountAdd     += u.amountAdd();
+                    maxResidentsAdd  += u.residentsAdd();
+                    maxConsumptionAdd += u.consumptionPerResidentAdd();
+                    maxBonusAdd      += u.productionBonusAdd();
                     if (i < sel.upgradeLevel()) {
-                        curCadence    += u.cadenceMultiplier();
-                        curCapAdd     += u.capacityStacksAdd();
-                        curAmountAdd  += u.amountAdd();
+                        curCadence       += u.cadenceMultiplier();
+                        curCapAdd        += u.capacityStacksAdd();
+                        curAmountAdd     += u.amountAdd();
+                        curResidentsAdd  += u.residentsAdd();
+                        curConsumptionAdd += u.consumptionPerResidentAdd();
+                        curBonusAdd      += u.productionBonusAdd();
                     }
                 }
                 boolean atMax = sel.upgradeLevel() >= maxLevel;
                 if (!atMax) {
                     ClientBuildingDefsRegistry.UpgradeLevelClient next = defEntry.upgrades().get(sel.upgradeLevel());
-                    nextCadence    = next.cadenceMultiplier();
-                    nextCapAdd     = next.capacityStacksAdd();
-                    nextAmountAdd  = next.amountAdd();
+                    nextCadence       = next.cadenceMultiplier();
+                    nextCapAdd        = next.capacityStacksAdd();
+                    nextAmountAdd     = next.amountAdd();
+                    nextResidentsAdd  = next.residentsAdd();
+                    nextConsumptionAdd = next.consumptionPerResidentAdd();
+                    nextBonusAdd      = next.productionBonusAdd();
                 }
+
+                // Determine which bars are active (at least one upgrade level has a non-zero value)
+                boolean hasSpeed    = maxCadence > 0;
+                boolean hasAmount   = maxAmountAdd > 0;
+                boolean hasCapacity = maxCapAdd > 0;
+                boolean hasResidents  = maxResidentsAdd > 0;
+                boolean hasConsumption = maxConsumptionAdd > 0;
+                boolean hasGardenBonus = maxBonusAdd > 0;
 
                 int barW = panelW - 6;
                 int barX = panelX + 2;
+                int barY = topPos + 32 + vPad;
 
-                // Units bar (+amount_add cumulated)
-                g.drawString(font, "Units", panelX, topPos + 32 + vPad, 0xFFFFAA33, false);
-                int baseAmt = defEntry.baseAmount();
-                float unitMax  = baseAmt + maxAmountAdd;
-                float unitFill  = unitMax > 0 ? (baseAmt + curAmountAdd) / unitMax : 1f;
-                float unitGhost = unitMax > 0 && !atMax ? nextAmountAdd / unitMax : 0f;
-                renderStatBar(g, barX, topPos + 42 + vPad, barW, 4, unitFill, unitGhost, 0xFFCC7700);
-
-                // Speed bar (cadence_multiplier cumulated)
-                g.drawString(font, "Speed", panelX, topPos + 51 + vPad, 0xFF55EE55, false);
-                float speedFill  = maxCadence > 0 ? (float)(curCadence / maxCadence) : 0f;
-                float speedGhost = maxCadence > 0 && !atMax ? (float)(nextCadence / maxCadence) : 0f;
-                renderStatBar(g, barX, topPos + 61 + vPad, barW, 4, speedFill, speedGhost, 0xFF226622);
-
-                // Capacity bar (capacity_stacks_add cumulated)
-                g.drawString(font, "Capacity", panelX, topPos + 70 + vPad, 0xFF8888FF, false);
-                int baseCap = defEntry.baseCapacity();
-                float capMax = baseCap + maxCapAdd;
-                float capFill  = capMax > 0 ? (baseCap + curCapAdd) / capMax : 1f;
-                float capGhost = capMax > 0 && !atMax ? nextCapAdd / capMax : 0f;
-                renderStatBar(g, barX, topPos + 80 + vPad, barW, 4, capFill, capGhost, 0xFF3355DD);
-
-                if (atMax) {
-                    g.drawString(font, "Fully upgraded", panelX, topPos + 89 + vPad, 0xFFFFDD44, false);
-                } else {
-                    boolean canAfford = canAffordUpgrade(sel, defEntry);
-                    int btnX = panelX;
-                    int btnY = topPos + 89 + vPad;
-                    int btnW = 46;
-                    int btnH = 11;
-                    boolean btnHover = mx >= btnX && mx < btnX + btnW && my >= btnY && my < btnY + btnH;
-                    g.fill(btnX, btnY, btnX + btnW, btnY + btnH,
-                        canAfford ? (btnHover ? 0xFF55BB55 : 0xFF337733) : 0xFF444444);
-                    String btnText = "Upgrade";
-                    g.drawString(font, btnText, btnX + (btnW - font.width(btnText)) / 2, btnY + 2,
-                        canAfford ? 0xFFFFFFFF : 0xFF888888, false);
+                // Render each active bar in order
+                if (hasSpeed) {
+                    barLabelYs[numActiveBars] = barY;
+                    barTooltips[numActiveBars] = "Reduces the time between each production cycle.";
+                    numActiveBars++;
+                    g.drawString(font, "Speed", panelX, barY, 0xFF55EE55, false);
+                    float fill  = maxCadence > 0 ? (float)(curCadence / maxCadence) : 0f;
+                    float ghost = maxCadence > 0 && !atMax ? (float)(nextCadence / maxCadence) : 0f;
+                    renderStatBar(g, barX, barY + 9, barW, 4, fill, ghost, 0xFF55EE55);
+                    barY += BAR_SPACING;
                 }
+                if (hasAmount) {
+                    barLabelYs[numActiveBars] = barY;
+                    barTooltips[numActiveBars] = "Increases the number of items produced each cycle.";
+                    numActiveBars++;
+                    g.drawString(font, "Output", panelX, barY, 0xFFCC7700, false);
+                    int baseAmt = defEntry.baseAmount();
+                    float total = baseAmt + (float)maxAmountAdd;
+                    float fill  = total > 0 ? (baseAmt + curAmountAdd) / total : 1f;
+                    float ghost = total > 0 && !atMax ? nextAmountAdd / total : 0f;
+                    renderStatBar(g, barX, barY + 9, barW, 4, fill, ghost, 0xFFCC7700);
+                    barY += BAR_SPACING;
+                }
+                if (hasCapacity) {
+                    barLabelYs[numActiveBars] = barY;
+                    barTooltips[numActiveBars] = "Increases how many items this building can hold before it stops producing.";
+                    numActiveBars++;
+                    g.drawString(font, "Storage", panelX, barY, 0xFF8888FF, false);
+                    int baseCap = defEntry.baseCapacity();
+                    float total = baseCap + (float)maxCapAdd;
+                    float fill  = total > 0 ? (baseCap + curCapAdd) / total : 1f;
+                    float ghost = total > 0 && !atMax ? nextCapAdd / total : 0f;
+                    renderStatBar(g, barX, barY + 9, barW, 4, fill, ghost, 0xFF8888FF);
+                    barY += BAR_SPACING;
+                }
+                if (hasResidents) {
+                    barLabelYs[numActiveBars] = barY;
+                    barTooltips[numActiveBars] = "Increases the number of villagers that live in this building.";
+                    numActiveBars++;
+                    g.drawString(font, "Residents", panelX, barY, 0xFFAA88FF, false);
+                    int baseRes = defEntry.baseResidents();
+                    float total = baseRes + (float)maxResidentsAdd;
+                    float fill  = total > 0 ? (baseRes + curResidentsAdd) / total : 1f;
+                    float ghost = total > 0 && !atMax ? nextResidentsAdd / total : 0f;
+                    renderStatBar(g, barX, barY + 9, barW, 4, fill, ghost, 0xFFAA88FF);
+                    barY += BAR_SPACING;
+                }
+                if (hasConsumption) {
+                    barLabelYs[numActiveBars] = barY;
+                    barTooltips[numActiveBars] = "Increases how much food each resident consumes per day.";
+                    numActiveBars++;
+                    g.drawString(font, "Consumption", panelX, barY, 0xFFFF8833, false);
+                    float baseCons = defEntry.baseConsumption();
+                    float total = baseCons + maxConsumptionAdd;
+                    float fill  = total > 0 ? (baseCons + curConsumptionAdd) / total : 1f;
+                    float ghost = total > 0 && !atMax ? nextConsumptionAdd / total : 0f;
+                    renderStatBar(g, barX, barY + 9, barW, 4, fill, ghost, 0xFFFF8833);
+                    barY += BAR_SPACING;
+                }
+                if (hasGardenBonus) {
+                    barLabelYs[numActiveBars] = barY;
+                    barTooltips[numActiveBars] = "Increases the village-wide production multiplier applied to all buildings.";
+                    numActiveBars++;
+                    g.drawString(font, "Village Bonus", panelX, barY, 0xFFCCDD33, false);
+                    double baseBonus = defEntry.baseProductionBonus();
+                    double total = baseBonus + maxBonusAdd;
+                    float fill  = total > 0 ? (float)((baseBonus + curBonusAdd) / total) : 1f;
+                    float ghost = total > 0 && !atMax ? (float)(nextBonusAdd / total) : 0f;
+                    renderStatBar(g, barX, barY + 9, barW, 4, fill, ghost, 0xFFCCDD33);
+                    barY += BAR_SPACING;
+                }
+
+                // Unlock icons row: shown only if the next upgrade reveals new recipes
+                if (!atMax) {
+                    List<String> nextUnlocks = defEntry.upgrades().get(sel.upgradeLevel()).unlockedDisplay();
+                    if (!nextUnlocks.isEmpty()) {
+                        int iconRowY = topPos + 91;
+                        g.drawString(font, "Unlocks:", panelX, iconRowY, 0xFFCCCCCC, false);
+                        int iconX = panelX;
+                        for (String itemId : nextUnlocks) {
+                            renderItemIcon(g, itemId, iconX, iconRowY + 9);
+                            unlockIconBounds.add(new int[]{ iconX, iconRowY + 9 });
+                            unlockIconItemIds.add(itemId);
+                            iconX += 18;
+                        }
+                    }
+                }
+
+                int btnW = 46;
+                int btnX = leftPos + QUEUE_GRID_X + (AVAIL_COLS * CELL) - 2 - btnW;
+                int btnY = topPos + 126;
+                int btnH = 11;
+                boolean canAfford = !atMax && canAffordUpgrade(sel, defEntry);
+                boolean btnHover = !atMax && mx >= btnX && mx < btnX + btnW && my >= btnY && my < btnY + btnH;
+                int btnColor = atMax ? 0xFF444444 : (canAfford ? (btnHover ? 0xFF55BB55 : 0xFF337733) : 0xFF444444);
+                g.fill(btnX, btnY, btnX + btnW, btnY + btnH, btnColor);
+                String btnText = atMax ? "Max level" : "Upgrade";
+                int btnTextColor = (atMax || !canAfford) ? 0xFF888888 : 0xFFFFFFFF;
+                g.drawString(font, btnText, btnX + (btnW - font.width(btnText)) / 2, btnY + 2, btnTextColor, false);
+
             } else if (defEntry != null) {
                 g.drawString(font, "No upgrades available", panelX, topPos + 31 + vPad, 0xFF666666, false);
             }
         }
 
         renderUpgradeBuildingGrid(g, mx, my);
+
+        // Era 0 lock overlay: covers the tab content so it is visible but non-interactive.
+        if (currentEra == 0) {
+            int lockTop = topPos + 16;
+            g.fill(leftPos, lockTop, leftPos + imageWidth, topPos + imageHeight, 0xC0222222);
+            int lockX = leftPos + imageWidth / 2 - 4;
+            int lockY = topPos + imageHeight / 2 - 5;
+            drawPadlockIcon(g, lockX, lockY);
+        }
     }
 
     private void renderStatBar(GuiGraphics g, int x, int y, int w, int h,
@@ -638,11 +970,41 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
         if (totalRows > AVAIL_ROWS) {
             String scrollText = (upgradeGridScrollOffset + 1) + "/" + (totalRows - AVAIL_ROWS + 1);
             g.drawString(font, scrollText, leftPos + imageWidth - 4 - font.width(scrollText),
-                topPos + 210, 0xFFAAAAAA, false);
+                topPos + 201, 0xFFAAAAAA, false);
         }
     }
 
     private void renderUpgradeTooltips(GuiGraphics g, int mx, int my) {
+        if (currentEra == 0
+                && mx >= leftPos && mx < leftPos + imageWidth
+                && my >= topPos + 16 && my < topPos + imageHeight) {
+            g.renderTooltip(font, Component.literal("Unlockable at Era 1"), mx, my);
+            return;
+        }
+
+        // Per-bar hover tooltips (checked before grid, covers the info rectangle zone)
+        for (int i = 0; i < numActiveBars; i++) {
+            int labelY = barLabelYs[i];
+            if (my >= labelY && my < labelY + 14 && mx >= leftPos + 11 && mx < leftPos + imageWidth - 11) {
+                g.renderTooltip(font, Component.literal(barTooltips[i]).withStyle(s -> s.withColor(0xCCCCCC)), mx, my);
+                return;
+            }
+        }
+
+        // Unlock icon hover: show item name
+        for (int i = 0; i < unlockIconBounds.size(); i++) {
+            int[] b = unlockIconBounds.get(i);
+            if (mx >= b[0] && mx < b[0] + 16 && my >= b[1] && my < b[1] + 16) {
+                try {
+                    Item hovItem = BuiltInRegistries.ITEM.get(new ResourceLocation(unlockIconItemIds.get(i)));
+                    if (hovItem != net.minecraft.world.item.Items.AIR) {
+                        g.renderTooltip(font, Component.translatable(hovItem.getDescriptionId()), mx, my);
+                    }
+                } catch (Exception ignored) {}
+                return;
+            }
+        }
+
         if (hoveredUpgradeSlot < 0 || hoveredUpgradeSlot >= upgradeBuildingsList.size()) return;
         UpgradeBuildingEntry entry = upgradeBuildingsList.get(hoveredUpgradeSlot);
         ClientBuildingDefsRegistry.DefEntry defEntry = ClientBuildingDefsRegistry.get(entry.defId());
@@ -681,13 +1043,14 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
 
     private void handleUpgradeTabClick(double mX, double mY, int button) {
         if (button != 0) return;
+        if (currentEra == 0) return;
 
         UpgradeBuildingEntry sel = getSelectedUpgradeEntry();
         if (sel != null) {
             ClientBuildingDefsRegistry.DefEntry defEntry = ClientBuildingDefsRegistry.get(sel.defId());
             if (defEntry != null && sel.upgradeLevel() < defEntry.upgrades().size()) {
-                int btnX = leftPos + 11;
-                int btnY = topPos + 92;
+                int btnX = leftPos + QUEUE_GRID_X + (AVAIL_COLS * CELL) - 2 - 46;
+                int btnY = topPos + 126;
                 if (mX >= btnX && mX < btnX + 46 && mY >= btnY && mY < btnY + 11) {
                     if (canAffordUpgrade(sel, defEntry)) {
                         NetworkHelper.sendUpgradeBuildingPacket.accept(anchorPos, sel.worldPosLong());
@@ -748,7 +1111,7 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
     public void onClose() {
         savedActiveTab = activeTab;
         savedWidgetOrder.clear();
-        for (DraggableWidget w : widgets) {
+        for (DraggableWidget w : layer1Widgets) {
             if (w instanceof MapDraggableWidget) {
                 savedMapX = w.getX();
                 savedMapY = w.getY();
@@ -757,6 +1120,16 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
                 savedSummaryX = w.getX();
                 savedSummaryY = w.getY();
                 savedWidgetOrder.add(w.getClass().getSimpleName());
+            } else if (w instanceof EraProgressDraggableWidget) {
+                savedEraX = w.getX();
+                savedEraY = w.getY();
+                savedWidgetOrder.add(w.getClass().getSimpleName());
+            }
+        }
+        savedQuestOrder.clear();
+        for (DraggableWidget w : layer3Widgets) {
+            if (w instanceof QuestDraggableWidget qw) {
+                savedQuestOrder.add(qw.getQuestId());
             }
         }
         super.onClose();
@@ -768,27 +1141,50 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
         if (button == 0 && cachedHubData != null) {
             int btnX = leftPos - 18;
             int btnY = topPos + 10;
-            if (mapClosed && mX >= btnX && mX < btnX + 14 && mY >= btnY && mY < btnY + 14) {
-                int freeZoneW = this.leftPos;
-                int startX = (savedMapX >= 0) ? savedMapX : centerX(freeZoneW, mapInitialHeight);
-                int startY = (savedMapY >= 0) ? savedMapY : centerY(this.height, mapInitialHeight);
-                MapDraggableWidget reopenedMap = new MapDraggableWidget(startX, startY, Math.min(160, freeZoneW - 20), mapInitialHeight, freeZoneW, this.height, cachedHubData.getCompound("MapData"));
-                reopenedMap.setOnBuildingClicked(pos -> { activeTab = 2; selectedUpgradeBuildingPos = pos; });
-                widgets.add(0, reopenedMap);
-                savedMapOpen = true;
-                mapClosed = false;
-                return true;
+            int offset = 0;
+            if (mapClosed) {
+                int ry = btnY + offset;
+                if (mX >= btnX && mX < btnX + 14 && mY >= ry && mY < ry + 14) {
+                    int freeZoneW = this.leftPos;
+                    int startX = (savedMapX >= 0) ? savedMapX : centerX(freeZoneW, mapInitialHeight);
+                    int startY = (savedMapY >= 0) ? savedMapY : centerY(this.height, mapInitialHeight);
+                    MapDraggableWidget reopenedMap = new MapDraggableWidget(startX, startY, Math.min(160, freeZoneW - 20), mapInitialHeight, freeZoneW, this.height, cachedHubData.getCompound("MapData"));
+                    reopenedMap.setOnBuildingClicked(pos -> { activeTab = 2; selectedUpgradeBuildingPos = pos; });
+                    layer1Widgets.add(0, reopenedMap);
+                    savedMapOpen = true;
+                    mapClosed = false;
+                    return true;
+                }
+                offset += 18;
             }
-            int iBtnY = btnY + (mapClosed ? 18 : 0);
-            if (summaryClosed && cachedHubData.contains("SummaryData") && mX >= btnX && mX < btnX + 14 && mY >= iBtnY && mY < iBtnY + 14) {
-                int freeZoneW = this.leftPos;
-                int summaryH = DraggableWidget.TITLE_BAR_H + VillageSummaryDraggableWidget.VISIBLE_H;
-                int startX = (savedSummaryX >= 0) ? savedSummaryX : centerX(freeZoneW, VillageSummaryDraggableWidget.WIDGET_W);
-                int startY = (savedSummaryY >= 0) ? savedSummaryY : centerY(this.height, summaryH);
-                widgets.add(0, new VillageSummaryDraggableWidget(cachedHubData.getCompound("MapData"), cachedHubData.getCompound("SummaryData"), startX, startY, freeZoneW, this.height));
-                savedSummaryOpen = true;
-                summaryClosed = false;
-                return true;
+            if (summaryClosed && cachedHubData.contains("SummaryData")) {
+                int ry = btnY + offset;
+                if (mX >= btnX && mX < btnX + 14 && mY >= ry && mY < ry + 14) {
+                    int freeZoneW = this.leftPos;
+                    int summaryH = DraggableWidget.TITLE_BAR_H + VillageSummaryDraggableWidget.VISIBLE_H;
+                    int startX = (savedSummaryX >= 0) ? savedSummaryX : centerX(freeZoneW, VillageSummaryDraggableWidget.WIDGET_W);
+                    int startY = (savedSummaryY >= 0) ? savedSummaryY : centerY(this.height, summaryH);
+                    layer1Widgets.add(0, new VillageSummaryDraggableWidget(cachedHubData.getCompound("MapData"), cachedHubData.getCompound("SummaryData"), startX, startY, freeZoneW, this.height));
+                    savedSummaryOpen = true;
+                    summaryClosed = false;
+                    return true;
+                }
+                offset += 18;
+            }
+            if (eraClosed) {
+                int ry = btnY + offset;
+                if (mX >= btnX && mX < btnX + 14 && mY >= ry && mY < ry + 14) {
+                    int freeZoneW = this.leftPos;
+                    int startX = (savedEraX >= 0) ? savedEraX : centerX(freeZoneW, EraProgressDraggableWidget.WIDGET_W);
+                    int startY = (savedEraY >= 0) ? savedEraY : centerY(this.height, DraggableWidget.TITLE_BAR_H + 80);
+                    eraWidget = new EraProgressDraggableWidget(startX, startY, freeZoneW, this.height,
+                        currentEra, eraTransitions,
+                        pathId -> NetworkHelper.sendAdvanceEraPacket.accept(anchorPos, pathId));
+                    layer1Widgets.add(0, eraWidget);
+                    savedEraOpen = true;
+                    eraClosed = false;
+                    return true;
+                }
             }
         }
 
@@ -811,14 +1207,23 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
             }
         }
 
-        // Only route clicks to widgets when outside the inventory panel area
+        // Layer 3: quest cards cover the full screen
+        for (int i = layer3Widgets.size() - 1; i >= 0; i--) {
+            DraggableWidget w = layer3Widgets.get(i);
+            if (w.mouseClicked(mX, mY, button)) {
+                if (i != layer3Widgets.size() - 1) { layer3Widgets.remove(i); layer3Widgets.add(w); }
+                return true;
+            }
+        }
+
+        // Layer 1: only route clicks inside the left free zone
         if (mX < leftPos) {
-            for (int i = widgets.size() - 1; i >= 0; i--) {
-                DraggableWidget w = widgets.get(i);
+            for (int i = layer1Widgets.size() - 1; i >= 0; i--) {
+                DraggableWidget w = layer1Widgets.get(i);
                 if (w.mouseClicked(mX, mY, button)) {
-                    if (i != widgets.size() - 1) {
-                        widgets.remove(i);
-                        widgets.add(w);
+                    if (i != layer1Widgets.size() - 1) {
+                        layer1Widgets.remove(i);
+                        layer1Widgets.add(w);
                     }
                     return true;
                 }
@@ -844,7 +1249,7 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
                     if (productionPopup != null) {
                         lastProductionPopupX = productionPopup.getX();
                         lastProductionPopupY = productionPopup.getY();
-                        widgets.remove(productionPopup);
+                        layer1Widgets.remove(productionPopup);
                     }
                     int popupH = BuildingProductionDraggableWidget.computeHeight(entry.productionRows());
                     int popupX = (lastProductionPopupX >= 0) ? lastProductionPopupX : centerX(leftPos, BuildingProductionDraggableWidget.WIDGET_W);
@@ -853,7 +1258,7 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
                         formatId(entry.id()), entry.productionRows(),
                         popupX, popupY, leftPos, this.height
                     );
-                    widgets.add(productionPopup);
+                    layer1Widgets.add(productionPopup);
                 }
                 return true;
             }
@@ -869,18 +1274,34 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
             return true;
         }
 
+        // Send button on Stock tab: click the arrow already drawn in the texture
+        if (activeTab == 0 && button == 0) {
+            int sendBtnX = leftPos + 152;
+            int sendBtnY = topPos + 108;
+            if (mX >= sendBtnX && mX < sendBtnX + 18 && mY >= sendBtnY && mY < sendBtnY + 18) {
+                NetworkHelper.sendDepositPacket.accept(anchorPos);
+                return true;
+            }
+        }
+
         return super.mouseClicked(mX, mY, button);
     }
 
     @Override
     public boolean mouseDragged(double mX, double mY, int button, double dX, double dY) {
-        // Route exclusively to the widget that owns the current drag
-        for (DraggableWidget w : widgets) {
+        // Route exclusively to the widget that owns the current drag (layer 3 has priority)
+        for (DraggableWidget w : layer3Widgets) {
             if (w.isDragging()) return w.mouseDragged(mX, mY, button, dX, dY);
         }
-        // No title-bar drag active: route in z-order (top first) for content drags (e.g. map pan)
-        for (int i = widgets.size() - 1; i >= 0; i--) {
-            if (widgets.get(i).mouseDragged(mX, mY, button, dX, dY)) return true;
+        for (DraggableWidget w : layer1Widgets) {
+            if (w.isDragging()) return w.mouseDragged(mX, mY, button, dX, dY);
+        }
+        // No drag active: route in z-order (top first)
+        for (int i = layer3Widgets.size() - 1; i >= 0; i--) {
+            if (layer3Widgets.get(i).mouseDragged(mX, mY, button, dX, dY)) return true;
+        }
+        for (int i = layer1Widgets.size() - 1; i >= 0; i--) {
+            if (layer1Widgets.get(i).mouseDragged(mX, mY, button, dX, dY)) return true;
         }
         if (activeTab == 1 || activeTab == 2) return true;
         return super.mouseDragged(mX, mY, button, dX, dY);
@@ -888,11 +1309,17 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
 
     @Override
     public boolean mouseReleased(double mX, double mY, int button) {
-        // Route release to the dragging widget first so it always receives its paired release
-        for (DraggableWidget w : widgets) {
+        // Route release to the dragging widget first (layer 3 has priority)
+        for (DraggableWidget w : layer3Widgets) {
             if (w.isDragging()) return w.mouseReleased(mX, mY, button);
         }
-        for (DraggableWidget w : widgets) {
+        for (DraggableWidget w : layer1Widgets) {
+            if (w.isDragging()) return w.mouseReleased(mX, mY, button);
+        }
+        for (DraggableWidget w : layer3Widgets) {
+            if (w.mouseReleased(mX, mY, button)) return true;
+        }
+        for (DraggableWidget w : layer1Widgets) {
             if (w.mouseReleased(mX, mY, button)) return true;
         }
         if (activeTab == 1 || activeTab == 2) return true;
@@ -901,13 +1328,16 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
 
     @Override
     public boolean mouseScrolled(double mX, double mY, double delta) {
-        // Widgets always get priority (VillageSummaryDraggableWidget scroll must work on all tabs)
-        for (int i = widgets.size() - 1; i >= 0; i--) {
-            if (widgets.get(i).mouseScrolled(mX, mY, delta)) return true;
+        // Layer 3 (quests) has scroll priority, then layer 1
+        for (int i = layer3Widgets.size() - 1; i >= 0; i--) {
+            if (layer3Widgets.get(i).mouseScrolled(mX, mY, delta)) return true;
+        }
+        for (int i = layer1Widgets.size() - 1; i >= 0; i--) {
+            if (layer1Widgets.get(i).mouseScrolled(mX, mY, delta)) return true;
         }
         if (activeTab == 1) {
             int totalRows = (buildingCatalog.size() + AVAIL_COLS - 1) / AVAIL_COLS;
-            int maxOffset = Math.max(0, totalRows - AVAIL_ROWS);
+            int maxOffset = Math.max(0, totalRows - CATALOG_ROWS);
             catalogScrollOffset = Math.max(0, Math.min(maxOffset,
                 catalogScrollOffset - (int) Math.signum(delta)));
             return true;
@@ -926,6 +1356,57 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
     // Helpers
     // -------------------------------------------------------------------------
 
+    private static List<EraProgressDraggableWidget.EraPathOption> parseEraTransitions(CompoundTag hub) {
+        List<EraProgressDraggableWidget.EraPathOption> result = new ArrayList<>();
+        int cw = hub.getInt("CurrentWeight");
+        int mw = hub.getInt("MaxWeight");
+        hub.getList("EraTransitions", Tag.TAG_COMPOUND).forEach(raw -> {
+            CompoundTag tt = (CompoundTag) raw;
+            String id = tt.getString("Id");
+            String displayName = tt.getString("DisplayName");
+            String iconItem = tt.getString("IconItem");
+            boolean prereqsMet = tt.getBoolean("PrereqsMet");
+            int reqWeight = tt.getInt("RequiredWeight");
+            boolean weightMet = tt.getBoolean("WeightMet");
+            List<EraProgressDraggableWidget.CostRow> costRows = new ArrayList<>();
+            tt.getList("ResourceCost", Tag.TAG_COMPOUND).forEach(cr -> {
+                CompoundTag c = (CompoundTag) cr;
+                costRows.add(new EraProgressDraggableWidget.CostRow(
+                    c.getString("Item"), c.getInt("Amount"), c.getInt("Have")));
+            });
+            int reqRes = tt.getInt("RequiredResidents");
+            int activeRes = tt.getInt("ActiveResidents");
+            boolean resMet = tt.getBoolean("ResidentsMet");
+            List<EraProgressDraggableWidget.ReqBuildRow> reqBuilds = new ArrayList<>();
+            tt.getList("RequiredBuildings", Tag.TAG_COMPOUND).forEach(rb -> {
+                CompoundTag r = (CompoundTag) rb;
+                reqBuilds.add(new EraProgressDraggableWidget.ReqBuildRow(
+                    r.getString("DefId"), r.getInt("Count"), r.getInt("Have")));
+            });
+            List<EraProgressDraggableWidget.UnlockEntry> unlocked = new ArrayList<>();
+            tt.getList("UnlockedBuildings", Tag.TAG_COMPOUND).forEach(u -> {
+                CompoundTag ut = (CompoundTag) u;
+                List<EraProgressDraggableWidget.SimpleCost> cost = new ArrayList<>();
+                ut.getList("Cost", Tag.TAG_COMPOUND).forEach(cr -> {
+                    CompoundTag ct = (CompoundTag) cr;
+                    cost.add(new EraProgressDraggableWidget.SimpleCost(ct.getString("Item"), ct.getInt("Amount")));
+                });
+                List<EraProgressDraggableWidget.SimpleReq> reqBuilds = new ArrayList<>();
+                ut.getList("RequiredBuildings", Tag.TAG_COMPOUND).forEach(rb -> {
+                    CompoundTag rt = (CompoundTag) rb;
+                    reqBuilds.add(new EraProgressDraggableWidget.SimpleReq(rt.getString("DefId"), rt.getInt("Count")));
+                });
+                unlocked.add(new EraProgressDraggableWidget.UnlockEntry(
+                    ut.getString("DefId"), ut.getString("IconItem"), ut.getString("Category"),
+                    cost, ut.getInt("RequiredResidents"), reqBuilds, ut.getBoolean("HasProduction")));
+            });
+            result.add(new EraProgressDraggableWidget.EraPathOption(
+                id, displayName, iconItem, prereqsMet, reqWeight, cw, mw, weightMet,
+                costRows, reqRes, activeRes, resMet, reqBuilds, unlocked));
+        });
+        return result;
+    }
+
     private BuildingEntry findCatalogEntry(String defId) {
         for (BuildingEntry e : buildingCatalog) {
             if (e.id().equals(defId)) return e;
@@ -933,11 +1414,19 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
         return null;
     }
 
+    private boolean meetsPrerequisites(BuildingEntry entry) {
+        if (entry.requiredResidents() > 0 && activeResidents < entry.requiredResidents()) return false;
+        for (ReqBuildingEntry req : entry.requiredBuildings()) {
+            if (req.have() < req.required()) return false;
+        }
+        return true;
+    }
+
     private boolean isAffordable(BuildingEntry entry) {
         for (CostEntry ce : entry.cost()) {
             if (stockSnapshot.getOrDefault(ce.itemId(), 0) < ce.amount()) return false;
         }
-        return true;
+        return currentWeight + BuildingDef.weightForCategory(entry.category()) <= maxWeight;
     }
 
     private static int categoryColor(String category) {
@@ -945,6 +1434,7 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
             case "town_center" -> COLOR_TOWN_CENTER;
             case "jobs"        -> COLOR_JOBS;
             case "gardens"     -> COLOR_GARDENS;
+            case "natural"     -> COLOR_NATURAL;
             case "buildings"   -> COLOR_BUILDINGS;
             default            -> COLOR_UNKNOWN;
         };
@@ -979,20 +1469,64 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
         return sb.toString();
     }
 
+    // Weight bar rendered inside the construction tab, occupying the first chest row.
+    // Shows current era, weight fill, and a ghost preview when hovering a catalog slot.
+    private void renderWeightBar(GuiGraphics g, int mx, int my) {
+        int barX = leftPos + QUEUE_GRID_X - 1;
+        int barH = 9;
+        int barY = topPos + QUEUE_GRID_Y + (CELL - barH) / 2;
+        int barW = QUEUE_COLS * CELL;
+
+        g.fill(barX, barY, barX + barW, barY + barH, 0xFF111111);
+
+        float fill = maxWeight > 0 ? Math.min(1f, (float) currentWeight / maxWeight) : 0f;
+        int fillPx = (int)(barW * fill);
+        int fillColor = (currentWeight >= maxWeight) ? 0xFF884400 : 0xFF335533;
+        if (fillPx > 0) g.fill(barX, barY, barX + fillPx, barY + barH, fillColor);
+
+        // Ghost preview when hovering a catalog slot (Build tab only)
+        if (activeTab == 1 && hoveredCatalogSlot >= 0 && hoveredCatalogSlot < buildingCatalog.size()) {
+            BuildingEntry hov = buildingCatalog.get(hoveredCatalogSlot);
+            int weightDelta = BuildingDef.weightForCategory(hov.category());
+            if (weightDelta > 0 && maxWeight > 0) {
+                float ghostFrac = (float) weightDelta / maxWeight;
+                int ghostPx = (int)(barW * Math.min(1f - fill, ghostFrac));
+                if (ghostPx > 0) {
+                    // Transparent stripe so the dark background shows through, distinguishing ghost from solid fill
+                    int ghostColor = isAffordable(hov) ? 0x2255BB55 : 0x22BB5555;
+                    g.fill(barX + fillPx, barY, barX + fillPx + ghostPx, barY + barH, ghostColor);
+                }
+            }
+        }
+
+        String label = "ERA " + currentEra + "  " + currentWeight + "/" + maxWeight;
+        g.drawString(font, label, barX + 3, barY + 1, 0xFFCCCCCC, false);
+    }
+
     private void renderReopenButtons(GuiGraphics g, int mx, int my) {
         if (cachedHubData == null) return;
         int btnX = leftPos - 18;
         int btnY = topPos + 10;
+        int offset = 0;
         if (mapClosed) {
-            boolean hover = mx >= btnX && mx < btnX + 14 && my >= btnY && my < btnY + 14;
-            g.fill(btnX, btnY, btnX + 14, btnY + 14, hover ? 0xFF555555 : 0xFF333333);
-            drawHouseIcon(g, btnX + 2, btnY + 3);
+            int ry = btnY + offset;
+            boolean hover = mx >= btnX && mx < btnX + 14 && my >= ry && my < ry + 14;
+            g.fill(btnX, ry, btnX + 14, ry + 14, hover ? 0xFF555555 : 0xFF333333);
+            drawHouseIcon(g, btnX + 2, ry + 3);
+            offset += 18;
         }
         if (summaryClosed && cachedHubData.contains("SummaryData")) {
-            int iBtnY = btnY + (mapClosed ? 18 : 0);
-            boolean hover = mx >= btnX && mx < btnX + 14 && my >= iBtnY && my < iBtnY + 14;
-            g.fill(btnX, iBtnY, btnX + 14, iBtnY + 14, hover ? 0xFF555555 : 0xFF333333);
-            drawInfoIcon(g, btnX + 2, iBtnY + 2);
+            int ry = btnY + offset;
+            boolean hover = mx >= btnX && mx < btnX + 14 && my >= ry && my < ry + 14;
+            g.fill(btnX, ry, btnX + 14, ry + 14, hover ? 0xFF555555 : 0xFF333333);
+            drawInfoIcon(g, btnX + 2, ry + 2);
+            offset += 18;
+        }
+        if (eraClosed) {
+            int ry = btnY + offset;
+            boolean hover = mx >= btnX && mx < btnX + 14 && my >= ry && my < ry + 14;
+            g.fill(btnX, ry, btnX + 14, ry + 14, hover ? 0xFF555555 : 0xFF333333);
+            drawEraIcon(g, btnX + 2, ry + 2);
         }
     }
 
@@ -1016,5 +1550,30 @@ public class VillageChestScreen extends AbstractContainerScreen<VillageChestMenu
         g.fill(bx + 2, by,     bx + 8, by + 1, c); // top serif
         g.fill(bx + 4, by + 1, bx + 6, by + 6, c); // stem
         g.fill(bx + 2, by + 6, bx + 8, by + 7, c); // bottom serif
+    }
+
+    // Pixel-art star/era icon (5x5 core)
+    private static void drawEraIcon(GuiGraphics g, int bx, int by) {
+        int c = 0xFFFFDD44;
+        g.fill(bx + 4, by,     bx + 6, by + 3, c); // top arm
+        g.fill(bx + 4, by + 7, bx + 6, by + 10, c); // bottom arm
+        g.fill(bx,     by + 4, bx + 3, by + 6, c); // left arm
+        g.fill(bx + 7, by + 4, bx + 10, by + 6, c); // right arm
+        g.fill(bx + 3, by + 3, bx + 7, by + 7, c); // center
+    }
+
+    // Pixel-art padlock icon (8x8 px)
+    private static void drawPadlockIcon(GuiGraphics g, int bx, int by) {
+        int c = 0xFFCCCCCC;
+        int k = 0xFF111111;
+        // Shackle
+        g.fill(bx + 2, by,     bx + 6, by + 1, c);
+        g.fill(bx + 1, by + 1, bx + 2, by + 4, c);
+        g.fill(bx + 6, by + 1, bx + 7, by + 4, c);
+        // Body
+        g.fill(bx,     by + 4, bx + 8, by + 10, c);
+        // Keyhole
+        g.fill(bx + 3, by + 5, bx + 5, by + 7, k);
+        g.fill(bx + 3, by + 7, bx + 5, by + 9, k);
     }
 }

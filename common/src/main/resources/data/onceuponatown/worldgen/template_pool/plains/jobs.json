@@ -23,15 +23,6 @@
                 "element_type": "minecraft:single_pool_element",
                 "processors": "minecraft:empty",
                 "projection": "rigid",
-                "location": "onceuponatown:plains/jobs/workshop"
-            }
-        },
-        {
-            "weight": 1,
-            "element": {
-                "element_type": "minecraft:single_pool_element",
-                "processors": "minecraft:empty",
-                "projection": "rigid",
                 "location": "onceuponatown:plains/jobs/grove"
             }
         },

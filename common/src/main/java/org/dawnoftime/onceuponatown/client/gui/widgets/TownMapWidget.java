@@ -34,6 +34,7 @@ public class TownMapWidget extends AbstractWidget {
     private static final Rgb BUILDING_RGB    = new Rgb(99, 83, 49);
     private static final Rgb JOB_RGB         = new Rgb(180, 50, 50);
     private static final Rgb GARDEN_RGB      = new Rgb(55, 130, 55);
+    private static final Rgb NATURAL_RGB     = new Rgb(110, 110, 110);
     private static final Rgb ROAD_RGB        = new Rgb(147, 147, 147);
     private static final Rgb HOVER_RGB       = new Rgb(234, 200, 190);
     private static final Rgb TOWN_CENTER_RGB = new Rgb(220, 180, 40);
@@ -330,6 +331,7 @@ public class TownMapWidget extends AbstractWidget {
         return switch (category) {
             case "jobs"        -> JOB_RGB;
             case "gardens"     -> GARDEN_RGB;
+            case "natural"     -> NATURAL_RGB;
             case "town_center" -> TOWN_CENTER_RGB;
             default            -> BUILDING_RGB;
         };

@@ -12,6 +12,7 @@ import org.dawnoftime.onceuponatown.building.schematic.BuildSchematic;
 import org.dawnoftime.onceuponatown.building.schematic.JigsawConnector;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
 import org.dawnoftime.onceuponatown.entity.Npc;
+import org.dawnoftime.onceuponatown.network.NetworkHelper;
 import org.dawnoftime.onceuponatown.town.BuildingDef;
 import org.dawnoftime.onceuponatown.town.ConnectionPoint;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
@@ -19,10 +20,8 @@ import org.dawnoftime.onceuponatown.town.PlacedBuilding;
 import org.dawnoftime.onceuponatown.town.QueueEntry;
 import org.dawnoftime.onceuponatown.town.Town;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 public class SimpleStateMachine {
 
@@ -37,22 +36,25 @@ public class SimpleStateMachine {
     private static final int MAX_FAIL_COUNT = 5;
     // Ticks the NPC waits in IDLE state before attempting to queue the next building.
     private static final int IDLE_WAIT_TICKS = 200;
+    // When no player queue, the NPC picks a random building once per minute to expand autonomously.
+    private static final int OPEN_PHASE_TICKS = 1200;
 
-    // Production bonus applied to every building placed during the bootstrap phase.
-    private static final double BOOTSTRAP_PRODUCTION_MULTIPLIER = 1.15;
+    // Production bonus applied to orientation-boosted buildings when built by the player.
+    private static final double ORIENTATION_BONUS_MULTIPLIER = 1.15;
 
     private final Npc npc;
     private State current = State.IDLE;
     private int idleTimer = 0;
     private BuildTask activeBuild = null;
     private int buildStateTicks = 0;
-    private boolean pendingBootstrapBonus = false;
     // The player-queued entry currently being built, or null if not building from queue.
     private QueueEntry activeQueueEntry = null;
     // Number of consecutive idle ticks where the current queue cursor entry could not be placed.
     private int playerQueueFailCount = 0;
     // Whether the saved-build resume check has been attempted this session.
     private boolean resumeChecked = false;
+    // Counts ticks in the open phase (no player queue) toward OPEN_PHASE_TICKS.
+    private int openPhaseTimer = 0;
 
     // -------------------------------------------------------------------------
     // Placement outcome: carries either a valid result or the reason for failure.
@@ -99,7 +101,6 @@ public class SimpleStateMachine {
                     BuildGoal resumed = BuildGoal.resumeFrom(savedBuild, npc, resumeTown, resumeLevel);
                     if (resumed != null) {
                         activeBuild = resumed;
-                        pendingBootstrapBonus = savedBuild.getBoolean("bootstrap_bonus");
                         activeQueueEntry = savedBuild.contains("queue_def_id")
                             ? new QueueEntry.NewBuild(savedBuild.getString("queue_def_id")) : null;
                         current = State.BUILD;
@@ -125,13 +126,6 @@ public class SimpleStateMachine {
             return;
         }
 
-        // Initialize bootstrap queue on first ever tick for this village.
-        if (!town.isBootstrapInitialized()) {
-            if (town.initBootstrap()) {
-                LevelTowns.get(serverLevel).markDirty();
-            }
-        }
-
         List<ConnectionPoint> freePoints = town.getAvailableConnectionPoints();
         if (freePoints.isEmpty()) {
             return;
@@ -140,103 +134,25 @@ public class SimpleStateMachine {
         List<BoundingBox> occupied = town.getOccupiedBoxes();
         List<ConnectionPoint> shuffledPoints = new ArrayList<>(freePoints);
 
-        if (town.isBootstrapping()) {
-            tickBootstrap(serverLevel, town, shuffledPoints, occupied);
-        } else if (!town.getConstructionQueue().isEmpty()) {
+        if (!town.getConstructionQueue().isEmpty()) {
+            openPhaseTimer = 0;
             tickPlayerQueue(serverLevel, town, shuffledPoints, occupied);
-            // If the queue building could not be placed this tick, still try to expand streets
+            // If the queue building could not be placed this tick, still expand streets
             // so the village does not stall while waiting for compatible connection points.
             if (current == State.IDLE) {
                 tickStreetsOnly(serverLevel, town, shuffledPoints, occupied);
             }
         } else {
-            tickStreetsOnly(serverLevel, town, shuffledPoints, occupied);
+            // No player instructions: extend roads once per minute.
+            if (++openPhaseTimer >= OPEN_PHASE_TICKS) {
+                openPhaseTimer = 0;
+                tickStreetsOnly(serverLevel, town, shuffledPoints, occupied);
+            }
         }
     }
 
     // Pool name used to identify street buildings; kept as a constant to avoid scattered literals.
     private static final String STREETS_POOL = "onceuponatown:streets";
-
-    // Tries to place the next eligible building from the bootstrap queue at zero cost.
-    // Iterates queue items and skips any whose pool has no compatible connection point this tick.
-    // If no bootstrap building can be placed, streets are allowed to expand so that new
-    // connection points become available for future bootstrap placements.
-    private void tickBootstrap(ServerLevel serverLevel, Town town,
-                                List<ConnectionPoint> shuffledPoints, List<BoundingBox> occupied) {
-        List<String> queueSnapshot = new ArrayList<>(town.getBootstrapQueue());
-        Set<String> tried = new HashSet<>();
-
-        for (String buildingId : queueSnapshot) {
-            if (tried.contains(buildingId)) continue;
-            tried.add(buildingId);
-
-            Optional<BuildingDef> defOpt = BuildingDataHandler.get(buildingId);
-            if (defOpt.isEmpty()) {
-                town.consumeBootstrapItem(buildingId);
-                LevelTowns.get(serverLevel).markDirty();
-                continue;
-            }
-
-            BuildingDef def = defOpt.get();
-
-            for (ConnectionPoint point : shuffledPoints) {
-                if (!point.targetName().isEmpty() && !def.entryPool.equals(point.targetName())) continue;
-
-                PlacementOutcome outcome = attemptPlacement(serverLevel, point, occupied, def);
-                if (outcome.succeeded()) {
-                    PlacementSuccess s = outcome.success();
-                    town.useConnection(point);
-                    town.consumeBootstrapItem(buildingId);
-                    LevelTowns.get(serverLevel).markDirty();
-                    activeBuild = new BuildGoal(npc, new NewBuildAction(
-                        def, point, s.pos(), s.rotation(), s.entryConnectorWorldPos(), List.of(), town));
-                    if (s.bb() != null) town.addUnderConstruction(def.id, s.pos(), s.bb(), s.rotation());
-                    pendingBootstrapBonus = true;
-                    current = State.BUILD;
-                    broadcastBuildStart(serverLevel, buildingId, s.pos(), true);
-                    return;
-                }
-            }
-        }
-
-        // No bootstrap building could be placed this tick -- allow streets to expand.
-        // Streets can open new connection points (jobs, houses) that unblock future bootstrap placements.
-        tryPlaceStreetDuringBootstrap(serverLevel, town, shuffledPoints, occupied);
-    }
-
-    // Attempts to place a street at any available street connection point during the bootstrap phase.
-    // Streets pay their normal construction cost -- no bootstrap bonus is applied.
-    private void tryPlaceStreetDuringBootstrap(ServerLevel serverLevel, Town town,
-                                                List<ConnectionPoint> shuffledPoints,
-                                                List<BoundingBox> occupied) {
-        List<BuildingDef> streetCandidates = new ArrayList<>(town.getBuildableBuildings().stream()
-            .filter(d -> STREETS_POOL.equals(d.entryPool))
-            .toList());
-
-        if (streetCandidates.isEmpty()) return;
-
-        for (ConnectionPoint point : shuffledPoints) {
-            if (!STREETS_POOL.equals(point.targetName())) continue;
-
-            shuffleInPlace(streetCandidates);
-            for (BuildingDef candidate : streetCandidates) {
-                PlacementOutcome outcome = attemptPlacement(serverLevel, point, occupied, candidate);
-                if (outcome.succeeded()) {
-                    PlacementSuccess s = outcome.success();
-                    town.useConnection(point);
-                    LevelTowns.get(serverLevel).markDirty();
-                    activeBuild = new BuildGoal(npc, new NewBuildAction(
-                        candidate, point, s.pos(), s.rotation(), s.entryConnectorWorldPos(),
-                        candidate.constructionCost, town));
-                    if (s.bb() != null) town.addUnderConstruction(candidate.id, s.pos(), s.bb(), s.rotation());
-                    pendingBootstrapBonus = false;
-                    current = State.BUILD;
-                    broadcastBuildStart(serverLevel, candidate.id, s.pos(), false);
-                    return;
-                }
-            }
-        }
-    }
 
     // Player-directed queue: tries to process the entry at the current cursor position.
     // Upgrades are dispatched immediately to UpgradeGoal (no connection point needed).
@@ -272,6 +188,7 @@ public class SimpleStateMachine {
             playerQueueFailCount = 0;
             current = State.BUILD;
             broadcastUpgradeStart(serverLevel, upgradeEntry.defId(), upgradeEntry.buildingWorldPos());
+            NetworkHelper.pushHubToWatchers(serverLevel, town, npc.getTownAnchorPos());
             return;
         }
 
@@ -280,6 +197,15 @@ public class SimpleStateMachine {
         BuildingDef def = BuildingDataHandler.get(defId).orElse(null);
         if (def == null) {
             town.consumeQueueEntry(entry);
+            LevelTowns.get(serverLevel).markDirty();
+            return;
+        }
+
+        // Prerequisites check: if the village doesn't meet them yet, skip this entry and wait.
+        if (!town.meetsPrerequisites(def)) {
+            LOGGER.debug("[OUAT-QUEUE] Prerequisites not met for '{}' -- skipping cursor.", defId);
+            playerQueueFailCount = 0;
+            town.advanceQueueCursor();
             LevelTowns.get(serverLevel).markDirty();
             return;
         }
@@ -304,7 +230,8 @@ public class SimpleStateMachine {
                 activeQueueEntry = entry;
                 playerQueueFailCount = 0;
                 current = State.BUILD;
-                broadcastBuildStart(serverLevel, defId, s.pos(), false);
+                broadcastBuildStart(serverLevel, defId, s.pos());
+                NetworkHelper.pushHubToWatchers(serverLevel, town, npc.getTownAnchorPos());
                 return;
             }
             if (outcome.failure() == FailReason.BOUNDING_BOX_OVERLAP)    bbOverlaps++;
@@ -355,9 +282,9 @@ public class SimpleStateMachine {
                         candidate, point, s.pos(), s.rotation(), s.entryConnectorWorldPos(),
                         candidate.constructionCost, town));
                     if (s.bb() != null) town.addUnderConstruction(candidate.id, s.pos(), s.bb(), s.rotation());
-                    pendingBootstrapBonus = false;
                     current = State.BUILD;
-                    broadcastBuildStart(serverLevel, candidate.id, s.pos(), false);
+                    broadcastBuildStart(serverLevel, candidate.id, s.pos());
+                    NetworkHelper.pushHubToWatchers(serverLevel, town, npc.getTownAnchorPos());
                     return;
                 }
                 physicalFailure = true;
@@ -440,18 +367,22 @@ public class SimpleStateMachine {
     }
 
     private void tickBuild() {
-        if (activeBuild == null) { current = State.IDLE; pendingBootstrapBonus = false; buildStateTicks = 0; return; }
+        if (activeBuild == null) { current = State.IDLE; buildStateTicks = 0; return; }
         buildStateTicks++;
         if (activeBuild.tick()) {
             BlockPos completedPos = activeBuild.getFinalPlacementPos();
-            if (!activeBuild.isFailed() && pendingBootstrapBonus) {
-                applyBootstrapBonus();
-            }
             if (!activeBuild.isFailed() && activeQueueEntry != null) {
                 if (npc.level() instanceof ServerLevel sl) {
                     Town qTown = findTown(sl);
                     if (qTown != null) {
                         qTown.consumeQueueEntry(activeQueueEntry);
+                        // Apply orientation bonus when player builds a boosted building.
+                        if (activeQueueEntry instanceof QueueEntry.NewBuild nb
+                                && qTown.getBoostedBuildingIds().contains(nb.defId())
+                                && !qTown.getBuildings().isEmpty()) {
+                            qTown.getBuildings().get(qTown.getBuildings().size() - 1)
+                                .setInstanceProductionMultiplier(ORIENTATION_BONUS_MULTIPLIER);
+                        }
                         LevelTowns.get(sl).markDirty();
                     }
                 }
@@ -462,9 +393,9 @@ public class SimpleStateMachine {
                 if (doneTown != null) {
                     doneTown.removeUnderConstruction(completedPos);
                     doneTown.removeUnderUpgrade(completedPos);
+                    NetworkHelper.pushHubToWatchers(sl, doneTown, npc.getTownAnchorPos());
                 }
             }
-            pendingBootstrapBonus = false;
             activeQueueEntry = null;
             activeBuild = null;
             buildStateTicks = 0;
@@ -472,24 +403,9 @@ public class SimpleStateMachine {
         }
     }
 
-    // Marks the most recently registered building with the orientation production bonus.
-    // Called after a successful bootstrap build completes.
-    private void applyBootstrapBonus() {
-        if (!(npc.level() instanceof ServerLevel serverLevel)) return;
-        Town town = findTown(serverLevel);
-        if (town == null || town.getBuildings().isEmpty()) return;
-        PlacedBuilding lastBuilt = town.getBuildings().get(town.getBuildings().size() - 1);
-        lastBuilt.setInstanceProductionMultiplier(BOOTSTRAP_PRODUCTION_MULTIPLIER);
-        LevelTowns.get(serverLevel).markDirty();
-    }
-
-    // Sends a chat message to all players when the NPC starts a new construction task.
-    // 'bootstrap' flag adds a visual cue that this is a free orientation-bonus build.
-    private void broadcastBuildStart(ServerLevel level, String buildingId, BlockPos pos, boolean bootstrap) {
-        String label = bootstrap ? "[Village - Bootstrap] " : "[Village] ";
-        ChatFormatting labelColor = bootstrap ? ChatFormatting.AQUA : ChatFormatting.GOLD;
-        Component msg = Component.literal(label)
-            .withStyle(labelColor)
+    private void broadcastBuildStart(ServerLevel level, String buildingId, BlockPos pos) {
+        Component msg = Component.literal("[Village] ")
+            .withStyle(ChatFormatting.GOLD)
             .append(Component.literal("Builder started: ")
                 .withStyle(ChatFormatting.WHITE))
             .append(Component.literal(buildingId)
@@ -518,7 +434,6 @@ public class SimpleStateMachine {
         net.minecraft.nbt.CompoundTag buildTag = new net.minecraft.nbt.CompoundTag();
         activeBuild.saveTo(buildTag);
         if (buildTag.isEmpty()) return;
-        buildTag.putBoolean("bootstrap_bonus", pendingBootstrapBonus);
         if (activeQueueEntry instanceof QueueEntry.NewBuild nb) buildTag.putString("queue_def_id", nb.defId());
         tag.put("active_build", buildTag);
     }

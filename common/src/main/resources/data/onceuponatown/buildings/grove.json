@@ -3,7 +3,13 @@
   "nbt": "onceuponatown:plains/jobs/grove",
   "entry_pool": "onceuponatown:jobs",
   "icon_item": "minecraft:oak_log",
-  "category": "jobs",
+  "category": "natural",
+  "construction_cost": [
+    {
+      "item": "minecraft:oak_log",
+      "amount": 5
+    }
+  ],
   "production": [
     {
       "item": "minecraft:oak_log",
@@ -19,37 +25,21 @@
     },
     {
       "item": "minecraft:apple",
-      "amount": 2,
+      "amount": 1,
       "every_ticks": 1200,
       "capacity_stacks": 2
     },
     {
       "item": "minecraft:stick",
-      "amount": 2,
+      "amount": 1,
       "every_ticks": 1200,
       "capacity_stacks": 2
     },
     {
       "item": "minecraft:oak_leaves",
-      "amount": 2,
+      "amount": 1,
       "every_ticks": 1200,
       "capacity_stacks": 3
-    }
-  ],
-  "construction_cost": [
-    {
-      "item": "minecraft:oak_log",
-      "amount": 5
-    }
-  ],
-  "nbt_levels": [
-    "onceuponatown:plains/jobs/grove_lvl1"
-  ],
-  "upgrades": [
-    {
-      "cadence_multiplier": 0.10,
-      "amount_add": 1,
-      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 20 }]
     }
   ]
 }

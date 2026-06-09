@@ -4,8 +4,9 @@
   "entry_pool": "onceuponatown:gardens",
   "icon_item": "minecraft:oak_leaves",
   "category": "gardens",
-  "production": [],
-  "production_bonus": 0.03,
+  "required_era": 1,
+  "production_bonus": 0.02,
+  "required_residents": 3,
   "construction_cost": [
     {
       "item": "minecraft:oak_log",

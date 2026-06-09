@@ -12,6 +12,10 @@ public abstract class DraggableWidget implements Renderable, GuiEventListener {
 
     protected int x, y, width, height;
 
+    // Subclasses can disable the close button or position clamping
+    protected boolean showCloseButton = true;
+    protected boolean clampPosition   = true;
+
     private boolean dragging = false;
     private int dragStartMouseX, dragStartMouseY;
     private int dragStartX, dragStartY;
@@ -37,20 +41,31 @@ public abstract class DraggableWidget implements Renderable, GuiEventListener {
     }
 
     private void renderTitleBar(GuiGraphics g, int mouseX, int mouseY) {
-        g.fill(x, y, x + width, y + TITLE_BAR_H, 0xF5333333);
-        g.drawString(Minecraft.getInstance().font, getTitle(), x + 3, y + 2, 0xFFFFFFFF, false);
-        int btnX = closeBtnX();
-        boolean hoverClose = mouseX >= btnX && mouseX < btnX + CLOSE_BTN_W
-            && mouseY >= y && mouseY < y + TITLE_BAR_H;
-        g.fill(btnX, y + 1, btnX + CLOSE_BTN_W, y + TITLE_BAR_H - 1,
-            hoverClose ? 0xFFCC3333 : 0xFF882222);
-        g.drawString(Minecraft.getInstance().font, "X", btnX + 2, y + 2, 0xFFFFFFFF, false);
+        g.fill(x, y, x + width, y + TITLE_BAR_H, getTitleBarColor());
+        g.drawString(Minecraft.getInstance().font, getTitle(), x + 3, y + 2, getTitleTextColor(), false);
+        renderTitleBarExtras(g, mouseX, mouseY);
+        if (showCloseButton) {
+            int btnX = closeBtnX();
+            boolean hoverClose = mouseX >= btnX && mouseX < btnX + CLOSE_BTN_W
+                && mouseY >= y && mouseY < y + TITLE_BAR_H;
+            g.fill(btnX, y + 1, btnX + CLOSE_BTN_W, y + TITLE_BAR_H - 1,
+                hoverClose ? 0xFFCC3333 : 0xFF882222);
+            g.drawString(Minecraft.getInstance().font, "X", btnX + 2, y + 2, 0xFFFFFFFF, false);
+        }
     }
+
+    protected void renderTitleBarExtras(GuiGraphics g, int mouseX, int mouseY) {}
+
+    protected int getTitleBarColor()  { return 0xF5333333; }
+    protected int getTitleTextColor() { return 0xFFFFFFFF; }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && isOverCloseButton(mouseX, mouseY)) {
+        if (button == 0 && showCloseButton && isOverCloseButton(mouseX, mouseY)) {
             onClose();
+            return true;
+        }
+        if (button == 0 && onTitleBarClick(mouseX, mouseY)) {
             return true;
         }
         if (button == 0 && isOverTitleBar(mouseX, mouseY)) {
@@ -96,6 +111,7 @@ public abstract class DraggableWidget implements Renderable, GuiEventListener {
     public boolean isDragging() { return dragging; }
     public int getX() { return x; }
     public int getY() { return y; }
+    protected void setHeight(int h) { this.height = h; }
 
     @Override
     public boolean isFocused() { return focused; }
@@ -118,10 +134,12 @@ public abstract class DraggableWidget implements Renderable, GuiEventListener {
             && mouseY >= y && mouseY < y + TITLE_BAR_H;
     }
 
-    private int closeBtnX() { return x + width - CLOSE_BTN_W - 1; }
+    protected int closeBtnX() { return x + width - CLOSE_BTN_W - 1; }
 
-    private int clampX(int nx) { return Math.max(0, Math.min(freeZoneMaxX - width, nx)); }
-    private int clampY(int ny) { return Math.max(0, Math.min(screenHeight - height, ny)); }
+    protected boolean onTitleBarClick(double mouseX, double mouseY) { return false; }
+
+    private int clampX(int nx) { return clampPosition ? Math.max(0, Math.min(freeZoneMaxX - width, nx)) : nx; }
+    private int clampY(int ny) { return clampPosition ? Math.max(0, Math.min(screenHeight - height, ny)) : ny; }
 
     protected abstract void renderContent(GuiGraphics g, int cx, int cy, int cw, int ch,
                                            int mouseX, int mouseY, float delta);

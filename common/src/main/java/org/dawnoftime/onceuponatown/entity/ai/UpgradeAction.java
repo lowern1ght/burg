@@ -28,12 +28,17 @@ public class UpgradeAction implements BuildAction {
     private final BuildingDef def;
     private final int fromLevel;
     private final Town town;
+    // Blocks deeper than the base template the target NBT level extends underground.
+    // Shifts the placement origin down so underground galleries land at the correct Y.
+    private final int undergroundDepth;
 
     public UpgradeAction(PlacedBuilding building, BuildingDef def, int fromLevel, Town town) {
         this.building = building;
         this.def = def;
         this.fromLevel = fromLevel;
         this.town = town;
+        this.undergroundDepth = (fromLevel < def.nbtLevels.size())
+            ? def.nbtLevels.get(fromLevel).undergroundDepth() : 0;
         town.addUnderUpgrade(building.worldPos);
     }
 
@@ -41,7 +46,7 @@ public class UpgradeAction implements BuildAction {
     public BlockPos getTargetPos() { return building.worldPos; }
 
     @Override
-    public BlockPos getOrigin() { return building.worldPos; }
+    public BlockPos getOrigin() { return building.worldPos.offset(0, -undergroundDepth, 0); }
 
     @Override
     public boolean isInstant() { return false; }
@@ -58,12 +63,12 @@ public class UpgradeAction implements BuildAction {
     public List<SchematicBlock> prepareBlocks(ServerLevel level, Npc npc) {
         ResourceLocation fromNbt = (fromLevel == 0)
             ? def.nbt
-            : (fromLevel - 1 < def.nbtLevels.size() ? def.nbtLevels.get(fromLevel - 1) : null);
-        ResourceLocation toNbt = (fromLevel < def.nbtLevels.size()) ? def.nbtLevels.get(fromLevel) : null;
+            : (fromLevel - 1 < def.nbtLevels.size() ? def.nbtLevels.get(fromLevel - 1).nbt() : null);
+        ResourceLocation toNbt = (fromLevel < def.nbtLevels.size()) ? def.nbtLevels.get(fromLevel).nbt() : null;
 
         if (fromNbt == null || toNbt == null) return List.of();
 
-        BuildSchematic.DiffResult diff = BuildSchematic.computeDiff(level, fromNbt, toNbt, building.rotation);
+        BuildSchematic.DiffResult diff = BuildSchematic.computeDiff(level, fromNbt, toNbt, building.rotation, undergroundDepth);
 
         List<SchematicBlock> steps = new ArrayList<>(diff.toRemove().size() + diff.toAdd().size());
         // Removals first so space is clear before adding new blocks.
@@ -87,9 +92,10 @@ public class UpgradeAction implements BuildAction {
         }
 
         if (newLevel <= def.nbtLevels.size()) {
-            ResourceLocation newNbt = def.nbtLevels.get(newLevel - 1);
+            BuildingDef.NbtLevel newNbtLevel = def.nbtLevels.get(newLevel - 1);
+            BlockPos jigsawOrigin = building.worldPos.offset(0, -newNbtLevel.undergroundDepth(), 0);
             List<ConnectionPoint> newPoints = BuildSchematic.readJigsawPointsFromNbt(
-                level, building.worldPos, newNbt, building.rotation);
+                level, jigsawOrigin, newNbtLevel.nbt(), building.rotation);
             List<ConnectionPoint> existing = town.getAvailableConnectionPoints();
             for (ConnectionPoint cp : newPoints) {
                 if (existing.stream().noneMatch(e -> e.pos().equals(cp.pos()))) {

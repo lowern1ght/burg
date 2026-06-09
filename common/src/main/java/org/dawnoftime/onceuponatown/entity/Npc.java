@@ -14,10 +14,13 @@ import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
+import net.minecraft.world.entity.ai.goal.OpenDoorGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
+import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import org.dawnoftime.onceuponatown.entity.ai.OpenFenceGateGoal;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import org.dawnoftime.onceuponatown.building.schematic.BuildSchematic;
@@ -66,8 +69,17 @@ public class Npc extends PathfinderMob {
     }
 
     @Override
+    protected net.minecraft.world.entity.ai.navigation.PathNavigation createNavigation(Level level) {
+        GroundPathNavigation nav = new GroundPathNavigation(this, level);
+        nav.setCanOpenDoors(true);
+        nav.setCanPassDoors(true);
+        return nav;
+    }
+
+    @Override
     protected void registerGoals() {
-        // Keep only basic survival goals - construction logic lives in SimpleStateMachine
+        this.goalSelector.addGoal(1, new OpenDoorGoal(this, false));
+        this.goalSelector.addGoal(2, new OpenFenceGateGoal(this));
         this.goalSelector.addGoal(9, new WaterAvoidingRandomStrollGoal(this, 0.6));
         this.goalSelector.addGoal(10, new LookAtPlayerGoal(this, Player.class, 8.0f));
     }
