@@ -6,11 +6,10 @@
   "category": "buildings",
   "residents": 2,
   "consumption_per_resident": 1.0,
-  "production": [],
   "construction_cost": [
     {
       "item": "minecraft:oak_log",
-      "amount": 8
+      "amount": 15
     }
   ],
   "nbt_levels": [

@@ -1,0 +1,37 @@
+{
+  "id": "beekeeper",
+  "nbt": "onceuponatown:plains/jobs/beekeeper",
+  "entry_pool": "onceuponatown:jobs",
+  "icon_item": "minecraft:honey_bottle",
+  "category": "jobs",
+  "required_buildings": [
+    { "defId": "bee_field", "count": 1 }
+  ],
+  "construction_cost": [
+    {
+      "item": "minecraft:oak_log",
+      "amount": 35
+    },
+    {
+      "item": "minecraft:cobblestone",
+      "amount": 15
+    }
+  ],
+  "production": [
+    {
+      "item": "minecraft:honeycomb",
+      "amount": 1,
+      "every_ticks": 1900,
+      "capacity_stacks": 1
+    }
+  ],
+  "nbt_levels": [
+    "onceuponatown:plains/jobs/beekeeper_lvl1",
+    "onceuponatown:plains/jobs/beekeeper_lvl2",
+    "onceuponatown:plains/jobs/beekeeper_lvl3",
+    "onceuponatown:plains/jobs/beekeeper_lvl4",
+    "onceuponatown:plains/jobs/beekeeper_lvl5",
+    "onceuponatown:plains/jobs/beekeeper_lvl6",
+    "onceuponatown:plains/jobs/beekeeper_lvl7"
+  ]
+}

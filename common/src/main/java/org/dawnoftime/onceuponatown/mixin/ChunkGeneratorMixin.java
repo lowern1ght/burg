@@ -153,6 +153,7 @@ public class ChunkGeneratorMixin {
             }
 
             town.addStock(Items.OAK_LOG, 25);
+            town.initFromEraDef();
 
             be.setTown(town);
             LevelTowns.get(serverLevel).registerTown(anchorPos, town);

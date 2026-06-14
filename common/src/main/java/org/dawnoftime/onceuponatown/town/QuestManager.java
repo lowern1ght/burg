@@ -17,12 +17,7 @@ public class QuestManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(QuestManager.class);
 
-    // Swap QUEST_TTL to QUEST_TTL_PRODUCTION for release builds
-    public static final long QUEST_TTL_DEBUG      = 3600L;  // 3 minutes (debug)
-    public static final long QUEST_TTL_PRODUCTION = 30000L; // ~25 minutes (production)
-    public static final long QUEST_TTL = QUEST_TTL_DEBUG;
-
-    public static final int MAX_ACTIVE_QUESTS = 3;
+    public static final int MAX_ACTIVE_QUESTS = 1;
 
     // Tries to generate one new quest. Returns null if at cap or no eligible defs.
     public static Quest tryGenerate(List<Quest> activeQuests, Set<String> dismissedNoteIds, long gameTime) {
@@ -60,8 +55,7 @@ public class QuestManager {
         q.questId = UUID.randomUUID().toString().substring(0, 8);
         q.defId = def.id();
         q.questType = def.type() != null ? def.type() : "TASK";
-        long ttl = def.ttlTicks() > 0 ? def.ttlTicks() : QUEST_TTL;
-        q.expiryTime = gameTime + ttl;
+        q.expiryTime = gameTime + def.durationTicks();
         for (QuestDef.ConditionTemplate ct : def.conditions()) {
             Quest.Condition c = new Quest.Condition();
             c.type = ct.type();

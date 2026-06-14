@@ -28,8 +28,10 @@ public record C2SUpgradeBuildingPacket(BlockPos anchorPos, long buildingWorldPos
             boolean queued = anchor.getTown().tryQueueUpgrade(BlockPos.of(packet.buildingWorldPos()));
             if (queued) {
                 LevelTowns.get(level).markDirty();
-                NetworkHelper.sendVillageHubPacket.accept(player,
-                    anchor.getTown().getHubData(packet.anchorPos()));
+                NetworkHelper.sendBuildingListPacket.accept(player,
+                    anchor.getTown().getBuildingListData(packet.anchorPos()));
+                NetworkHelper.sendStockUpdatePacket.accept(player,
+                    anchor.getTown().getStockUpdateData(packet.anchorPos()));
             }
         }
     }

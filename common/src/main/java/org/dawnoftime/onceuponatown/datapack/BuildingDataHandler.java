@@ -116,15 +116,6 @@ public class BuildingDataHandler {
         float transformInputRatio = json.has("transform_input_ratio") ? json.get("transform_input_ratio").getAsFloat() : 0.1f;
         int transformEveryTicks = json.has("transform_every_ticks") ? json.get("transform_every_ticks").getAsInt() : 1600;
 
-        String orientation = json.has("orientation") ? json.get("orientation").getAsString() : "";
-        // boosted: building defIds that receive the orientation bonus (+15%) when player-built.
-        List<String> boosted = new ArrayList<>();
-        if (json.has("boosted")) {
-            for (JsonElement el : json.getAsJsonArray("boosted")) {
-                boosted.add(el.getAsString());
-            }
-        }
-
         double productionBonus = json.has("production_bonus") ? json.get("production_bonus").getAsDouble() : 0.0;
         int stockBonus = json.has("stock_bonus") ? json.get("stock_bonus").getAsInt() : 0;
         int residents = json.has("residents") ? json.get("residents").getAsInt() : 0;
@@ -175,8 +166,6 @@ public class BuildingDataHandler {
             }
         }
 
-        int requiredEra = json.has("required_era") ? json.get("required_era").getAsInt() : 0;
-        String requiredOrientation = json.has("required_orientation") ? json.get("required_orientation").getAsString() : "";
         int requiredResidents = json.has("required_residents") ? json.get("required_residents").getAsInt() : 0;
         List<BuildingDef.BuildingRequirement> requiredBuildings = new ArrayList<>();
         if (json.has("required_buildings")) {
@@ -192,8 +181,8 @@ public class BuildingDataHandler {
             ? json.get("consumption_per_resident").getAsFloat() : 1.0f;
 
         return new BuildingDef(id, nbt, entryPool, production, costs, terrainMatching, iconItem, category, footprint,
-            transformations, transformInputRatio, transformEveryTicks, orientation, boosted,
-            productionBonus, stockBonus, residents, upgrades, nbtLevels, requiredEra, requiredOrientation,
+            transformations, transformInputRatio, transformEveryTicks,
+            productionBonus, stockBonus, residents, upgrades, nbtLevels,
             requiredResidents, requiredBuildings, consumptionPerResident);
     }
 

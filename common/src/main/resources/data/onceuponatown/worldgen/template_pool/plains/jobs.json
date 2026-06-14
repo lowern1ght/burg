@@ -43,6 +43,15 @@
                 "projection": "rigid",
                 "location": "onceuponatown:plains/jobs/mixed_wild_field"
             }
+        },
+        {
+            "weight": 1,
+            "element": {
+                "element_type": "minecraft:single_pool_element",
+                "processors": "minecraft:empty",
+                "projection": "rigid",
+                "location": "onceuponatown:plains/jobs/bee_tree"
+            }
         }
     ]
 }

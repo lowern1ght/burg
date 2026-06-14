@@ -12,9 +12,13 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
+import org.dawnoftime.onceuponatown.datapack.BuildingListDataHandler;
+import org.dawnoftime.onceuponatown.datapack.EraDef;
 import org.dawnoftime.onceuponatown.datapack.EraTransitionDataHandler;
 import org.dawnoftime.onceuponatown.datapack.EraTransitionDef;
 import org.dawnoftime.onceuponatown.datapack.QuestDataHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,6 +34,8 @@ import java.util.UUID;
 
 public class Town {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(Town.class);
+
     public record UnderConstructionEntry(String defId, BlockPos worldPos, BoundingBox bb, Rotation rotation) {}
 
     private final List<PlacedBuilding> buildings = new ArrayList<>();
@@ -41,9 +47,15 @@ public class Town {
     private final List<BoundingBox> blockedZones = new ArrayList<>();
     // World positions of buildings currently being upgraded by an NPC (runtime-only, not persisted).
     private final Set<BlockPos> underUpgrade = new HashSet<>();
-    private UUID builderNpcId;
+    // Ordered list of builder NPC UUIDs. Slot 0 is the primary builder (handles street expansion).
+    private final List<UUID> builderNpcIds = new ArrayList<>();
+    // How many builders should be active. Starts at 1, incremented by era transitions with unlock_new_builder.
+    private int targetBuilderCount = 1;
+    // Runtime-only claim map: queue index -> builder UUID. Prevents two builders from picking the same entry.
+    // Not persisted: claims are re-established on the next idle tick after a server restart.
+    private final Map<Integer, UUID> queueIndexClaims = new HashMap<>();
     private String name = "Unknown Town";
-    // Active quests for this village. Max 3 at a time (see QuestManager.MAX_ACTIVE_QUESTS).
+    // Active quests for this town. Max 3 at a time (see QuestManager.MAX_ACTIVE_QUESTS).
     private final List<Quest> activeQuests = new ArrayList<>();
     // NOTE quest def IDs that have already been shown. Once a NOTE is dismissed it never spawns again.
     private final Set<String> dismissedNoteIds = new HashSet<>();
@@ -56,7 +68,7 @@ public class Town {
     // Released back to reserveStock on removal, or cleared when NPC places the building.
     private final Map<Item, Integer> queueReservedStock = new HashMap<>();
 
-    // Max entries the queue can hold; matches VillageChestMenu.CHEST_SIZE (6x9 grid).
+    // Max entries the queue can hold; matches TownHubMenu.CHEST_SIZE (6x9 grid).
     public static final int QUEUE_CAPACITY = 54;
 
     // Current era (0 = Settlement, 1 = Village, ...). Persisted to NBT.
@@ -69,6 +81,10 @@ public class Town {
     private final Set<String> unlockedBuildingIds = new HashSet<>();
     // Fed portion of total residents, updated each dawn tick. Persisted to NBT.
     private int activeResidents = 0;
+    // Weight cost per building category, sourced from the era 0 data file. Persisted to NBT.
+    private final Map<String, Integer> categoryWeights = new HashMap<>();
+    // Current weight cap. Starts at initial_max_weight (era 0 file) and grows with each transition. Persisted to NBT.
+    private int currentMaxWeight = 20;
 
     public void registerBuilding(BlockPos worldPos, String defId, List<ConnectionPoint> connections, BoundingBox bb, Rotation rotation) {
         buildings.add(new PlacedBuilding(defId, worldPos, bb, rotation));
@@ -148,16 +164,48 @@ public class Town {
         return total;
     }
 
-    private static int weightForCategory(String category) {
-        return BuildingDef.weightForCategory(category);
+    private int weightForCategory(String category) {
+        if (categoryWeights.isEmpty()) {
+            LOGGER.error("[OUAT] categoryWeights is empty - era def may not have loaded correctly");
+            return 0;
+        }
+        return categoryWeights.getOrDefault(category, 0);
     }
 
     public int getCurrentEra() { return currentEra; }
     public String getCurrentEraPath() { return currentEraPath; }
     public Set<String> getUnlockedBuildingIds() { return Collections.unmodifiableSet(unlockedBuildingIds); }
 
-    // Returns the weight cap for the current era: 20 at era 0, +10 per era.
-    public int getCurrentMaxWeight() { return 20 + currentEra * 10; }
+    public int getCurrentMaxWeight() { return currentMaxWeight; }
+
+    // Seeds categoryWeights and currentMaxWeight from the matched era 0 data file.
+    // Called once at world gen after all starter buildings are registered.
+    public void initFromEraDef() {
+        String orientation = getOrDeriveOrientation();
+        if (orientation.isEmpty()) return;
+        EraDef def = EraTransitionDataHandler.getEraDefByOrientation(orientation);
+        if (def == null) return;
+        if (categoryWeights.isEmpty() && !def.categoryWeights.isEmpty()) {
+            categoryWeights.putAll(def.categoryWeights);
+        }
+        if (def.initialMaxWeight > 0) {
+            currentMaxWeight = def.initialMaxWeight;
+        }
+    }
+
+    // Returns the structure label (e.g. "Settlement", "Village") for the current era and orientation.
+    public String resolveStructureLabel() {
+        if (currentEra == 0) {
+            EraDef def = EraTransitionDataHandler.getEraDefByOrientation(getOrDeriveOrientation());
+            return def != null ? def.structureLabel : "";
+        }
+        for (EraTransitionDef t : EraTransitionDataHandler.getAll()) {
+            if (t.fromEra != currentEra - 1) continue;
+            String resultOrientation = t.nextOrientation.isEmpty() ? t.fromOrientation : t.nextOrientation;
+            if (resultOrientation.equals(getOrDeriveOrientation())) return t.structureLabel;
+        }
+        return "";
+    }
 
     // Returns era transitions currently available given era and orientation.
     public List<EraTransitionDef> getAvailableTransitions() {
@@ -168,19 +216,27 @@ public class Town {
     public String getOrDeriveOrientation() {
         if (!currentOrientation.isEmpty()) return currentOrientation;
         for (PlacedBuilding b : buildings) {
-            BuildingDef def = BuildingDataHandler.get(b.defId).orElse(null);
-            if (def != null && !def.orientation.isEmpty()) {
-                currentOrientation = def.orientation;
+            EraDef eraDef = EraTransitionDataHandler.getEraDefForStarter(b.defId);
+            if (eraDef != null) {
+                currentOrientation = eraDef.orientation;
                 return currentOrientation;
             }
         }
         return "";
     }
 
+    // Computes the effective minimum weight for a transition, respecting min_weight_percent if set.
+    public int effectiveMinWeight(EraTransitionDef t) {
+        if (t.minWeightPercent > 0) {
+            return (int) Math.round(t.minWeightPercent / 100.0 * currentMaxWeight);
+        }
+        return 0;
+    }
+
     // Returns true if all prereqs for the given era transition are satisfied.
     public boolean meetsEraTransitionPrereqs(EraTransitionDef t) {
         int w = getCurrentWeight();
-        if (w < t.minWeight || w > getCurrentMaxWeight()) return false;
+        if (w < effectiveMinWeight(t) || w > getCurrentMaxWeight()) return false;
         if (t.requiredResidents > 0 && activeResidents < t.requiredResidents) return false;
         for (BuildingDef.BuildingRequirement req : t.requiredBuildings) {
             long count = buildings.stream().filter(b -> b.defId.equals(req.defId())).count();
@@ -199,9 +255,11 @@ public class Town {
         if (!meetsEraTransitionPrereqs(t)) return false;
         getTownInventory().removeStock(t.resourceCost);
         currentEra++;
+        currentMaxWeight += t.weightCapIncrease;
         currentEraPath = t.id;
         if (!t.nextOrientation.isEmpty()) currentOrientation = t.nextOrientation;
         unlockedBuildingIds.addAll(t.unlockedBuildingIds);
+        if (t.unlockNewBuilder) targetBuilderCount++;
         for (PlacedBuilding b : buildings) {
             if (b.defId.startsWith("settlement")) {
                 tryQueueUpgrade(b.worldPos);
@@ -224,13 +282,20 @@ public class Town {
     public List<String> getBoostedBuildingIds() {
         String orientation = getOrDeriveOrientation();
         if (orientation.isEmpty()) return List.of();
-        for (PlacedBuilding b : buildings) {
-            BuildingDef def = BuildingDataHandler.get(b.defId).orElse(null);
-            if (def != null && def.orientation.equals(orientation)) {
-                return def.boosted;
-            }
-        }
-        return List.of();
+        EraDef eraDef = EraTransitionDataHandler.getEraDefByOrientation(orientation);
+        if (eraDef == null) return List.of();
+        return eraDef.boostedBuildings;
+    }
+
+    // Called by the NPC after a NewBuild placement succeeds.
+    // Stamps the orientation bonus multiplier onto the building if its defId is boosted.
+    public void onBuildingPlaced(String defId) {
+        if (buildings.isEmpty()) return;
+        String orientation = getOrDeriveOrientation();
+        if (orientation.isEmpty()) return;
+        EraDef era = EraTransitionDataHandler.getEraDefByOrientation(orientation);
+        if (era == null || !era.boostedBuildings.contains(defId)) return;
+        buildings.get(buildings.size() - 1).setInstanceProductionMultiplier(era.boostMultiplier);
     }
 
     // Replaces a connection point with an incremented failCount.
@@ -355,7 +420,7 @@ public class Town {
                 el.put("Transforms", transformsTag);
             }
 
-            // --- Production bonus: village-wide perk (from BuildingDef) ---
+            // --- Production bonus: town-wide perk (from BuildingDef) ---
             if (def.productionBonus > 0) {
                 el.putDouble("ProductionBonus", def.productionBonus);
             }
@@ -626,13 +691,14 @@ public class Town {
         for (EraTransitionDef t : availableTransitions) {
             CompoundTag tt = new CompoundTag();
             tt.putString("Id", t.id);
-            tt.putString("DisplayName", t.displayName);
+            tt.putString("OrientationLabel", t.orientationLabel);
             tt.putString("IconItem", t.iconItem);
+            int effMinWeight = effectiveMinWeight(t);
             tt.putBoolean("PrereqsMet", meetsEraTransitionPrereqs(t));
-            tt.putInt("RequiredWeight", t.minWeight);
+            tt.putInt("RequiredWeight", effMinWeight);
             tt.putInt("CurrentWeight", getCurrentWeight());
             tt.putInt("MaxWeight", getCurrentMaxWeight());
-            tt.putBoolean("WeightMet", getCurrentWeight() >= t.minWeight && getCurrentWeight() <= getCurrentMaxWeight());
+            tt.putBoolean("WeightMet", getCurrentWeight() >= effMinWeight && getCurrentWeight() <= getCurrentMaxWeight());
             ListTag costTag = new ListTag();
             for (ItemCost ic : t.resourceCost) {
                 CompoundTag ct = new CompoundTag();
@@ -697,12 +763,18 @@ public class Town {
 
         TownInventory inv = getTownInventory();
         String orientation = getOrDeriveOrientation();
+        Set<String> gatedIds = EraTransitionDataHandler.getAllGatedBuildingIds();
+        // Collect buildings that unlock on the immediately next era transition (shown locked in catalog)
+        Set<String> nextEraIds = new HashSet<>();
+        for (EraTransitionDef t : EraTransitionDataHandler.getAvailableTransitions(currentEra, orientation)) {
+            nextEraIds.addAll(t.unlockedBuildingIds);
+        }
+        nextEraIds.removeAll(unlockedBuildingIds);
         List<BuildingDef> sortedDefs = BuildingDataHandler.getAll().stream()
             .filter(def -> !def.terrainMatching && !def.id.startsWith("settlement"))
-            .filter(def -> def.requiredEra <= currentEra || unlockedBuildingIds.contains(def.id))
-            .filter(def -> def.requiredOrientation.isEmpty() || def.requiredOrientation.equals(orientation))
-            .sorted(Comparator.<BuildingDef, Integer>comparing(def -> catalogCategoryOrder(def.category))
-                .thenComparing(def -> def.id))
+            .filter(def -> !gatedIds.contains(def.id) || unlockedBuildingIds.contains(def.id) || nextEraIds.contains(def.id))
+            .sorted(Comparator.<BuildingDef, Boolean>comparing(def -> nextEraIds.contains(def.id))
+                .thenComparingInt(def -> BuildingListDataHandler.getIndex(def.id)))
             .toList();
         ListTag catalogTag = new ListTag();
         for (BuildingDef def : sortedDefs) {
@@ -710,6 +782,16 @@ public class Town {
             dt.putString("Id", def.id);
             dt.putString("Category", def.category);
             dt.putString("IconItem", def.iconItem);
+            dt.putString("Nbt", def.nbt.toString());
+            dt.putBoolean("HasBuilt", buildings.stream().anyMatch(b -> b.defId.equals(def.id)));
+            if (!def.nbtLevels.isEmpty()) {
+                ListTag nbtLevelsTag = new ListTag();
+                for (BuildingDef.NbtLevel nl : def.nbtLevels) {
+                    nbtLevelsTag.add(StringTag.valueOf(nl.nbt().toString()));
+                }
+                dt.put("NbtLevels", nbtLevelsTag);
+            }
+            if (nextEraIds.contains(def.id)) dt.putBoolean("NextEra", true);
             ListTag costTag = new ListTag();
             for (ItemCost ic : def.constructionCost) {
                 CompoundTag ct = new CompoundTag();
@@ -794,11 +876,26 @@ public class Town {
         hub.put("StockSnapshot", stockTag);
 
         // Placed buildings list for the upgrade tab (non-road, non-settlement buildings).
+        List<PlacedBuilding> upgradeBuildings = buildings.stream()
+            .filter(b -> {
+                BuildingDef bDef = BuildingDataHandler.get(b.defId).orElse(null);
+                return bDef != null && !bDef.terrainMatching && !b.defId.startsWith("settlement") && !bDef.upgrades.isEmpty();
+            })
+            .sorted((a, b2) -> {
+                BuildingDef da = BuildingDataHandler.get(a.defId).orElse(null);
+                BuildingDef db = BuildingDataHandler.get(b2.defId).orElse(null);
+                int maxA = da != null ? Math.max(da.upgrades.size(), da.nbtLevels.size()) : 0;
+                int maxB = db != null ? Math.max(db.upgrades.size(), db.nbtLevels.size()) : 0;
+                boolean atMaxA = maxA > 0 && a.getUpgradeLevel() >= maxA;
+                boolean atMaxB = maxB > 0 && b2.getUpgradeLevel() >= maxB;
+                if (atMaxA != atMaxB) return atMaxA ? 1 : -1;
+                return Integer.compare(BuildingListDataHandler.getIndex(a.defId), BuildingListDataHandler.getIndex(b2.defId));
+            })
+            .toList();
         ListTag upgradeBuildingsTag = new ListTag();
-        for (PlacedBuilding b : buildings) {
+        for (PlacedBuilding b : upgradeBuildings) {
             BuildingDef bDef = BuildingDataHandler.get(b.defId).orElse(null);
-            if (bDef == null || bDef.terrainMatching || b.defId.startsWith("settlement")) continue;
-            if (bDef.upgrades.isEmpty()) continue;
+            if (bDef == null) continue;
             CompoundTag ubt = new CompoundTag();
             ubt.putString("DefId", b.defId);
             ubt.putLong("WorldPos", b.worldPos.asLong());
@@ -869,15 +966,207 @@ public class Town {
         return hub;
     }
 
-    private static int catalogCategoryOrder(String category) {
-        return switch (category) {
-            case "natural"     -> 0;
-            case "jobs"        -> 1;
-            case "buildings"   -> 2;
-            case "gardens"     -> 3;
-            case "town_center" -> 4;
-            default            -> 5;
-        };
+    // -------------------------------------------------------------------------
+    // Targeted serialization helpers (used by targeted S2C packets)
+    // -------------------------------------------------------------------------
+
+    public CompoundTag getStockUpdateData(BlockPos anchorPos) {
+        CompoundTag tag = new CompoundTag();
+        tag.put("AnchorPos", NbtUtils.writeBlockPos(anchorPos));
+        TownInventory inv = getTownInventory();
+        CompoundTag stockTag = new CompoundTag();
+        // Items produced by placed buildings (for chest display)
+        Set<Item> produced = new java.util.LinkedHashSet<>();
+        for (PlacedBuilding b : buildings) {
+            BuildingDataHandler.get(b.defId).ifPresent(def -> {
+                def.production.forEach(p -> produced.add(p.item()));
+                def.transformations.forEach(t -> produced.add(t.outputItem()));
+            });
+        }
+        produced.forEach(item ->
+            stockTag.putInt(BuiltInRegistries.ITEM.getKey(item).toString(), inv.getStock(item)));
+        // Items needed for costs (for affordability checks in construction/upgrade/era tabs)
+        Stream.concat(
+            BuildingDataHandler.getAll().stream()
+                .flatMap(def -> Stream.concat(
+                    def.constructionCost.stream().map(ItemCost::item),
+                    def.upgrades.stream().flatMap(u -> u.upgradeCost().stream().map(ItemCost::item))
+                )),
+            EraTransitionDataHandler.getAll().stream()
+                .flatMap(t -> t.resourceCost.stream().map(ItemCost::item))
+        ).distinct()
+            .filter(item -> !produced.contains(item))
+            .forEach(item -> stockTag.putInt(
+                BuiltInRegistries.ITEM.getKey(item).toString(), inv.getStock(item)));
+        tag.put("StockSnapshot", stockTag);
+        return tag;
+    }
+
+    public CompoundTag getBuildingListData(BlockPos anchorPos) {
+        CompoundTag tag = new CompoundTag();
+        tag.put("AnchorPos", NbtUtils.writeBlockPos(anchorPos));
+        tag.put("MapData", getTownMapData());
+        ListTag cqTag = new ListTag();
+        constructionQueue.forEach(e -> cqTag.add(QueueEntry.serialize(e)));
+        tag.put("ConstructionQueue", cqTag);
+        List<PlacedBuilding> upgradeBuildings2 = buildings.stream()
+            .filter(b -> {
+                BuildingDef bDef = BuildingDataHandler.get(b.defId).orElse(null);
+                return bDef != null && !bDef.terrainMatching && !b.defId.startsWith("settlement") && !bDef.upgrades.isEmpty();
+            })
+            .sorted((a, b2) -> {
+                BuildingDef da = BuildingDataHandler.get(a.defId).orElse(null);
+                BuildingDef db = BuildingDataHandler.get(b2.defId).orElse(null);
+                int maxA = da != null ? Math.max(da.upgrades.size(), da.nbtLevels.size()) : 0;
+                int maxB = db != null ? Math.max(db.upgrades.size(), db.nbtLevels.size()) : 0;
+                boolean atMaxA = maxA > 0 && a.getUpgradeLevel() >= maxA;
+                boolean atMaxB = maxB > 0 && b2.getUpgradeLevel() >= maxB;
+                if (atMaxA != atMaxB) return atMaxA ? 1 : -1;
+                return Integer.compare(BuildingListDataHandler.getIndex(a.defId), BuildingListDataHandler.getIndex(b2.defId));
+            })
+            .toList();
+        ListTag upgradeBuildingsTag = new ListTag();
+        for (PlacedBuilding b : upgradeBuildings2) {
+            BuildingDef bDef = BuildingDataHandler.get(b.defId).orElse(null);
+            if (bDef == null) continue;
+            CompoundTag ubt = new CompoundTag();
+            ubt.putString("DefId", b.defId);
+            ubt.putLong("WorldPos", b.worldPos.asLong());
+            ubt.putInt("UpgradeLevel", b.getUpgradeLevel());
+            ubt.putString("Category", bDef.category);
+            ubt.putString("IconItem", bDef.iconItem);
+            upgradeBuildingsTag.add(ubt);
+        }
+        tag.put("UpgradeBuildings", upgradeBuildingsTag);
+        return tag;
+    }
+
+    public CompoundTag getQuestUpdateData(BlockPos anchorPos) {
+        CompoundTag tag = new CompoundTag();
+        tag.put("AnchorPos", NbtUtils.writeBlockPos(anchorPos));
+        ListTag questsTag = new ListTag();
+        for (Quest q : activeQuests) {
+            CompoundTag qt = new CompoundTag();
+            qt.putString("QuestId", q.questId);
+            qt.putString("DefId", q.defId);
+            qt.putString("QuestType", q.questType != null ? q.questType : "TASK");
+            qt.putLong("ExpiryTime", q.expiryTime);
+            QuestDataHandler.get(q.defId).ifPresent(def -> {
+                qt.putString("TitleKey", def.titleKey());
+                qt.putString("DescKey", def.descKey());
+                qt.putString("Icon", def.icon());
+            });
+            ListTag condsTag = new ListTag();
+            for (Quest.Condition c : q.conditions) {
+                CompoundTag ct = new CompoundTag();
+                ct.putString("Type", c.type);
+                if (c.item != null) ct.putString("Item", BuiltInRegistries.ITEM.getKey(c.item).toString());
+                ct.putInt("Required", c.required);
+                ct.putInt("Received", c.received);
+                condsTag.add(ct);
+            }
+            qt.put("Conditions", condsTag);
+            if (q.reward != null) {
+                CompoundTag rt = new CompoundTag();
+                rt.putString("Type", q.reward.type);
+                if (q.reward.item != null) rt.putString("Item", BuiltInRegistries.ITEM.getKey(q.reward.item).toString());
+                rt.putInt("Amount", q.reward.amount);
+                qt.put("Reward", rt);
+            }
+            questsTag.add(qt);
+        }
+        tag.put("Quests", questsTag);
+        return tag;
+    }
+
+    public CompoundTag getEraUpdateData(BlockPos anchorPos) {
+        CompoundTag tag = new CompoundTag();
+        tag.put("AnchorPos", NbtUtils.writeBlockPos(anchorPos));
+        tag.putInt("CurrentEra", currentEra);
+        tag.putString("CurrentOrientation", getOrDeriveOrientation());
+        tag.putInt("CurrentWeight", getCurrentWeight());
+        tag.putInt("MaxWeight", getCurrentMaxWeight());
+        List<EraTransitionDef> availableTransitions = getAvailableTransitions();
+        ListTag eraTransitionsTag = new ListTag();
+        TownInventory invForEra = getTownInventory();
+        for (EraTransitionDef t : availableTransitions) {
+            CompoundTag tt = new CompoundTag();
+            tt.putString("Id", t.id);
+            tt.putString("OrientationLabel", t.orientationLabel);
+            tt.putString("IconItem", t.iconItem);
+            int effMinWeight = effectiveMinWeight(t);
+            tt.putBoolean("PrereqsMet", meetsEraTransitionPrereqs(t));
+            tt.putInt("RequiredWeight", effMinWeight);
+            tt.putInt("CurrentWeight", getCurrentWeight());
+            tt.putInt("MaxWeight", getCurrentMaxWeight());
+            tt.putBoolean("WeightMet", getCurrentWeight() >= effMinWeight && getCurrentWeight() <= getCurrentMaxWeight());
+            ListTag costTag = new ListTag();
+            for (ItemCost ic : t.resourceCost) {
+                CompoundTag ct = new CompoundTag();
+                ct.putString("Item", BuiltInRegistries.ITEM.getKey(ic.item()).toString());
+                ct.putInt("Amount", ic.amount());
+                ct.putInt("Have", invForEra.getStock(ic.item()));
+                costTag.add(ct);
+            }
+            tt.put("ResourceCost", costTag);
+            tt.putInt("RequiredResidents", t.requiredResidents);
+            tt.putInt("ActiveResidents", activeResidents);
+            tt.putBoolean("ResidentsMet", t.requiredResidents <= 0 || activeResidents >= t.requiredResidents);
+            ListTag reqBuildTag = new ListTag();
+            for (BuildingDef.BuildingRequirement req : t.requiredBuildings) {
+                CompoundTag rt = new CompoundTag();
+                rt.putString("DefId", req.defId());
+                rt.putInt("Count", req.count());
+                long have = buildings.stream().filter(b -> b.defId.equals(req.defId())).count();
+                rt.putInt("Have", (int) have);
+                reqBuildTag.add(rt);
+            }
+            tt.put("RequiredBuildings", reqBuildTag);
+            ListTag unlockedTag = new ListTag();
+            for (String bId : t.unlockedBuildingIds) {
+                BuildingDataHandler.get(bId).ifPresent(def -> {
+                    CompoundTag ut = new CompoundTag();
+                    ut.putString("DefId", bId);
+                    ut.putString("IconItem", def.iconItem);
+                    ut.putString("Category", def.category);
+                    ListTag unlockCostTag = new ListTag();
+                    for (ItemCost c : def.constructionCost) {
+                        CompoundTag ct = new CompoundTag();
+                        ct.putString("Item", BuiltInRegistries.ITEM.getKey(c.item()).toString());
+                        ct.putInt("Amount", c.amount());
+                        unlockCostTag.add(ct);
+                    }
+                    ut.put("Cost", unlockCostTag);
+                    ut.putInt("RequiredResidents", def.requiredResidents);
+                    ListTag unlockReqBuildTag = new ListTag();
+                    for (BuildingDef.BuildingRequirement r : def.requiredBuildings) {
+                        CompoundTag rt = new CompoundTag();
+                        rt.putString("DefId", r.defId());
+                        rt.putInt("Count", r.count());
+                        unlockReqBuildTag.add(rt);
+                    }
+                    ut.put("RequiredBuildings", unlockReqBuildTag);
+                    ut.putBoolean("HasProduction", !def.production.isEmpty());
+                    unlockedTag.add(ut);
+                });
+            }
+            tt.put("UnlockedBuildings", unlockedTag);
+            eraTransitionsTag.add(tt);
+        }
+        tag.put("EraTransitions", eraTransitionsTag);
+        ListTag boostedTag = new ListTag();
+        for (String id : getBoostedBuildingIds()) boostedTag.add(StringTag.valueOf(id));
+        tag.put("BoostedBuildings", boostedTag);
+        return tag;
+    }
+
+    public CompoundTag getCitizenUpdateData(BlockPos anchorPos) {
+        CompoundTag tag = new CompoundTag();
+        tag.put("AnchorPos", NbtUtils.writeBlockPos(anchorPos));
+        tag.putInt("TotalResidents", getTotalResidents());
+        tag.putInt("ActiveResidents", activeResidents);
+        tag.putInt("TotalFoodDemand", (int) Math.ceil(computeTotalFoodDemandFloat()));
+        return tag;
     }
 
     // -------------------------------------------------------------------------
@@ -926,7 +1215,7 @@ public class Town {
         return totalConsumed;
     }
 
-    // Tries to add item to village stock without checking the accepted set.
+    // Tries to add item to town stock without checking the accepted set.
     // Used after quest consumption to route any remainder into stock.
     public int tryAddToStockUnchecked(Item item, int amount) {
         TownInventory inv = getTownInventory();
@@ -939,7 +1228,7 @@ public class Town {
         return toAdd;
     }
 
-    // Collects all items produced or transformed by currently placed buildings in this village.
+    // Collects all items produced or transformed by currently placed buildings in this town.
     // Used server-side to validate deposit requests.
     public Set<Item> buildAcceptedItemSet() {
         Set<Item> accepted = new HashSet<>();
@@ -952,7 +1241,7 @@ public class Town {
         return accepted;
     }
 
-    // Tries to add `amount` of `item` to the village stock.
+    // Tries to add `amount` of `item` to the town stock.
     // Returns how many units were actually accepted (may be less if near cap, 0 if rejected).
     // Fallback cap of 999 applies for items whose getMaxStock() returns 0 (transformation outputs).
     public int tryDepositItem(Item item, int amount, Set<Item> acceptedItems) {
@@ -970,15 +1259,54 @@ public class Town {
     public Map<Item, Integer> getReserveStock() { return reserveStock; }
 
     public List<PlacedBuilding> getBuildings() { return buildings; }
-    public UUID getBuilderNpcId() { return builderNpcId; }
-    public void setBuilderNpcId(UUID id) { this.builderNpcId = id; }
+    public List<UUID> getBuilderNpcIds() { return builderNpcIds; }
+    public int getTargetBuilderCount() { return targetBuilderCount; }
+
+    // Appends a builder UUID in the next available slot. No-op if already registered.
+    public void addBuilderNpcId(UUID id) {
+        if (!builderNpcIds.contains(id)) builderNpcIds.add(id);
+    }
+
+    // Replaces the UUID at the given slot index (used by TickScheduler on respawn).
+    public void setBuilderNpcIdAtSlot(int slot, UUID id) {
+        while (builderNpcIds.size() <= slot) builderNpcIds.add(null);
+        builderNpcIds.set(slot, id);
+    }
+
+    // Returns the slot index for a given builder UUID, or -1 if not found.
+    public int getBuilderSlot(UUID id) { return builderNpcIds.indexOf(id); }
+
+    // Claim-lock helpers for multi-builder queue coordination.
+    public boolean claimQueueEntry(int index, UUID builderId) {
+        UUID existing = queueIndexClaims.get(index);
+        if (existing != null && !existing.equals(builderId)) return false;
+        queueIndexClaims.put(index, builderId);
+        return true;
+    }
+
+    public void releaseQueueClaim(int index, UUID builderId) {
+        queueIndexClaims.remove(index, builderId);
+    }
+
+    public boolean isQueueEntryClaimedByOther(int index, UUID builderId) {
+        UUID existing = queueIndexClaims.get(index);
+        return existing != null && !existing.equals(builderId);
+    }
+
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
     public CompoundTag toNbt() {
         CompoundTag tag = new CompoundTag();
         tag.putString("Name", name);
-        if (builderNpcId != null) tag.putUUID("BuilderNpcId", builderNpcId);
+        ListTag builderIdsTag = new ListTag();
+        for (UUID id : builderNpcIds) {
+            CompoundTag idTag = new CompoundTag();
+            if (id != null) idTag.putUUID("Id", id);
+            builderIdsTag.add(idTag);
+        }
+        tag.put("BuilderNpcIds", builderIdsTag);
+        tag.putInt("TargetBuilderCount", targetBuilderCount);
         ListTag buildingsTag = new ListTag();
         buildings.forEach(b -> buildingsTag.add(b.toNbt()));
         tag.put("Buildings", buildingsTag);
@@ -1012,6 +1340,10 @@ public class Town {
         unlockedBuildingIds.forEach(id -> unlockedTag.add(StringTag.valueOf(id)));
         tag.put("UnlockedBuildingIds", unlockedTag);
         tag.putInt("ActiveResidents", activeResidents);
+        tag.putInt("CurrentMaxWeight", currentMaxWeight);
+        CompoundTag cwTag = new CompoundTag();
+        categoryWeights.forEach(cwTag::putInt);
+        tag.put("CategoryWeights", cwTag);
         ListTag activeQuestsTag = new ListTag();
         activeQuests.forEach(q -> activeQuestsTag.add(q.toNbt()));
         tag.put("ActiveQuests", activeQuestsTag);
@@ -1024,7 +1356,17 @@ public class Town {
     public static Town fromNbt(CompoundTag tag) {
         Town town = new Town();
         town.name = tag.contains("Name") ? tag.getString("Name") : "Unknown Town";
-        if (tag.hasUUID("BuilderNpcId")) town.builderNpcId = tag.getUUID("BuilderNpcId");
+        // Backward compat: old saves stored a single BuilderNpcId UUID.
+        if (tag.hasUUID("BuilderNpcId")) {
+            town.builderNpcIds.add(tag.getUUID("BuilderNpcId"));
+        }
+        if (tag.contains("BuilderNpcIds")) {
+            tag.getList("BuilderNpcIds", Tag.TAG_COMPOUND).forEach(t -> {
+                CompoundTag idTag = (CompoundTag) t;
+                town.builderNpcIds.add(idTag.hasUUID("Id") ? idTag.getUUID("Id") : null);
+            });
+        }
+        town.targetBuilderCount = tag.contains("TargetBuilderCount") ? tag.getInt("TargetBuilderCount") : 1;
         tag.getList("Buildings", Tag.TAG_COMPOUND)
             .forEach(t -> town.buildings.add(PlacedBuilding.fromNbt((CompoundTag) t)));
         tag.getList("FreeConnections", Tag.TAG_COMPOUND)
@@ -1072,6 +1414,16 @@ public class Town {
                 .forEach(t -> town.unlockedBuildingIds.add(t.getAsString()));
         }
         town.activeResidents = tag.contains("ActiveResidents") ? tag.getInt("ActiveResidents") : 0;
+        // Backward compat: old saves use the formula 20 + era * 10; new saves store the explicit value.
+        town.currentMaxWeight = tag.contains("CurrentMaxWeight")
+            ? tag.getInt("CurrentMaxWeight")
+            : 20 + town.currentEra * 10;
+        if (tag.contains("CategoryWeights")) {
+            CompoundTag cwTag = tag.getCompound("CategoryWeights");
+            for (String key : cwTag.getAllKeys()) {
+                town.categoryWeights.put(key, cwTag.getInt(key));
+            }
+        }
         if (tag.contains("ActiveQuests")) {
             tag.getList("ActiveQuests", Tag.TAG_COMPOUND)
                 .forEach(t -> town.activeQuests.add(Quest.fromNbt((CompoundTag) t)));

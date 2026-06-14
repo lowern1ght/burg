@@ -11,7 +11,7 @@ public record QuestDef(
     List<ConditionTemplate> conditions,
     RewardTemplate reward,
     int spawnWeight,
-    long ttlTicks
+    long durationTicks
 ) {
     public record ConditionTemplate(String type, String item, int required) {}
     public record RewardTemplate(String type, String item, int amount) {}

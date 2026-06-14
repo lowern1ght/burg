@@ -4,10 +4,17 @@
   "entry_pool": "onceuponatown:jobs",
   "icon_item": "minecraft:potato",
   "category": "jobs",
+  "required_buildings": [
+    { "defId": "wild_crops", "count": 1 }
+  ],
   "construction_cost": [
     {
       "item": "minecraft:oak_log",
       "amount": 10
+    },
+    {
+      "item": "minecraft:potato",
+      "amount": 5
     }
   ],
   "production": [

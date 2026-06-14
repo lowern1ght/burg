@@ -8,7 +8,6 @@ import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.sounds.SoundManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
@@ -16,16 +15,13 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FastColor;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.core.registries.BuiltInRegistries;
-import org.dawnoftime.onceuponatown.client.gui.tooltip.BuildingProductionTooltip;
 import org.dawnoftime.onceuponatown.town.MapCategory;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class TownMapWidget extends AbstractWidget {
@@ -34,7 +30,7 @@ public class TownMapWidget extends AbstractWidget {
     private static final Rgb BUILDING_RGB    = new Rgb(99, 83, 49);
     private static final Rgb JOB_RGB         = new Rgb(180, 50, 50);
     private static final Rgb GARDEN_RGB      = new Rgb(55, 130, 55);
-    private static final Rgb NATURAL_RGB     = new Rgb(110, 110, 110);
+    private static final Rgb NATURALS_RGB     = new Rgb(110, 110, 110);
     private static final Rgb ROAD_RGB        = new Rgb(147, 147, 147);
     private static final Rgb HOVER_RGB       = new Rgb(234, 200, 190);
     private static final Rgb TOWN_CENTER_RGB = new Rgb(220, 180, 40);
@@ -47,16 +43,16 @@ public class TownMapWidget extends AbstractWidget {
     private static final int STRIPE_WIDTH   = 3;
 
     private static final int MAP_MARGIN = 6;
-    private static int xDrag;
-    private static int yDrag;
-    private static int mapZoom = 1;
+    private int xDrag;
+    private int yDrag;
+    private int mapZoom = 1;
 
     private int mapWindowLeftBound;
     private int mapWindowRightBound;
     private int mapWindowTopBound;
     private int mapWindowBottomBound;
-    private boolean draggingMap;
-    private Consumer<Long> onBuildingClicked = null;
+    private BiConsumer<Long, String> onBuildingClicked = null;
+    private Consumer<Long> onBuildingRightClicked = null;
     private final List<MapElement> mapElements = new ArrayList<>();
     private int mapInitialWidth;
     private int mapInitialHeight;
@@ -66,8 +62,17 @@ public class TownMapWidget extends AbstractWidget {
         setupMap(mapData);
     }
 
-    public void setOnBuildingClicked(Consumer<Long> callback) {
+    public void updateMapData(CompoundTag mapData) {
+        mapElements.clear();
+        setupMap(mapData);
+    }
+
+    public void setOnBuildingClicked(BiConsumer<Long, String> callback) {
         this.onBuildingClicked = callback;
+    }
+
+    public void setOnBuildingRightClicked(Consumer<Long> callback) {
+        this.onBuildingRightClicked = callback;
     }
 
     public void reposition(int newX, int newY, int newW, int newH) {
@@ -102,6 +107,8 @@ public class TownMapWidget extends AbstractWidget {
         mapWindowRightBound  = getX() + width - MAP_MARGIN;
         mapWindowBottomBound = getY() + height - MAP_MARGIN;
         mapZoom = 1;
+        xDrag = 0;
+        yDrag = 0;
     }
 
     private MapElement createRoadMapElement(CompoundTag tag, BlockPos nwCorner) {
@@ -122,7 +129,7 @@ public class TownMapWidget extends AbstractWidget {
             }
         }
 
-        return new MapElement(MapCategory.ROAD, "", List.of(name), Optional.empty(),
+        return new MapElement(MapCategory.ROAD, "", "", List.of(name), Optional.empty(),
             footprint, minX, minX + sizeX, minZ, minZ + sizeZ, false, 0L, false);
     }
 
@@ -138,7 +145,7 @@ public class TownMapWidget extends AbstractWidget {
             Component.translatable("onceuponatown.tooltip.under_construction")
                 .withStyle(net.minecraft.ChatFormatting.YELLOW)
         );
-        return new MapElement(MapCategory.UNDER_CONSTRUCTION, "", desc, Optional.empty(),
+        return new MapElement(MapCategory.UNDER_CONSTRUCTION, "", "", desc, Optional.empty(),
             null, minX, minX + sizeX, minZ, minZ + sizeZ, false, 0L, false);
     }
 
@@ -156,84 +163,6 @@ public class TownMapWidget extends AbstractWidget {
         int sizeX = tag.getInt("SizeX");
         int sizeZ = tag.getInt("SizeZ");
 
-        List<BuildingProductionTooltip.Row> rows = new ArrayList<>();
-
-        // --- Section: Produces ---
-        ListTag prod = tag.getList("Production", Tag.TAG_COMPOUND);
-        if (!prod.isEmpty()) {
-            rows.add(new BuildingProductionTooltip.Row(null,
-                Component.translatable("onceuponatown.tooltip.produces")));
-            for (Tag t : prod) {
-                CompoundTag pt = (CompoundTag) t;
-                String itemId = pt.getString("Item");
-                int amount    = pt.getInt("Amount");
-                int seconds   = pt.getInt("EveryTicks") / 20;
-                net.minecraft.world.item.Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(itemId));
-                ItemStack stack = new ItemStack(item);
-                Component itemName = Component.translatable(item.getDescriptionId());
-                Component text = Component.literal("x" + amount + " ")
-                    .append(itemName)
-                    .append(Component.literal(" / " + seconds + "s"))
-                    .withStyle(ChatFormatting.GRAY);
-                rows.add(new BuildingProductionTooltip.Row(stack, text));
-            }
-        }
-
-        // --- Section: Transforms ---
-        ListTag transforms = tag.getList("Transforms", Tag.TAG_COMPOUND);
-        if (!transforms.isEmpty()) {
-            rows.add(new BuildingProductionTooltip.Row(null,
-                Component.translatable("onceuponatown.tooltip.transforms")));
-            for (Tag t : transforms) {
-                CompoundTag tt = (CompoundTag) t;
-                String outputId   = tt.getString("OutputItem");
-                int outputAmount  = tt.getInt("OutputAmount");
-                int seconds       = tt.getInt("EveryTicks") / 20;
-                net.minecraft.world.item.Item outputItem = BuiltInRegistries.ITEM.get(new ResourceLocation(outputId));
-                ItemStack outputStack = new ItemStack(outputItem);
-                Component text = Component.literal("x" + outputAmount + " ")
-                    .append(Component.translatable(outputItem.getDescriptionId()))
-                    .append(Component.literal(" / " + seconds + "s"))
-                    .withStyle(ChatFormatting.GRAY);
-                rows.add(new BuildingProductionTooltip.Row(outputStack, text));
-            }
-        }
-
-        // --- Section: Perks (village-wide bonus and/or orientation instance bonus) ---
-        double productionBonus = tag.getDouble("ProductionBonus");
-        if (productionBonus > 0 || instanceBonus > 0) {
-            rows.add(new BuildingProductionTooltip.Row(null,
-                Component.translatable("onceuponatown.tooltip.perks")));
-            if (productionBonus > 0) {
-                int percent = (int) Math.round(productionBonus * 100);
-                rows.add(new BuildingProductionTooltip.Row(new ItemStack(Items.NETHER_STAR),
-                    Component.translatable("onceuponatown.tooltip.production_bonus", percent)
-                        .withStyle(ChatFormatting.GRAY)));
-            }
-            if (instanceBonus > 0) {
-                int percent = (int) Math.round(instanceBonus * 100);
-                rows.add(new BuildingProductionTooltip.Row(new ItemStack(Items.GOLD_INGOT),
-                    Component.translatable("onceuponatown.tooltip.orientation_bonus", percent)
-                        .withStyle(ChatFormatting.GOLD)));
-            }
-        }
-
-        // --- Section: Adds (residents) ---
-        int residents = tag.getInt("Residents");
-        if (residents > 0) {
-            rows.add(new BuildingProductionTooltip.Row(null,
-                Component.translatable("onceuponatown.tooltip.adds")));
-            net.minecraft.world.item.Item villagerEgg = BuiltInRegistries.ITEM.get(
-                new ResourceLocation("minecraft:villager_spawn_egg"));
-            rows.add(new BuildingProductionTooltip.Row(new ItemStack(villagerEgg),
-                Component.translatable("onceuponatown.tooltip.residents", residents)
-                    .withStyle(ChatFormatting.GRAY)));
-        }
-
-        Optional<TooltipComponent> productionTooltip = rows.isEmpty()
-            ? Optional.empty()
-            : Optional.of(new BuildingProductionTooltip(rows));
-
         long worldPosLong = tag.getLong("WorldPos");
         boolean isUpgrading = tag.getBoolean("IsUpgrading");
         int minX = originPos.getX() - nwCorner.getX();
@@ -243,7 +172,9 @@ public class TownMapWidget extends AbstractWidget {
             desc.add(Component.translatable("onceuponatown.tooltip.under_upgrade")
                 .withStyle(ChatFormatting.YELLOW));
         }
-        return new MapElement(MapCategory.BUILDING, buildingCategory, desc, productionTooltip,
+        desc.add(Component.literal("Left-click: details").withStyle(ChatFormatting.DARK_GRAY));
+        desc.add(Component.literal("Right-click: upgrade").withStyle(ChatFormatting.DARK_GRAY));
+        return new MapElement(MapCategory.BUILDING, buildingCategory, buildType, desc, Optional.empty(),
             null, minX, minX + sizeX, minZ, minZ + sizeZ, instanceBonus > 0, worldPosLong, isUpgrading);
     }
 
@@ -331,7 +262,7 @@ public class TownMapWidget extends AbstractWidget {
         return switch (category) {
             case "jobs"        -> JOB_RGB;
             case "gardens"     -> GARDEN_RGB;
-            case "natural"     -> NATURAL_RGB;
+            case "naturals"     -> NATURALS_RGB;
             case "town_center" -> TOWN_CENTER_RGB;
             default            -> BUILDING_RGB;
         };
@@ -442,42 +373,29 @@ public class TownMapWidget extends AbstractWidget {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (isHovered()) {
-            if (button == 0 && onBuildingClicked != null) {
-                MapElement hit = getBuildingAt((int) mouseX, (int) mouseY);
-                if (hit != null) {
-                    onBuildingClicked.accept(hit.worldPosLong());
-                    setFocused(true);
+            MapElement hit = getBuildingAt((int) mouseX, (int) mouseY);
+            if (hit != null) {
+                if (button == 0 && onBuildingClicked != null) {
+                    onBuildingClicked.accept(hit.worldPosLong(), hit.defId());
+                    return true;
+                }
+                if (button == 1 && onBuildingRightClicked != null) {
+                    onBuildingRightClicked.accept(hit.worldPosLong());
                     return true;
                 }
             }
-            draggingMap = true;
-            setFocused(true);
-        } else {
-            draggingMap = false;
-            setFocused(false);
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return false;
     }
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        draggingMap = false;
-        if (!isHovered()) setFocused(false);
-        return super.mouseReleased(mouseX, mouseY, button);
+        return false;
     }
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
-        if (draggingMap) {
-            if (dragX > 0.4D && dragX < 1.0D)   dragX = 1.0D;
-            else if (dragX < -0.4D && dragX > -1.0D) dragX = -1.0D;
-            if (dragY > 0.4D && dragY < 1.0D)   dragY = 1.0D;
-            else if (dragY < -0.4D && dragY > -1.0D) dragY = -1.0D;
-            xDrag += (int) dragX;
-            yDrag += (int) dragY;
-            return true;
-        }
-        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+        return false;
     }
 
     @Override
@@ -505,7 +423,7 @@ public class TownMapWidget extends AbstractWidget {
     @Override
     protected void updateWidgetNarration(NarrationElementOutput narrationElementOutput) {}
 
-    private record MapElement(byte category, String buildingCategory,
+    private record MapElement(byte category, String buildingCategory, String defId,
                                List<Component> description, Optional<TooltipComponent> productionTooltip,
                                List<String> footprint,
                                int minX, int maxX, int minZ, int maxZ,

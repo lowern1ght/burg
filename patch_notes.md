@@ -1,36 +1,30 @@
-## 🏘️ Once Upon a Town v0.0.6 [Beta]
-### Questing System:
-- Whole new questing system that should help breaking the management aspect of the interface and bring some kind of soft pressure to the player. There is two types of quests : info (only text and can be closed) and task (give a specific item and expires with time)
-- Quests are going to randomly appear on the screen, they can be completely ignored and placed on the left or they can be completed to obtain a few emeralds as a reward
-- This new system goes in pair with the stock rework, that let you send resources to the villages and give questing items (instead of sending resources directly into the village)
-- The system is **100%** data driven, meaning you can create your own quests
-### Era system:
-- Whole new era system that lead the progress of the player into specific segments and can unlock new set of builds and village interactions
-- The era system take advantage from the orientations and a new weight system: you will need to fill the village space and have enough resources to move from one era to another, you will also need to have active citizen into your village
-- Understanding the era system is very important because it will helps you to fork in your village orientation! For example, jumping from the agriculture specialization to the urban or rural one by moving from the era unlocking new buildings : Granary or Merchant Shop
-- Moving from a new era will upgrade the town hall and add more weight space to let you keep building structures
-### Weight system:
-- It represents how many structures you can build in your era. Each type of building adds weight: Jobs 3, Gardens 3, Houses 2, Naturals 1. Each time your weight is filled to the max, you cannot build anymore
-- This system prevent from spamming the village too early in the game while providing a natural curve of progression
-### Citizen and Active citizen
-- New gameplay loop that should heavily improve the strategic players that want to maximize their resources from their building. Each house you will build will contain new citizen, each citizen will consume a unit of food per day. In order to get a valid citizen, your villages need to have enough food
-- This system is now connected to multiple other elements : garden, upgrades and building requirements. In order to build new garden and boost your production, you will need to build houses and feed your citizen, making gardens way more rewarding for players that want to play with the rules
-- Maintaining your citizen with food is key to evolve with your era and unlock building that request an active population (like the merchant shop), it will also be a requirement to evolve in your era
-### Stock rework:
-- You can no longer send resources to the villages from your inventory, you will now need to send it throughout the village trading zone (green slots). These slots only accepts what is produced from the village or what is needed from a specific quest. You cannot take what the village produce
-- This system is here to avoid the player brute forcing items into the village and breaking the progression curve and the flow of the game
-### Upgrade rework:
-- There is less building to upgrade now, but rewards are now way more important. The goal is to make each building providing a unique resource and a unique set of upgrades instead of upgrading everything
-- New upgradable elements : Houses (the amount of citizen there is in the house and how many food units they need), Granary (extend the max stock of your village)
-- Upgrading your building will also unlock new recipes for the village like advanced crafting and rare items (for example the leather workshop can craft name tag or saddle)
-### 5 new buildings:
-- Carrot Field
-- Sheep Field
-- Granary (with 6 levels)
-- Leather shop (with 6 levels)
-- Merchant shop (with 6 levels)
-### Other improvements:
-- Labeled the building starter pack as 'naturals' they have a gray slot, cannot be upgraded and has a weight of 1
-- Improved builder AI to open doors
-- Improved various GUI for a cleaner look
-- Improved some building NBT
+## 🏘️ Once Upon a Town v0.0.7 [Beta]
+### Building catalog
+- Inside the construction panel, there is a new system to let you preview the render of the building you selected. If the building got ever build in the village you will see it fully rendered but if the builder never got build, it will be locked
+- You can click on the expend button to maximize the view and scroll throughout all the levels from the building, time to collect them all !
+- A catalog is tied to one village, it will be changed later
+### Big GUI improvements
+- The right panel tabs are now places on the left, giving more space to the interface, each section is represented by a simple icon
+- Moved the widget icons to the bottom left of the management panel
+- Simplified the era progress widget, it is now focused on the elements you have to fulfil to pass to the next era. The single/cross era choice is now harmonized sharing the same 'card' look
+- Reworked the upgrade interface making it easier to understand by showing the 'upgrades bar' on hover and placing the unlocked recipes into a proper grid
+- Removed various mention to 'settlement', 'village' or orientations in the interface, making it cleaner and with less inconsistencies
+### Village management
+- You can now unlock a new builder at the era 2, making it way easier to developer your village building new structures while upgrading some at the same time
+- Fixed a ton of issues with some elements not updating in the interface (building, resources, construction spot and so on). Most of the elements from the GUI should update live when you are checking the panels, making the reading and managing experience smoother
+- Reworked the tooltips to make all of them shorter and easier to understand, especially in the construction panel
+### Gameplay loop
+- Improved the progression by making a lot more buildings tied to each other, you need to build more specific buildings in order to unlock the 'upgraded' versions, you will need crops to unlock animals and more production buildings to unlock craftmanship building
+- Added way more criteria to the era progress, making each one way more specific and making the player following a clear direction
+- The building unlocked for the next era are directly present in the building catalog, helping you to track and anticipate your progress into the your orientation branch
+- There is far less quest and they are less invasive, decided to pause this feature until I find a good way of implementing it
+### More customization
+- The era are now 100% data driven
+- The builder AI is now 100% data driven
+- You can now sort all the buildings together the way you want them to display thanks to a simple config json you have to manage
+### New buildings 
+- Wild bee
+- Bee field
+- Beekeeper (with 6 upgrades)
+- Lone Garden
+- Lone Place

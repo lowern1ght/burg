@@ -1,0 +1,24 @@
+{
+  "from_era": 1,
+  "from_orientation": "agricultural",
+  "orientation_label": "Rural",
+  "structure_label": "Village",
+  "icon_item": "minecraft:wheat_seeds",
+
+  "min_weight_percent": 90,
+  "weight_cap_increase": 10,
+
+  "resource_cost": [
+    { "item": "minecraft:oak_log", "amount": 42 },
+    { "item": "minecraft:cobblestone", "amount": 10 }
+  ],
+
+  "required_residents": 5,
+  "required_buildings": [
+    { "defId": "wheat_field", "count": 2 }
+  ],
+  "unlocked_building_ids": ["granary", "lone_place"],
+  "unlock_new_builder": true,
+
+  "next_orientation": "rural"
+}

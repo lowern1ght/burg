@@ -3,7 +3,7 @@
   "nbt": "onceuponatown:plains/jobs/grove",
   "entry_pool": "onceuponatown:jobs",
   "icon_item": "minecraft:oak_log",
-  "category": "natural",
+  "category": "naturals",
   "construction_cost": [
     {
       "item": "minecraft:oak_log",

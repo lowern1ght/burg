@@ -1,0 +1,21 @@
+{
+  "id": "stone_breach",
+  "nbt": "onceuponatown:plains/jobs/stone_breach",
+  "entry_pool": "onceuponatown:jobs",
+  "icon_item": "minecraft:wooden_pickaxe",
+  "category": "jobs",
+  "construction_cost": [
+    {
+      "item": "minecraft:cobblestone",
+      "amount": 5
+    }
+  ],
+  "production": [
+    {
+      "item": "minecraft:cobblestone",
+      "amount": 2,
+      "every_ticks": 1800,
+      "capacity_stacks": 2
+    }
+  ]
+}

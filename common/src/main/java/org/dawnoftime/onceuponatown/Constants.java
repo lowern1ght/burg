@@ -8,4 +8,6 @@ public class Constants {
 	public static final String MOD_ID = "onceuponatown";
 	public static final String MOD_NAME = "Once Upon a Town";
 	public static final Logger LOG = LoggerFactory.getLogger(MOD_NAME);
+
+	public static final String STREETS_POOL = MOD_ID + ":streets";
 }

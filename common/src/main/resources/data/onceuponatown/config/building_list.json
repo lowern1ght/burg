@@ -1,0 +1,42 @@
+{
+  "order": [
+    "lake",
+
+    "wild_crops",
+    "wheat_field",
+    "carrot_field",
+    "potato_field",
+    "granary",
+
+    "pig_field",
+    "pig_farm",
+    "sheep_field",
+
+    "cow_field",
+    "leather_workshop",
+
+    "wild_bee",
+    "bee_field",
+    "beekeeper",
+
+    "wild_stone",
+    "stone_breach",
+
+    "grove",
+    "lumberjack",
+
+    "workshop",
+
+    "merchant_shop",
+
+    "house",
+    "house_2",
+    "house_3",
+    "house_4",
+
+    "wild_spot",
+    "lone_garden",
+    "lone_place",
+    "fountain_place"
+  ]
+}

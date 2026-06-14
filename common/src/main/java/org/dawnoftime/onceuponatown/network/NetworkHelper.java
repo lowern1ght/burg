@@ -4,7 +4,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import org.dawnoftime.onceuponatown.screen.VillageChestMenu;
+import org.dawnoftime.onceuponatown.screen.TownHubMenu;
 import org.dawnoftime.onceuponatown.town.Town;
 
 import java.util.List;
@@ -13,29 +13,84 @@ import java.util.function.Consumer;
 
 public class NetworkHelper {
     // S2C delegates (set by each platform server-side init)
-    public static BiConsumer<ServerPlayer, CompoundTag> sendTownScrollPacket = (player, data) -> {};
-    public static BiConsumer<ServerPlayer, CompoundTag> sendVillageHubPacket = (player, data) -> {};
-    public static BiConsumer<ServerPlayer, CompoundTag> sendBuildingDefsPacket = (player, data) -> {};
+    public static BiConsumer<ServerPlayer, CompoundTag> sendTownHubPacket       = (player, data) -> {};
+    public static BiConsumer<ServerPlayer, CompoundTag> sendBuildingDefsPacket  = (player, data) -> {};
+    public static BiConsumer<ServerPlayer, CompoundTag> sendStockUpdatePacket   = (player, data) -> {};
+    public static BiConsumer<ServerPlayer, CompoundTag> sendBuildingListPacket  = (player, data) -> {};
+    public static BiConsumer<ServerPlayer, CompoundTag> sendQuestUpdatePacket   = (player, data) -> {};
+    public static BiConsumer<ServerPlayer, CompoundTag> sendEraUpdatePacket     = (player, data) -> {};
+    public static BiConsumer<ServerPlayer, CompoundTag> sendCitizenUpdatePacket = (player, data) -> {};
+    public static BiConsumer<ServerPlayer, CompoundTag> sendNbtPreviewPacket    = (player, data) -> {};
 
-    // Sends a fresh hub packet to every player who currently has this town's VillageChestScreen open.
-    // Serializes hubData once and replicates it to all watchers; no-op if nobody is watching.
+    // C2S delegates (set by each platform client-side init)
+    public static BiConsumer<BlockPos, String>  sendQueueBuildingPacket        = (pos, defId)     -> {};
+    public static BiConsumer<BlockPos, Integer> sendRemoveQueuedBuildingPacket = (pos, index)     -> {};
+    public static BiConsumer<BlockPos, Long>    sendUpgradeBuildingPacket      = (pos, worldPos)  -> {};
+    public static BiConsumer<BlockPos, String>  sendAdvanceEraPacket           = (pos, pathId)    -> {};
+    public static Consumer<BlockPos>            sendDepositPacket              = pos              -> {};
+    public static BiConsumer<BlockPos, String>  sendClaimQuestPacket           = (pos, questId)   -> {};
+    public static Consumer<BlockPos>            sendRequestStockPacket         = pos              -> {};
+
+    // Sends a fresh full hub packet to every player watching this town's hub.
+    // Used only for initial open and player-triggered actions that need full context.
     public static void pushHubToWatchers(ServerLevel level, Town town, BlockPos anchorPos) {
         if (anchorPos == null) return;
-        List<ServerPlayer> watchers = level.players().stream()
-            .filter(p -> p.containerMenu instanceof VillageChestMenu m && anchorPos.equals(m.getAnchorPos()))
-            .toList();
+        List<ServerPlayer> watchers = getWatchers(level, anchorPos);
         if (watchers.isEmpty()) return;
         CompoundTag hubData = town.getHubData(anchorPos);
         for (ServerPlayer watcher : watchers) {
-            sendVillageHubPacket.accept(watcher, hubData);
+            sendTownHubPacket.accept(watcher, hubData);
         }
     }
 
-    // C2S delegates (set by each platform client-side init)
-    public static BiConsumer<BlockPos, String> sendQueueBuildingPacket = (pos, defId) -> {};
-    public static BiConsumer<BlockPos, Integer> sendRemoveQueuedBuildingPacket = (pos, index) -> {};
-    public static BiConsumer<BlockPos, Long> sendUpgradeBuildingPacket = (pos, worldPosLong) -> {};
-    public static BiConsumer<BlockPos, String> sendAdvanceEraPacket = (pos, pathId) -> {};
-    public static Consumer<BlockPos> sendDepositPacket = pos -> {};
-    public static BiConsumer<BlockPos, String> sendClaimQuestPacket = (pos, questId) -> {};
+    // Sends a targeted stock update to every watcher.
+    public static void pushStockToWatchers(ServerLevel level, Town town, BlockPos anchorPos) {
+        if (anchorPos == null) return;
+        List<ServerPlayer> watchers = getWatchers(level, anchorPos);
+        if (watchers.isEmpty()) return;
+        CompoundTag data = town.getStockUpdateData(anchorPos);
+        for (ServerPlayer w : watchers) sendStockUpdatePacket.accept(w, data);
+    }
+
+    // Sends a targeted building list update (map + queue + upgrades) to every watcher.
+    public static void pushBuildingListToWatchers(ServerLevel level, Town town, BlockPos anchorPos) {
+        if (anchorPos == null) return;
+        List<ServerPlayer> watchers = getWatchers(level, anchorPos);
+        if (watchers.isEmpty()) return;
+        CompoundTag data = town.getBuildingListData(anchorPos);
+        for (ServerPlayer w : watchers) sendBuildingListPacket.accept(w, data);
+    }
+
+    // Sends a targeted quest update to every watcher.
+    public static void pushQuestUpdateToWatchers(ServerLevel level, Town town, BlockPos anchorPos) {
+        if (anchorPos == null) return;
+        List<ServerPlayer> watchers = getWatchers(level, anchorPos);
+        if (watchers.isEmpty()) return;
+        CompoundTag data = town.getQuestUpdateData(anchorPos);
+        for (ServerPlayer w : watchers) sendQuestUpdatePacket.accept(w, data);
+    }
+
+    // Sends a targeted era update to every watcher.
+    public static void pushEraUpdateToWatchers(ServerLevel level, Town town, BlockPos anchorPos) {
+        if (anchorPos == null) return;
+        List<ServerPlayer> watchers = getWatchers(level, anchorPos);
+        if (watchers.isEmpty()) return;
+        CompoundTag data = town.getEraUpdateData(anchorPos);
+        for (ServerPlayer w : watchers) sendEraUpdatePacket.accept(w, data);
+    }
+
+    // Sends a targeted citizen update to every watcher.
+    public static void pushCitizenUpdateToWatchers(ServerLevel level, Town town, BlockPos anchorPos) {
+        if (anchorPos == null) return;
+        List<ServerPlayer> watchers = getWatchers(level, anchorPos);
+        if (watchers.isEmpty()) return;
+        CompoundTag data = town.getCitizenUpdateData(anchorPos);
+        for (ServerPlayer w : watchers) sendCitizenUpdatePacket.accept(w, data);
+    }
+
+    private static List<ServerPlayer> getWatchers(ServerLevel level, BlockPos anchorPos) {
+        return level.players().stream()
+            .filter(p -> p.containerMenu instanceof TownHubMenu m && anchorPos.equals(m.getAnchorPos()))
+            .toList();
+    }
 }

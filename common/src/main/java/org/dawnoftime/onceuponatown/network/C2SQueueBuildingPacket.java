@@ -28,8 +28,12 @@ public record C2SQueueBuildingPacket(BlockPos anchorPos, String defId) {
             boolean added = anchor.getTown().tryAddToConstructionQueue(packet.defId());
             if (added) {
                 LevelTowns.get(level).markDirty();
-                NetworkHelper.sendVillageHubPacket.accept(player,
-                    anchor.getTown().getHubData(packet.anchorPos()));
+                NetworkHelper.sendBuildingListPacket.accept(player,
+                    anchor.getTown().getBuildingListData(packet.anchorPos()));
+                NetworkHelper.sendStockUpdatePacket.accept(player,
+                    anchor.getTown().getStockUpdateData(packet.anchorPos()));
+                NetworkHelper.sendEraUpdatePacket.accept(player,
+                    anchor.getTown().getEraUpdateData(packet.anchorPos()));
             }
         }
     }

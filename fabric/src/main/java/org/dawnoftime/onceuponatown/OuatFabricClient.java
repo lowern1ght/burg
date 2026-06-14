@@ -2,11 +2,14 @@ package org.dawnoftime.onceuponatown;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.TooltipComponentCallback;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.client.renderer.RenderType;
 import org.dawnoftime.onceuponatown.client.gui.tooltip.BuildingProductionTooltip;
@@ -15,17 +18,23 @@ import org.dawnoftime.onceuponatown.client.gui.tooltip.ClientItemAndTitleTooltip
 import org.dawnoftime.onceuponatown.client.gui.tooltip.ItemAndTitleTooltip;
 import org.dawnoftime.onceuponatown.client.model.NpcModel;
 import org.dawnoftime.onceuponatown.client.renderer.NpcRenderer;
-import org.dawnoftime.onceuponatown.client.screen.VillageChestScreen;
+import org.dawnoftime.onceuponatown.client.screen.TownHubScreen;
 import org.dawnoftime.onceuponatown.network.C2SAdvanceEraPacket;
 import org.dawnoftime.onceuponatown.network.C2SClaimQuestPacket;
 import org.dawnoftime.onceuponatown.network.C2SDepositPacket;
 import org.dawnoftime.onceuponatown.network.C2SQueueBuildingPacket;
 import org.dawnoftime.onceuponatown.network.C2SRemoveQueuedBuildingPacket;
+import org.dawnoftime.onceuponatown.network.C2SRequestStockPacket;
 import org.dawnoftime.onceuponatown.network.C2SUpgradeBuildingPacket;
 import org.dawnoftime.onceuponatown.network.NetworkHelper;
 import org.dawnoftime.onceuponatown.network.S2CBuildingDefsPacket;
-import org.dawnoftime.onceuponatown.network.S2CTownScrollScreenPacket;
-import org.dawnoftime.onceuponatown.network.S2CVillageHubPacket;
+import org.dawnoftime.onceuponatown.network.S2CBuildingListPacket;
+import org.dawnoftime.onceuponatown.network.S2CCitizenUpdatePacket;
+import org.dawnoftime.onceuponatown.network.S2CEraUpdatePacket;
+import org.dawnoftime.onceuponatown.network.S2CNbtPreviewPacket;
+import org.dawnoftime.onceuponatown.network.S2CQuestUpdatePacket;
+import org.dawnoftime.onceuponatown.network.S2CStockUpdatePacket;
+import org.dawnoftime.onceuponatown.network.S2CTownHubPacket;
 import org.dawnoftime.onceuponatown.registry.BlockRegistry;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
 import org.dawnoftime.onceuponatown.registry.MenuRegistry;
@@ -36,21 +45,57 @@ public class OuatFabricClient implements ClientModInitializer {
         EntityRendererRegistry.register(EntityRegistry.NPC, NpcRenderer::new);
         EntityModelLayerRegistry.registerModelLayer(NpcModel.LAYER_LOCATION, NpcModel::createBodyLayer);
         BlockRenderLayerMap.INSTANCE.putBlock(BlockRegistry.TOWN_ANCHOR, RenderType.cutout());
-        MenuScreens.register(MenuRegistry.VILLAGE_CHEST, VillageChestScreen::new);
-        ClientPlayNetworking.registerGlobalReceiver(S2CTownScrollScreenPacket.ID,
+        MenuScreens.register(MenuRegistry.TOWN_HUB, TownHubScreen::new);
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
+            dispatcher.register(
+                ClientCommandManager.literal("ouatpreview")
+                    .executes(ctx -> {
+                        Minecraft.getInstance().tell(() ->
+                            Minecraft.getInstance().setScreen(new org.dawnoftime.onceuponatown.client.gui.screens.NbtPreviewScreen()));
+                        return 1;
+                    })
+            )
+        );
+
+        ClientPlayNetworking.registerGlobalReceiver(S2CTownHubPacket.ID,
             (client, handler, buf, responseSender) -> {
-                S2CTownScrollScreenPacket packet = S2CTownScrollScreenPacket.decode(buf);
-                S2CTownScrollScreenPacket.Handler.handle(packet);
-            });
-        ClientPlayNetworking.registerGlobalReceiver(S2CVillageHubPacket.ID,
-            (client, handler, buf, responseSender) -> {
-                S2CVillageHubPacket packet = S2CVillageHubPacket.decode(buf);
-                S2CVillageHubPacket.Handler.handle(packet);
+                S2CTownHubPacket packet = S2CTownHubPacket.decode(buf);
+                S2CTownHubPacket.Handler.handle(packet);
             });
         ClientPlayNetworking.registerGlobalReceiver(S2CBuildingDefsPacket.ID,
             (client, handler, buf, responseSender) -> {
                 S2CBuildingDefsPacket packet = S2CBuildingDefsPacket.decode(buf);
                 S2CBuildingDefsPacket.Handler.handle(packet);
+            });
+        ClientPlayNetworking.registerGlobalReceiver(S2CStockUpdatePacket.ID,
+            (client, handler, buf, responseSender) -> {
+                S2CStockUpdatePacket packet = S2CStockUpdatePacket.decode(buf);
+                S2CStockUpdatePacket.Handler.handle(packet);
+            });
+        ClientPlayNetworking.registerGlobalReceiver(S2CBuildingListPacket.ID,
+            (client, handler, buf, responseSender) -> {
+                S2CBuildingListPacket packet = S2CBuildingListPacket.decode(buf);
+                S2CBuildingListPacket.Handler.handle(packet);
+            });
+        ClientPlayNetworking.registerGlobalReceiver(S2CQuestUpdatePacket.ID,
+            (client, handler, buf, responseSender) -> {
+                S2CQuestUpdatePacket packet = S2CQuestUpdatePacket.decode(buf);
+                S2CQuestUpdatePacket.Handler.handle(packet);
+            });
+        ClientPlayNetworking.registerGlobalReceiver(S2CEraUpdatePacket.ID,
+            (client, handler, buf, responseSender) -> {
+                S2CEraUpdatePacket packet = S2CEraUpdatePacket.decode(buf);
+                S2CEraUpdatePacket.Handler.handle(packet);
+            });
+        ClientPlayNetworking.registerGlobalReceiver(S2CCitizenUpdatePacket.ID,
+            (client, handler, buf, responseSender) -> {
+                S2CCitizenUpdatePacket packet = S2CCitizenUpdatePacket.decode(buf);
+                S2CCitizenUpdatePacket.Handler.handle(packet);
+            });
+        ClientPlayNetworking.registerGlobalReceiver(S2CNbtPreviewPacket.ID,
+            (client, handler, buf, responseSender) -> {
+                S2CNbtPreviewPacket packet = S2CNbtPreviewPacket.decode(buf);
+                S2CNbtPreviewPacket.Handler.handle(packet);
             });
         TooltipComponentCallback.EVENT.register(component -> {
             if (component instanceof ItemAndTitleTooltip t) return new ClientItemAndTitleTooltip(t);
@@ -81,6 +126,11 @@ public class OuatFabricClient implements ClientModInitializer {
             var buf = PacketByteBufs.create();
             new C2SDepositPacket(pos).encode(buf);
             ClientPlayNetworking.send(C2SDepositPacket.ID, buf);
+        };
+        NetworkHelper.sendRequestStockPacket = pos -> {
+            var buf = PacketByteBufs.create();
+            new C2SRequestStockPacket(pos).encode(buf);
+            ClientPlayNetworking.send(C2SRequestStockPacket.ID, buf);
         };
         NetworkHelper.sendClaimQuestPacket = (pos, questId) -> {
             var buf = PacketByteBufs.create();

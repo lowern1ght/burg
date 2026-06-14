@@ -9,6 +9,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicBlock;
+import org.dawnoftime.onceuponatown.datapack.BuilderConfigDataHandler;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.town.Town;
 import org.slf4j.Logger;
@@ -32,16 +33,17 @@ public class BuildGoal implements BuildTask {
     private enum Phase { MOVING, BUILDING, DONE }
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BuildGoal.class);
-    // Ticks between blocks within the same burst (fast "pop pop" feel).
-    private static final int BLOCK_DELAY = 4;
-    // Ticks between bursts: random in [BURST_PAUSE_MIN, BURST_PAUSE_MAX].
-    private static final int BURST_PAUSE_MIN = 10;
-    private static final int BURST_PAUSE_MAX = 18;
-    // Max extra follow-up blocks after the first in a burst (0 = burst of 1, 2 = burst of 3).
-    private static final int MAX_BURST_EXTRA = 2;
-    private static final double REACH_DIST = 6.0;
-    private static final int STUCK_FALLBACK_TICKS = 100;
-    private static final int MOVING_TIMEOUT_TICKS = 3600;
+
+    private static int blockDelay()        { return BuilderConfigDataHandler.get().blockDelayTicks; }
+    private static int burstPauseMin()     { return BuilderConfigDataHandler.get().burstPauseMinTicks; }
+    private static int burstPauseMax()     { return BuilderConfigDataHandler.get().burstPauseMaxTicks; }
+    private static int maxBurstExtra()     { return BuilderConfigDataHandler.get().maxBurstExtraBlocks; }
+    private static double reachDist()      { return BuilderConfigDataHandler.get().blockReachDistance; }
+    private static int stuckFallback()     { return BuilderConfigDataHandler.get().stuckFallbackTicks; }
+    private static int movingTimeout()     { return BuilderConfigDataHandler.get().movingTimeoutTicks; }
+    private static float planReadChance()  { return BuilderConfigDataHandler.get().planReadChance; }
+    private static int planReadMin()       { return BuilderConfigDataHandler.get().planReadMinTicks; }
+    private static int planReadMax()       { return BuilderConfigDataHandler.get().planReadMaxTicks; }
 
     private final Npc npc;
     private final BuildAction action;
@@ -62,7 +64,7 @@ public class BuildGoal implements BuildTask {
     public BuildGoal(Npc npc, BuildAction action) {
         this.npc = npc;
         this.action = action;
-        this.goTo = new GoToPosition(npc, action.getTargetPos(), 0.6, 5.5);
+        this.goTo = new GoToPosition(npc, action.getTargetPos(), BuilderConfigDataHandler.get().walkSpeed, 5.5);
     }
 
     @Override
@@ -81,7 +83,7 @@ public class BuildGoal implements BuildTask {
     }
 
     private boolean tickMoving() {
-        if (++movingTicks > MOVING_TIMEOUT_TICKS) {
+        if (++movingTicks > movingTimeout()) {
             LOGGER.warn("[OUAT-BUILD] MOVING timeout -- target={}", action.getTargetPos());
             failed = true;
             return true;
@@ -137,13 +139,13 @@ public class BuildGoal implements BuildTask {
 
         // Navigate toward the next block before placing it.
         double distSq = npc.distanceToSqr(Vec3.atCenterOf(nextWorldPos));
-        boolean inReach = distSq <= REACH_DIST * REACH_DIST;
+        boolean inReach = distSq <= reachDist() * reachDist();
 
-        if (!inReach && stuckTicks < STUCK_FALLBACK_TICKS) {
+        if (!inReach && stuckTicks < stuckFallback()) {
             stuckTicks++;
             if (!nextWorldPos.equals(currentBuildTarget)) {
                 currentBuildTarget = nextWorldPos;
-                if (buildGoTo == null) buildGoTo = new GoToPosition(npc, nextWorldPos, 0.6, REACH_DIST);
+                if (buildGoTo == null) buildGoTo = new GoToPosition(npc, nextWorldPos, BuilderConfigDataHandler.get().walkSpeed, reachDist());
                 else buildGoTo.updateTarget(nextWorldPos);
             }
             buildGoTo.tick();
@@ -177,13 +179,12 @@ public class BuildGoal implements BuildTask {
         // Burst rhythm: quick follow-up within a burst, longer pause between bursts.
         if (burstBlocksLeft > 0) {
             burstBlocksLeft--;
-            buildSpeedCooldown = BLOCK_DELAY;
+            buildSpeedCooldown = blockDelay();
         } else {
-            burstBlocksLeft = npc.getRandom().nextInt(MAX_BURST_EXTRA + 1);
-            buildSpeedCooldown = BURST_PAUSE_MIN + npc.getRandom().nextInt(BURST_PAUSE_MAX - BURST_PAUSE_MIN + 1);
-            // 5% chance to consult the plan between bursts -- a brief, rare map-check moment.
-            if (npc.getRandom().nextFloat() < 0.05f) {
-                npc.startReading(15 + npc.getRandom().nextInt(20));
+            burstBlocksLeft = npc.getRandom().nextInt(maxBurstExtra() + 1);
+            buildSpeedCooldown = burstPauseMin() + npc.getRandom().nextInt(burstPauseMax() - burstPauseMin() + 1);
+            if (npc.getRandom().nextFloat() < planReadChance()) {
+                npc.startReading(planReadMin() + npc.getRandom().nextInt(planReadMax() - planReadMin() + 1));
             }
         }
 

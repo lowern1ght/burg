@@ -1,0 +1,13 @@
+{
+  "id": "lake",
+  "nbt": "onceuponatown:plains/jobs/lake",
+  "entry_pool": "onceuponatown:jobs",
+  "icon_item": "minecraft:cod",
+  "category": "naturals",
+  "construction_cost": [
+    {
+      "item": "minecraft:oak_log",
+      "amount": 5
+    }
+  ]
+}

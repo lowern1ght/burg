@@ -1,0 +1,17 @@
+{
+  "max_placement_retries": 5,
+  "idle_wait_ticks": 200,
+  "autonomous_road_interval_ticks": 1200,
+  "walk_speed": 0.6,
+  "block_reach_distance": 6.0,
+  "block_delay_ticks": 4,
+  "burst_pause_min_ticks": 10,
+  "burst_pause_max_ticks": 18,
+  "max_burst_extra_blocks": 2,
+  "stuck_fallback_ticks": 100,
+  "moving_timeout_ticks": 3600,
+  "path_refresh_interval_ticks": 20,
+  "plan_read_chance": 0.05,
+  "plan_read_min_ticks": 15,
+  "plan_read_max_ticks": 35
+}

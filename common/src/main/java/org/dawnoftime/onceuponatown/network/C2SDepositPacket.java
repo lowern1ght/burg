@@ -10,7 +10,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.blockentity.TownAnchorBlockEntity;
-import org.dawnoftime.onceuponatown.screen.VillageChestMenu;
+import org.dawnoftime.onceuponatown.screen.TownHubMenu;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.Town;
 
@@ -31,7 +31,7 @@ public record C2SDepositPacket(BlockPos anchorPos) {
         public static void handle(C2SDepositPacket packet, ServerPlayer player) {
             ServerLevel level = (ServerLevel) player.level();
             if (!(level.getBlockEntity(packet.anchorPos()) instanceof TownAnchorBlockEntity anchor)) return;
-            if (!(player.containerMenu instanceof VillageChestMenu menu)) return;
+            if (!(player.containerMenu instanceof TownHubMenu menu)) return;
 
             Town town = anchor.getTown();
             // Extended set includes quest items; base set is production items only (for routing)
@@ -64,7 +64,7 @@ public record C2SDepositPacket(BlockPos anchorPos) {
 
             if (changed) {
                 LevelTowns.get(level).markDirty();
-                NetworkHelper.sendVillageHubPacket.accept(player, town.getHubData(packet.anchorPos()));
+                NetworkHelper.sendStockUpdatePacket.accept(player, town.getStockUpdateData(packet.anchorPos()));
             }
         }
     }
