@@ -5,5 +5,5 @@
   "title": "quest.onceuponatown.village_thriving.title",
   "description": "quest.onceuponatown.village_thriving.desc",
   "spawn_weight": 10,
-  "ttl_ticks": 12000
+  "duration_ticks": 12000
 }

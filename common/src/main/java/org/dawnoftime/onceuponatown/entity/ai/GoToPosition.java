@@ -2,10 +2,10 @@ package org.dawnoftime.onceuponatown.entity.ai;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
+import org.dawnoftime.onceuponatown.datapack.BuilderConfigDataHandler;
 import org.dawnoftime.onceuponatown.entity.Npc;
 
 public class GoToPosition {
-    private static final int NAV_REFRESH_INTERVAL = 20;
 
     private final Npc npc;
     private BlockPos target;
@@ -38,7 +38,7 @@ public class GoToPosition {
             return true;
         }
         // Re-issue moveTo every second so stroll goals cannot permanently override the build target.
-        if (++ticksSinceNavRefresh >= NAV_REFRESH_INTERVAL) {
+        if (++ticksSinceNavRefresh >= BuilderConfigDataHandler.get().pathRefreshIntervalTicks) {
             ticksSinceNavRefresh = 0;
             npc.getNavigation().moveTo(target.getX() + 0.5, target.getY(), target.getZ() + 0.5, speed);
         }

@@ -28,10 +28,6 @@ public class BuildingDef {
     public final float transformInputRatio;
     // Ticks between each transformation pass.
     public final int transformEveryTicks;
-    // Village orientation this starter building provides ("industrial", "pastoral", "agricultural"). Empty for non-starters.
-    public final String orientation;
-    // Building defIds that receive the orientation production bonus (+15%) when built by the player. Empty for non-starters.
-    public final List<String> boosted;
     // Additive bonus applied to village-wide production amounts (e.g. 0.03 = +3% per building).
     public final double productionBonus;
     // Extra capacity stacks added to every productive building in the village (e.g. 1 = +64 items per building).
@@ -47,10 +43,6 @@ public class BuildingDef {
     // Per-level NBT metadata. undergroundDepth = how many blocks deeper than the base template this level goes.
     // Used to shift the upgrade diff origin downward so underground galleries land at the correct Y.
     public record NbtLevel(ResourceLocation nbt, int undergroundDepth) {}
-    // Minimum era required for this building to appear in the village catalog. Default 0 (always available).
-    public final int requiredEra;
-    // Orientation tag required for this building to appear in the catalog. Empty = available to all orientations.
-    public final String requiredOrientation;
     // Minimum total village residents required before this building can be constructed.
     public final int requiredResidents;
     // Specific buildings that must already exist in the village before this one can be constructed.
@@ -79,10 +71,8 @@ public class BuildingDef {
                        List<String> footprint,
                        List<TransformationRecipe> transformations,
                        float transformInputRatio, int transformEveryTicks,
-                       String orientation, List<String> boosted,
                        double productionBonus, int stockBonus, int residents,
                        List<UpgradeLevel> upgrades, List<NbtLevel> nbtLevels,
-                       int requiredEra, String requiredOrientation,
                        int requiredResidents, List<BuildingRequirement> requiredBuildings,
                        float consumptionPerResident) {
         this.id = id;
@@ -97,24 +87,20 @@ public class BuildingDef {
         this.transformations = transformations;
         this.transformInputRatio = transformInputRatio;
         this.transformEveryTicks = transformEveryTicks;
-        this.orientation = orientation;
-        this.boosted = boosted;
         this.productionBonus = productionBonus;
         this.stockBonus = stockBonus;
         this.residents = residents;
         this.upgrades = upgrades;
         this.nbtLevels = nbtLevels;
-        this.requiredEra = requiredEra;
-        this.requiredOrientation = requiredOrientation;
         this.requiredResidents = requiredResidents;
         this.requiredBuildings = requiredBuildings;
         this.consumptionPerResident = consumptionPerResident;
     }
 
-    // Weight cost by building category. Shared between server (Town) and client (VillageChestScreen).
+    // Weight cost by building category, used client-side for UI weight checks and tooltips.
     public static int weightForCategory(String category) {
         return switch (category) {
-            case "natural"   -> 1;
+            case "naturals"   -> 1;
             case "buildings" -> 2;
             case "gardens"   -> 3;
             case "jobs"      -> 3;

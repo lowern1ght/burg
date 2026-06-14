@@ -5,6 +5,7 @@
   "title": "quest.onceuponatown.feed_workers.title",
   "description": "quest.onceuponatown.feed_workers.desc",
   "spawn_weight": 10,
+  "duration_ticks": 12000,
   "conditions": [
     { "type": "DELIVERY", "item": "minecraft:bread", "required": 10 }
   ],

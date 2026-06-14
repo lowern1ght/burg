@@ -28,8 +28,12 @@ public record C2SRemoveQueuedBuildingPacket(BlockPos anchorPos, int slotIndex) {
             boolean removed = anchor.getTown().removeFromConstructionQueue(packet.slotIndex());
             if (removed) {
                 LevelTowns.get(level).markDirty();
-                NetworkHelper.sendVillageHubPacket.accept(player,
-                    anchor.getTown().getHubData(packet.anchorPos()));
+                NetworkHelper.sendBuildingListPacket.accept(player,
+                    anchor.getTown().getBuildingListData(packet.anchorPos()));
+                NetworkHelper.sendStockUpdatePacket.accept(player,
+                    anchor.getTown().getStockUpdateData(packet.anchorPos()));
+                NetworkHelper.sendEraUpdatePacket.accept(player,
+                    anchor.getTown().getEraUpdateData(packet.anchorPos()));
             }
         }
     }

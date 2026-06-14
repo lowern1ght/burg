@@ -5,6 +5,7 @@
   "title": "quest.onceuponatown.bow_hunter.title",
   "description": "quest.onceuponatown.bow_hunter.desc",
   "spawn_weight": 3,
+  "duration_ticks": 12000,
   "conditions": [
     { "type": "DELIVERY", "item": "minecraft:bow", "required": 1 }
   ],

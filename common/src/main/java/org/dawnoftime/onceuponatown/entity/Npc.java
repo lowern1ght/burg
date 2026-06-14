@@ -26,7 +26,6 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import org.dawnoftime.onceuponatown.building.schematic.BuildSchematic;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
 import org.dawnoftime.onceuponatown.entity.ai.SimpleStateMachine;
-import org.dawnoftime.onceuponatown.registry.ItemRegistry;
 import org.dawnoftime.onceuponatown.town.ConnectionPoint;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.Town;
@@ -91,7 +90,7 @@ public class Npc extends PathfinderMob {
             if (!anchorValidated && townAnchorPos != null && level() instanceof ServerLevel sl) {
                 anchorValidated = true;
                 Town town = LevelTowns.get(sl).getTownAt(townAnchorPos).orElse(null);
-                if (town == null || !getUUID().equals(town.getBuilderNpcId())) {
+                if (town == null || !town.getBuilderNpcIds().contains(getUUID())) {
                     discard();
                     return;
                 }
@@ -135,7 +134,7 @@ public class Npc extends PathfinderMob {
                                 Rotation rotation, BlockPos entryConnectorWorldPos) {
         if (!(level() instanceof ServerLevel serverLevel)) return;
         LevelTowns.get(serverLevel).getAllTowns().stream()
-            .filter(t -> getUUID().equals(t.getBuilderNpcId()))
+            .filter(t -> t.getBuilderNpcIds().contains(getUUID()))
             .findFirst()
             .ifPresent(town -> {
                 List<ConnectionPoint> connections = BuildSchematic.readJigsawPoints(
@@ -190,7 +189,7 @@ public class Npc extends PathfinderMob {
     // Starts the "reading plan" animation for the given number of ticks.
     // Puts the town scroll in the main hand; tick() clears it when the timer expires.
     public void startReading(int durationTicks) {
-        setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(ItemRegistry.TOWN_SCROLL));
+        setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(net.minecraft.world.item.Items.MAP));
         readingTicksRemaining = durationTicks;
         entityData.set(DATA_IS_READING, true);
     }

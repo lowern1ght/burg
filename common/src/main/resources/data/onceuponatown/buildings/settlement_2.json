@@ -2,37 +2,23 @@
   "id": "settlement_2",
   "nbt": "onceuponatown:plains/starters/settlement_2",
   "entry_pool": "onceuponatown:starters",
-  "orientation": "pastoral",
-  "boosted": ["pig_field", "cow_field", "sheep_field"],
   "icon_item": "minecraft:campfire",
   "category": "town_center",
   "production": [
     {
       "item": "minecraft:oak_log",
-      "amount": 3,
+      "amount": 2,
       "every_ticks": 1200,
-      "capacity_stacks": 3
-    },
-    {
-      "item": "minecraft:beef",
-      "amount": 1,
-      "every_ticks": 1600,
       "capacity_stacks": 1
     },
     {
       "item": "minecraft:porkchop",
       "amount": 1,
-      "every_ticks": 1600,
+      "every_ticks": 1800,
       "capacity_stacks": 1
     },
     {
       "item": "minecraft:apple",
-      "amount": 1,
-      "every_ticks": 1600,
-      "capacity_stacks": 1
-    },
-    {
-      "item": "minecraft:stick",
       "amount": 1,
       "every_ticks": 1600,
       "capacity_stacks": 1
@@ -56,15 +42,6 @@
         { "item": "minecraft:charcoal", "amount": 1 }
       ],
       "output": "minecraft:cooked_porkchop",
-      "output_amount": 1,
-      "output_capacity_stacks": 1
-    },
-    {
-      "inputs": [
-        { "item": "minecraft:beef", "amount": 1 },
-        { "item": "minecraft:charcoal", "amount": 1 }
-      ],
-      "output": "minecraft:cooked_beef",
       "output_amount": 1,
       "output_capacity_stacks": 1
     }

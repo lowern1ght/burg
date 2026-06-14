@@ -1,0 +1,19 @@
+{
+  "id": "lone_garden",
+  "nbt": "onceuponatown:plains/gardens/lone_garden",
+  "entry_pool": "onceuponatown:gardens",
+  "icon_item": "minecraft:oak_leaves",
+  "category": "gardens",
+  "production_bonus": 0.05,
+  "required_residents": 12,
+  "construction_cost": [
+    {
+      "item": "minecraft:oak_log",
+      "amount": 35
+    },
+    {
+      "item": "minecraft:cobblestone",
+      "amount": 10
+    }
+  ]
+}

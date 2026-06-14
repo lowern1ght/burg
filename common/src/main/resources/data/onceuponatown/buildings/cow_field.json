@@ -4,7 +4,10 @@
   "entry_pool": "onceuponatown:jobs",
   "icon_item": "minecraft:beef",
   "category": "jobs",
-  "required_era": 1,
+  "required_buildings": [
+    { "defId": "pig_field", "count": 1 },
+    { "defId": "wheat_field", "count": 1 }
+  ],
   "construction_cost": [
     {
       "item": "minecraft:oak_log",

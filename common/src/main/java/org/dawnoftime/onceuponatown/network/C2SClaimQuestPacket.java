@@ -8,7 +8,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.blockentity.TownAnchorBlockEntity;
-import org.dawnoftime.onceuponatown.screen.VillageChestMenu;
+import org.dawnoftime.onceuponatown.screen.TownHubMenu;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.Quest;
 import org.dawnoftime.onceuponatown.town.Town;
@@ -29,7 +29,7 @@ public record C2SClaimQuestPacket(BlockPos anchorPos, String questId) {
         public static void handle(C2SClaimQuestPacket packet, ServerPlayer player) {
             ServerLevel level = (ServerLevel) player.level();
             if (!(level.getBlockEntity(packet.anchorPos()) instanceof TownAnchorBlockEntity anchor)) return;
-            if (!(player.containerMenu instanceof VillageChestMenu)) return;
+            if (!(player.containerMenu instanceof TownHubMenu)) return;
 
             Town town = anchor.getTown();
             Quest quest = null;
@@ -55,7 +55,7 @@ public record C2SClaimQuestPacket(BlockPos anchorPos, String questId) {
             }
 
             LevelTowns.get(level).markDirty();
-            NetworkHelper.sendVillageHubPacket.accept(player, town.getHubData(packet.anchorPos()));
+            NetworkHelper.sendQuestUpdatePacket.accept(player, town.getQuestUpdateData(packet.anchorPos()));
         }
     }
 }

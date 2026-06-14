@@ -33,27 +33,34 @@ import net.minecraftforge.server.ServerLifecycleHooks;
 import org.dawnoftime.onceuponatown.block.TownAnchorBlock;
 import org.dawnoftime.onceuponatown.blockentity.TownAnchorBlockEntity;
 import org.dawnoftime.onceuponatown.command.TownCommand;
+import org.dawnoftime.onceuponatown.datapack.BuilderConfigDataHandler;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
+import org.dawnoftime.onceuponatown.datapack.BuildingListDataHandler;
 import org.dawnoftime.onceuponatown.datapack.EraTransitionDataHandler;
 import org.dawnoftime.onceuponatown.datapack.QuestDataHandler;
 import org.dawnoftime.onceuponatown.entity.Npc;
-import org.dawnoftime.onceuponatown.item.TownScrollItem;
 import org.dawnoftime.onceuponatown.network.C2SAdvanceEraPacket;
 import org.dawnoftime.onceuponatown.network.C2SClaimQuestPacket;
 import org.dawnoftime.onceuponatown.network.C2SDepositPacket;
 import org.dawnoftime.onceuponatown.network.C2SQueueBuildingPacket;
 import org.dawnoftime.onceuponatown.network.C2SRemoveQueuedBuildingPacket;
+import org.dawnoftime.onceuponatown.network.C2SRequestStockPacket;
 import org.dawnoftime.onceuponatown.network.C2SUpgradeBuildingPacket;
 import org.dawnoftime.onceuponatown.network.NetworkHelper;
 import org.dawnoftime.onceuponatown.network.S2CBuildingDefsPacket;
-import org.dawnoftime.onceuponatown.network.S2CTownScrollScreenPacket;
-import org.dawnoftime.onceuponatown.network.S2CVillageHubPacket;
+import org.dawnoftime.onceuponatown.network.S2CBuildingListPacket;
+import org.dawnoftime.onceuponatown.network.S2CCitizenUpdatePacket;
+import org.dawnoftime.onceuponatown.network.S2CEraUpdatePacket;
+import org.dawnoftime.onceuponatown.network.S2CNbtPreviewPacket;
+import org.dawnoftime.onceuponatown.network.S2CQuestUpdatePacket;
+import org.dawnoftime.onceuponatown.network.S2CStockUpdatePacket;
+import org.dawnoftime.onceuponatown.network.S2CTownHubPacket;
 import org.dawnoftime.onceuponatown.registry.BlockEntityRegistry;
 import org.dawnoftime.onceuponatown.registry.BlockRegistry;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
 import org.dawnoftime.onceuponatown.registry.ItemRegistry;
 import org.dawnoftime.onceuponatown.registry.MenuRegistry;
-import org.dawnoftime.onceuponatown.screen.VillageChestMenu;
+import org.dawnoftime.onceuponatown.screen.TownHubMenu;
 import org.dawnoftime.onceuponatown.tick.TickScheduler;
 
 import java.util.Optional;
@@ -101,13 +108,9 @@ public class OuatForge {
                 .build(new ResourceLocation(Constants.MOD_ID, "npc").toString())
         );
 
-    private static final RegistryObject<MenuType<?>> VILLAGE_CHEST_OBJ =
-        MENU_TYPES.register("village_chest",
-            () -> IForgeMenuType.create((syncId, inv, buf) -> new VillageChestMenu(syncId, inv)));
-
-    private static final RegistryObject<Item> TOWN_SCROLL_OBJ =
-        ITEMS.register("town_scroll",
-            () -> new TownScrollItem(new Item.Properties().stacksTo(1)));
+    private static final RegistryObject<MenuType<?>> TOWN_HUB_OBJ =
+        MENU_TYPES.register("town_hub",
+            () -> IForgeMenuType.create((syncId, inv, buf) -> new TownHubMenu(syncId, inv)));
 
     private static final RegistryObject<Item> TOWN_ANCHOR_ITEM_OBJ =
         ITEMS.register("town_anchor",
@@ -137,27 +140,15 @@ public class OuatForge {
         BlockRegistry.TOWN_ANCHOR = TOWN_ANCHOR_OBJ.get();
         BlockEntityRegistry.TOWN_ANCHOR = (BlockEntityType<TownAnchorBlockEntity>) TOWN_ANCHOR_BE_OBJ.get();
         EntityRegistry.NPC = (EntityType<Npc>) NPC_OBJ.get();
-        MenuRegistry.VILLAGE_CHEST = (MenuType<VillageChestMenu>) VILLAGE_CHEST_OBJ.get();
-        ItemRegistry.TOWN_SCROLL = TOWN_SCROLL_OBJ.get();
+        MenuRegistry.TOWN_HUB = (MenuType<TownHubMenu>) TOWN_HUB_OBJ.get();
         ItemRegistry.TOWN_ANCHOR = TOWN_ANCHOR_ITEM_OBJ.get();
 
-        CHANNEL.registerMessage(0,
-            S2CTownScrollScreenPacket.class,
-            S2CTownScrollScreenPacket::encode,
-            S2CTownScrollScreenPacket::decode,
-            (msg, ctx) -> {
-                ctx.get().enqueueWork(() -> S2CTownScrollScreenPacket.Handler.handle(msg));
-                ctx.get().setPacketHandled(true);
-            },
-            Optional.of(NetworkDirection.PLAY_TO_CLIENT)
-        );
-
         CHANNEL.registerMessage(1,
-            S2CVillageHubPacket.class,
-            S2CVillageHubPacket::encode,
-            S2CVillageHubPacket::decode,
+            S2CTownHubPacket.class,
+            S2CTownHubPacket::encode,
+            S2CTownHubPacket::decode,
             (msg, ctx) -> {
-                ctx.get().enqueueWork(() -> S2CVillageHubPacket.Handler.handle(msg));
+                ctx.get().enqueueWork(() -> S2CTownHubPacket.Handler.handle(msg));
                 ctx.get().setPacketHandled(true);
             },
             Optional.of(NetworkDirection.PLAY_TO_CLIENT)
@@ -245,14 +236,110 @@ public class OuatForge {
             Optional.of(NetworkDirection.PLAY_TO_SERVER)
         );
 
-        NetworkHelper.sendTownScrollPacket = (player, data) ->
-            CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CTownScrollScreenPacket(data));
+        CHANNEL.registerMessage(9,
+            S2CStockUpdatePacket.class,
+            S2CStockUpdatePacket::encode,
+            S2CStockUpdatePacket::decode,
+            (msg, ctx) -> {
+                ctx.get().enqueueWork(() -> S2CStockUpdatePacket.Handler.handle(msg));
+                ctx.get().setPacketHandled(true);
+            },
+            Optional.of(NetworkDirection.PLAY_TO_CLIENT)
+        );
 
-        NetworkHelper.sendVillageHubPacket = (player, data) ->
-            CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CVillageHubPacket(data));
+        CHANNEL.registerMessage(10,
+            S2CBuildingListPacket.class,
+            S2CBuildingListPacket::encode,
+            S2CBuildingListPacket::decode,
+            (msg, ctx) -> {
+                ctx.get().enqueueWork(() -> S2CBuildingListPacket.Handler.handle(msg));
+                ctx.get().setPacketHandled(true);
+            },
+            Optional.of(NetworkDirection.PLAY_TO_CLIENT)
+        );
+
+        CHANNEL.registerMessage(11,
+            S2CQuestUpdatePacket.class,
+            S2CQuestUpdatePacket::encode,
+            S2CQuestUpdatePacket::decode,
+            (msg, ctx) -> {
+                ctx.get().enqueueWork(() -> S2CQuestUpdatePacket.Handler.handle(msg));
+                ctx.get().setPacketHandled(true);
+            },
+            Optional.of(NetworkDirection.PLAY_TO_CLIENT)
+        );
+
+        CHANNEL.registerMessage(12,
+            S2CEraUpdatePacket.class,
+            S2CEraUpdatePacket::encode,
+            S2CEraUpdatePacket::decode,
+            (msg, ctx) -> {
+                ctx.get().enqueueWork(() -> S2CEraUpdatePacket.Handler.handle(msg));
+                ctx.get().setPacketHandled(true);
+            },
+            Optional.of(NetworkDirection.PLAY_TO_CLIENT)
+        );
+
+        CHANNEL.registerMessage(13,
+            S2CCitizenUpdatePacket.class,
+            S2CCitizenUpdatePacket::encode,
+            S2CCitizenUpdatePacket::decode,
+            (msg, ctx) -> {
+                ctx.get().enqueueWork(() -> S2CCitizenUpdatePacket.Handler.handle(msg));
+                ctx.get().setPacketHandled(true);
+            },
+            Optional.of(NetworkDirection.PLAY_TO_CLIENT)
+        );
+
+        CHANNEL.registerMessage(14,
+            C2SRequestStockPacket.class,
+            C2SRequestStockPacket::encode,
+            C2SRequestStockPacket::decode,
+            (msg, ctx) -> {
+                ctx.get().enqueueWork(() ->
+                    C2SRequestStockPacket.Handler.handle(msg, ctx.get().getSender()));
+                ctx.get().setPacketHandled(true);
+            },
+            Optional.of(NetworkDirection.PLAY_TO_SERVER)
+        );
+
+        CHANNEL.registerMessage(15,
+            S2CNbtPreviewPacket.class,
+            S2CNbtPreviewPacket::encode,
+            S2CNbtPreviewPacket::decode,
+            (msg, ctx) -> {
+                ctx.get().enqueueWork(() -> S2CNbtPreviewPacket.Handler.handle(msg));
+                ctx.get().setPacketHandled(true);
+            },
+            Optional.of(NetworkDirection.PLAY_TO_CLIENT)
+        );
+
+        NetworkHelper.sendTownHubPacket = (player, data) ->
+            CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CTownHubPacket(data));
 
         NetworkHelper.sendBuildingDefsPacket = (player, data) ->
             CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CBuildingDefsPacket(data));
+
+        NetworkHelper.sendStockUpdatePacket = (player, data) ->
+            CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CStockUpdatePacket(data));
+
+        NetworkHelper.sendBuildingListPacket = (player, data) ->
+            CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CBuildingListPacket(data));
+
+        NetworkHelper.sendQuestUpdatePacket = (player, data) ->
+            CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CQuestUpdatePacket(data));
+
+        NetworkHelper.sendEraUpdatePacket = (player, data) ->
+            CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CEraUpdatePacket(data));
+
+        NetworkHelper.sendCitizenUpdatePacket = (player, data) ->
+            CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CCitizenUpdatePacket(data));
+
+        NetworkHelper.sendNbtPreviewPacket = (player, data) ->
+            CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CNbtPreviewPacket(data));
+
+        NetworkHelper.sendRequestStockPacket = pos ->
+            CHANNEL.sendToServer(new C2SRequestStockPacket(pos));
     }
 
     @SuppressWarnings("unchecked")
@@ -265,7 +352,9 @@ public class OuatForge {
     }
 
     private void onServerStarting(ServerStartingEvent event) {
+        BuilderConfigDataHandler.reload(event.getServer());
         BuildingDataHandler.reload(event.getServer());
+        BuildingListDataHandler.reload(event.getServer());
         EraTransitionDataHandler.reload(event.getServer());
         QuestDataHandler.reload(event.getServer());
     }

@@ -17,7 +17,8 @@ import org.dawnoftime.onceuponatown.building.schematic.BuildSchematic;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicBlock;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicEntity;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicReader;
-import org.dawnoftime.onceuponatown.building.terrain.BeardThinMimic;
+import org.dawnoftime.onceuponatown.building.terrain.TerrainCarver;
+import org.dawnoftime.onceuponatown.datapack.BuilderConfigDataHandler;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.town.BuildingDef;
@@ -85,7 +86,8 @@ public class NewBuildAction implements BuildAction {
     @Override
     public void onArrived(Npc npc) {
         if (!def.terrainMatching && !skipInitialReading) {
-            npc.startReading(40 + npc.getRandom().nextInt(41));
+            BuilderConfigDataHandler.Config cfg = BuilderConfigDataHandler.get();
+            npc.startReading(cfg.planReadMinTicks + npc.getRandom().nextInt(cfg.planReadMaxTicks - cfg.planReadMinTicks + 1));
         }
     }
 
@@ -100,8 +102,8 @@ public class NewBuildAction implements BuildAction {
         cachedTemplate = templateOpt.get();
 
         if (!skipTerrainPrep) {
-            BeardThinMimic.prePlace(level, finalPlacementPos, cachedTemplate, rotation);
-            BeardThinMimic.postPlace(level, finalPlacementPos, cachedTemplate, rotation);
+            TerrainCarver.prePlace(level, finalPlacementPos, cachedTemplate, rotation);
+            TerrainCarver.postPlace(level, finalPlacementPos, cachedTemplate, rotation);
         }
 
         List<SchematicBlock> blocks = SchematicReader.readSortedBlocks(cachedTemplate, rotation);

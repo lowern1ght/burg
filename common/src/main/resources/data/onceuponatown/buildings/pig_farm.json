@@ -1,0 +1,59 @@
+{
+  "id": "pig_farm",
+  "nbt": "onceuponatown:plains/jobs/pig_farm",
+  "entry_pool": "onceuponatown:jobs",
+  "icon_item": "minecraft:porkchop",
+  "category": "jobs",
+  "required_buildings": [
+    { "defId": "pig_field", "count": 3 }
+  ],
+  "construction_cost": [
+    {
+      "item": "minecraft:oak_log",
+      "amount": 45
+    },
+    {
+      "item": "minecraft:white_bed",
+      "amount": 2
+    }
+  ],
+  "production": [
+    {
+      "item": "minecraft:porkchop",
+      "amount": 2,
+      "every_ticks": 1600,
+      "capacity_stacks": 1
+    }
+  ],
+  "transform_input_ratio": 0.1,
+  "transform_every_ticks": 1600,
+  "transformations": [
+    {
+      "inputs": [
+        { "item": "minecraft:log", "amount": 1 }
+      ],
+      "output": "minecraft:charcoal",
+      "output_amount": 1,
+      "output_capacity_stacks": 1
+    },
+    {
+      "inputs": [
+        { "item": "minecraft:porkchop", "amount": 1 },
+        { "item": "minecraft:charcoal", "amount": 1 }
+      ],
+      "output": "minecraft:cooked_porkchop",
+      "output_amount": 1,
+      "output_capacity_stacks": 1
+    }
+  ],
+  "nbt_levels": [
+    "onceuponatown:plains/starters/pig_farm_lvl1",
+    "onceuponatown:plains/starters/pig_farm_lvl2",
+    "onceuponatown:plains/starters/pig_farm_lvl3",
+    "onceuponatown:plains/starters/pig_farm_lvl4",
+    "onceuponatown:plains/starters/pig_farm_lvl5",
+    "onceuponatown:plains/starters/pig_farm_lvl6",
+    "onceuponatown:plains/starters/pig_farm_lvl7",
+    "onceuponatown:plains/starters/pig_farm_lvl8"
+  ]
+}

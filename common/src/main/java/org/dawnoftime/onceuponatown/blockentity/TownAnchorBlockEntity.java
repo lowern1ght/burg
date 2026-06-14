@@ -16,7 +16,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.dawnoftime.onceuponatown.registry.BlockEntityRegistry;
-import org.dawnoftime.onceuponatown.screen.VillageChestMenu;
+import org.dawnoftime.onceuponatown.screen.TownHubMenu;
 import org.dawnoftime.onceuponatown.town.Town;
 
 public class TownAnchorBlockEntity extends BlockEntity implements MenuProvider {
@@ -88,12 +88,12 @@ public class TownAnchorBlockEntity extends BlockEntity implements MenuProvider {
 
     @Override
     public Component getDisplayName() {
-        return Component.literal("Village Chest");
+        return Component.literal("Town Hub");
     }
 
     @Override
     public AbstractContainerMenu createMenu(int syncId, Inventory playerInventory, Player player) {
-        return new VillageChestMenu(syncId, playerInventory, town, getBlockPos());
+        return new TownHubMenu(syncId, playerInventory, town, getBlockPos());
     }
 
     @Override

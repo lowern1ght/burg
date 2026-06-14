@@ -2,6 +2,7 @@ package org.dawnoftime.onceuponatown.command;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.commands.CommandBuildContext;
@@ -13,13 +14,23 @@ import net.minecraft.commands.arguments.item.ItemArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.IntArrayTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtAccounter;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.phys.AABB;
 import org.dawnoftime.onceuponatown.blockentity.TownAnchorBlockEntity;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
 import org.dawnoftime.onceuponatown.entity.Npc;
+import org.dawnoftime.onceuponatown.network.NetworkHelper;
 import org.dawnoftime.onceuponatown.registry.BlockRegistry;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
 import org.dawnoftime.onceuponatown.town.ConnectionPoint;
@@ -28,7 +39,10 @@ import org.dawnoftime.onceuponatown.town.PlacedBuilding;
 import org.dawnoftime.onceuponatown.town.Town;
 import org.dawnoftime.onceuponatown.town.TownInventory;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.LinkedHashSet;
+import java.util.Optional;
 import java.util.Set;
 
 public class TownCommand {
@@ -53,8 +67,11 @@ public class TownCommand {
                         .executes(TownCommand::assignBuilder))
                     .then(Commands.literal("addconnection")
                         .executes(TownCommand::addConnection))
-                    .then(Commands.literal("initvillage")
-                        .executes(TownCommand::initVillage)))
+                    .then(Commands.literal("inittown")
+                        .executes(TownCommand::initTown)))
+                .then(Commands.literal("preview")
+                    .then(Commands.argument("id", StringArgumentType.word())
+                        .executes(TownCommand::previewBuilding)))
         );
     }
 
@@ -87,7 +104,7 @@ public class TownCommand {
         StringBuilder sb = new StringBuilder("[OUAT STATUS]\n");
         sb.append("Buildings: ").append(town.getBuildings().size()).append("\n");
         sb.append("Free connections: ").append(town.getAvailableConnectionPoints().size()).append("\n");
-        sb.append("Builder UUID: ").append(town.getBuilderNpcId()).append("\n");
+        sb.append("Builders: ").append(town.getBuilderNpcIds()).append(" (target: ").append(town.getTargetBuilderCount()).append(")\n");
         town.getBuildings().forEach(b ->
             sb.append("  [").append(b.defId).append("] @").append(b.worldPos).append("\n"));
         ctx.getSource().sendSuccess(() -> Component.literal(sb.toString()), false);
@@ -146,15 +163,15 @@ public class TownCommand {
             ctx.getSource().sendFailure(Component.literal("[OUAT] No NPC within 16 blocks"));
             return 0;
         }
-        town.setBuilderNpcId(npc.getUUID());
+        town.addBuilderNpcId(npc.getUUID());
         LevelTowns.get(level).markDirty();
         ctx.getSource().sendSuccess(
-            () -> Component.literal("[OUAT] Builder assigned: " + npc.getUUID()), false);
+            () -> Component.literal("[OUAT] Builder assigned (slot " + town.getBuilderSlot(npc.getUUID()) + "): " + npc.getUUID()), false);
         return 1;
     }
 
     // One-shot dev shortcut: setup + stock + spawn NPC + assign builder in one command
-    private static int initVillage(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+    private static int initTown(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerLevel level = ctx.getSource().getLevel();
         BlockPos anchorPos = BlockPos.containing(ctx.getSource().getPosition());
 
@@ -184,11 +201,11 @@ public class TownCommand {
         level.addFreshEntityWithPassengers(npc);
 
         // 4. Assign builder
-        town.setBuilderNpcId(npc.getUUID());
+        town.addBuilderNpcId(npc.getUUID());
         LevelTowns.get(level).markDirty();
 
         ctx.getSource().sendSuccess(() -> Component.literal(
-            "[OUAT] Village initialized at " + anchorPos + " -- now run /ouat town addconnection to start building"
+            "[OUAT] Town initialized at " + anchorPos + " -- now run /ouat town addconnection to start building"
         ), false);
         return 1;
     }
@@ -217,6 +234,82 @@ public class TownCommand {
         ctx.getSource().sendSuccess(
             () -> Component.literal("[OUAT] Connection point added at " + seedPos + " facing " + facing.getName()), false);
         return 1;
+    }
+
+    // Opens a floating isometric preview widget of a building's NBT structure.
+    // Usage: /ouat preview <building_id>  (e.g. /ouat preview wild_stone)
+    // The id matches the filename without extension, looked up in structures/plains/jobs/.
+    private static int previewBuilding(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        String id = StringArgumentType.getString(ctx, "id");
+        ServerPlayer player = ctx.getSource().getPlayerOrException();
+        MinecraftServer server = ctx.getSource().getServer();
+
+        // All structure subdirectories to search, in priority order
+        String[] subDirs = {"jobs", "houses", "gardens", "streets", "starters"};
+        ResourceLocation fileId = null;
+        Optional<Resource> resOpt = Optional.empty();
+        for (String sub : subDirs) {
+            ResourceLocation candidate = new ResourceLocation("onceuponatown",
+                "structures/plains/" + sub + "/" + id + ".nbt");
+            resOpt = server.getResourceManager().getResource(candidate);
+            if (resOpt.isPresent()) {
+                fileId = candidate;
+                break;
+            }
+        }
+
+        if (resOpt.isEmpty()) {
+            ctx.getSource().sendFailure(Component.literal(
+                "[OUAT] Structure not found: " + id + " (searched plains/jobs, houses, gardens, streets, starters)"));
+            return 0;
+        }
+
+        try (InputStream is = resOpt.get().open()) {
+            CompoundTag rawNbt = NbtIo.readCompressed(is);
+            CompoundTag packetData = buildPreviewPacket(id, rawNbt);
+            NetworkHelper.sendNbtPreviewPacket.accept(player, packetData);
+        } catch (IOException e) {
+            ctx.getSource().sendFailure(Component.literal("[OUAT] Failed to read structure: " + e.getMessage()));
+            return 0;
+        }
+        return 1;
+    }
+
+    // Converts the raw NBT CompoundTag (palette + blocks arrays) into the compact
+    // preview packet format the client renderer expects.
+    private static CompoundTag buildPreviewPacket(String title, CompoundTag rawNbt) {
+        CompoundTag out = new CompoundTag();
+        out.putString("title", title);
+
+        ListTag rawSize = rawNbt.getList("size", Tag.TAG_INT);
+        out.putInt("sizeX", rawSize.getInt(0));
+        out.putInt("sizeY", rawSize.getInt(1));
+        out.putInt("sizeZ", rawSize.getInt(2));
+
+        // Palette: keep only the block name ("n" key) to reduce packet size
+        ListTag rawPalette = rawNbt.getList("palette", Tag.TAG_COMPOUND);
+        ListTag palette = new ListTag();
+        for (int i = 0; i < rawPalette.size(); i++) {
+            CompoundTag entry = new CompoundTag();
+            entry.putString("n", rawPalette.getCompound(i).getString("Name"));
+            palette.add(entry);
+        }
+        out.put("palette", palette);
+
+        // Blocks: each entry is an IntArray [x, y, z, paletteIndex]
+        ListTag rawBlocks = rawNbt.getList("blocks", Tag.TAG_COMPOUND);
+        ListTag blocks = new ListTag();
+        for (int i = 0; i < rawBlocks.size(); i++) {
+            CompoundTag block = rawBlocks.getCompound(i);
+            ListTag rawPos = block.getList("pos", Tag.TAG_INT);
+            blocks.add(new IntArrayTag(new int[]{
+                rawPos.getInt(0), rawPos.getInt(1), rawPos.getInt(2),
+                block.getInt("state")
+            }));
+        }
+        out.put("blocks", blocks);
+
+        return out;
     }
 
     // Fallback for dev: manual Town init at player position

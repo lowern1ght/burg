@@ -46,7 +46,7 @@ public class TownAnchorBlock extends BaseEntityBlock {
         if (!level.isClientSide) {
             TownAnchorBlockEntity be = (TownAnchorBlockEntity) level.getBlockEntity(pos);
             if (be != null) {
-                NetworkHelper.sendVillageHubPacket.accept((ServerPlayer) player, be.getTown().getHubData(pos));
+                NetworkHelper.sendTownHubPacket.accept((ServerPlayer) player, be.getTown().getHubData(pos));
                 player.openMenu(be);
             }
         }

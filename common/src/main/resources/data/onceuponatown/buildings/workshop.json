@@ -4,10 +4,18 @@
   "entry_pool": "onceuponatown:jobs",
   "icon_item": "minecraft:oak_planks",
   "category": "jobs",
+  "required_buildings": [
+    { "defId": "wild_stone", "count": 1 },
+    { "defId": "grove", "count": 1 }
+  ],
   "construction_cost": [
     {
       "item": "minecraft:oak_log",
-      "amount": 10
+      "amount": 12
+    },
+    {
+      "item": "minecraft:cobblestone",
+      "amount": 5
     }
   ],
   "transform_input_ratio": 0.1,

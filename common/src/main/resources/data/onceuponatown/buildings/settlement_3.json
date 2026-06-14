@@ -2,8 +2,6 @@
   "id": "settlement_3",
   "nbt": "onceuponatown:plains/starters/settlement_3",
   "entry_pool": "onceuponatown:starters",
-  "orientation": "agricultural",
-  "boosted": ["wheat_field", "potato_field", "carrot_field"],
   "icon_item": "minecraft:campfire",
   "category": "town_center",
   "production": [

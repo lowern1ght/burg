@@ -1,0 +1,17 @@
+{
+  "from_era": 0,
+  "from_orientation": "agricultural",
+  "orientation_label": "Agricultural",
+  "structure_label": "Settlement",
+  "icon_item": "minecraft:wheat",
+  "min_weight_percent": 90,
+  "weight_cap_increase": 10,
+  "resource_cost": [
+    { "item": "minecraft:oak_log", "amount": 20 }
+  ],
+  "required_residents": 2,
+  "required_buildings": [
+    { "defId": "wheat_field", "count": 1 }
+  ],
+  "unlocked_building_ids": ["sheep_field", "bee_field", "wild_spot"]
+}

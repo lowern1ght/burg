@@ -49,7 +49,10 @@ public class QuestDataHandler {
         String titleKey = json.get("title").getAsString();
         String descKey = json.get("description").getAsString();
         int spawnWeight = json.has("spawn_weight") ? json.get("spawn_weight").getAsInt() : 10;
-        long ttlTicks = json.has("ttl_ticks") ? json.get("ttl_ticks").getAsLong() : 0L;
+        if (!json.has("duration_ticks")) {
+            throw new IllegalArgumentException("Quest '" + id + "' is missing required field 'duration_ticks'");
+        }
+        long durationTicks = json.get("duration_ticks").getAsLong();
 
         List<QuestDef.ConditionTemplate> conditions = new ArrayList<>();
         if (json.has("conditions")) {
@@ -73,7 +76,7 @@ public class QuestDataHandler {
             );
         }
 
-        return new QuestDef(id, type, icon, titleKey, descKey, conditions, reward, spawnWeight, ttlTicks);
+        return new QuestDef(id, type, icon, titleKey, descKey, conditions, reward, spawnWeight, durationTicks);
     }
 
     public static Optional<QuestDef> get(String id) { return Optional.ofNullable(REGISTRY.get(id)); }

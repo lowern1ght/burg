@@ -1,14 +1,18 @@
 package org.dawnoftime.onceuponatown;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.commands.Commands;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
+import net.minecraftforge.client.event.RegisterClientCommandsEvent;
 import net.minecraftforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
@@ -19,7 +23,7 @@ import org.dawnoftime.onceuponatown.client.gui.tooltip.ClientItemAndTitleTooltip
 import org.dawnoftime.onceuponatown.client.gui.tooltip.ItemAndTitleTooltip;
 import org.dawnoftime.onceuponatown.client.model.NpcModel;
 import org.dawnoftime.onceuponatown.client.renderer.NpcRenderer;
-import org.dawnoftime.onceuponatown.client.screen.VillageChestScreen;
+import org.dawnoftime.onceuponatown.client.screen.TownHubScreen;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.network.C2SAdvanceEraPacket;
 import org.dawnoftime.onceuponatown.network.C2SClaimQuestPacket;
@@ -28,7 +32,6 @@ import org.dawnoftime.onceuponatown.network.C2SQueueBuildingPacket;
 import org.dawnoftime.onceuponatown.network.C2SRemoveQueuedBuildingPacket;
 import org.dawnoftime.onceuponatown.network.C2SUpgradeBuildingPacket;
 import org.dawnoftime.onceuponatown.network.NetworkHelper;
-import org.dawnoftime.onceuponatown.network.S2CBuildingDefsPacket;
 import org.dawnoftime.onceuponatown.registry.MenuRegistry;
 
 @Mod.EventBusSubscriber(modid = Constants.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
@@ -49,14 +52,15 @@ public class OuatForgeClient {
         event.registerLayerDefinition(NpcModel.LAYER_LOCATION, NpcModel::createBodyLayer);
     }
 
-    // FMLClientSetupEvent fires after FMLCommonSetupEvent, so MenuRegistry.VILLAGE_CHEST is set
+    // FMLClientSetupEvent fires after FMLCommonSetupEvent, so MenuRegistry.TOWN_HUB is set
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
         event.enqueueWork(() -> {
+
             Block townAnchor = ForgeRegistries.BLOCKS
                 .getValue(new ResourceLocation(Constants.MOD_ID, "town_anchor"));
             ItemBlockRenderTypes.setRenderLayer(townAnchor, RenderType.cutout());
-            MenuScreens.register(MenuRegistry.VILLAGE_CHEST, VillageChestScreen::new);
+            MenuScreens.register(MenuRegistry.TOWN_HUB, TownHubScreen::new);
             NetworkHelper.sendQueueBuildingPacket = (pos, defId) ->
                 OuatForge.CHANNEL.sendToServer(new C2SQueueBuildingPacket(pos, defId));
             NetworkHelper.sendRemoveQueuedBuildingPacket = (pos, index) ->

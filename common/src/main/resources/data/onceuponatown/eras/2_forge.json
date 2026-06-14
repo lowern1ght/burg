@@ -1,0 +1,24 @@
+{
+  "from_era": 1,
+  "from_orientation": "industrial",
+  "orientation_label": "Forge",
+  "structure_label": "Village",
+  "icon_item": "minecraft:anvil",
+
+  "min_weight_percent": 90,
+  "weight_cap_increase": 10,
+
+  "resource_cost": [
+    { "item": "minecraft:oak_log", "amount": 42 },
+    { "item": "minecraft:cobblestone", "amount": 10 }
+  ],
+
+  "required_residents": 3,
+  "required_buildings": [
+    { "defId": "wild_stone", "count": 2 }
+  ],
+  "unlocked_building_ids": ["lone_place"],
+  "unlock_new_builder": true,
+
+  "next_orientation": "forge"
+}

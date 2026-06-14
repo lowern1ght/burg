@@ -2,6 +2,7 @@ package org.dawnoftime.onceuponatown.client.gui.widgets;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.nbt.CompoundTag;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class MapDraggableWidget extends DraggableWidget {
@@ -16,8 +17,16 @@ public class MapDraggableWidget extends DraggableWidget {
         this.mapWidget = new TownMapWidget(x, y + TITLE_BAR_H, width, height - TITLE_BAR_H, mapData);
     }
 
-    public void setOnBuildingClicked(Consumer<Long> callback) {
+    public void updateMapData(CompoundTag mapData) {
+        mapWidget.updateMapData(mapData);
+    }
+
+    public void setOnBuildingClicked(BiConsumer<Long, String> callback) {
         mapWidget.setOnBuildingClicked(callback);
+    }
+
+    public void setOnBuildingRightClicked(Consumer<Long> callback) {
+        mapWidget.setOnBuildingRightClicked(callback);
     }
 
     @Override
@@ -33,7 +42,7 @@ public class MapDraggableWidget extends DraggableWidget {
     }
 
     @Override
-    protected String getTitle() { return "Town Map"; }
+    protected String getTitle() { return "Map"; }
 
     @Override
     protected boolean contentMouseClicked(double mouseX, double mouseY, int button) {
