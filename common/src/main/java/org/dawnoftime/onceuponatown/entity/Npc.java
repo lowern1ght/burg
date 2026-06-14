@@ -46,8 +46,6 @@ public class Npc extends PathfinderMob {
     private SimpleStateMachine stateMachine;
     // Server-side countdown -- cleared to 0 when the reading animation ends.
     private int readingTicksRemaining = 0;
-    // Saved build state from readAdditionalSaveData, consumed once by SimpleStateMachine on first tick.
-    private CompoundTag pendingBuildResume = null;
     // Anchor position of the town this builder belongs to; saved so the builder can self-validate on load.
     private BlockPos townAnchorPos = null;
     // Whether the anchor ownership check has been performed this session.
@@ -107,26 +105,17 @@ public class Npc extends PathfinderMob {
     @Override
     public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
-        if (stateMachine != null) stateMachine.saveBuildState(tag);
         if (townAnchorPos != null) tag.put("TownAnchorPos", NbtUtils.writeBlockPos(townAnchorPos));
     }
 
     @Override
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
-        if (tag.contains("active_build")) pendingBuildResume = tag.getCompound("active_build");
         if (tag.contains("TownAnchorPos")) townAnchorPos = NbtUtils.readBlockPos(tag.getCompound("TownAnchorPos"));
     }
 
     public void setTownAnchorPos(BlockPos pos) { this.townAnchorPos = pos; }
     public BlockPos getTownAnchorPos() { return townAnchorPos; }
-
-    // Called once by SimpleStateMachine on its first idle tick to retrieve any saved build state.
-    public CompoundTag pollPendingBuildResume() {
-        CompoundTag result = pendingBuildResume;
-        pendingBuildResume = null;
-        return result;
-    }
 
     // Called by BuildGoal when construction is complete.
     // rotation and entryConnectorWorldPos are precomputed by SimpleStateMachine/BuildGoal.

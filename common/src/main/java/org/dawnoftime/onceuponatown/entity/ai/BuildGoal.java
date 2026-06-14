@@ -3,6 +3,8 @@ package org.dawnoftime.onceuponatown.entity.ai;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
+import org.dawnoftime.onceuponatown.town.ActiveBuildState;
+import org.dawnoftime.onceuponatown.town.ConnectionPoint;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
@@ -10,7 +12,9 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicBlock;
 import org.dawnoftime.onceuponatown.datapack.BuilderConfigDataHandler;
+import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
 import org.dawnoftime.onceuponatown.entity.Npc;
+import org.dawnoftime.onceuponatown.town.BuildingDef;
 import org.dawnoftime.onceuponatown.town.Town;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -198,20 +202,30 @@ public class BuildGoal implements BuildTask {
 
     @Override
     public void saveTo(CompoundTag tag) {
-        if (phase == Phase.DONE) return;
-        action.saveTo(tag);
-        // Only persist progress if the action wrote data (UpgradeAction writes nothing).
-        if (!tag.isEmpty()) tag.putInt("build_progress", buildProgress);
+        // State is persisted in Town.activeBuilds; no NPC NBT serialization needed.
     }
 
-    // Reconstructs a BuildGoal from saved NBT after a server restart.
+    // Reconstructs a BuildGoal from a Town.ActiveBuildState after a server restart.
     // The NPC re-walks to the build site (MOVING phase) but skips terrain prep and the reading animation.
-    public static BuildGoal resumeFrom(CompoundTag tag, Npc npc, Town town, ServerLevel level) {
-        NewBuildAction action = NewBuildAction.resumeFrom(tag, npc, town);
-        if (action == null) return null;
-        BuildGoal goal = new BuildGoal(npc, action);
-        goal.buildProgress = tag.getInt("build_progress");
-        action.registerAsUnderConstruction(town, level);
-        return goal;
+    // Also registers the build BB into underConstruction -- the only place ServerLevel is available post-reload.
+    public static BuildGoal fromActiveBuildState(ActiveBuildState state, Npc npc, Town town, ServerLevel level) {
+        BuildingDef def = BuildingDataHandler.get(state.defId()).orElse(null);
+        if (def == null) return null;
+
+        ConnectionPoint conn = ConnectionPoint.of(
+            state.connectionPos(), state.connectionDir(), state.connectionTarget());
+
+        NewBuildAction action = new NewBuildAction(
+            def, conn, state.placementPos(), state.rotation(),
+            state.entryConnectorPos(), state.cost(), town);
+        action.skipTerrainPrep = true;
+        action.skipInitialReading = true;
+
+        // addUnderConstruction is called here -- Town.fromNbt() is static with no ServerLevel.
+        org.dawnoftime.onceuponatown.building.schematic.BuildSchematic
+            .computeBoundingBox(level, state.placementPos(), def.nbt, state.rotation())
+            .ifPresent(bb -> town.addUnderConstruction(def.id, state.placementPos(), bb, state.rotation()));
+
+        return new BuildGoal(npc, action);
     }
 }

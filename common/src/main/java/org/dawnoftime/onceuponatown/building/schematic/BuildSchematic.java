@@ -477,6 +477,26 @@ public class BuildSchematic {
         return points;
     }
 
+    // Returns only the blocks from a template that are not yet placed correctly in the world.
+    // Used on resume to skip already-placed blocks without storing build_progress in NBT.
+    public static List<SchematicBlock> computeRemainingBlocks(
+            ServerLevel level, BlockPos origin, ResourceLocation nbtId, Rotation rotation) {
+        Optional<StructureTemplate> templateOpt = level.getStructureManager().get(nbtId);
+        if (templateOpt.isEmpty()) {
+            LOGGER.error("[OUAT-BUILD] Template not found for remaining blocks -- nbt='{}'", nbtId);
+            return List.of();
+        }
+        List<SchematicBlock> full = SchematicReader.readSortedBlocks(templateOpt.get(), rotation);
+        List<SchematicBlock> remaining = new ArrayList<>();
+        for (SchematicBlock b : full) {
+            BlockPos worldPos = origin.offset(b.localPos());
+            if (!level.getBlockState(worldPos).equals(b.state())) {
+                remaining.add(b);
+            }
+        }
+        return remaining;
+    }
+
     // Result of a diff between two upgrade-level NBTs at the same origin and rotation.
     public record DiffResult(List<SchematicBlock> toAdd, List<BlockPos> toRemove) {}
 

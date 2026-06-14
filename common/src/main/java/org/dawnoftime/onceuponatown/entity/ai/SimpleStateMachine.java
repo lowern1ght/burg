@@ -15,6 +15,7 @@ import org.dawnoftime.onceuponatown.datapack.BuilderConfigDataHandler;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.network.NetworkHelper;
+import org.dawnoftime.onceuponatown.town.ActiveBuildState;
 import org.dawnoftime.onceuponatown.town.BuildingDef;
 import org.dawnoftime.onceuponatown.town.ConnectionPoint;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
@@ -45,8 +46,6 @@ public class SimpleStateMachine {
     private QueueEntry activeQueueEntry = null;
     // Number of consecutive idle ticks where the current queue cursor entry could not be placed.
     private int playerQueueFailCount = 0;
-    // Whether the saved-build resume check has been attempted this session.
-    private boolean resumeChecked = false;
     // Counts ticks in the open phase (no player queue) toward the configured autonomous road interval.
     private int openPhaseTimer = 0;
 
@@ -85,24 +84,29 @@ public class SimpleStateMachine {
     }
 
     private void tickIdle() {
-        // On the very first idle tick, attempt to resume an in-progress build from before a restart.
-        if (!resumeChecked) {
-            resumeChecked = true;
-            net.minecraft.nbt.CompoundTag savedBuild = npc.pollPendingBuildResume();
-            if (savedBuild != null && npc.level() instanceof ServerLevel resumeLevel) {
-                Town resumeTown = findTown(resumeLevel);
-                if (resumeTown != null) {
-                    BuildGoal resumed = BuildGoal.resumeFrom(savedBuild, npc, resumeTown, resumeLevel);
+        // On each idle tick, check if Town has a saved build state for this builder's slot.
+        // Runs before the timer so the NPC resumes immediately on first tick after restart.
+        if (npc.level() instanceof ServerLevel resumeLevel) {
+            Town resumeTown = findTown(resumeLevel);
+            if (resumeTown != null) {
+                int mySlot = resumeTown.getBuilderSlot(npc.getUUID());
+                ActiveBuildState saved = resumeTown.getActiveBuild(mySlot);
+                if (saved != null) {
+                    BuildGoal resumed = BuildGoal.fromActiveBuildState(saved, npc, resumeTown, resumeLevel);
                     if (resumed != null) {
                         activeBuild = resumed;
-                        activeQueueEntry = savedBuild.contains("queue_def_id")
-                            ? new QueueEntry.NewBuild(savedBuild.getString("queue_def_id")) : null;
+                        activeQueueEntry = saved.queueDefId() != null
+                            ? new QueueEntry.NewBuild(saved.queueDefId()) : null;
                         current = State.BUILD;
                         if (activeQueueEntry != null) {
                             int idx = resumeTown.getConstructionQueue().indexOf(activeQueueEntry);
                             if (idx >= 0) resumeTown.claimQueueEntry(idx, npc.getUUID());
                         }
                         return;
+                    } else {
+                        // Invalid saved state (e.g. def removed); discard to avoid looping.
+                        resumeTown.clearActiveBuild(mySlot);
+                        LevelTowns.get(resumeLevel).markDirty();
                     }
                 }
             }
@@ -220,6 +224,13 @@ public class SimpleStateMachine {
                     if (s.bb() != null) town.addUnderConstruction(def.id, s.pos(), s.bb(), s.rotation());
                     activeQueueEntry = entry;
                     playerQueueFailCount = 0;
+                    int mySlotQ = town.getBuilderSlot(myId);
+                    if (mySlotQ >= 0) {
+                        town.setActiveBuild(mySlotQ, new ActiveBuildState(
+                            def.id, s.pos(), s.rotation(), point.pos(), point.direction(),
+                            point.targetName(), s.entryConnectorWorldPos(), List.of(), defId));
+                        LevelTowns.get(serverLevel).markDirty();
+                    }
                     current = State.BUILD;
                     broadcastBuildStart(serverLevel, defId, s.pos());
                     NetworkHelper.pushBuildingListToWatchers(serverLevel, town, npc.getTownAnchorPos());
@@ -282,6 +293,13 @@ public class SimpleStateMachine {
                         candidate, point, s.pos(), s.rotation(), s.entryConnectorWorldPos(),
                         candidate.constructionCost, town));
                     if (s.bb() != null) town.addUnderConstruction(candidate.id, s.pos(), s.bb(), s.rotation());
+                    int mySlotS = town.getBuilderSlot(npc.getUUID());
+                    if (mySlotS >= 0) {
+                        town.setActiveBuild(mySlotS, new ActiveBuildState(
+                            candidate.id, s.pos(), s.rotation(), point.pos(), point.direction(),
+                            point.targetName(), s.entryConnectorWorldPos(), candidate.constructionCost, null));
+                        LevelTowns.get(serverLevel).markDirty();
+                    }
                     current = State.BUILD;
                     broadcastBuildStart(serverLevel, candidate.id, s.pos());
                     NetworkHelper.pushBuildingListToWatchers(serverLevel, town, npc.getTownAnchorPos());
@@ -373,6 +391,11 @@ public class SimpleStateMachine {
             BlockPos completedPos = activeBuild.getFinalPlacementPos();
             if (npc.level() instanceof ServerLevel sl) {
                 Town qTown = findTown(sl);
+                // Clear the persisted build state regardless of success or failure.
+                if (qTown != null) {
+                    int mySlot = qTown.getBuilderSlot(npc.getUUID());
+                    if (mySlot >= 0) qTown.clearActiveBuild(mySlot);
+                }
                 if (!activeBuild.isFailed() && activeQueueEntry != null && qTown != null) {
                     // Release the claim before consuming so indices stay consistent.
                     int claimIdx = qTown.getConstructionQueue().indexOf(activeQueueEntry);
@@ -435,17 +458,6 @@ public class SimpleStateMachine {
             .append(Component.literal(" @ " + pos.toShortString())
                 .withStyle(ChatFormatting.GRAY));
         level.getServer().getPlayerList().broadcastSystemMessage(msg, false);
-    }
-
-    // Serializes the active BUILDING state into the NPC's save tag so it survives server restarts.
-    // Upgrade tasks have no serialization and resume from scratch after restart.
-    public void saveBuildState(net.minecraft.nbt.CompoundTag tag) {
-        if (activeBuild == null || current != State.BUILD) return;
-        net.minecraft.nbt.CompoundTag buildTag = new net.minecraft.nbt.CompoundTag();
-        activeBuild.saveTo(buildTag);
-        if (buildTag.isEmpty()) return;
-        if (activeQueueEntry instanceof QueueEntry.NewBuild nb) buildTag.putString("queue_def_id", nb.defId());
-        tag.put("active_build", buildTag);
     }
 
     private Town findTown(ServerLevel level) {

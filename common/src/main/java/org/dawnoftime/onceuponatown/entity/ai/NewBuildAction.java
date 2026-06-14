@@ -1,17 +1,11 @@
 package org.dawnoftime.onceuponatown.entity.ai;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Rotation;
-import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import org.dawnoftime.onceuponatown.building.schematic.BuildSchematic;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicBlock;
@@ -28,7 +22,6 @@ import org.dawnoftime.onceuponatown.town.Town;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,8 +39,8 @@ public class NewBuildAction implements BuildAction {
     private final Town town;
     private boolean failed = false;
     // Set true for server-restart resumes to skip terrain re-carving and the reading animation.
-    private boolean skipTerrainPrep = false;
-    private boolean skipInitialReading = false;
+    boolean skipTerrainPrep = false;
+    boolean skipInitialReading = false;
     // Stored during prepareBlocks; needed for entity spawning in onComplete.
     private StructureTemplate cachedTemplate = null;
 
@@ -101,10 +94,13 @@ public class NewBuildAction implements BuildAction {
         }
         cachedTemplate = templateOpt.get();
 
-        if (!skipTerrainPrep) {
-            TerrainCarver.prePlace(level, finalPlacementPos, cachedTemplate, rotation);
-            TerrainCarver.postPlace(level, finalPlacementPos, cachedTemplate, rotation);
+        if (skipTerrainPrep) {
+            // Resume: skip terrain carving and return only blocks not yet in the world.
+            return BuildSchematic.computeRemainingBlocks(level, finalPlacementPos, def.nbt, rotation);
         }
+
+        TerrainCarver.prePlace(level, finalPlacementPos, cachedTemplate, rotation);
+        TerrainCarver.postPlace(level, finalPlacementPos, cachedTemplate, rotation);
 
         List<SchematicBlock> blocks = SchematicReader.readSortedBlocks(cachedTemplate, rotation);
         if (blocks.isEmpty()) {
@@ -145,68 +141,6 @@ public class NewBuildAction implements BuildAction {
 
     @Override
     public void saveTo(CompoundTag tag) {
-        tag.putString("def_id", def.id);
-        tag.putLong("placement_pos", finalPlacementPos.asLong());
-        tag.putString("rotation", rotation.name());
-        tag.putLong("connection_pos", usedConnection.pos().asLong());
-        tag.putString("connection_dir", usedConnection.direction().getName());
-        tag.putString("connection_target", usedConnection.targetName());
-        tag.putLong("entry_connector_pos", entryConnectorWorldPos.asLong());
-
-        ListTag costList = new ListTag();
-        for (ItemCost cost : constructionCost) {
-            CompoundTag costTag = new CompoundTag();
-            costTag.putString("item", BuiltInRegistries.ITEM.getKey(cost.item()).toString());
-            costTag.putInt("amount", cost.amount());
-            costList.add(costTag);
-        }
-        tag.put("cost", costList);
-    }
-
-    // Called after a resume to register the in-progress build on the town map.
-    void registerAsUnderConstruction(Town town, ServerLevel level) {
-        BuildSchematic.computeBoundingBox(level, finalPlacementPos, def.nbt, rotation)
-            .ifPresent(bb -> town.addUnderConstruction(def.id, finalPlacementPos, bb, rotation));
-    }
-
-    // Reconstructs a NewBuildAction from saved NBT. Returns null if the data is invalid.
-    static NewBuildAction resumeFrom(CompoundTag tag, Npc npc, Town town) {
-        String defId = tag.getString("def_id");
-        BuildingDef def = BuildingDataHandler.get(defId).orElse(null);
-        if (def == null) return null;
-
-        Direction dir = Direction.byName(tag.getString("connection_dir"));
-        if (dir == null) return null;
-
-        BlockPos finalPos = BlockPos.of(tag.getLong("placement_pos"));
-        Rotation rot;
-        try {
-            rot = Rotation.valueOf(tag.getString("rotation"));
-        } catch (IllegalArgumentException e) {
-            rot = Rotation.NONE;
-        }
-
-        ConnectionPoint conn = ConnectionPoint.of(
-            BlockPos.of(tag.getLong("connection_pos")),
-            dir,
-            tag.getString("connection_target")
-        );
-        BlockPos entryPos = BlockPos.of(tag.getLong("entry_connector_pos"));
-
-        ListTag costList = tag.getList("cost", 10);
-        List<ItemCost> cost = new ArrayList<>();
-        for (int i = 0; i < costList.size(); i++) {
-            CompoundTag c = costList.getCompound(i);
-            ResourceLocation rl = ResourceLocation.tryParse(c.getString("item"));
-            if (rl != null && BuiltInRegistries.ITEM.containsKey(rl)) {
-                Item item = BuiltInRegistries.ITEM.get(rl);
-                cost.add(new ItemCost(item, c.getInt("amount")));
-            }
-        }
-
-        NewBuildAction action = new NewBuildAction(def, conn, finalPos, rot, entryPos, cost, town);
-        action.skipTerrainPrep = true;
-        action.skipInitialReading = true;
-        return action;
+        // State is persisted in Town.activeBuilds; no NPC NBT serialization needed.
     }
 }
