@@ -5,6 +5,7 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
@@ -17,16 +18,19 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.dawnoftime.onceuponatown.registry.BlockEntityRegistry;
 import org.dawnoftime.onceuponatown.screen.TownHubMenu;
+import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.Town;
 
 public class TownAnchorBlockEntity extends BlockEntity implements MenuProvider {
-    private Town town = new Town();
 
     public TownAnchorBlockEntity(BlockPos pos, BlockState state) {
         super(BlockEntityRegistry.TOWN_ANCHOR, pos, state);
     }
 
-    public Town getTown() { return town; }
+    public Town getTown() {
+        if (level instanceof ServerLevel sl) return LevelTowns.get(sl).getTownAt(worldPosition).orElse(null);
+        return null;
+    }
 
     /**
      * Client-side tick registered via TownAnchorBlock.getTicker().
@@ -65,15 +69,6 @@ public class TownAnchorBlockEntity extends BlockEntity implements MenuProvider {
         }
     }
 
-    public void setTown(Town town) {
-        this.town = town;
-        setChanged();
-        // Notify nearby clients so they receive an up-to-date chunk data packet
-        if (level != null && !level.isClientSide) {
-            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
-        }
-    }
-
     // Called by the server when this block enters a client's view distance
     @Override
     public ClientboundBlockEntityDataPacket getUpdatePacket() {
@@ -93,20 +88,18 @@ public class TownAnchorBlockEntity extends BlockEntity implements MenuProvider {
 
     @Override
     public AbstractContainerMenu createMenu(int syncId, Inventory playerInventory, Player player) {
+        Town town = getTown();
+        if (town == null) return null;
         return new TownHubMenu(syncId, playerInventory, town, getBlockPos());
     }
 
     @Override
     protected void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
-        tag.put("Town", town.toNbt());
     }
 
     @Override
     public void load(CompoundTag tag) {
         super.load(tag);
-        if (tag.contains("Town")) {
-            this.town = Town.fromNbt(tag.getCompound("Town"));
-        }
     }
 }

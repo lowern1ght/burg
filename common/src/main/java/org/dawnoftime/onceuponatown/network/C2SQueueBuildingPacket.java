@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerPlayer;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.blockentity.TownAnchorBlockEntity;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
+import org.dawnoftime.onceuponatown.town.Town;
 
 public record C2SQueueBuildingPacket(BlockPos anchorPos, String defId) {
     public static final ResourceLocation ID = Ouat.modResource("c2s_queue_building");
@@ -24,16 +25,15 @@ public record C2SQueueBuildingPacket(BlockPos anchorPos, String defId) {
     public static class Handler {
         public static void handle(C2SQueueBuildingPacket packet, ServerPlayer player) {
             ServerLevel level = (ServerLevel) player.level();
-            if (!(level.getBlockEntity(packet.anchorPos()) instanceof TownAnchorBlockEntity anchor)) return;
-            boolean added = anchor.getTown().tryAddToConstructionQueue(packet.defId());
+            if (!(level.getBlockEntity(packet.anchorPos()) instanceof TownAnchorBlockEntity)) return;
+            Town town = LevelTowns.get(level).getTownAt(packet.anchorPos()).orElse(null);
+            if (town == null) return;
+            boolean added = town.tryAddToConstructionQueue(packet.defId());
             if (added) {
                 LevelTowns.get(level).markDirty();
-                NetworkHelper.sendBuildingListPacket.accept(player,
-                    anchor.getTown().getBuildingListData(packet.anchorPos()));
-                NetworkHelper.sendStockUpdatePacket.accept(player,
-                    anchor.getTown().getStockUpdateData(packet.anchorPos()));
-                NetworkHelper.sendEraUpdatePacket.accept(player,
-                    anchor.getTown().getEraUpdateData(packet.anchorPos()));
+                NetworkHelper.sendBuildingListPacket.accept(player, town.getBuildingListData(packet.anchorPos()));
+                NetworkHelper.sendStockUpdatePacket.accept(player, town.getStockUpdateData(packet.anchorPos()));
+                NetworkHelper.sendEraUpdatePacket.accept(player, town.getEraUpdateData(packet.anchorPos()));
             }
         }
     }

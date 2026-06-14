@@ -8,6 +8,8 @@ import net.minecraft.server.level.ServerPlayer;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.blockentity.TownAnchorBlockEntity;
 import org.dawnoftime.onceuponatown.tick.EraManager;
+import org.dawnoftime.onceuponatown.town.LevelTowns;
+import org.dawnoftime.onceuponatown.town.Town;
 
 public record C2SAdvanceEraPacket(BlockPos anchorPos, String pathId) {
     public static final ResourceLocation ID = Ouat.modResource("c2s_advance_era");
@@ -26,8 +28,10 @@ public record C2SAdvanceEraPacket(BlockPos anchorPos, String pathId) {
     public static class Handler {
         public static void handle(C2SAdvanceEraPacket packet, ServerPlayer player) {
             ServerLevel level = (ServerLevel) player.level();
-            if (!(level.getBlockEntity(packet.anchorPos()) instanceof TownAnchorBlockEntity anchor)) return;
-            EraManager.advance(anchor.getTown(), packet.pathId(), level, packet.anchorPos());
+            if (!(level.getBlockEntity(packet.anchorPos()) instanceof TownAnchorBlockEntity)) return;
+            Town town = LevelTowns.get(level).getTownAt(packet.anchorPos()).orElse(null);
+            if (town == null) return;
+            EraManager.advance(town, packet.pathId(), level, packet.anchorPos());
         }
     }
 }

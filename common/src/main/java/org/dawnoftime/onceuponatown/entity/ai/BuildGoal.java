@@ -198,7 +198,7 @@ public class BuildGoal implements BuildTask {
 
     @Override
     public void saveTo(CompoundTag tag) {
-        if (phase != Phase.BUILDING) return;
+        if (phase == Phase.DONE) return;
         action.saveTo(tag);
         // Only persist progress if the action wrote data (UpgradeAction writes nothing).
         if (!tag.isEmpty()) tag.putInt("build_progress", buildProgress);

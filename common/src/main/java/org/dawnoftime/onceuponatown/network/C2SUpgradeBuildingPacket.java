@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerPlayer;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.blockentity.TownAnchorBlockEntity;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
+import org.dawnoftime.onceuponatown.town.Town;
 
 public record C2SUpgradeBuildingPacket(BlockPos anchorPos, long buildingWorldPos) {
     public static final ResourceLocation ID = Ouat.modResource("c2s_upgrade_building");
@@ -24,14 +25,14 @@ public record C2SUpgradeBuildingPacket(BlockPos anchorPos, long buildingWorldPos
     public static class Handler {
         public static void handle(C2SUpgradeBuildingPacket packet, ServerPlayer player) {
             ServerLevel level = (ServerLevel) player.level();
-            if (!(level.getBlockEntity(packet.anchorPos()) instanceof TownAnchorBlockEntity anchor)) return;
-            boolean queued = anchor.getTown().tryQueueUpgrade(BlockPos.of(packet.buildingWorldPos()));
+            if (!(level.getBlockEntity(packet.anchorPos()) instanceof TownAnchorBlockEntity)) return;
+            Town town = LevelTowns.get(level).getTownAt(packet.anchorPos()).orElse(null);
+            if (town == null) return;
+            boolean queued = town.tryQueueUpgrade(BlockPos.of(packet.buildingWorldPos()));
             if (queued) {
                 LevelTowns.get(level).markDirty();
-                NetworkHelper.sendBuildingListPacket.accept(player,
-                    anchor.getTown().getBuildingListData(packet.anchorPos()));
-                NetworkHelper.sendStockUpdatePacket.accept(player,
-                    anchor.getTown().getStockUpdateData(packet.anchorPos()));
+                NetworkHelper.sendBuildingListPacket.accept(player, town.getBuildingListData(packet.anchorPos()));
+                NetworkHelper.sendStockUpdatePacket.accept(player, town.getStockUpdateData(packet.anchorPos()));
             }
         }
     }

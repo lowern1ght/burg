@@ -17,6 +17,8 @@ import net.minecraft.world.phys.BlockHitResult;
 import org.dawnoftime.onceuponatown.blockentity.TownAnchorBlockEntity;
 import org.dawnoftime.onceuponatown.network.NetworkHelper;
 import org.dawnoftime.onceuponatown.registry.BlockEntityRegistry;
+import org.dawnoftime.onceuponatown.town.LevelTowns;
+import org.dawnoftime.onceuponatown.town.Town;
 import org.jetbrains.annotations.Nullable;
 
 public class TownAnchorBlock extends BaseEntityBlock {
@@ -46,7 +48,9 @@ public class TownAnchorBlock extends BaseEntityBlock {
         if (!level.isClientSide) {
             TownAnchorBlockEntity be = (TownAnchorBlockEntity) level.getBlockEntity(pos);
             if (be != null) {
-                NetworkHelper.sendTownHubPacket.accept((ServerPlayer) player, be.getTown().getHubData(pos));
+                Town town = LevelTowns.get((net.minecraft.server.level.ServerLevel) level).getTownAt(pos).orElse(null);
+                if (town == null) return InteractionResult.FAIL;
+                NetworkHelper.sendTownHubPacket.accept((ServerPlayer) player, town.getHubData(pos));
                 player.openMenu(be);
             }
         }
