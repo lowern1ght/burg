@@ -1,6 +1,7 @@
 package org.dawnoftime.onceuponatown.town;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -85,6 +86,8 @@ public class Town {
     private final Map<String, Integer> categoryWeights = new HashMap<>();
     // Current weight cap. Starts at initial_max_weight (era 0 file) and grows with each transition. Persisted to NBT.
     private int currentMaxWeight = 20;
+    // Active build states keyed by builder slot index. Persisted so builds survive server restarts.
+    private final Map<Integer, ActiveBuildState> activeBuilds = new HashMap<>();
 
     public void registerBuilding(BlockPos worldPos, String defId, List<ConnectionPoint> connections, BoundingBox bb, Rotation rotation) {
         buildings.add(new PlacedBuilding(defId, worldPos, bb, rotation));
@@ -1276,6 +1279,18 @@ public class Town {
     // Returns the slot index for a given builder UUID, or -1 if not found.
     public int getBuilderSlot(UUID id) { return builderNpcIds.indexOf(id); }
 
+    public void setActiveBuild(int slot, ActiveBuildState state) {
+        activeBuilds.put(slot, state);
+    }
+
+    public void clearActiveBuild(int slot) {
+        activeBuilds.remove(slot);
+    }
+
+    public ActiveBuildState getActiveBuild(int slot) {
+        return activeBuilds.get(slot);
+    }
+
     // Claim-lock helpers for multi-builder queue coordination.
     public boolean claimQueueEntry(int index, UUID builderId) {
         UUID existing = queueIndexClaims.get(index);
@@ -1350,6 +1365,11 @@ public class Town {
         ListTag dismissedTag = new ListTag();
         dismissedNoteIds.forEach(id -> dismissedTag.add(StringTag.valueOf(id)));
         tag.put("DismissedNotes", dismissedTag);
+        if (!activeBuilds.isEmpty()) {
+            CompoundTag activeBuildsTag = new CompoundTag();
+            activeBuilds.forEach((slot, state) -> activeBuildsTag.put(String.valueOf(slot), activeBuildStateToNbt(state)));
+            tag.put("ActiveBuilds", activeBuildsTag);
+        }
         return tag;
     }
 
@@ -1432,6 +1452,16 @@ public class Town {
             tag.getList("DismissedNotes", Tag.TAG_STRING)
                 .forEach(t -> town.dismissedNoteIds.add(t.getAsString()));
         }
+        if (tag.contains("ActiveBuilds")) {
+            CompoundTag activeBuildsTag = tag.getCompound("ActiveBuilds");
+            for (String key : activeBuildsTag.getAllKeys()) {
+                try {
+                    int slot = Integer.parseInt(key);
+                    ActiveBuildState state = activeBuildStateFromNbt(activeBuildsTag.getCompound(key));
+                    if (state != null) town.activeBuilds.put(slot, state);
+                } catch (NumberFormatException ignored) {}
+            }
+        }
         return town;
     }
 
@@ -1450,5 +1480,52 @@ public class Town {
         String pool = tag.getString("Pool");
         int failCount = tag.contains("FailCount") ? tag.getInt("FailCount") : 0;
         return new ConnectionPoint(pos, dir != null ? dir : net.minecraft.core.Direction.NORTH, pool, failCount);
+    }
+
+    private static CompoundTag activeBuildStateToNbt(ActiveBuildState s) {
+        CompoundTag tag = new CompoundTag();
+        tag.putString("DefId", s.defId());
+        tag.put("PlacementPos", NbtUtils.writeBlockPos(s.placementPos()));
+        tag.putString("Rotation", s.rotation().name());
+        tag.put("ConnectionPos", NbtUtils.writeBlockPos(s.connectionPos()));
+        tag.putString("ConnectionDir", s.connectionDir().getName());
+        tag.putString("ConnectionTarget", s.connectionTarget());
+        tag.put("EntryConnectorPos", NbtUtils.writeBlockPos(s.entryConnectorPos()));
+        ListTag costTag = new ListTag();
+        for (ItemCost c : s.cost()) {
+            CompoundTag ct = new CompoundTag();
+            ct.putString("Item", BuiltInRegistries.ITEM.getKey(c.item()).toString());
+            ct.putInt("Amount", c.amount());
+            costTag.add(ct);
+        }
+        tag.put("Cost", costTag);
+        if (s.queueDefId() != null) tag.putString("QueueDefId", s.queueDefId());
+        return tag;
+    }
+
+    private static ActiveBuildState activeBuildStateFromNbt(CompoundTag tag) {
+        String defId = tag.getString("DefId");
+        if (defId.isEmpty()) return null;
+        BlockPos placementPos = NbtUtils.readBlockPos(tag.getCompound("PlacementPos"));
+        Rotation rotation;
+        try { rotation = Rotation.valueOf(tag.getString("Rotation")); }
+        catch (IllegalArgumentException e) { rotation = Rotation.NONE; }
+        BlockPos connectionPos = NbtUtils.readBlockPos(tag.getCompound("ConnectionPos"));
+        Direction connectionDir = Direction.byName(tag.getString("ConnectionDir"));
+        if (connectionDir == null) connectionDir = Direction.NORTH;
+        String connectionTarget = tag.getString("ConnectionTarget");
+        BlockPos entryConnectorPos = NbtUtils.readBlockPos(tag.getCompound("EntryConnectorPos"));
+        ListTag costList = tag.getList("Cost", Tag.TAG_COMPOUND);
+        java.util.List<ItemCost> cost = new ArrayList<>();
+        for (int i = 0; i < costList.size(); i++) {
+            CompoundTag ct = costList.getCompound(i);
+            ResourceLocation rl = ResourceLocation.tryParse(ct.getString("Item"));
+            if (rl != null && BuiltInRegistries.ITEM.containsKey(rl)) {
+                cost.add(new ItemCost(BuiltInRegistries.ITEM.get(rl), ct.getInt("Amount")));
+            }
+        }
+        String queueDefId = tag.contains("QueueDefId") ? tag.getString("QueueDefId") : null;
+        return new ActiveBuildState(defId, placementPos, rotation, connectionPos, connectionDir,
+            connectionTarget, entryConnectorPos, cost, queueDefId);
     }
 }

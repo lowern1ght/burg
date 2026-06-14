@@ -3,10 +3,12 @@ package org.dawnoftime.onceuponatown.tick;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.ChunkPos;
 import org.dawnoftime.onceuponatown.network.NetworkHelper;
 import net.minecraft.world.level.levelgen.Heightmap;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
+import org.dawnoftime.onceuponatown.town.ActiveBuildState;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.Quest;
 import org.dawnoftime.onceuponatown.town.QuestManager;
@@ -61,6 +63,14 @@ public class TickScheduler {
                         net.minecraft.world.entity.Entity existing = slotId != null ? level.getEntity(slotId) : null;
                         if (existing != null) continue;
 
+                        // NPC not found in loaded entities. Check if the NPC's chunk is simply unloaded
+                        // before spawning a replacement -- the builder is immortal so absence = chunk not loaded.
+                        ActiveBuildState buildState = town.getActiveBuild(slot);
+                        BlockPos checkPos = buildState != null ? buildState.placementPos() : anchorPos;
+                        if (!areChunksLoaded(level, checkPos)) continue;
+
+                        // All 9 chunks around the expected position are loaded but NPC is still missing:
+                        // coherence issue (e.g. entity deleted externally). Spawn a replacement.
                         Npc builder = EntityRegistry.NPC.create(level);
                         if (builder == null) continue;
 
@@ -80,6 +90,21 @@ public class TickScheduler {
                 }
             }
         }
+    }
+
+    // Returns true if all 9 chunks in the 3x3 grid around the given position are loaded.
+    // Used to distinguish "NPC in unloaded chunk" from "NPC genuinely missing".
+    private static boolean areChunksLoaded(ServerLevel level, BlockPos pos) {
+        ChunkPos center = new ChunkPos(pos);
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                if (!level.isLoaded(new BlockPos(
+                        (center.x + dx) * 16, pos.getY(), (center.z + dz) * 16))) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     private static void tickQuests(Town town, ServerLevel level, long gameTime, long anchorKey) {
