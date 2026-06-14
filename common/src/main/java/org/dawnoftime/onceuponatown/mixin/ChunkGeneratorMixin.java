@@ -155,7 +155,6 @@ public class ChunkGeneratorMixin {
             town.addStock(Items.OAK_LOG, 25);
             town.initFromEraDef();
 
-            be.setTown(town);
             LevelTowns.get(serverLevel).registerTown(anchorPos, town);
             LevelTowns.get(serverLevel).markDirty();
             LOGGER.info("[OUAT-MIXIN] Town registered at {}. Buildings: {}, FreeConnections: {}",

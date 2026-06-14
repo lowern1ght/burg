@@ -30,10 +30,11 @@ public record C2SDepositPacket(BlockPos anchorPos) {
     public static class Handler {
         public static void handle(C2SDepositPacket packet, ServerPlayer player) {
             ServerLevel level = (ServerLevel) player.level();
-            if (!(level.getBlockEntity(packet.anchorPos()) instanceof TownAnchorBlockEntity anchor)) return;
+            if (!(level.getBlockEntity(packet.anchorPos()) instanceof TownAnchorBlockEntity)) return;
             if (!(player.containerMenu instanceof TownHubMenu menu)) return;
 
-            Town town = anchor.getTown();
+            Town town = LevelTowns.get(level).getTownAt(packet.anchorPos()).orElse(null);
+            if (town == null) return;
             // Extended set includes quest items; base set is production items only (for routing)
             Set<Item> acceptedWithQuests = town.buildAcceptedItemSetWithQuests();
             Set<Item> productionItems    = town.buildAcceptedItemSet();

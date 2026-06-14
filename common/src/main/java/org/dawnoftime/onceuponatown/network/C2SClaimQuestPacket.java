@@ -28,10 +28,11 @@ public record C2SClaimQuestPacket(BlockPos anchorPos, String questId) {
     public static class Handler {
         public static void handle(C2SClaimQuestPacket packet, ServerPlayer player) {
             ServerLevel level = (ServerLevel) player.level();
-            if (!(level.getBlockEntity(packet.anchorPos()) instanceof TownAnchorBlockEntity anchor)) return;
+            if (!(level.getBlockEntity(packet.anchorPos()) instanceof TownAnchorBlockEntity)) return;
             if (!(player.containerMenu instanceof TownHubMenu)) return;
 
-            Town town = anchor.getTown();
+            Town town = LevelTowns.get(level).getTownAt(packet.anchorPos()).orElse(null);
+            if (town == null) return;
             Quest quest = null;
             for (Quest q : town.getActiveQuests()) {
                 if (q.questId.equals(packet.questId())) { quest = q; break; }

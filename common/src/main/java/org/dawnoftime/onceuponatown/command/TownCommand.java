@@ -183,7 +183,6 @@ public class TownCommand {
             return 0;
         }
         Town town = new Town();
-        be.setTown(town);
         LevelTowns.get(level).registerTown(anchorPos, town);
 
         // 2. Seed starting stock
@@ -324,7 +323,6 @@ public class TownCommand {
             return 0;
         }
         Town town = new Town();
-        be.setTown(town);
         LevelTowns.get(level).registerTown(anchorPos, town);
         ctx.getSource().sendSuccess(() -> Component.literal("[OUAT] Town initialized at " + anchorPos), false);
         return 1;

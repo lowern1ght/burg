@@ -7,6 +7,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.blockentity.TownAnchorBlockEntity;
+import org.dawnoftime.onceuponatown.town.LevelTowns;
+import org.dawnoftime.onceuponatown.town.Town;
 
 public record C2SRequestStockPacket(BlockPos anchorPos) {
     public static final ResourceLocation ID = Ouat.modResource("c2s_request_stock");
@@ -22,9 +24,10 @@ public record C2SRequestStockPacket(BlockPos anchorPos) {
     public static class Handler {
         public static void handle(C2SRequestStockPacket packet, ServerPlayer player) {
             ServerLevel level = (ServerLevel) player.level();
-            if (!(level.getBlockEntity(packet.anchorPos()) instanceof TownAnchorBlockEntity anchor)) return;
-            NetworkHelper.sendStockUpdatePacket.accept(player,
-                anchor.getTown().getStockUpdateData(packet.anchorPos()));
+            if (!(level.getBlockEntity(packet.anchorPos()) instanceof TownAnchorBlockEntity)) return;
+            Town town = LevelTowns.get(level).getTownAt(packet.anchorPos()).orElse(null);
+            if (town == null) return;
+            NetworkHelper.sendStockUpdatePacket.accept(player, town.getStockUpdateData(packet.anchorPos()));
         }
     }
 }

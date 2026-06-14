@@ -98,6 +98,10 @@ public class SimpleStateMachine {
                         activeQueueEntry = savedBuild.contains("queue_def_id")
                             ? new QueueEntry.NewBuild(savedBuild.getString("queue_def_id")) : null;
                         current = State.BUILD;
+                        if (activeQueueEntry != null) {
+                            int idx = resumeTown.getConstructionQueue().indexOf(activeQueueEntry);
+                            if (idx >= 0) resumeTown.claimQueueEntry(idx, npc.getUUID());
+                        }
                         return;
                     }
                 }
