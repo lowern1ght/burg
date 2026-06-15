@@ -20,7 +20,6 @@ public class NetworkHelper {
     public static BiConsumer<ServerPlayer, CompoundTag> sendQuestUpdatePacket   = (player, data) -> {};
     public static BiConsumer<ServerPlayer, CompoundTag> sendEraUpdatePacket     = (player, data) -> {};
     public static BiConsumer<ServerPlayer, CompoundTag> sendCitizenUpdatePacket = (player, data) -> {};
-    public static BiConsumer<ServerPlayer, CompoundTag> sendNbtPreviewPacket    = (player, data) -> {};
 
     // C2S delegates (set by each platform client-side init)
     public static BiConsumer<BlockPos, String>  sendQueueBuildingPacket        = (pos, defId)     -> {};

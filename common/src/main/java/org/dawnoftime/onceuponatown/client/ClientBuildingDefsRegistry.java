@@ -18,6 +18,7 @@ public class ClientBuildingDefsRegistry {
     public record UpgradeLevelClient(float cadenceMultiplier, int capacityStacksAdd, int amountAdd,
                                       int residentsAdd, float consumptionPerResidentAdd,
                                       double productionBonusAdd,
+                                      int herdAdd, float consumptionPerHerdAdd,
                                       List<String> unlockedDisplay,
                                       List<CostEntry> upgradeCost) {}
 
@@ -47,6 +48,8 @@ public class ClientBuildingDefsRegistry {
                 int residentsAdd  = ut.getInt("ResidentsAdd");
                 float consumptionAdd = ut.getFloat("ConsumptionAdd");
                 double prodBonusAdd = ut.getDouble("ProductionBonusAdd");
+                int herdAdd = ut.getInt("HerdAdd");
+                float herdConsumptionAdd = ut.getFloat("HerdConsumptionAdd");
                 List<String> unlocksDisplay = new ArrayList<>();
                 for (Tag t : ut.getList("UnlocksDisplay", Tag.TAG_STRING)) {
                     unlocksDisplay.add(t.getAsString());
@@ -57,7 +60,7 @@ public class ClientBuildingDefsRegistry {
                     cost.add(new CostEntry(ct.getString("Item"), ct.getInt("Amount")));
                 }
                 upgrades.add(new UpgradeLevelClient(cadenceMult, capAdd, amountAdd, residentsAdd, consumptionAdd,
-                    prodBonusAdd, unlocksDisplay, cost));
+                    prodBonusAdd, herdAdd, herdConsumptionAdd, unlocksDisplay, cost));
             }
             DEFS.put(id, new DefEntry(baseCap, baseAmount, baseResidents, baseConsumption, baseProdBonus, upgrades));
         }

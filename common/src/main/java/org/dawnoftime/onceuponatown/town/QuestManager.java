@@ -17,11 +17,9 @@ public class QuestManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(QuestManager.class);
 
-    public static final int MAX_ACTIVE_QUESTS = 1;
-
     // Tries to generate one new quest. Returns null if at cap or no eligible defs.
-    public static Quest tryGenerate(List<Quest> activeQuests, Set<String> dismissedNoteIds, long gameTime) {
-        if (activeQuests.size() >= MAX_ACTIVE_QUESTS) return null;
+    public static Quest tryGenerate(List<Quest> activeQuests, Set<String> dismissedNoteIds, long gameTime, int maxActiveQuests) {
+        if (activeQuests.size() >= maxActiveQuests) return null;
         List<QuestDef> allDefs = new ArrayList<>(QuestDataHandler.getAll());
         if (allDefs.isEmpty()) return null;
 

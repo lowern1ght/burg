@@ -18,7 +18,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.ClientBuildingDefsRegistry;
-import org.dawnoftime.onceuponatown.town.BuildingDef;
 import org.dawnoftime.onceuponatown.client.TownHubClientState;
 import org.dawnoftime.onceuponatown.client.gui.tooltip.BuildingProductionTooltip;
 import org.dawnoftime.onceuponatown.client.gui.widgets.DraggableWidget;
@@ -103,8 +102,11 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
     private int totalResidents = 0;
     private int activeResidents = 0;
     private int totalFoodDemand = 0;
+    private int totalHerd = 0;
+    private int activeHerd = 0;
     private int currentWeight = 0;
     private int maxWeight = 20;
+    private Map<String, Integer> categoryWeights = new HashMap<>();
     private List<EraProgressDraggableWidget.EraPathOption> eraTransitions = new ArrayList<>();
     private int lastKnownEra = -1;
 
@@ -133,8 +135,8 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
     private int expandedPanelX = 0, expandedPanelY = 0, expandedPanelSize = 0;
 
     // Upgrade tab bar hover state (populated each frame in renderUpgradeTab, read in renderUpgradeTooltips)
-    private final int[] barLabelYs = new int[6];
-    private final String[] barTooltips = new String[6];
+    private final int[] barLabelYs = new int[8];
+    private final String[] barTooltips = new String[8];
     private int numActiveBars = 0;
     // Unlock icon hover state
     private final List<int[]> unlockIconBounds = new ArrayList<>(); // {x, y}
@@ -241,8 +243,15 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
         totalResidents  = hub.getInt("TotalResidents");
         activeResidents = hub.getInt("ActiveResidents");
         totalFoodDemand = hub.getInt("TotalFoodDemand");
+        totalHerd       = hub.getInt("TotalHerd");
+        activeHerd      = hub.getInt("ActiveHerd");
         currentWeight  = hub.getInt("CurrentWeight");
         maxWeight      = hub.getInt("MaxWeight");
+        categoryWeights.clear();
+        if (hub.contains("CategoryWeights")) {
+            net.minecraft.nbt.CompoundTag cw = hub.getCompound("CategoryWeights");
+            for (String key : cw.getAllKeys()) categoryWeights.put(key, cw.getInt(key));
+        }
         eraTransitions = parseEraTransitions(hub);
 
         constructionQueueClient.clear();
@@ -325,6 +334,18 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
                     Component.translatable("onceuponatown.tooltip.residents", residents)
                         .withStyle(ChatFormatting.GRAY)));
                 productionCells.add(new ProductionCell(villagerEgg, residents));
+            }
+            int herd = dt.getInt("Herd");
+            if (herd > 0) {
+                if (residents == 0) {
+                    productionRows.add(new BuildingProductionTooltip.Row(null,
+                        Component.translatable("onceuponatown.tooltip.adds")));
+                }
+                Item pigEgg = BuiltInRegistries.ITEM.get(new ResourceLocation("minecraft:pig_spawn_egg"));
+                productionRows.add(new BuildingProductionTooltip.Row(new ItemStack(pigEgg),
+                    Component.translatable("onceuponatown.tooltip.herd", herd)
+                        .withStyle(ChatFormatting.GRAY)));
+                productionCells.add(new ProductionCell(pigEgg, herd));
             }
 
             int requiredResidents = dt.getInt("RequiredResidents");
@@ -657,19 +678,25 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
         totalResidents  = data.getInt("TotalResidents");
         activeResidents = data.getInt("ActiveResidents");
         totalFoodDemand = data.getInt("TotalFoodDemand");
+        totalHerd       = data.getInt("TotalHerd");
+        activeHerd      = data.getInt("ActiveHerd");
         if (cachedHubData != null) {
             cachedHubData.putInt("TotalResidents", totalResidents);
             cachedHubData.putInt("ActiveResidents", activeResidents);
             cachedHubData.putInt("TotalFoodDemand", totalFoodDemand);
+            cachedHubData.putInt("TotalHerd", totalHerd);
+            cachedHubData.putInt("ActiveHerd", activeHerd);
             // Keep SummaryData in sync so the widget reflects correct values on next open
             CompoundTag summary = cachedHubData.getCompound("SummaryData");
             summary.putInt("TotalResidents", totalResidents);
             summary.putInt("ActiveResidents", activeResidents);
             summary.putInt("TotalFoodDemand", totalFoodDemand);
+            summary.putInt("TotalHerd", totalHerd);
+            summary.putInt("ActiveHerd", activeHerd);
         }
         for (DraggableWidget w : layer1Widgets) {
             if (w instanceof TownSummaryWidget sw) {
-                sw.updateCitizenData(totalResidents, activeResidents, totalFoodDemand);
+                sw.updateCitizenData(totalResidents, activeResidents, totalFoodDemand, totalHerd, activeHerd);
                 break;
             }
         }
@@ -882,7 +909,7 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
                 lines.add(Component.literal(req.have() + "/" + req.required() + "x " + formatId(req.defId()))
                     .withStyle(s -> s.withColor(met ? 0x55FF55 : 0xFF5555)));
             }
-            int wCost = BuildingDef.weightForCategory(entry.category());
+            int wCost = categoryWeights.getOrDefault(entry.category(), 0);
             boolean weightOk = currentWeight + wCost <= maxWeight;
             lines.add(Component.literal(wCost + " weight")
                 .withStyle(s -> s.withColor(weightOk ? 0x55FF55 : 0xFF5555)));
@@ -955,6 +982,8 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
         int totalResidents = 0, curResidents = 0, ghostResidentsVal = 0;
         float totalFood = 0f, curFood = 0f, ghostFood = 0f;
         double totalStock = 0.0, curStock = 0.0, ghostStock = 0.0;
+        int totalHerd = 0, curHerd = 0, ghostHerd = 0;
+        float totalHerdFood = 0f, curHerdFood = 0f, ghostHerdFood = 0f;
 
         for (int i = 0; i < defEntry.upgrades().size(); i++) {
             var lvl = defEntry.upgrades().get(i);
@@ -964,6 +993,8 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
             totalResidents += lvl.residentsAdd();
             totalFood      += lvl.consumptionPerResidentAdd();
             totalStock     += lvl.productionBonusAdd();
+            totalHerd      += lvl.herdAdd();
+            totalHerdFood  += lvl.consumptionPerHerdAdd();
             if (i < currentLevel) {
                 curCadence   += lvl.cadenceMultiplier();
                 curAmount    += lvl.amountAdd();
@@ -971,6 +1002,8 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
                 curResidents += lvl.residentsAdd();
                 curFood      += lvl.consumptionPerResidentAdd();
                 curStock     += lvl.productionBonusAdd();
+                curHerd      += lvl.herdAdd();
+                curHerdFood  += lvl.consumptionPerHerdAdd();
             }
             if (showGhost && i == currentLevel) {
                 ghostCadence      = lvl.cadenceMultiplier();
@@ -979,6 +1012,8 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
                 ghostResidentsVal = lvl.residentsAdd();
                 ghostFood         = lvl.consumptionPerResidentAdd();
                 ghostStock        = lvl.productionBonusAdd();
+                ghostHerd         = lvl.herdAdd();
+                ghostHerdFood     = lvl.consumptionPerHerdAdd();
             }
         }
 
@@ -1045,6 +1080,28 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
             renderStatBar(g, barX, gaugeY, barW, barH, fill, ghost,0xFFFFCC00, ghostColor);
             barLabelYs[numActiveBars] = gaugeY - 7;
             barTooltips[numActiveBars] = "+" + (int)(curStock * 100) + "% village stock  (max +" + (int)(totalStock * 100) + "%)";
+            numActiveBars++;
+            gaugeY += barH + 6;
+        }
+        if (totalHerd > 0) {
+            float fill = (float) curHerd / totalHerd;
+            float ghost = showGhost ? (float) ghostHerd / totalHerd : 0f;
+            g.drawString(font, "Herd", barX, gaugeY, 0xFF88BB44, false);
+            gaugeY += 13;
+            renderStatBar(g, barX, gaugeY, barW, barH, fill, ghost, 0xFF88BB44, ghostColor);
+            barLabelYs[numActiveBars] = gaugeY - 7;
+            barTooltips[numActiveBars] = "+" + curHerd + " animals  (max +" + totalHerd + ")";
+            numActiveBars++;
+            gaugeY += barH + 6;
+        }
+        if (totalHerdFood > 0.001f) {
+            float fill = curHerdFood / totalHerdFood;
+            float ghost = showGhost ? ghostHerdFood / totalHerdFood : 0f;
+            g.drawString(font, "Herd Food", barX, gaugeY, 0xFFCC6633, false);
+            gaugeY += 13;
+            renderStatBar(g, barX, gaugeY, barW, barH, fill, ghost, 0xFFCC6633, ghostColor);
+            barLabelYs[numActiveBars] = gaugeY - 7;
+            barTooltips[numActiveBars] = String.format("+%.2f food/animal  (max +%.2f)", curHerdFood, totalHerdFood);
             numActiveBars++;
         }
     }
@@ -1646,7 +1703,7 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
         for (CostEntry ce : entry.cost()) {
             if (stockSnapshot.getOrDefault(ce.itemId(), 0) < ce.amount()) return false;
         }
-        return currentWeight + BuildingDef.weightForCategory(entry.category()) <= maxWeight;
+        return currentWeight + categoryWeights.getOrDefault(entry.category(), 0) <= maxWeight;
     }
 
     private static int categoryColor(String category) {
@@ -1705,7 +1762,7 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
         // Ghost preview when hovering a catalog slot (Build tab only)
         if (activeTab == 1 && hoveredCatalogSlot >= 0 && hoveredCatalogSlot < buildingCatalog.size()) {
             BuildingEntry hov = buildingCatalog.get(hoveredCatalogSlot);
-            int weightDelta = BuildingDef.weightForCategory(hov.category());
+            int weightDelta = categoryWeights.getOrDefault(hov.category(), 0);
             if (weightDelta > 0 && maxWeight > 0) {
                 float ghostFrac = (float) weightDelta / maxWeight;
                 int ghostPx = (int)(barW * Math.min(1f - fill, ghostFrac));

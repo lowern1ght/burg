@@ -1,0 +1,12 @@
+{
+  "food_list": [
+    { "item": "minecraft:apple",          "fuv": 1 },
+    { "item": "minecraft:carrot",         "fuv": 1 },
+    { "item": "minecraft:potato",         "fuv": 1 },
+    { "item": "minecraft:cooked_beef",    "fuv": 2 },
+    { "item": "minecraft:cooked_mutton",  "fuv": 2 },
+    { "item": "minecraft:cooked_porkchop","fuv": 2 },
+    { "item": "minecraft:baked_potato",   "fuv": 2 },
+    { "item": "minecraft:bread",          "fuv": 2 }
+  ]
+}

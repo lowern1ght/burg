@@ -2,14 +2,11 @@ package org.dawnoftime.onceuponatown;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.TooltipComponentCallback;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.client.renderer.RenderType;
 import org.dawnoftime.onceuponatown.client.gui.tooltip.BuildingProductionTooltip;
@@ -31,7 +28,6 @@ import org.dawnoftime.onceuponatown.network.S2CBuildingDefsPacket;
 import org.dawnoftime.onceuponatown.network.S2CBuildingListPacket;
 import org.dawnoftime.onceuponatown.network.S2CCitizenUpdatePacket;
 import org.dawnoftime.onceuponatown.network.S2CEraUpdatePacket;
-import org.dawnoftime.onceuponatown.network.S2CNbtPreviewPacket;
 import org.dawnoftime.onceuponatown.network.S2CQuestUpdatePacket;
 import org.dawnoftime.onceuponatown.network.S2CStockUpdatePacket;
 import org.dawnoftime.onceuponatown.network.S2CTownHubPacket;
@@ -46,17 +42,6 @@ public class OuatFabricClient implements ClientModInitializer {
         EntityModelLayerRegistry.registerModelLayer(NpcModel.LAYER_LOCATION, NpcModel::createBodyLayer);
         BlockRenderLayerMap.INSTANCE.putBlock(BlockRegistry.TOWN_ANCHOR, RenderType.cutout());
         MenuScreens.register(MenuRegistry.TOWN_HUB, TownHubScreen::new);
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
-            dispatcher.register(
-                ClientCommandManager.literal("ouatpreview")
-                    .executes(ctx -> {
-                        Minecraft.getInstance().tell(() ->
-                            Minecraft.getInstance().setScreen(new org.dawnoftime.onceuponatown.client.gui.screens.NbtPreviewScreen()));
-                        return 1;
-                    })
-            )
-        );
-
         ClientPlayNetworking.registerGlobalReceiver(S2CTownHubPacket.ID,
             (client, handler, buf, responseSender) -> {
                 S2CTownHubPacket packet = S2CTownHubPacket.decode(buf);
@@ -91,11 +76,6 @@ public class OuatFabricClient implements ClientModInitializer {
             (client, handler, buf, responseSender) -> {
                 S2CCitizenUpdatePacket packet = S2CCitizenUpdatePacket.decode(buf);
                 S2CCitizenUpdatePacket.Handler.handle(packet);
-            });
-        ClientPlayNetworking.registerGlobalReceiver(S2CNbtPreviewPacket.ID,
-            (client, handler, buf, responseSender) -> {
-                S2CNbtPreviewPacket packet = S2CNbtPreviewPacket.decode(buf);
-                S2CNbtPreviewPacket.Handler.handle(packet);
             });
         TooltipComponentCallback.EVENT.register(component -> {
             if (component instanceof ItemAndTitleTooltip t) return new ClientItemAndTitleTooltip(t);

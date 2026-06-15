@@ -2,21 +2,29 @@
   "id": "pig_farm",
   "nbt": "onceuponatown:plains/jobs/pig_farm",
   "entry_pool": "onceuponatown:jobs",
-  "icon_item": "minecraft:porkchop",
+  "icon_item": "minecraft:cooked_porkchop",
   "category": "jobs",
+  "herd": 2,
+  "consumption_per_herd": 1.0,
   "required_buildings": [
     { "defId": "pig_field", "count": 3 }
   ],
+
   "construction_cost": [
     {
       "item": "minecraft:oak_log",
       "amount": 45
     },
     {
+      "item": "minecraft:cobblestone",
+      "amount": 10
+    },
+    {
       "item": "minecraft:white_bed",
       "amount": 2
     }
   ],
+
   "production": [
     {
       "item": "minecraft:porkchop",
@@ -46,14 +54,54 @@
       "output_capacity_stacks": 1
     }
   ],
+  "upgrades": [
+    {
+      "capacity_stacks_add": 1,
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 20 }]
+    },
+    {
+      "herd_add": 1,
+      "consumption_per_herd_add": 1.0,
+      "amount_add": 1,
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 30 }]
+    },
+    {
+      "capacity_stacks_add": 1,
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 40 }]
+    },
+    {
+      "cadence_multiplier": 0.10,
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 60 }]
+    },
+    {
+      "herd_add": 1,
+      "consumption_per_herd_add": 1.0,
+      "amount_add": 1,
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 80 }]
+    },
+    {
+      "capacity_stacks_add": 1,
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 100 }]
+    },
+    {
+      "cadence_multiplier": 0.10,
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 120 }]
+    },
+    {
+      "herd_add": 1,
+      "consumption_per_herd_add": 1.0,
+      "amount_add": 1,
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 140 }]
+    }
+  ],
   "nbt_levels": [
-    "onceuponatown:plains/starters/pig_farm_lvl1",
-    "onceuponatown:plains/starters/pig_farm_lvl2",
-    "onceuponatown:plains/starters/pig_farm_lvl3",
-    "onceuponatown:plains/starters/pig_farm_lvl4",
-    "onceuponatown:plains/starters/pig_farm_lvl5",
-    "onceuponatown:plains/starters/pig_farm_lvl6",
-    "onceuponatown:plains/starters/pig_farm_lvl7",
-    "onceuponatown:plains/starters/pig_farm_lvl8"
+    "onceuponatown:plains/jobs/pig_farm_lvl1",
+    "onceuponatown:plains/jobs/pig_farm_lvl2",
+    "onceuponatown:plains/jobs/pig_farm_lvl3",
+    "onceuponatown:plains/jobs/pig_farm_lvl4",
+    "onceuponatown:plains/jobs/pig_farm_lvl5",
+    "onceuponatown:plains/jobs/pig_farm_lvl6",
+    "onceuponatown:plains/jobs/pig_farm_lvl7",
+    "onceuponatown:plains/jobs/pig_farm_lvl8"
   ]
 }

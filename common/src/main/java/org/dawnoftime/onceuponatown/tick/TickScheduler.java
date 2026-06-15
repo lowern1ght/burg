@@ -10,6 +10,7 @@ import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
 import org.dawnoftime.onceuponatown.town.ActiveBuildState;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
+import org.dawnoftime.onceuponatown.datapack.QuestConfigDataHandler;
 import org.dawnoftime.onceuponatown.town.Quest;
 import org.dawnoftime.onceuponatown.town.QuestManager;
 import org.dawnoftime.onceuponatown.town.Town;
@@ -111,17 +112,15 @@ public class TickScheduler {
         BlockPos anchorPos = BlockPos.of(anchorKey);
         boolean changed = false;
 
-        // Quest generation: one attempt every 1200t (1 min)
-        if (gameTime % 1200 == 0) {
-            Quest generated = QuestManager.tryGenerate(town.getActiveQuests(), town.getDismissedNoteIds(), gameTime);
+        if (gameTime % QuestConfigDataHandler.get().generationIntervalTicks == 0) {
+            Quest generated = QuestManager.tryGenerate(town.getActiveQuests(), town.getDismissedNoteIds(), gameTime, town.getMaxActiveQuests());
             if (generated != null) {
                 town.addQuest(generated);
                 changed = true;
             }
         }
 
-        // Quest expiry check: every 100t
-        if (gameTime % 100 == 0) {
+        if (gameTime % QuestConfigDataHandler.get().expiryCheckIntervalTicks == 0) {
             List<Quest> toExpire = new ArrayList<>();
             for (Quest q : town.getActiveQuests()) {
                 if (gameTime > q.expiryTime) toExpire.add(q);

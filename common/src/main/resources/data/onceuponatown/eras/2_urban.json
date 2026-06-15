@@ -4,6 +4,7 @@
   "orientation_label": "Urban",
   "structure_label": "Village",
   "icon_item": "minecraft:emerald",
+  "max_active_quests": 2,
 
   "min_weight_percent": 90,
   "weight_cap_increase": 10,

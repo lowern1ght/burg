@@ -6,7 +6,7 @@
   "category": "naturals",
   "construction_cost": [
     {
-      "item": "minecraft:oak_log",
+      "item": "minecraft:cobblestone",
       "amount": 5
     }
   ],

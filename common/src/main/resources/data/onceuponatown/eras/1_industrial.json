@@ -4,6 +4,8 @@
   "orientation_label": "Industrial",
   "structure_label": "Settlement",
   "icon_item": "minecraft:cobblestone",
+  "max_active_quests": 1,
+
   "min_weight_percent": 90,
   "weight_cap_increase": 10,
   "resource_cost": [
@@ -11,7 +13,9 @@
   ],
   "required_residents": 2,
   "required_buildings": [
-    { "defId": "wild_stone", "count": 2 }
+    { "defId": "wild_stone", "count": 2 },
+    { "defId": "workshop", "count": 1 }
+
   ],
   "unlocked_building_ids": ["sheep_field", "lumberjack", "stone_breach", "wild_spot"]
 }

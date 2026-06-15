@@ -83,8 +83,10 @@ public class EraTransitionDataHandler {
         }
         int initialMaxWeight = json.has("initial_max_weight") ? json.get("initial_max_weight").getAsInt() : 20;
         double boostMultiplier = json.has("boost_multiplier") ? json.get("boost_multiplier").getAsDouble() : 1.0;
+        int maxActiveQuests = json.has("max_active_quests") ? json.get("max_active_quests").getAsInt() : 1;
         return new EraDef(era, orientation, orientationLabel, structureLabel, iconItem, starterBuildingId,
-            boostedBuildings, Collections.unmodifiableMap(categoryWeights), initialMaxWeight, boostMultiplier);
+            boostedBuildings, Collections.unmodifiableMap(categoryWeights), initialMaxWeight, boostMultiplier,
+            maxActiveQuests);
     }
 
     // Derives the transition id from the file path (e.g. "eras/2_rural.json" -> "2_rural").

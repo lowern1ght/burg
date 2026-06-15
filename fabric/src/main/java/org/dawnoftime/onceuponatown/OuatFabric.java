@@ -14,9 +14,11 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.BlockItem;
 import org.dawnoftime.onceuponatown.command.TownCommand;
 import org.dawnoftime.onceuponatown.datapack.BuilderConfigDataHandler;
+import org.dawnoftime.onceuponatown.datapack.QuestConfigDataHandler;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
 import org.dawnoftime.onceuponatown.datapack.BuildingListDataHandler;
 import org.dawnoftime.onceuponatown.datapack.EraTransitionDataHandler;
+import org.dawnoftime.onceuponatown.datapack.FoodListDataHandler;
 import org.dawnoftime.onceuponatown.datapack.QuestDataHandler;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.network.C2SAdvanceEraPacket;
@@ -30,7 +32,6 @@ import org.dawnoftime.onceuponatown.network.S2CBuildingDefsPacket;
 import org.dawnoftime.onceuponatown.network.S2CBuildingListPacket;
 import org.dawnoftime.onceuponatown.network.S2CCitizenUpdatePacket;
 import org.dawnoftime.onceuponatown.network.S2CEraUpdatePacket;
-import org.dawnoftime.onceuponatown.network.S2CNbtPreviewPacket;
 import org.dawnoftime.onceuponatown.network.S2CQuestUpdatePacket;
 import org.dawnoftime.onceuponatown.network.S2CStockUpdatePacket;
 import org.dawnoftime.onceuponatown.registry.BlockRegistry;
@@ -57,9 +58,11 @@ public class OuatFabric implements ModInitializer {
         CommandRegistrationCallback.EVENT.register((dispatcher, context, env) ->
             TownCommand.register(dispatcher, context));
         ServerLifecycleEvents.SERVER_STARTING.register(BuilderConfigDataHandler::reload);
+        ServerLifecycleEvents.SERVER_STARTING.register(QuestConfigDataHandler::reload);
         ServerLifecycleEvents.SERVER_STARTING.register(BuildingDataHandler::reload);
         ServerLifecycleEvents.SERVER_STARTING.register(BuildingListDataHandler::reload);
         ServerLifecycleEvents.SERVER_STARTING.register(EraTransitionDataHandler::reload);
+        ServerLifecycleEvents.SERVER_STARTING.register(FoodListDataHandler::reload);
         ServerLifecycleEvents.SERVER_STARTING.register(QuestDataHandler::reload);
         ServerTickEvents.END_SERVER_TICK.register(TickScheduler::tick);
         NetworkHelper.sendTownHubPacket = (player, data) -> {
@@ -131,11 +134,6 @@ public class OuatFabric implements ModInitializer {
             var buf = PacketByteBufs.create();
             new S2CCitizenUpdatePacket(data).encode(buf);
             ServerPlayNetworking.send(player, S2CCitizenUpdatePacket.ID, buf);
-        };
-        NetworkHelper.sendNbtPreviewPacket = (player, data) -> {
-            var buf = PacketByteBufs.create();
-            new S2CNbtPreviewPacket(data).encode(buf);
-            ServerPlayNetworking.send(player, S2CNbtPreviewPacket.ID, buf);
         };
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             var buf = PacketByteBufs.create();

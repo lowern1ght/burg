@@ -1,6 +1,5 @@
 package org.dawnoftime.onceuponatown.client.gui.widgets;
 
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -33,11 +32,6 @@ public class TownSummaryWidget extends DraggableWidget {
     private static final int COLOR_ORIENT_TEXT  = 0xFFEECC66;
     private static final int COLOR_CONTENT_BG   = 0xF51A1A1A;
 
-    // Category colors matching the map
-    private static final int COLOR_BUILDINGS = 0xFFBB9955;
-    private static final int COLOR_JOBS      = 0xFFFF7766;
-    private static final int COLOR_GARDENS   = 0xFF77BB77;
-
     private record Row(ItemStack icon, Component text, boolean isSection) {}
 
     private final List<Row> rows = new ArrayList<>();
@@ -55,22 +49,24 @@ public class TownSummaryWidget extends DraggableWidget {
         buildRows(mapData, summaryData);
     }
 
-    public void updateCitizenData(int totalResidents, int activeResidents, int totalFoodDemand) {
+    public void updateCitizenData(int totalResidents, int activeResidents, int totalFoodDemand,
+                                   int totalHerd, int activeHerd) {
         cachedSummaryData.putInt("TotalResidents", totalResidents);
         cachedSummaryData.putInt("ActiveResidents", activeResidents);
         cachedSummaryData.putInt("TotalFoodDemand", totalFoodDemand);
+        cachedSummaryData.putInt("TotalHerd", totalHerd);
+        cachedSummaryData.putInt("ActiveHerd", activeHerd);
         rows.clear();
         buildRows(cachedMapData, cachedSummaryData);
     }
 
     private void buildRows(CompoundTag mapData, CompoundTag summaryData) {
         String orientation     = summaryData.getString("Orientation");
-        int freeSlotsBuildings = summaryData.getInt("FreeSlotsBuildings");
-        int freeSlotsJobs      = summaryData.getInt("FreeSlotsJobs");
-        int freeSlotsGardens   = summaryData.getInt("FreeSlotsGardens");
         int totalResidents     = summaryData.getInt("TotalResidents");
         int activeResidents    = summaryData.getInt("ActiveResidents");
         int totalFoodDemand    = summaryData.getInt("TotalFoodDemand");
+        int totalHerd          = summaryData.getInt("TotalHerd");
+        int activeHerd         = summaryData.getInt("ActiveHerd");
 
         rows.add(new Row(null,
             Component.literal("Orientation: " + capitalize(orientation))
@@ -95,15 +91,31 @@ public class TownSummaryWidget extends DraggableWidget {
             rows.add(new Row(new ItemStack(villagerEgg), resText, false));
         }
 
-        // Food demand row directly after residents
+        // Herd row: between residents and food demand
+        if (totalHerd > 0) {
+            int herdColor;
+            if (activeHerd >= totalHerd) {
+                herdColor = 0xFF55FF55;
+            } else if (activeHerd * 2 >= totalHerd) {
+                herdColor = 0xFFFFAA00;
+            } else {
+                herdColor = 0xFFFF5555;
+            }
+            Item pigEgg = BuiltInRegistries.ITEM.get(new ResourceLocation("minecraft:pig_spawn_egg"));
+            MutableComponent herdText = Component.literal("Herd: ")
+                .withStyle(s -> s.withColor(0xFFCCCCCC))
+                .append(Component.literal(String.valueOf(activeHerd)).withStyle(s -> s.withColor(herdColor)))
+                .append(Component.literal(" / " + totalHerd).withStyle(s -> s.withColor(0xFFCCCCCC)));
+            rows.add(new Row(new ItemStack(pigEgg), herdText, false));
+        }
+
+        // Food demand row directly after residents and herd
         if (totalFoodDemand > 0) {
             rows.add(new Row(new ItemStack(Items.BREAD),
                 Component.literal(totalFoodDemand + " food units / day").withStyle(s -> s.withColor(0xFFDDDDDD)),
                 false));
         }
 
-        // Count buildings per category from map elements
-        int houseCount = 0, jobCount = 0, gardenCount = 0, streetCount = 0;
         Map<String, int[]> prodData   = new LinkedHashMap<>(); // itemId -> [totalAmount, ticks]
         Map<String, int[]> transforms = new LinkedHashMap<>(); // outItemId -> [outAmount, ticks]
 
@@ -111,14 +123,7 @@ public class TownSummaryWidget extends DraggableWidget {
         for (Tag rawEl : elements) {
             CompoundTag el = (CompoundTag) rawEl;
             byte elCategory = el.getByte("Category");
-            if (elCategory == 1) { streetCount++; continue; }
             if (elCategory != 2) continue;
-            String cat = el.getString("BuildingCategory");
-            switch (cat) {
-                case "buildings" -> houseCount++;
-                case "jobs"      -> jobCount++;
-                case "gardens"   -> gardenCount++;
-            }
 
             for (Tag rawP : el.getList("Production", Tag.TAG_COMPOUND)) {
                 CompoundTag pt    = (CompoundTag) rawP;
@@ -162,36 +167,6 @@ public class TownSummaryWidget extends DraggableWidget {
                     .withStyle(s -> s.withColor(0xFFDDDDDD));
                 rows.add(new Row(new ItemStack(item), text, false));
             }
-        }
-
-        // Buildings section last
-        rows.add(new Row(null, Component.literal("Buildings").withStyle(s -> s.withColor(COLOR_SECTION_TEXT)), true));
-
-        if (houseCount > 0 || freeSlotsBuildings > 0) {
-            MutableComponent text = Component.literal("Houses: " + houseCount + "  ")
-                .withStyle(s -> s.withColor(COLOR_BUILDINGS));
-            if (freeSlotsBuildings > 0) {
-                text = text.append(Component.literal("(+" + freeSlotsBuildings + " free)").withStyle(ChatFormatting.YELLOW));
-            }
-            rows.add(new Row(new ItemStack(Items.OAK_PLANKS), text, false));
-        }
-
-        if (jobCount > 0 || freeSlotsJobs > 0) {
-            MutableComponent text = Component.literal("Jobs: " + jobCount + "  ")
-                .withStyle(s -> s.withColor(COLOR_JOBS));
-            if (freeSlotsJobs > 0) {
-                text = text.append(Component.literal("(+" + freeSlotsJobs + " free)").withStyle(ChatFormatting.YELLOW));
-            }
-            rows.add(new Row(new ItemStack(Items.FURNACE), text, false));
-        }
-
-        if (gardenCount > 0 || freeSlotsGardens > 0) {
-            MutableComponent text = Component.literal("Gardens: " + gardenCount + "  ")
-                .withStyle(s -> s.withColor(COLOR_GARDENS));
-            if (freeSlotsGardens > 0) {
-                text = text.append(Component.literal("(+" + freeSlotsGardens + " free)").withStyle(ChatFormatting.YELLOW));
-            }
-            rows.add(new Row(new ItemStack(Items.OAK_SAPLING), text, false));
         }
 
         totalH = PADDING;
