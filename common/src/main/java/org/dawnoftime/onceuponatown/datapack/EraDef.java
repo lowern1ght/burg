@@ -20,10 +20,13 @@ public class EraDef {
     public final int initialMaxWeight;
     // Production multiplier stamped on boosted buildings at placement time (default 1.0 = no bonus)
     public final double boostMultiplier;
+    // Maximum number of active quests allowed in this orientation (configurable per era file).
+    public final int maxActiveQuests;
 
     public EraDef(int era, String orientation, String orientationLabel, String structureLabel,
                   String iconItem, String starterBuildingId, List<String> boostedBuildings,
-                  Map<String, Integer> categoryWeights, int initialMaxWeight, double boostMultiplier) {
+                  Map<String, Integer> categoryWeights, int initialMaxWeight, double boostMultiplier,
+                  int maxActiveQuests) {
         this.era = era;
         this.orientation = orientation;
         this.orientationLabel = orientationLabel;
@@ -34,5 +37,6 @@ public class EraDef {
         this.categoryWeights = categoryWeights;
         this.initialMaxWeight = initialMaxWeight;
         this.boostMultiplier = boostMultiplier;
+        this.maxActiveQuests = maxActiveQuests;
     }
 }

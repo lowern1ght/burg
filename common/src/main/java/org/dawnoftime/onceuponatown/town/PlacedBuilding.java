@@ -21,6 +21,8 @@ public class PlacedBuilding {
     // Per-instance production multiplier. 1.0 = normal. Set to 1.15 for orientation bootstrap buildings.
     private double instanceProductionMultiplier = 1.0;
     private int upgradeLevel = 0;
+    // Default true: safe on first load, updated each dawn by FoodManager.
+    private boolean herdFed = true;
     private final Map<Item, Integer> stock = new HashMap<>();
 
     public PlacedBuilding(String defId, BlockPos worldPos, BoundingBox bb, Rotation rotation) {
@@ -60,6 +62,9 @@ public class PlacedBuilding {
 
     public int getUpgradeLevel() { return upgradeLevel; }
     public void setUpgradeLevel(int level) { this.upgradeLevel = level; }
+
+    public boolean isHerdFed() { return herdFed; }
+    public void setHerdFed(boolean fed) { this.herdFed = fed; }
 
     // Returns the effective village-wide production bonus contributed by this building at its current upgrade level.
     public double resolvedProductionBonus(org.dawnoftime.onceuponatown.town.BuildingDef def) {
@@ -106,6 +111,8 @@ public class PlacedBuilding {
             tag.putDouble("InstanceProductionMultiplier", instanceProductionMultiplier);
         if (upgradeLevel != 0)
             tag.putInt("UpgradeLevel", upgradeLevel);
+        if (!herdFed)
+            tag.putBoolean("HerdFed", false);
         return tag;
     }
 
@@ -128,6 +135,7 @@ public class PlacedBuilding {
             b.instanceProductionMultiplier = tag.getDouble("InstanceProductionMultiplier");
         if (tag.contains("UpgradeLevel"))
             b.upgradeLevel = tag.getInt("UpgradeLevel");
+        b.herdFed = !tag.contains("HerdFed") || tag.getBoolean("HerdFed");
         CompoundTag stockTag = tag.getCompound("Stock");
         for (String key : stockTag.getAllKeys()) {
             Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(key));

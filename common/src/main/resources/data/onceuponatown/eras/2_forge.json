@@ -4,6 +4,7 @@
   "orientation_label": "Forge",
   "structure_label": "Village",
   "icon_item": "minecraft:anvil",
+  "max_active_quests": 2,
 
   "min_weight_percent": 90,
   "weight_cap_increase": 10,

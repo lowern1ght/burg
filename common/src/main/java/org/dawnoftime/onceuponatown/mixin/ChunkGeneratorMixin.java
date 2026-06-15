@@ -5,7 +5,6 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.StructureManager;
 import net.minecraft.world.level.WorldGenLevel;
@@ -19,9 +18,11 @@ import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.blockentity.TownAnchorBlockEntity;
 import org.dawnoftime.onceuponatown.building.schematic.BuildSchematic;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
+import org.dawnoftime.onceuponatown.datapack.EraTransitionDataHandler;
 import org.dawnoftime.onceuponatown.registry.BlockRegistry;
 import org.dawnoftime.onceuponatown.town.BuildingDef;
 import org.dawnoftime.onceuponatown.town.ConnectionPoint;
+import org.dawnoftime.onceuponatown.town.ItemCost;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.Town;
 import org.slf4j.Logger;
@@ -152,7 +153,17 @@ public class ChunkGeneratorMixin {
                 }
             }
 
-            town.addStock(Items.OAK_LOG, 25);
+            // Apply initial stock declared in the starter building def (e.g. settlement.json).
+            for (PieceEntry entry : entries) {
+                BuildingDef starterDef = BuildingDataHandler.get(entry.defId()).orElse(null);
+                if (starterDef == null || starterDef.initialStock.isEmpty()) continue;
+                if (EraTransitionDataHandler.getEraDefForStarter(entry.defId()) != null) {
+                    for (ItemCost cost : starterDef.initialStock) {
+                        town.addStock(cost.item(), cost.amount());
+                    }
+                    break;
+                }
+            }
             town.initFromEraDef();
 
             LevelTowns.get(serverLevel).registerTown(anchorPos, town);

@@ -1,5 +1,4 @@
 {
-  "max_placement_retries": 5,
   "idle_wait_ticks": 200,
   "autonomous_road_interval_ticks": 1200,
   "walk_speed": 0.6,
@@ -11,7 +10,7 @@
   "stuck_fallback_ticks": 100,
   "moving_timeout_ticks": 3600,
   "path_refresh_interval_ticks": 20,
-  "plan_read_chance": 0.05,
+  "plan_read_chance": 0.03,
   "plan_read_min_ticks": 15,
   "plan_read_max_ticks": 35
 }

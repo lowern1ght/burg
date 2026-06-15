@@ -129,7 +129,9 @@ public class Npc extends PathfinderMob {
                 List<ConnectionPoint> connections = BuildSchematic.readJigsawPoints(
                     serverLevel, builtAt, buildingId, rotation, entryConnectorWorldPos);
                 BoundingBox bb = BuildingDataHandler.get(buildingId)
-                    .flatMap(def -> BuildSchematic.computeBoundingBox(serverLevel, builtAt, def.nbt, rotation))
+                    .flatMap(def -> def.terrainMatching
+                        ? BuildSchematic.computeFootprintBoundingBox(serverLevel, builtAt, def.nbt, rotation)
+                        : BuildSchematic.computeBoundingBox(serverLevel, builtAt, def.nbt, rotation))
                     .orElseGet(() -> new BoundingBox(
                         builtAt.getX(), builtAt.getY(), builtAt.getZ(),
                         builtAt.getX(), builtAt.getY(), builtAt.getZ()

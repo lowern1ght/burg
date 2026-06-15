@@ -37,6 +37,8 @@ import org.dawnoftime.onceuponatown.datapack.BuilderConfigDataHandler;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
 import org.dawnoftime.onceuponatown.datapack.BuildingListDataHandler;
 import org.dawnoftime.onceuponatown.datapack.EraTransitionDataHandler;
+import org.dawnoftime.onceuponatown.datapack.FoodListDataHandler;
+import org.dawnoftime.onceuponatown.datapack.QuestConfigDataHandler;
 import org.dawnoftime.onceuponatown.datapack.QuestDataHandler;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.network.C2SAdvanceEraPacket;
@@ -51,7 +53,6 @@ import org.dawnoftime.onceuponatown.network.S2CBuildingDefsPacket;
 import org.dawnoftime.onceuponatown.network.S2CBuildingListPacket;
 import org.dawnoftime.onceuponatown.network.S2CCitizenUpdatePacket;
 import org.dawnoftime.onceuponatown.network.S2CEraUpdatePacket;
-import org.dawnoftime.onceuponatown.network.S2CNbtPreviewPacket;
 import org.dawnoftime.onceuponatown.network.S2CQuestUpdatePacket;
 import org.dawnoftime.onceuponatown.network.S2CStockUpdatePacket;
 import org.dawnoftime.onceuponatown.network.S2CTownHubPacket;
@@ -303,17 +304,6 @@ public class OuatForge {
             Optional.of(NetworkDirection.PLAY_TO_SERVER)
         );
 
-        CHANNEL.registerMessage(15,
-            S2CNbtPreviewPacket.class,
-            S2CNbtPreviewPacket::encode,
-            S2CNbtPreviewPacket::decode,
-            (msg, ctx) -> {
-                ctx.get().enqueueWork(() -> S2CNbtPreviewPacket.Handler.handle(msg));
-                ctx.get().setPacketHandled(true);
-            },
-            Optional.of(NetworkDirection.PLAY_TO_CLIENT)
-        );
-
         NetworkHelper.sendTownHubPacket = (player, data) ->
             CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CTownHubPacket(data));
 
@@ -335,9 +325,6 @@ public class OuatForge {
         NetworkHelper.sendCitizenUpdatePacket = (player, data) ->
             CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CCitizenUpdatePacket(data));
 
-        NetworkHelper.sendNbtPreviewPacket = (player, data) ->
-            CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CNbtPreviewPacket(data));
-
         NetworkHelper.sendRequestStockPacket = pos ->
             CHANNEL.sendToServer(new C2SRequestStockPacket(pos));
     }
@@ -353,9 +340,11 @@ public class OuatForge {
 
     private void onServerStarting(ServerStartingEvent event) {
         BuilderConfigDataHandler.reload(event.getServer());
+        QuestConfigDataHandler.reload(event.getServer());
         BuildingDataHandler.reload(event.getServer());
         BuildingListDataHandler.reload(event.getServer());
         EraTransitionDataHandler.reload(event.getServer());
+        FoodListDataHandler.reload(event.getServer());
         QuestDataHandler.reload(event.getServer());
     }
 

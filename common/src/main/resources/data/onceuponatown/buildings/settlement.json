@@ -4,10 +4,14 @@
   "entry_pool": "onceuponatown:starters",
   "icon_item": "minecraft:campfire",
   "category": "town_center",
+  "initial_stock": [
+    { "item": "minecraft:oak_log", "amount": 10 },
+    { "item": "minecraft:cobblestone", "amount": 10 }
+  ],
   "production": [
     {
       "item": "minecraft:oak_log",
-      "amount": 2,
+      "amount": 1,
       "every_ticks": 1200,
       "capacity_stacks": 1
     },

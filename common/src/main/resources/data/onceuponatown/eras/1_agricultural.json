@@ -4,6 +4,8 @@
   "orientation_label": "Agricultural",
   "structure_label": "Settlement",
   "icon_item": "minecraft:wheat",
+  "max_active_quests": 1,
+
   "min_weight_percent": 90,
   "weight_cap_increase": 10,
   "resource_cost": [

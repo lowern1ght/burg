@@ -70,10 +70,12 @@ public class BuildSchematic {
         s.add(Blocks.MANGROVE_WOOD);
         s.add(Blocks.MUSHROOM_STEM); s.add(Blocks.BROWN_MUSHROOM_BLOCK); s.add(Blocks.RED_MUSHROOM_BLOCK);
         s.add(Blocks.BAMBOO); s.add(Blocks.SUGAR_CANE); s.add(Blocks.CACTUS);
-        // Connection-point artifacts: jigsaw blocks (unconsumed connectors) and dirt_path
-        // (their final_state replacement) can sit above natural terrain at connector Y levels.
-        // Scanning through them prevents paths from floating at building junction positions.
-        s.add(Blocks.JIGSAW); s.add(Blocks.DIRT_PATH);
+        // Connection-point artifacts: jigsaw blocks (unconsumed connectors) can sit above
+        // natural terrain at connector Y levels. Scanning through them prevents paths from
+        // floating at building junction positions.
+        // DIRT_PATH is intentionally excluded: an existing path block means a road already
+        // snapped correctly at this column, so the column is valid and must not be rewritten.
+        s.add(Blocks.JIGSAW);
         TERRAIN_NOISE_BLOCKS = Collections.unmodifiableSet(s);
     }
 
@@ -112,16 +114,21 @@ public class BuildSchematic {
             int wx = originPos.getX() + rotatedRel.getX();
             int wz = originPos.getZ() + rotatedRel.getZ();
 
-            // Scan downward from world surface to find first solid, non-noise block
+            // Scan downward from world surface to find first solid, non-noise block.
+            // If a DIRT_PATH is already present in this column, a road was previously placed
+            // here correctly -- skip the column entirely rather than rewriting it.
             int scanStart = level.getHeight(Heightmap.Types.WORLD_SURFACE, wx, wz) - 1;
             int terrainY = Integer.MIN_VALUE;
+            boolean alreadyRoad = false;
             for (int y = scanStart; y >= level.getMinBuildHeight(); y--) {
                 BlockState bs = level.getBlockState(new BlockPos(wx, y, wz));
+                if (bs.is(Blocks.DIRT_PATH)) { alreadyRoad = true; break; }
                 if (!bs.isAir() && !TERRAIN_NOISE_BLOCKS.contains(bs.getBlock())) {
                     terrainY = y;
                     break;
                 }
             }
+            if (alreadyRoad) continue;
             if (terrainY == Integer.MIN_VALUE) continue;
 
             // Clear surface noise between terrain surface and original scan start
@@ -254,6 +261,36 @@ public class BuildSchematic {
         BlockPos attachPoint = generatorJigsawPos.relative(generatorFacing);
         BlockPos connectorWorldOffset = StructureTemplate.transform(connectorLocalPos, Mirror.NONE, rotation, BlockPos.ZERO);
         return attachPoint.subtract(connectorWorldOffset);
+    }
+
+    // Computes the world bounding box using only dirt_path blocks in the template (road footprint).
+    // For terrain-matched roads, the NBT often contains large empty corners (L/T shapes) that would
+    // cause false bounding-box overlaps against adjacent buildings. Using the actual path footprint
+    // gives a tight XZ box that matches what the road physically occupies in the world.
+    public static Optional<BoundingBox> computeFootprintBoundingBox(ServerLevel level, BlockPos originPos,
+                                                                      ResourceLocation nbtLocation, Rotation rotation) {
+        Optional<StructureTemplate> template = level.getStructureManager().get(nbtLocation);
+        if (template.isEmpty()) return Optional.empty();
+
+        List<StructureTemplate.StructureBlockInfo> pathBlocks =
+            template.get().filterBlocks(BlockPos.ZERO, new StructurePlaceSettings(), Blocks.DIRT_PATH);
+        if (pathBlocks.isEmpty()) return computeBoundingBox(level, originPos, nbtLocation, rotation);
+
+        int minX = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE;
+        int minZ = Integer.MAX_VALUE, maxZ = Integer.MIN_VALUE;
+        int minY = Integer.MAX_VALUE, maxY = Integer.MIN_VALUE;
+
+        for (StructureTemplate.StructureBlockInfo info : pathBlocks) {
+            BlockPos rotated = StructureTemplate.transform(info.pos(), Mirror.NONE, rotation, BlockPos.ZERO);
+            int wx = originPos.getX() + rotated.getX();
+            int wy = originPos.getY() + rotated.getY();
+            int wz = originPos.getZ() + rotated.getZ();
+            if (wx < minX) minX = wx; if (wx > maxX) maxX = wx;
+            if (wy < minY) minY = wy; if (wy > maxY) maxY = wy;
+            if (wz < minZ) minZ = wz; if (wz > maxZ) maxZ = wz;
+        }
+
+        return Optional.of(new BoundingBox(minX, minY, minZ, maxX, maxY, maxZ));
     }
 
     // Computes the world bounding box of a template placed at originPos with the given rotation.
@@ -448,7 +485,7 @@ public class BuildSchematic {
             Direction rawDir = info.state().getValue(JigsawBlock.ORIENTATION).front();
             Direction rotatedDir = rotation.rotate(rawDir);
             String target = info.nbt().getString("target");
-            points.add(ConnectionPoint.of(worldPos, rotatedDir, target));
+            points.add(new ConnectionPoint(worldPos, rotatedDir, target));
         }
         return points;
     }
@@ -472,7 +509,7 @@ public class BuildSchematic {
             Direction rawDir = info.state().getValue(JigsawBlock.ORIENTATION).front();
             Direction rotatedDir = rotation.rotate(rawDir);
             String target = info.nbt().getString("target");
-            points.add(ConnectionPoint.of(worldPos, rotatedDir, target));
+            points.add(new ConnectionPoint(worldPos, rotatedDir, target));
         }
         return points;
     }

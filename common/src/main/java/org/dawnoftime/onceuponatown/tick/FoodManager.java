@@ -77,10 +77,53 @@ public class FoodManager {
 
         int prevActive = town.getActiveResidents();
         town.setActiveResidents(newActiveResidents);
+
+        // Compute remaining food after resident drain, then feed herd buildings in order.
+        int remainingFoodUnits = 0;
+        for (Map.Entry<net.minecraft.world.item.Item, Integer> fEntry : FoodRegistry.entriesInOrder()) {
+            remainingFoodUnits += inv.getStock(fEntry.getKey()) * fEntry.getValue();
+        }
+        boolean herdChanged = false;
+        for (PlacedBuilding building : town.getBuildings()) {
+            BuildingDef def = BuildingDataHandler.get(building.getDefId()).orElse(null);
+            if (def == null) continue;
+            BuildingDef.ResolvedBuildingStats stats = def.resolveAtLevel(building.getUpgradeLevel());
+            if (stats.resolvedHerd() <= 0) continue;
+            boolean wasFed = building.isHerdFed();
+            int demand = (int) Math.ceil(stats.resolvedHerd() * stats.resolvedConsumptionPerHerd());
+            if (demand == 0) {
+                building.setHerdFed(true);
+            } else if (remainingFoodUnits >= demand) {
+                List<ItemCost> herdDrain = new ArrayList<>();
+                int herdRemaining = demand;
+                for (Map.Entry<net.minecraft.world.item.Item, Integer> fEntry : FoodRegistry.entriesInOrder()) {
+                    if (herdRemaining <= 0) break;
+                    net.minecraft.world.item.Item foodItem = fEntry.getKey();
+                    int fuv = fEntry.getValue();
+                    int stock = inv.getStock(foodItem);
+                    if (stock == 0) continue;
+                    int unitsFromThis = stock * fuv;
+                    if (unitsFromThis >= herdRemaining) {
+                        herdDrain.add(new ItemCost(foodItem, (int) Math.ceil((double) herdRemaining / fuv)));
+                        herdRemaining = 0;
+                    } else {
+                        herdDrain.add(new ItemCost(foodItem, stock));
+                        herdRemaining -= unitsFromThis;
+                    }
+                }
+                if (!herdDrain.isEmpty()) inv.removeStock(herdDrain);
+                remainingFoodUnits -= demand;
+                building.setHerdFed(true);
+            } else {
+                building.setHerdFed(false);
+            }
+            if (building.isHerdFed() != wasFed) herdChanged = true;
+        }
+
         LevelTowns.get(level).markDirty();
 
-        // Only push citizen update when active count actually changed.
-        if (newActiveResidents != prevActive) {
+        // Push citizen update when active residents or any herd fed status changed.
+        if (newActiveResidents != prevActive || herdChanged) {
             BlockPos anchorPos = BlockPos.of(anchorKey);
             NetworkHelper.pushCitizenUpdateToWatchers(level, town, anchorPos);
         }

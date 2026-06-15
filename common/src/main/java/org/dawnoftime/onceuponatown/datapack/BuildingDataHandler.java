@@ -133,6 +133,9 @@ public class BuildingDataHandler {
                 double productionBonusAdd = u.has("production_bonus_add")
                     ? u.get("production_bonus_add").getAsDouble() : 0.0;
                 int stockBonusAdd = u.has("stock_bonus_add") ? u.get("stock_bonus_add").getAsInt() : 0;
+                int herdAdd = u.has("herd_add") ? u.get("herd_add").getAsInt() : 0;
+                float consumptionPerHerdAdd = u.has("consumption_per_herd_add")
+                    ? u.get("consumption_per_herd_add").getAsFloat() : 0f;
                 List<String> unlockedDisplay = new ArrayList<>();
                 if (u.has("unlocks_display")) {
                     for (JsonElement de : u.getAsJsonArray("unlocks_display")) {
@@ -148,7 +151,7 @@ public class BuildingDataHandler {
                     }
                 }
                 upgrades.add(new BuildingDef.UpgradeLevel(cadenceMult, capAdd, amountAdd, residentsAdd, consumptionAdd,
-                    productionBonusAdd, stockBonusAdd, unlockedDisplay, upgradeCost));
+                    productionBonusAdd, stockBonusAdd, herdAdd, consumptionPerHerdAdd, unlockedDisplay, upgradeCost));
             }
         }
 
@@ -178,12 +181,26 @@ public class BuildingDataHandler {
         }
 
         float consumptionPerResident = json.has("consumption_per_resident")
-            ? json.get("consumption_per_resident").getAsFloat() : 1.0f;
+            ? json.get("consumption_per_resident").getAsFloat() : 0f;
+
+        int herd = json.has("herd") ? json.get("herd").getAsInt() : 0;
+        float consumptionPerHerd = json.has("consumption_per_herd")
+            ? json.get("consumption_per_herd").getAsFloat() : 0f;
+
+        List<ItemCost> initialStock = new ArrayList<>();
+        if (json.has("initial_stock")) {
+            for (JsonElement el : json.getAsJsonArray("initial_stock")) {
+                JsonObject s = el.getAsJsonObject();
+                Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(s.get("item").getAsString()));
+                initialStock.add(new ItemCost(item, s.get("amount").getAsInt()));
+            }
+        }
 
         return new BuildingDef(id, nbt, entryPool, production, costs, terrainMatching, iconItem, category, footprint,
             transformations, transformInputRatio, transformEveryTicks,
             productionBonus, stockBonus, residents, upgrades, nbtLevels,
-            requiredResidents, requiredBuildings, consumptionPerResident);
+            requiredResidents, requiredBuildings, consumptionPerResident, initialStock,
+            herd, consumptionPerHerd);
     }
 
     // Builds the NBT payload sent to the client on player join (upgrade info only).
@@ -210,6 +227,8 @@ public class BuildingDataHandler {
                 ut.putFloat("ConsumptionAdd", upg.consumptionPerResidentAdd());
                 ut.putDouble("ProductionBonusAdd", upg.productionBonusAdd());
                 ut.putInt("StockBonusAdd", upg.stockBonusAdd());
+                ut.putInt("HerdAdd", upg.herdAdd());
+                ut.putFloat("HerdConsumptionAdd", upg.consumptionPerHerdAdd());
                 ListTag unlocksTag = new ListTag();
                 for (String itemId : upg.unlockedDisplay()) {
                     unlocksTag.add(net.minecraft.nbt.StringTag.valueOf(itemId));

@@ -44,6 +44,13 @@ public class ProductionManager {
             BuildingDef def = BuildingDataHandler.get(building.getDefId()).orElse(null);
             if (def == null) continue;
             BuildingDef.ResolvedBuildingStats stats = def.resolveAtLevel(building.getUpgradeLevel());
+            // Herd buildings that were not fed produce nothing; transformations are never blocked.
+            if (stats.resolvedHerd() > 0 && !building.isHerdFed()) {
+                if (def.isTransformer() && def.transformEveryTicks > 0 && gameTime % def.transformEveryTicks == 0) {
+                    changed |= tickTransformer(building, def, inv);
+                }
+                continue;
+            }
             for (ProductionEntry entry : stats.production()) {
                 if (entry.everyTicks() <= 0) continue;
                 int effectiveTicks = stats.totalCadenceMultiplier() > 0

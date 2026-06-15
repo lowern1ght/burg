@@ -212,7 +212,7 @@ public class BuildGoal implements BuildTask {
         BuildingDef def = BuildingDataHandler.get(state.defId()).orElse(null);
         if (def == null) return null;
 
-        ConnectionPoint conn = ConnectionPoint.of(
+        ConnectionPoint conn = new ConnectionPoint(
             state.connectionPos(), state.connectionDir(), state.connectionTarget());
 
         NewBuildAction action = new NewBuildAction(

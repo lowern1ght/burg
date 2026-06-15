@@ -23,8 +23,10 @@ import org.dawnoftime.onceuponatown.town.PlacedBuilding;
 import org.dawnoftime.onceuponatown.town.QueueEntry;
 import org.dawnoftime.onceuponatown.town.Town;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public class SimpleStateMachine {
@@ -33,7 +35,6 @@ public class SimpleStateMachine {
 
     public enum State { IDLE, BUILD }
 
-    private int maxFailCount()  { return BuilderConfigDataHandler.get().maxPlacementRetries; }
     private int idleWaitTicks() { return BuilderConfigDataHandler.get().idleWaitTicks; }
     private int openPhaseTicks(){ return BuilderConfigDataHandler.get().autonomousRoadIntervalTicks; }
 
@@ -44,10 +45,13 @@ public class SimpleStateMachine {
     private int buildStateTicks = 0;
     // The player-queued entry currently being built, or null if not building from queue.
     private QueueEntry activeQueueEntry = null;
-    // Number of consecutive idle ticks where the current queue cursor entry could not be placed.
-    private int playerQueueFailCount = 0;
     // Counts ticks in the open phase (no player queue) toward the configured autonomous road interval.
     private int openPhaseTimer = 0;
+    // Round-robin index for street CP selection (runtime-only, resets to 0 on server load).
+    private int streetCpCursor = 0;
+    // DefIds that have already received a suppressed skip message this session.
+    // Cleared when the defId is placed or falls out of the queue.
+    private final Set<String> warnedDefIds = new HashSet<>();
 
     // -------------------------------------------------------------------------
     // Placement outcome: carries either a valid result or the reason for failure.
@@ -144,24 +148,31 @@ public class SimpleStateMachine {
             }
         } else {
             // No player instructions: primary builder extends roads once per minute.
-            if (isPrimaryBuilder && ++openPhaseTimer >= openPhaseTicks()) {
+            if (isPrimaryBuilder && (openPhaseTimer += idleWaitTicks()) >= openPhaseTicks()) {
                 openPhaseTimer = 0;
                 tickStreetsOnly(serverLevel, town, shuffledPoints, occupied);
             }
         }
     }
 
-    // Player-directed queue: scans the full queue from index 0, skipping entries claimed by other builders.
-    // Registers a claim before starting a build and releases it on completion or failure.
+    // Player-directed queue: scans all entries each cycle, skipping claimed or unplaceable entries.
+    // CPs are never removed on failure -- only a successful placement consumes a CP.
     private void tickPlayerQueue(ServerLevel serverLevel, Town town,
-                                  List<ConnectionPoint> shuffledPoints, List<BoundingBox> occupied) {
+                                  List<ConnectionPoint> freePoints, List<BoundingBox> occupied) {
         List<QueueEntry> queue = town.getConstructionQueue();
         if (queue.isEmpty()) return;
 
         UUID myId = npc.getUUID();
+        String townName = town.getName();
+
+        // Clear warnedDefIds for any defId no longer present in the queue.
+        Set<String> activeDefIds = new HashSet<>();
+        for (QueueEntry e : queue) {
+            if (e instanceof QueueEntry.NewBuild nb) activeDefIds.add(nb.defId());
+        }
+        warnedDefIds.retainAll(activeDefIds);
 
         for (int i = 0; i < queue.size(); i++) {
-            // Skip entries claimed by another builder.
             if (town.isQueueEntryClaimedByOther(i, myId)) continue;
 
             QueueEntry entry = queue.get(i);
@@ -183,36 +194,45 @@ public class SimpleStateMachine {
                 town.claimQueueEntry(i, myId);
                 activeBuild = new BuildGoal(npc, new UpgradeAction(building, def, upgradeEntry.fromLevel(), town));
                 activeQueueEntry = entry;
-                playerQueueFailCount = 0;
                 current = State.BUILD;
                 broadcastUpgradeStart(serverLevel, upgradeEntry.defId(), upgradeEntry.buildingWorldPos());
                 NetworkHelper.pushBuildingListToWatchers(serverLevel, town, npc.getTownAnchorPos());
                 return;
             }
 
-            // New build entries: find a compatible connection point.
             String defId = ((QueueEntry.NewBuild) entry).defId();
             BuildingDef def = BuildingDataHandler.get(defId).orElse(null);
             if (def == null) {
                 town.releaseQueueClaim(i, myId);
                 town.consumeQueueEntry(entry);
                 LevelTowns.get(serverLevel).markDirty();
-                return;
-            }
-
-            // Prerequisites not met: skip this entry and try the next one.
-            if (!town.meetsPrerequisites(def)) {
-                LOGGER.debug("[OUAT-QUEUE] Prerequisites not met for '{}' at index {} -- skipping.", defId, i);
                 continue;
             }
 
-            int poolMatches = 0;
+            if (!town.meetsPrerequisites(def)) {
+                warnedDefIds.add(defId);
+                continue;
+            }
+
+            // Collect all CPs matching this building's pool.
+            List<ConnectionPoint> matchingCps = new ArrayList<>();
+            for (ConnectionPoint cp : freePoints) {
+                if (!cp.targetName().isEmpty() && def.entryPool.equals(cp.targetName())) {
+                    matchingCps.add(cp);
+                }
+            }
+
+            if (matchingCps.isEmpty()) {
+                warnedDefIds.add(defId);
+                continue;
+            }
+
+            shuffleInPlace(matchingCps);
+
             int bbOverlaps = 0;
             int noConnector = 0;
 
-            for (ConnectionPoint point : shuffledPoints) {
-                if (!point.targetName().isEmpty() && !def.entryPool.equals(point.targetName())) continue;
-                poolMatches++;
+            for (ConnectionPoint point : matchingCps) {
                 PlacementOutcome outcome = attemptPlacement(serverLevel, point, occupied, def);
                 if (outcome.succeeded()) {
                     PlacementSuccess s = outcome.success();
@@ -223,7 +243,6 @@ public class SimpleStateMachine {
                         def, point, s.pos(), s.rotation(), s.entryConnectorWorldPos(), List.of(), town));
                     if (s.bb() != null) town.addUnderConstruction(def.id, s.pos(), s.bb(), s.rotation());
                     activeQueueEntry = entry;
-                    playerQueueFailCount = 0;
                     int mySlotQ = town.getBuilderSlot(myId);
                     if (mySlotQ >= 0) {
                         town.setActiveBuild(mySlotQ, new ActiveBuildState(
@@ -232,93 +251,72 @@ public class SimpleStateMachine {
                         LevelTowns.get(serverLevel).markDirty();
                     }
                     current = State.BUILD;
+                    warnedDefIds.remove(defId);
                     broadcastBuildStart(serverLevel, defId, s.pos());
                     NetworkHelper.pushBuildingListToWatchers(serverLevel, town, npc.getTownAnchorPos());
                     return;
                 }
-                if (outcome.failure() == FailReason.BOUNDING_BOX_OVERLAP)    bbOverlaps++;
+                if (outcome.failure() == FailReason.BOUNDING_BOX_OVERLAP)        bbOverlaps++;
                 else if (outcome.failure() == FailReason.NO_COMPATIBLE_CONNECTOR) noConnector++;
             }
 
-            // Could not place this entry this tick.
-            if (poolMatches == 0) {
-                // No connection point accepts this pool -- skip to the next entry.
-                continue;
+            if (noConnector > 0 && bbOverlaps == 0) {
+                warnedDefIds.add(defId);
             }
-
-            playerQueueFailCount++;
-            if (playerQueueFailCount >= maxFailCount()) {
-                LOGGER.warn("[OUAT-QUEUE] Placement failed for '{}' at index {} after {} attempts -- "
-                    + "totalCPs={} poolMatches={} bbOverlap={} noConnector={} -- skipping entry.",
-                    defId, i, maxFailCount(),
-                    shuffledPoints.size(), poolMatches, bbOverlaps, noConnector);
-                playerQueueFailCount = 0;
-                town.releaseQueueClaim(i, myId);
-                // Advance the legacy cursor so existing save/restore paths stay valid.
-                town.advanceQueueCursor();
-                LevelTowns.get(serverLevel).markDirty();
-            }
-            return;
         }
     }
 
-    // Post-bootstrap idle phase: the builder only places streets autonomously.
+    // Post-bootstrap idle phase: the primary builder places one street per cycle via round-robin CP selection.
     // Non-street connection points are preserved for the player construction queue.
-    // Street points follow the same maxFailCount() kill logic as before.
+    // CPs are never removed on failure.
     private void tickStreetsOnly(ServerLevel serverLevel, Town town,
-                                  List<ConnectionPoint> shuffledPoints, List<BoundingBox> occupied) {
+                                  List<ConnectionPoint> freePoints, List<BoundingBox> occupied) {
         List<BuildingDef> streetCandidates = new ArrayList<>(town.getBuildableBuildings().stream()
             .filter(d -> Constants.STREETS_POOL.equals(d.entryPool))
             .toList());
 
-        List<ConnectionPoint> deadPoints = new ArrayList<>();
-        List<ConnectionPoint> toIncrementFail = new ArrayList<>();
+        // Collect street CPs sorted by position for deterministic round-robin.
+        List<ConnectionPoint> streetCps = new ArrayList<>();
+        for (ConnectionPoint cp : freePoints) {
+            if (Constants.STREETS_POOL.equals(cp.targetName())) streetCps.add(cp);
+        }
+        streetCps.sort(java.util.Comparator.comparingLong(cp -> cp.pos().asLong()));
 
-        for (ConnectionPoint point : shuffledPoints) {
-            if (!Constants.STREETS_POOL.equals(point.targetName())) continue;
+        if (streetCps.isEmpty() || streetCandidates.isEmpty()) {
+            broadcastVillageFullIfNeeded(serverLevel, town);
+            return;
+        }
 
-            if (streetCandidates.isEmpty()) break;
+        ConnectionPoint chosen = streetCps.get(streetCpCursor % streetCps.size());
+        streetCpCursor++;
 
-            shuffleInPlace(streetCandidates);
-            boolean physicalFailure = false;
+        shuffleInPlace(streetCandidates);
 
-            for (BuildingDef candidate : streetCandidates) {
-                PlacementOutcome outcome = attemptPlacement(serverLevel, point, occupied, candidate);
-                if (outcome.succeeded()) {
-                    PlacementSuccess s = outcome.success();
-                    town.useConnection(point);
-                    cleanupDeadPoints(town, serverLevel, deadPoints, toIncrementFail);
+        for (BuildingDef candidate : streetCandidates) {
+            PlacementOutcome outcome = attemptPlacement(serverLevel, chosen, occupied, candidate);
+            if (outcome.succeeded()) {
+                PlacementSuccess s = outcome.success();
+                town.useConnection(chosen);
+                LevelTowns.get(serverLevel).markDirty();
+                activeBuild = new BuildGoal(npc, new NewBuildAction(
+                    candidate, chosen, s.pos(), s.rotation(), s.entryConnectorWorldPos(),
+                    candidate.constructionCost, town));
+                if (s.bb() != null) town.addUnderConstruction(candidate.id, s.pos(), s.bb(), s.rotation());
+                int mySlotS = town.getBuilderSlot(npc.getUUID());
+                if (mySlotS >= 0) {
+                    town.setActiveBuild(mySlotS, new ActiveBuildState(
+                        candidate.id, s.pos(), s.rotation(), chosen.pos(), chosen.direction(),
+                        chosen.targetName(), s.entryConnectorWorldPos(), candidate.constructionCost, null));
                     LevelTowns.get(serverLevel).markDirty();
-                    activeBuild = new BuildGoal(npc, new NewBuildAction(
-                        candidate, point, s.pos(), s.rotation(), s.entryConnectorWorldPos(),
-                        candidate.constructionCost, town));
-                    if (s.bb() != null) town.addUnderConstruction(candidate.id, s.pos(), s.bb(), s.rotation());
-                    int mySlotS = town.getBuilderSlot(npc.getUUID());
-                    if (mySlotS >= 0) {
-                        town.setActiveBuild(mySlotS, new ActiveBuildState(
-                            candidate.id, s.pos(), s.rotation(), point.pos(), point.direction(),
-                            point.targetName(), s.entryConnectorWorldPos(), candidate.constructionCost, null));
-                        LevelTowns.get(serverLevel).markDirty();
-                    }
-                    current = State.BUILD;
-                    broadcastBuildStart(serverLevel, candidate.id, s.pos());
-                    NetworkHelper.pushBuildingListToWatchers(serverLevel, town, npc.getTownAnchorPos());
-                    return;
                 }
-                physicalFailure = true;
-            }
-
-            if (physicalFailure) {
-                int nextFail = point.failCount() + 1;
-                if (nextFail >= maxFailCount()) {
-                    deadPoints.add(point);
-                } else {
-                    toIncrementFail.add(point);
-                }
+                current = State.BUILD;
+                broadcastBuildStart(serverLevel, candidate.id, s.pos());
+                NetworkHelper.pushBuildingListToWatchers(serverLevel, town, npc.getTownAnchorPos());
+                return;
             }
         }
 
-        cleanupDeadPoints(town, serverLevel, deadPoints, toIncrementFail);
+        broadcastVillageFullIfNeeded(serverLevel, town);
     }
 
     // Attempts to find a valid placement for a building at a given connection point.
@@ -344,8 +342,9 @@ public class SimpleStateMachine {
         int finalY = terrainY - chosen.posInTemplate().getY();
         BlockPos finalPos = new BlockPos(rawPos.getX(), finalY, rawPos.getZ());
 
-        Optional<BoundingBox> maybeBb = BuildSchematic.computeBoundingBox(
-            serverLevel, finalPos, def.nbt, rotation);
+        Optional<BoundingBox> maybeBb = def.terrainMatching
+            ? BuildSchematic.computeFootprintBoundingBox(serverLevel, finalPos, def.nbt, rotation)
+            : BuildSchematic.computeBoundingBox(serverLevel, finalPos, def.nbt, rotation);
         if (maybeBb.isPresent()) {
             BoundingBox cb = maybeBb.get();
             boolean overlaps = occupied.stream().anyMatch(bb ->
@@ -359,20 +358,6 @@ public class SimpleStateMachine {
             StructureTemplate.transform(chosen.posInTemplate(), Mirror.NONE, rotation, BlockPos.ZERO));
 
         return PlacementOutcome.ok(finalPos, rotation, entryConnectorWorldPos, maybeBb.orElse(null));
-    }
-
-    private void cleanupDeadPoints(Town town, ServerLevel serverLevel,
-                                    List<ConnectionPoint> deadPoints, List<ConnectionPoint> toIncrementFail) {
-        boolean dirty = false;
-        if (!deadPoints.isEmpty()) {
-            deadPoints.forEach(town::useConnection);
-            dirty = true;
-        }
-        if (!toIncrementFail.isEmpty()) {
-            toIncrementFail.forEach(town::incrementConnectionFailCount);
-            dirty = true;
-        }
-        if (dirty) LevelTowns.get(serverLevel).markDirty();
     }
 
     private <T> void shuffleInPlace(List<T> list) {
@@ -434,6 +419,22 @@ public class SimpleStateMachine {
             buildStateTicks = 0;
             current = State.IDLE;
         }
+    }
+
+    private void broadcastSkipMessage(ServerLevel level, String townName, String message) {
+        Component msg = Component.literal("[" + townName + "] ")
+            .withStyle(ChatFormatting.GOLD)
+            .append(Component.literal(message).withStyle(ChatFormatting.WHITE));
+        level.getServer().getPlayerList().broadcastSystemMessage(msg, false);
+    }
+
+    private void broadcastVillageFullIfNeeded(ServerLevel level, Town town) {
+        if (!town.checkVillageFullTransition()) return;
+        Component msg = Component.literal("[" + town.getName() + "] ")
+            .withStyle(ChatFormatting.GOLD)
+            .append(Component.literal("has no connection points left. The village cannot expand further.")
+                .withStyle(ChatFormatting.WHITE));
+        level.getServer().getPlayerList().broadcastSystemMessage(msg, false);
     }
 
     private void broadcastBuildStart(ServerLevel level, String buildingId, BlockPos pos) {

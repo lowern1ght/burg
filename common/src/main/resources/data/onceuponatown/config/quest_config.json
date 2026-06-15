@@ -1,0 +1,4 @@
+{
+  "generation_interval_ticks": 1200,
+  "expiry_check_interval_ticks": 100
+}

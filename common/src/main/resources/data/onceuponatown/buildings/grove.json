@@ -7,7 +7,7 @@
   "construction_cost": [
     {
       "item": "minecraft:oak_log",
-      "amount": 5
+      "amount": 10
     }
   ],
   "production": [
