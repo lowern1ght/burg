@@ -4,6 +4,7 @@
   "entry_pool": "onceuponatown:starters",
   "icon_item": "minecraft:campfire",
   "category": "town_center",
+  "herd": 1,
   "initial_stock": [
     { "item": "minecraft:oak_log", "amount": 5 },
     { "item": "minecraft:porkchop", "amount": 5 },
@@ -14,7 +15,7 @@
       "item": "minecraft:oak_log",
       "amount": 1,
       "every_ticks": 1200,
-      "capacity_stacks": 1
+      "capacity_stacks": 2
     },
     {
       "item": "minecraft:porkchop",
@@ -23,16 +24,17 @@
       "capacity_stacks": 1
     },
     {
-      "item": "minecraft:apple",
-      "amount": 1,
-      "every_ticks": 1600,
-      "capacity_stacks": 1
-    },
-    {
       "item": "minecraft:cobblestone",
       "amount": 1,
       "every_ticks": 8000,
       "capacity_stacks": 1
+    },
+    {
+      "item": "minecraft:mutton",
+      "amount": 1,
+      "every_ticks": 1800,
+      "capacity_stacks": 1,
+      "unlock_at_level": 1
     }
   ],
   "transform_input_ratio": 0.1,
@@ -40,20 +42,32 @@
   "transformations": [
     {
       "inputs": [
-        { "item": "minecraft:log", "amount": 1 }
-      ],
-      "output": "minecraft:charcoal",
-      "output_amount": 1,
-      "output_capacity_stacks": 1
-    },
-    {
-      "inputs": [
-        { "item": "minecraft:porkchop", "amount": 1 },
+        { "item": "minecraft:porkchop", "amount": 3 },
         { "item": "minecraft:charcoal", "amount": 1 }
       ],
       "output": "minecraft:cooked_porkchop",
-      "output_amount": 1,
-      "output_capacity_stacks": 1
+      "output_amount": 3,
+      "output_capacity_stacks": 1,
+      "unlock_at_level": 1
+    },
+    {
+      "inputs": [
+        { "item": "minecraft:mutton", "amount": 3 },
+        { "item": "minecraft:charcoal", "amount": 1 }
+      ],
+      "output": "minecraft:cooked_mutton",
+      "output_amount": 3,
+      "output_capacity_stacks": 1,
+      "unlock_at_level": 1
+    }
+  ],
+  "upgrades": [
+    {
+      "herd_add": 2,
+      "consumption_per_herd_add": 2.0,
+      "amount_add": 1,
+      "unlocks_display": ["minecraft:cooked_porkchop", "minecraft:mutton", "minecraft:cooked_mutton"],
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 0 }]
     }
   ],
   "nbt_levels": [

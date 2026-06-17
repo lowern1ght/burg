@@ -20,8 +20,10 @@ import org.dawnoftime.onceuponatown.datapack.BuildingListDataHandler;
 import org.dawnoftime.onceuponatown.datapack.EraTransitionDataHandler;
 import org.dawnoftime.onceuponatown.datapack.FoodListDataHandler;
 import org.dawnoftime.onceuponatown.datapack.QuestDataHandler;
+import org.dawnoftime.onceuponatown.datapack.TradePriceDataHandler;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.network.C2SAdvanceEraPacket;
+import org.dawnoftime.onceuponatown.network.C2SBuyPacket;
 import org.dawnoftime.onceuponatown.network.C2SClaimQuestPacket;
 import org.dawnoftime.onceuponatown.network.C2SDepositPacket;
 import org.dawnoftime.onceuponatown.network.C2SQueueBuildingPacket;
@@ -64,6 +66,7 @@ public class OuatFabric implements ModInitializer {
         ServerLifecycleEvents.SERVER_STARTING.register(EraTransitionDataHandler::reload);
         ServerLifecycleEvents.SERVER_STARTING.register(FoodListDataHandler::reload);
         ServerLifecycleEvents.SERVER_STARTING.register(QuestDataHandler::reload);
+        ServerLifecycleEvents.SERVER_STARTING.register(TradePriceDataHandler::reload);
         ServerTickEvents.END_SERVER_TICK.register(TickScheduler::tick);
         NetworkHelper.sendTownHubPacket = (player, data) -> {
             var buf = PacketByteBufs.create();
@@ -104,6 +107,11 @@ public class OuatFabric implements ModInitializer {
             (server, player, handler, buf, responseSender) -> {
                 C2SRequestStockPacket packet = C2SRequestStockPacket.decode(buf);
                 server.execute(() -> C2SRequestStockPacket.Handler.handle(packet, player));
+            });
+        ServerPlayNetworking.registerGlobalReceiver(C2SBuyPacket.ID,
+            (server, player, handler, buf, responseSender) -> {
+                C2SBuyPacket packet = C2SBuyPacket.decode(buf);
+                server.execute(() -> C2SBuyPacket.Handler.handle(packet, player));
             });
         NetworkHelper.sendBuildingDefsPacket = (player, data) -> {
             var buf = PacketByteBufs.create();

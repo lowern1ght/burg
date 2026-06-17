@@ -28,13 +28,15 @@ public class EraTransitionDef {
     public final String structureLabel;
     // If true, completing this transition increments Town.targetBuilderCount by 1
     public final boolean unlockNewBuilder;
+    // Building defIds to auto-upgrade (free) when this transition completes. Default: empty list.
+    public final List<String> autoUpgradeIds;
 
     public EraTransitionDef(String id, int fromEra, String fromOrientation, String orientationLabel,
                             String iconItem, List<ItemCost> resourceCost,
                             int requiredResidents, List<BuildingDef.BuildingRequirement> requiredBuildings,
                             List<String> unlockedBuildingIds, String nextOrientation,
                             int weightCapIncrease, int minWeightPercent, String structureLabel,
-                            boolean unlockNewBuilder) {
+                            boolean unlockNewBuilder, List<String> autoUpgradeIds) {
         this.id = id;
         this.fromEra = fromEra;
         this.fromOrientation = fromOrientation;
@@ -49,5 +51,6 @@ public class EraTransitionDef {
         this.minWeightPercent = minWeightPercent;
         this.structureLabel = structureLabel;
         this.unlockNewBuilder = unlockNewBuilder;
+        this.autoUpgradeIds = autoUpgradeIds;
     }
 }

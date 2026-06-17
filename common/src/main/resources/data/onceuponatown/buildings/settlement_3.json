@@ -12,21 +12,15 @@
   "production": [
     {
       "item": "minecraft:oak_log",
-      "amount": 2,
-      "every_ticks": 1200,
-      "capacity_stacks": 1
-    },
-    {
-      "item": "minecraft:apple",
       "amount": 1,
-      "every_ticks": 1600,
-      "capacity_stacks": 1
+      "every_ticks": 1200,
+      "capacity_stacks": 2
     },
     {
       "item": "minecraft:wheat_seeds",
       "amount": 2,
       "every_ticks": 1600,
-      "capacity_stacks": 3
+      "capacity_stacks": 2
     },
     {
       "item": "minecraft:wheat",
@@ -48,7 +42,25 @@
       "inputs": [{ "item": "minecraft:wheat", "amount": 3 }],
       "output": "minecraft:bread",
       "output_amount": 1,
-      "output_capacity_stacks": 2
+      "output_capacity_stacks": 1,
+      "unlock_at_level": 1
+    },
+    {
+      "inputs": [
+        { "item": "minecraft:potato", "amount": 3 },
+        { "item": "minecraft:charcoal", "amount": 1 }
+      ],
+      "output": "minecraft:baked_potato",
+      "output_amount": 3,
+      "output_capacity_stacks": 1,
+      "unlock_at_level": 1
+    }
+  ],
+  "upgrades": [
+    {
+      "capacity_stacks_add": 1,
+      "unlocks_display": ["minecraft:bread", "minecraft:baked_potato"],
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 0 }]
     }
   ],
   "nbt_levels": [

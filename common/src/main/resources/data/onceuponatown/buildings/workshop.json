@@ -22,27 +22,41 @@
   "transform_every_ticks": 1600,
   "transformations": [
     {
-      "inputs": [{ "item": "minecraft:oak_log", "amount": 1 }],
-      "output": "minecraft:charcoal",
-      "output_amount": 1,
-      "output_capacity_stacks": 2
-    },
-    {
       "inputs": [
-        { "item": "minecraft:charcoal", "amount": 1 },
-        { "item": "minecraft:stick", "amount": 1 }
+        { "item": "minecraft:oak_log", "amount": 1 }
       ],
-      "output": "minecraft:torch",
+      "output": "minecraft:oak_planks",
       "output_amount": 4,
       "output_capacity_stacks": 2
     },
     {
+      "inputs": [{ "item": "minecraft:oak_planks", "amount": 2 }],
+      "output": "minecraft:stick",
+      "output_amount": 4,
+      "output_capacity_stacks": 1
+    },
+    {
       "inputs": [
-        { "item": "minecraft:oak_log", "amount": 3 },
-        { "item": "minecraft:stick", "amount": 3 },
-        { "item": "minecraft:charcoal", "amount": 1 }
+        { "item": "minecraft:oak_planks", "amount": 6 }
       ],
-      "output": "minecraft:campfire",
+      "output": "minecraft:oak_stairs",
+      "output_amount": 4,
+      "output_capacity_stacks": 1
+    },
+    {
+      "inputs": [
+        { "item": "minecraft:oak_planks", "amount": 3 }
+      ],
+      "output": "minecraft:oak_slab",
+      "output_amount": 6,
+      "output_capacity_stacks": 1
+    },
+    {
+      "inputs": [
+        { "item": "minecraft:stick", "amount": 4 },
+        { "item": "minecraft:oak_planks", "amount": 2 }
+      ],
+      "output": "minecraft:oak_fence",
       "output_amount": 1,
       "output_capacity_stacks": 1
     },
@@ -65,6 +79,16 @@
       "inputs": [{ "item": "minecraft:oak_planks", "amount": 6 }],
       "output": "minecraft:oak_door",
       "output_amount": 3,
+      "output_capacity_stacks": 1
+    },
+    {
+      "inputs": [
+        { "item": "minecraft:oak_log", "amount": 3 },
+        { "item": "minecraft:stick", "amount": 3 },
+        { "item": "minecraft:charcoal", "amount": 1 }
+      ],
+      "output": "minecraft:campfire",
+      "output_amount": 1,
       "output_capacity_stacks": 1
     }
   ]

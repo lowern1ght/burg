@@ -77,6 +77,15 @@
                 "element_type": "minecraft:single_pool_element",
                 "processors": "minecraft:empty",
                 "projection": "terrain_matching",
+                "location": "onceuponatown:plains/streets/street_8"
+            }
+        },
+        {
+            "weight": 1,
+            "element": {
+                "element_type": "minecraft:single_pool_element",
+                "processors": "minecraft:empty",
+                "projection": "terrain_matching",
                 "location": "onceuponatown:plains/streets/street_9"
             }
         }

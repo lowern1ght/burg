@@ -287,10 +287,11 @@ public class Town {
         if (!t.nextOrientation.isEmpty()) currentOrientation = t.nextOrientation;
         unlockedBuildingIds.addAll(t.unlockedBuildingIds);
         if (t.unlockNewBuilder) targetBuilderCount++;
-        for (PlacedBuilding b : buildings) {
-            if (b.defId.startsWith("settlement")) {
-                tryQueueUpgrade(b.worldPos);
-                break;
+        if (!t.autoUpgradeIds.isEmpty()) {
+            for (PlacedBuilding b : buildings) {
+                if (t.autoUpgradeIds.contains(b.defId)) {
+                    forceQueueUpgrade(b.worldPos);
+                }
             }
         }
         return true;
@@ -420,6 +421,33 @@ public class Town {
         for (ItemCost c : cost) {
             queueReservedStock.merge(c.item(), c.amount(), Integer::sum);
         }
+        constructionQueue.add(new QueueEntry.Upgrade(building.defId, worldPos, effectiveLevel));
+        return true;
+    }
+
+    // Free upgrade bypassing resource check -- cost absorbed by era transition.
+    // Still verifies: building exists, not at max level, queue not full.
+    public boolean forceQueueUpgrade(BlockPos worldPos) {
+        PlacedBuilding building = null;
+        for (PlacedBuilding b : buildings) {
+            if (b.worldPos.equals(worldPos)) { building = b; break; }
+        }
+        if (building == null) return false;
+
+        BuildingDef def = BuildingDataHandler.get(building.defId).orElse(null);
+        if (def == null || (def.upgrades.isEmpty() && def.nbtLevels.isEmpty())) return false;
+
+        int effectiveLevel = building.getUpgradeLevel();
+        for (QueueEntry entry : constructionQueue) {
+            if (entry instanceof QueueEntry.Upgrade u && u.buildingWorldPos().equals(worldPos)) {
+                effectiveLevel++;
+            }
+        }
+
+        int maxLevel = Math.max(def.upgrades.size(), def.nbtLevels.size());
+        if (effectiveLevel >= maxLevel) return false;
+        if (constructionQueue.size() >= QUEUE_CAPACITY) return false;
+
         constructionQueue.add(new QueueEntry.Upgrade(building.defId, worldPos, effectiveLevel));
         return true;
     }

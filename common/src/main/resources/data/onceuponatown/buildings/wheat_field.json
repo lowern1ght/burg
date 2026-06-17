@@ -20,15 +20,15 @@
   "production": [
     {
       "item": "minecraft:wheat_seeds",
-      "amount": 2,
-      "every_ticks": 1200,
-      "capacity_stacks": 3
+      "amount": 1,
+      "every_ticks": 1600,
+      "capacity_stacks": 1
     },
     {
       "item": "minecraft:wheat",
       "amount": 1,
-      "every_ticks": 1200,
-      "capacity_stacks": 3
+      "every_ticks": 1800,
+      "capacity_stacks": 1
     }
   ]
 }

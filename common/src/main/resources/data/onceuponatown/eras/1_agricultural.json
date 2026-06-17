@@ -15,5 +15,6 @@
   "required_buildings": [
     { "defId": "wheat_field", "count": 1 }
   ],
-  "unlocked_building_ids": ["sheep_field", "bee_field", "wild_spot"]
+  "unlocked_building_ids": ["sheep_field", "bee_field", "wild_spot"],
+  "auto_upgrade_ids": ["settlement_3"]
 }

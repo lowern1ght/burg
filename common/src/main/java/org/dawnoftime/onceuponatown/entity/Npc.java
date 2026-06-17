@@ -17,6 +17,8 @@ import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.OpenDoorGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
+import net.minecraft.world.level.pathfinder.PathFinder;
+import org.dawnoftime.onceuponatown.entity.ai.OuatWalkNodeEvaluator;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -67,7 +69,14 @@ public class Npc extends PathfinderMob {
 
     @Override
     protected net.minecraft.world.entity.ai.navigation.PathNavigation createNavigation(Level level) {
-        GroundPathNavigation nav = new GroundPathNavigation(this, level);
+        GroundPathNavigation nav = new GroundPathNavigation(this, level) {
+            @Override
+            protected PathFinder createPathFinder(int maxVisitedNodes) {
+                this.nodeEvaluator = new OuatWalkNodeEvaluator();
+                this.nodeEvaluator.setCanPassDoors(true);
+                return new PathFinder(this.nodeEvaluator, maxVisitedNodes);
+            }
+        };
         nav.setCanOpenDoors(true);
         nav.setCanPassDoors(true);
         return nav;

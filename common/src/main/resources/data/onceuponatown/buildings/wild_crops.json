@@ -14,7 +14,7 @@
     {
       "item": "minecraft:wheat_seeds",
       "amount": 1,
-      "every_ticks": 1200,
+      "every_ticks": 1600,
       "capacity_stacks": 1
     },
     {

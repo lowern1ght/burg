@@ -18,8 +18,6 @@ public class BuilderConfigDataHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(BuilderConfigDataHandler.class);
 
     public static final class Config {
-        public final int idleWaitTicks;
-        public final int autonomousRoadIntervalTicks;
         public final double walkSpeed;
         public final double blockReachDistance;
         public final int blockDelayTicks;
@@ -33,13 +31,10 @@ public class BuilderConfigDataHandler {
         public final int planReadMinTicks;
         public final int planReadMaxTicks;
 
-        public Config(int idleWaitTicks, int autonomousRoadIntervalTicks,
-                      double walkSpeed, double blockReachDistance, int blockDelayTicks,
+        public Config(double walkSpeed, double blockReachDistance, int blockDelayTicks,
                       int burstPauseMinTicks, int burstPauseMaxTicks, int maxBurstExtraBlocks,
                       int stuckFallbackTicks, int movingTimeoutTicks, int pathRefreshIntervalTicks,
                       float planReadChance, int planReadMinTicks, int planReadMaxTicks) {
-            this.idleWaitTicks = idleWaitTicks;
-            this.autonomousRoadIntervalTicks = autonomousRoadIntervalTicks;
             this.walkSpeed = walkSpeed;
             this.blockReachDistance = blockReachDistance;
             this.blockDelayTicks = blockDelayTicks;
@@ -56,7 +51,7 @@ public class BuilderConfigDataHandler {
     }
 
     private static final Config DEFAULTS = new Config(
-        200, 1200, 0.6, 6.0, 4, 10, 18, 2, 100, 3600, 20, 0.05f, 15, 35
+        0.6, 6.0, 4, 10, 18, 2, 100, 3600, 20, 0.05f, 15, 35
     );
 
     private static Config loaded = DEFAULTS;
@@ -74,8 +69,6 @@ public class BuilderConfigDataHandler {
         try (InputStreamReader reader = new InputStreamReader(resource.get().open())) {
             JsonObject json = GSON.fromJson(reader, JsonObject.class);
             loaded = new Config(
-                getInt(json, "idle_wait_ticks",                DEFAULTS.idleWaitTicks),
-                getInt(json, "autonomous_road_interval_ticks", DEFAULTS.autonomousRoadIntervalTicks),
                 getDbl(json, "walk_speed",                     DEFAULTS.walkSpeed),
                 getDbl(json, "block_reach_distance",           DEFAULTS.blockReachDistance),
                 getInt(json, "block_delay_ticks",              DEFAULTS.blockDelayTicks),

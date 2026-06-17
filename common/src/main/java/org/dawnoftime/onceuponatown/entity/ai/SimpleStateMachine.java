@@ -11,7 +11,6 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
 import org.dawnoftime.onceuponatown.Constants;
 import org.dawnoftime.onceuponatown.building.schematic.BuildSchematic;
 import org.dawnoftime.onceuponatown.building.schematic.JigsawConnector;
-import org.dawnoftime.onceuponatown.datapack.BuilderConfigDataHandler;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.network.NetworkHelper;
@@ -31,24 +30,17 @@ import java.util.UUID;
 
 public class SimpleStateMachine {
 
-    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(SimpleStateMachine.class);
-
     public enum State { IDLE, BUILD }
-
-    private int idleWaitTicks() { return BuilderConfigDataHandler.get().idleWaitTicks; }
-    private int openPhaseTicks(){ return BuilderConfigDataHandler.get().autonomousRoadIntervalTicks; }
 
     private final Npc npc;
     private State current = State.IDLE;
-    private int idleTimer = 0;
+    private int queueCursor = 0;
+    // Round-robin index for street CP selection (runtime-only, resets to 0 on server load).
+    private int streetCpCursor = 0;
     private BuildTask activeBuild = null;
     private int buildStateTicks = 0;
     // The player-queued entry currently being built, or null if not building from queue.
     private QueueEntry activeQueueEntry = null;
-    // Counts ticks in the open phase (no player queue) toward the configured autonomous road interval.
-    private int openPhaseTimer = 0;
-    // Round-robin index for street CP selection (runtime-only, resets to 0 on server load).
-    private int streetCpCursor = 0;
     // DefIds that have already received a suppressed skip message this session.
     // Cleared when the defId is placed or falls out of the queue.
     private final Set<String> warnedDefIds = new HashSet<>();
@@ -89,7 +81,7 @@ public class SimpleStateMachine {
 
     private void tickIdle() {
         // On each idle tick, check if Town has a saved build state for this builder's slot.
-        // Runs before the timer so the NPC resumes immediately on first tick after restart.
+        // Runs first so the NPC resumes immediately on the first tick after a world reload.
         if (npc.level() instanceof ServerLevel resumeLevel) {
             Town resumeTown = findTown(resumeLevel);
             if (resumeTown != null) {
@@ -116,46 +108,29 @@ public class SimpleStateMachine {
             }
         }
 
-        if (++idleTimer < idleWaitTicks()) return;
-        idleTimer = 0;
         if (!(npc.level() instanceof ServerLevel serverLevel)) return;
 
         Town town = findTown(serverLevel);
-        if (town == null) {
-            if (idleTimer == 1)
-                LOGGER.warn("[OUAT-NPC] {} cannot find its town. AnchorPos: {}",
-                    npc.getUUID(), npc.getTownAnchorPos());
-            return;
-        }
+        if (town == null) return;
+
+        if (town.getConstructionQueue().isEmpty()) return;
 
         List<ConnectionPoint> freePoints = town.getAvailableConnectionPoints();
-        if (freePoints.isEmpty()) {
-            return;
-        }
+        if (freePoints.isEmpty()) return;
 
         List<BoundingBox> occupied = town.getOccupiedBoxes();
-        List<ConnectionPoint> shuffledPoints = new ArrayList<>(freePoints);
 
-        // Only the primary builder (slot 0) expands streets autonomously.
+        // Only the primary builder (slot 0) expands streets as a fallback.
         boolean isPrimaryBuilder = town.getBuilderSlot(npc.getUUID()) == 0;
 
-        if (!town.getConstructionQueue().isEmpty()) {
-            openPhaseTimer = 0;
-            tickPlayerQueue(serverLevel, town, shuffledPoints, occupied);
-            // Primary builder also expands streets when the queue entry could not be placed this tick.
-            if (current == State.IDLE && isPrimaryBuilder) {
-                tickStreetsOnly(serverLevel, town, shuffledPoints, occupied);
-            }
-        } else {
-            // No player instructions: primary builder extends roads once per minute.
-            if (isPrimaryBuilder && (openPhaseTimer += idleWaitTicks()) >= openPhaseTicks()) {
-                openPhaseTimer = 0;
-                tickStreetsOnly(serverLevel, town, shuffledPoints, occupied);
-            }
+        tickPlayerQueue(serverLevel, town, freePoints, occupied);
+        if (current == State.IDLE && isPrimaryBuilder) {
+            tickStreetsOnly(serverLevel, town, freePoints, occupied);
         }
     }
 
-    // Player-directed queue: scans all entries each cycle, skipping claimed or unplaceable entries.
+    // Player-directed queue: advances a per-builder cursor rather than re-scanning from 0 each tick.
+    // Cursor advances on every skip; resets to 0 when the full queue has been walked.
     // CPs are never removed on failure -- only a successful placement consumes a CP.
     private void tickPlayerQueue(ServerLevel serverLevel, Town town,
                                   List<ConnectionPoint> freePoints, List<BoundingBox> occupied) {
@@ -163,7 +138,6 @@ public class SimpleStateMachine {
         if (queue.isEmpty()) return;
 
         UUID myId = npc.getUUID();
-        String townName = town.getName();
 
         // Clear warnedDefIds for any defId no longer present in the queue.
         Set<String> activeDefIds = new HashSet<>();
@@ -172,8 +146,11 @@ public class SimpleStateMachine {
         }
         warnedDefIds.retainAll(activeDefIds);
 
-        for (int i = 0; i < queue.size(); i++) {
-            if (town.isQueueEntryClaimedByOther(i, myId)) continue;
+        for (int i = queueCursor; i < queue.size(); i++) {
+            if (town.isQueueEntryClaimedByOther(i, myId)) {
+                queueCursor = i + 1;
+                continue;
+            }
 
             QueueEntry entry = queue.get(i);
 
@@ -206,11 +183,13 @@ public class SimpleStateMachine {
                 town.releaseQueueClaim(i, myId);
                 town.consumeQueueEntry(entry);
                 LevelTowns.get(serverLevel).markDirty();
+                queueCursor = i + 1;
                 continue;
             }
 
             if (!town.meetsPrerequisites(def)) {
                 warnedDefIds.add(defId);
+                queueCursor = i + 1;
                 continue;
             }
 
@@ -224,6 +203,7 @@ public class SimpleStateMachine {
 
             if (matchingCps.isEmpty()) {
                 warnedDefIds.add(defId);
+                queueCursor = i + 1;
                 continue;
             }
 
@@ -263,19 +243,22 @@ public class SimpleStateMachine {
             if (noConnector > 0 && bbOverlaps == 0) {
                 warnedDefIds.add(defId);
             }
+            queueCursor = i + 1;
         }
+
+        // Reached end of queue -- reset cursor so the next tick rescans from index 0.
+        queueCursor = 0;
     }
 
-    // Post-bootstrap idle phase: the primary builder places one street per cycle via round-robin CP selection.
-    // Non-street connection points are preserved for the player construction queue.
-    // CPs are never removed on failure.
+    // Extends the road network by one segment. Called only when the player queue has entries
+    // that cannot be placed yet (no matching CPs). Skips non-street CPs so they stay free
+    // for the queue. Uses round-robin CP selection to avoid always picking the same direction.
     private void tickStreetsOnly(ServerLevel serverLevel, Town town,
                                   List<ConnectionPoint> freePoints, List<BoundingBox> occupied) {
         List<BuildingDef> streetCandidates = new ArrayList<>(town.getBuildableBuildings().stream()
             .filter(d -> Constants.STREETS_POOL.equals(d.entryPool))
             .toList());
 
-        // Collect street CPs sorted by position for deterministic round-robin.
         List<ConnectionPoint> streetCps = new ArrayList<>();
         for (ConnectionPoint cp : freePoints) {
             if (Constants.STREETS_POOL.equals(cp.targetName())) streetCps.add(cp);
@@ -302,9 +285,9 @@ public class SimpleStateMachine {
                     candidate, chosen, s.pos(), s.rotation(), s.entryConnectorWorldPos(),
                     candidate.constructionCost, town));
                 if (s.bb() != null) town.addUnderConstruction(candidate.id, s.pos(), s.bb(), s.rotation());
-                int mySlotS = town.getBuilderSlot(npc.getUUID());
-                if (mySlotS >= 0) {
-                    town.setActiveBuild(mySlotS, new ActiveBuildState(
+                int mySlot = town.getBuilderSlot(npc.getUUID());
+                if (mySlot >= 0) {
+                    town.setActiveBuild(mySlot, new ActiveBuildState(
                         candidate.id, s.pos(), s.rotation(), chosen.pos(), chosen.direction(),
                         chosen.targetName(), s.entryConnectorWorldPos(), candidate.constructionCost, null));
                     LevelTowns.get(serverLevel).markDirty();
@@ -330,34 +313,49 @@ public class SimpleStateMachine {
             .toList();
         if (compatible.isEmpty()) return PlacementOutcome.fail(FailReason.NO_COMPATIBLE_CONNECTOR);
 
-        JigsawConnector chosen = compatible.get(npc.getRandom().nextInt(compatible.size()));
-        Rotation rotation = BuildSchematic.computeRequiredRotation(
-            chosen.facing(), point.direction().getOpposite());
-        BlockPos rawPos = BuildSchematic.computeCandidatePosition(
-            point.pos(), point.direction(), chosen.posInTemplate(), rotation);
+        // Shuffle and try every compatible connector. When multiple connectors share the same
+        // name (entry + extensions on road pieces), picking the wrong one rotates the piece so
+        // its body overlaps the building. The bounding-box check filters those out; the loop
+        // finds the connector whose orientation actually fits.
+        // Prefer terminator connectors (pool = empty) as the attachment point.
+        // Active connectors (non-empty pool) must stay free for village expansion.
+        List<JigsawConnector> entryConnectors = compatible.stream()
+            .filter(c -> c.pool().isEmpty() || c.pool().equals("minecraft:empty"))
+            .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+        List<JigsawConnector> shuffled = entryConnectors.isEmpty() ? new ArrayList<>(compatible) : entryConnectors;
+        shuffleInPlace(shuffled);
 
-        // Snap Y to actual terrain at the attach point so the entry jigsaw lands on real ground.
         BlockPos attachPoint = point.pos().relative(point.direction());
         int terrainY = BuildSchematic.findGroundY(serverLevel, attachPoint);
-        int finalY = terrainY - chosen.posInTemplate().getY();
-        BlockPos finalPos = new BlockPos(rawPos.getX(), finalY, rawPos.getZ());
 
-        Optional<BoundingBox> maybeBb = def.terrainMatching
-            ? BuildSchematic.computeFootprintBoundingBox(serverLevel, finalPos, def.nbt, rotation)
-            : BuildSchematic.computeBoundingBox(serverLevel, finalPos, def.nbt, rotation);
-        if (maybeBb.isPresent()) {
-            BoundingBox cb = maybeBb.get();
-            boolean overlaps = occupied.stream().anyMatch(bb ->
-                bb.minX() < cb.maxX() && bb.maxX() > cb.minX() &&
-                bb.minZ() < cb.maxZ() && bb.maxZ() > cb.minZ()
-            );
-            if (overlaps) return PlacementOutcome.fail(FailReason.BOUNDING_BOX_OVERLAP);
+        for (JigsawConnector chosen : shuffled) {
+            Rotation rotation = BuildSchematic.computeRequiredRotation(
+                chosen.facing(), point.direction().getOpposite());
+            BlockPos rawPos = BuildSchematic.computeCandidatePosition(
+                point.pos(), point.direction(), chosen.posInTemplate(), rotation);
+
+            int finalY = terrainY - chosen.posInTemplate().getY();
+            BlockPos finalPos = new BlockPos(rawPos.getX(), finalY, rawPos.getZ());
+
+            Optional<BoundingBox> maybeBb = def.terrainMatching
+                ? BuildSchematic.computeFootprintBoundingBox(serverLevel, finalPos, def.nbt, rotation)
+                : BuildSchematic.computeBoundingBox(serverLevel, finalPos, def.nbt, rotation);
+            if (maybeBb.isPresent()) {
+                BoundingBox cb = maybeBb.get();
+                boolean overlaps = occupied.stream().anyMatch(bb ->
+                    bb.minX() < cb.maxX() && bb.maxX() > cb.minX() &&
+                    bb.minZ() < cb.maxZ() && bb.maxZ() > cb.minZ()
+                );
+                if (overlaps) continue;
+            }
+
+            BlockPos entryConnectorWorldPos = finalPos.offset(
+                StructureTemplate.transform(chosen.posInTemplate(), Mirror.NONE, rotation, BlockPos.ZERO));
+
+            return PlacementOutcome.ok(finalPos, rotation, entryConnectorWorldPos, maybeBb.orElse(null));
         }
 
-        BlockPos entryConnectorWorldPos = finalPos.offset(
-            StructureTemplate.transform(chosen.posInTemplate(), Mirror.NONE, rotation, BlockPos.ZERO));
-
-        return PlacementOutcome.ok(finalPos, rotation, entryConnectorWorldPos, maybeBb.orElse(null));
+        return PlacementOutcome.fail(FailReason.BOUNDING_BOX_OVERLAP);
     }
 
     private <T> void shuffleInPlace(List<T> list) {

@@ -1,5 +1,9 @@
 {
   "order": [
+    "settlement",
+    "settlement_2",
+    "settlement_3",
+
     "lake",
 
     "wild_crops",
@@ -26,6 +30,7 @@
     "lumberjack",
 
     "workshop",
+    "oven",
 
     "merchant_shop",
 

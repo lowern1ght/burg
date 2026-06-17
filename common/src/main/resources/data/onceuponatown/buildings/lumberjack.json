@@ -10,59 +10,53 @@
   "construction_cost": [
     {
       "item": "minecraft:oak_log",
-      "amount": 25
+      "amount": 35
     }
   ],
   "production": [
     {
       "item": "minecraft:oak_log",
       "amount": 3,
-      "every_ticks": 1200,
-      "capacity_stacks": 4
+      "every_ticks": 1600,
+      "capacity_stacks": 2
     },
     {
       "item": "minecraft:oak_sapling",
       "amount": 1,
-      "every_ticks": 1200,
-      "capacity_stacks": 4
+      "every_ticks": 1800,
+      "capacity_stacks": 1
     },
     {
       "item": "minecraft:apple",
-      "amount": 2,
-      "every_ticks": 1200,
-      "capacity_stacks": 3
+      "amount": 1,
+      "every_ticks": 1800,
+      "capacity_stacks": 1
     },
     {
       "item": "minecraft:stick",
-      "amount": 2,
-      "every_ticks": 1200,
-      "capacity_stacks": 4
-    },
-    {
-      "item": "minecraft:oak_leaves",
-      "amount": 3,
-      "every_ticks": 1200,
-      "capacity_stacks": 3
+      "amount": 1,
+      "every_ticks": 1800,
+      "capacity_stacks": 1
     },
     {
       "item": "minecraft:oak_wood",
-      "amount": 2,
-      "every_ticks": 1200,
-      "capacity_stacks": 3,
+      "amount": 1,
+      "every_ticks": 2000,
+      "capacity_stacks": 1,
       "unlock_at_level": 1
     },
     {
       "item": "minecraft:stripped_oak_log",
-      "amount": 2,
-      "every_ticks": 1200,
-      "capacity_stacks": 3,
+      "amount": 1,
+      "every_ticks": 2000,
+      "capacity_stacks": 1,
       "unlock_at_level": 1
     },
     {
       "item": "minecraft:stripped_oak_wood",
-      "amount": 2,
-      "every_ticks": 1200,
-      "capacity_stacks": 3,
+      "amount": 1,
+      "every_ticks": 2000,
+      "capacity_stacks": 1,
       "unlock_at_level": 1
     }
   ],
