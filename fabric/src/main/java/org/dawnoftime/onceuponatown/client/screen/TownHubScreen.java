@@ -13,6 +13,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -26,12 +27,14 @@ import org.dawnoftime.onceuponatown.client.gui.widgets.MapDraggableWidget;
 import org.dawnoftime.onceuponatown.client.gui.widgets.NbtPreviewWidget;
 import org.dawnoftime.onceuponatown.client.gui.widgets.QuestDraggableWidget;
 import org.dawnoftime.onceuponatown.client.gui.widgets.TownSummaryWidget;
+import org.dawnoftime.onceuponatown.network.C2SBuyPacket;
 import org.dawnoftime.onceuponatown.network.NetworkHelper;
 import org.dawnoftime.onceuponatown.screen.TownHubMenu;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -121,6 +124,14 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
     private final Map<String, Integer> stockSnapshot = new HashMap<>();
     private final List<String> boostedBuildingIds = new ArrayList<>();
     private int catalogScrollOffset = 0;
+
+    // Trade tab state (stock tab, tab 0)
+    // false = SELL (player sends items to village), true = BUY (player buys from village)
+    private boolean buyMode = false;
+    // itemId -> {buy price, sell price} received from hub packet
+    private final Map<String, int[]> tradePrices = new HashMap<>();
+    // Client-side buy request: item -> requested count (BUY mode only, not backed by deposit container)
+    private final LinkedHashMap<Item, Integer> buyRequest = new LinkedHashMap<>();
 
     // Slot index of the queue entry the cursor is hovering over (-1 = none)
     private int hoveredQueueSlot = -1;
@@ -387,6 +398,15 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
         boostedBuildingIds.clear();
         hub.getList("BoostedBuildings", Tag.TAG_STRING).forEach(t -> boostedBuildingIds.add(t.getAsString()));
 
+        tradePrices.clear();
+        if (hub.contains("TradePrices")) {
+            CompoundTag pricesTag = hub.getCompound("TradePrices");
+            for (String itemId : pricesTag.getAllKeys()) {
+                CompoundTag priceEntry = pricesTag.getCompound(itemId);
+                tradePrices.put(itemId, new int[]{ priceEntry.getInt("buy"), priceEntry.getInt("sell") });
+            }
+        }
+
         upgradeBuildingsList.clear();
         hub.getList("UpgradeBuildings", Tag.TAG_COMPOUND).forEach(raw -> {
             CompoundTag ubt = (CompoundTag) raw;
@@ -573,6 +593,7 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
             renderBg(guiGraphics, partialTick, mouseX, mouseY);
         } else {
             super.render(guiGraphics, mouseX, mouseY, partialTick);
+            renderTradeZone(guiGraphics, mouseX, mouseY);
         }
         renderReopenButtons(guiGraphics, mouseX, mouseY);
         renderTabs(guiGraphics, mouseX, mouseY);
@@ -870,7 +891,7 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
         int btnX = leftPos + QUEUE_GRID_X + (AVAIL_COLS * CELL) - 2 - btnW;
         int btnY = topPos + 126;
         int btnH = 11;
-        boolean canConstruct = sel != null && !sel.nextEra() && isAffordable(sel) && meetsPrerequisites(sel);
+        boolean canConstruct = sel != null && !sel.nextEra() && !("town_center".equals(sel.category()) && sel.hasBuilt()) && isAffordable(sel) && meetsPrerequisites(sel);
         boolean btnHover = canConstruct && mx >= btnX && mx < btnX + btnW && my >= btnY && my < btnY + btnH;
         int btnColor = canConstruct ? (btnHover ? 0xFF55BB55 : 0xFF337733) : 0xFF444444;
         g.fill(btnX, btnY, btnX + btnW, btnY + btnH, btnColor);
@@ -1471,6 +1492,8 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
                     if (i == 0 && activeTab != 0) {
                         catalogScrollOffset = 0;
                         constructionPreview = null;
+                        buyMode = false;
+                        buyRequest.clear();
                         NetworkHelper.sendRequestStockPacket.accept(anchorPos);
                     } else if (i == 2 && activeTab != 2) {
                         constructionPreview = null;
@@ -1541,7 +1564,7 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
                 int btnY = topPos + 126;
                 if (mX >= btnX && mX < btnX + btnW && mY >= btnY && mY < btnY + 11) {
                     BuildingEntry sel = selectedCatalogBuildingId != null ? findCatalogEntry(selectedCatalogBuildingId) : null;
-                    if (sel != null && isAffordable(sel) && meetsPrerequisites(sel)) {
+                    if (sel != null && !("town_center".equals(sel.category()) && sel.hasBuilt()) && isAffordable(sel) && meetsPrerequisites(sel)) {
                         NetworkHelper.sendQueueBuildingPacket.accept(anchorPos, sel.id());
                     }
                     return true;
@@ -1551,13 +1574,96 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
             return true;
         }
 
-        // Send button on Stock tab: click the arrow already drawn in the texture
-        if (activeTab == 0 && button == 0) {
-            int sendBtnX = leftPos + 152;
-            int sendBtnY = topPos + 108;
-            if (mX >= sendBtnX && mX < sendBtnX + 18 && mY >= sendBtnY && mY < sendBtnY + 18) {
-                NetworkHelper.sendDepositPacket.accept(anchorPos);
-                return true;
+        if (activeTab == 0) {
+            // Toggle and confirm buttons: left click only
+            if (button == 0) {
+                int toggleX = leftPos + 151;
+                int toggleY = topPos + 107;
+                if (mX >= toggleX && mX < toggleX + 18 && mY >= toggleY && mY < toggleY + 18) {
+                    if (buyMode) {
+                        buyRequest.clear();
+                        buyMode = false;
+                    } else {
+                        returnDepositToPlayer();
+                        buyMode = true;
+                        buyRequest.clear();
+                    }
+                    return true;
+                }
+
+                int confirmX = leftPos + 151;
+                int confirmY = topPos + 89;
+                if (mX >= confirmX && mX < confirmX + 18 && mY >= confirmY && mY < confirmY + 18) {
+                    if (buyMode && !buyRequest.isEmpty()) {
+                        List<C2SBuyPacket.Entry> entries = new ArrayList<>();
+                        buyRequest.forEach((item, count) -> {
+                            String id = BuiltInRegistries.ITEM.getKey(item).toString();
+                            entries.add(new C2SBuyPacket.Entry(id, count));
+                        });
+                        NetworkHelper.sendBuyPacket.accept(anchorPos, entries);
+                        buyRequest.clear();
+                    } else if (!buyMode) {
+                        NetworkHelper.sendDepositPacket.accept(anchorPos);
+                    }
+                    return true;
+                }
+            }
+
+            // BUY mode: unified left/right/shift interactions on chest and blue zone
+            if (buyMode && (button == 0 || button == 1)) {
+                // Chest slots: add to buy request (capped at 64 per slot, overflow to next slot)
+                for (int i = 0; i < TownHubMenu.CHEST_SIZE; i++) {
+                    Slot slot = this.menu.slots.get(i);
+                    if (slot.hasItem() && isHoveringSlot(slot, mX, mY)) {
+                        ItemStack stack = slot.getItem();
+                        String itemId = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+                        if (tradePrices.containsKey(itemId)) {
+                            int displayed = stack.getCount();
+                            int inStock = stockSnapshot.getOrDefault(itemId, 0);
+                            int current = buyRequest.getOrDefault(stack.getItem(), 0);
+                            int add;
+                            if (button == 0 && hasShiftDown()) add = displayed;
+                            else if (button == 1)             add = Math.max(1, displayed / 2);
+                            else                              add = 1;
+                            // Each item may span several 64-unit slots; cap by available slots
+                            int slotsUsedByOthers = expandBuySlots().size() - (int)Math.ceil((double)current / 64);
+                            int maxSlots = Math.max(0, TownHubMenu.DEPOSIT_SLOTS - slotsUsedByOthers);
+                            int maxCount = Math.min(inStock, maxSlots * 64);
+                            int newCount = Math.min(current + add, maxCount);
+                            if (newCount > 0) buyRequest.put(stack.getItem(), newCount);
+                        }
+                        return true;
+                    }
+                }
+
+                // Blue zone: remove from buy request using the expanded slot view
+                int blueZoneX = leftPos + 8;
+                int blueZoneY = topPos + 90;
+                if (mX >= blueZoneX && mX < blueZoneX + TownHubMenu.DEPOSIT_SLOTS * 18
+                        && mY >= blueZoneY && mY < blueZoneY + 18) {
+                    int col = (int)(mX - blueZoneX) / 18;
+                    List<Map.Entry<Item, Integer>> slots = expandBuySlots();
+                    if (col < slots.size()) {
+                        Item item = slots.get(col).getKey();
+                        int slotCount = slots.get(col).getValue();
+                        int totalCurrent = buyRequest.get(item);
+                        int remove;
+                        if (button == 0 && hasShiftDown()) remove = totalCurrent;
+                        else if (button == 1)              remove = Math.max(1, slotCount / 2);
+                        else                               remove = 1;
+                        int newCount = totalCurrent - remove;
+                        if (newCount <= 0) buyRequest.remove(item);
+                        else buyRequest.put(item, newCount);
+                    }
+                    return true;
+                }
+
+                // Block vanilla slot behavior on deposit slots in BUY mode
+                int depositStart = TownHubMenu.CHEST_SIZE;
+                int depositEnd   = TownHubMenu.CHEST_SIZE + TownHubMenu.DEPOSIT_SLOTS;
+                for (int i = depositStart; i < depositEnd; i++) {
+                    if (isHoveringSlot(this.menu.slots.get(i), mX, mY)) return true;
+                }
             }
         }
 
@@ -1805,6 +1911,147 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
 
         String label = "ERA " + currentEra + "  " + currentWeight + "/" + maxWeight;
         g.drawString(font, label, barX + 3, barY + 1, 0xFFCCCCCC, false);
+    }
+
+    // Returns true if the mouse is hovering over the given slot (relative to leftPos/topPos).
+    private boolean isHoveringSlot(net.minecraft.world.inventory.Slot slot, double mx, double my) {
+        int sx = leftPos + slot.x;
+        int sy = topPos + slot.y;
+        return mx >= sx && mx < sx + 16 && my >= sy && my < sy + 16;
+    }
+
+    // Returns all items from the deposit container back to the player (called on SELL->BUY switch).
+    private void returnDepositToPlayer() {
+        var mc = net.minecraft.client.Minecraft.getInstance();
+        if (mc.player == null) return;
+        var deposit = this.menu.getDepositContainer();
+        for (int i = 0; i < deposit.getContainerSize(); i++) {
+            ItemStack stack = deposit.getItem(i);
+            if (!stack.isEmpty()) {
+                mc.player.addItem(stack.copy());
+                deposit.setItem(i, ItemStack.EMPTY);
+            }
+        }
+    }
+
+    // Renders the trade zone overlay on the stock tab:
+    // - Buy/sell mode toggle button at (151, 89)
+    // - Blue zone content overlay (BUY mode: staged buy request; SELL mode: actual deposit slots)
+    // - Emerald cost/reward overlay at Y=107
+    // - Confirm arrow at (151, 107)
+    private void renderTradeZone(GuiGraphics g, int mx, int my) {
+        int blueX = leftPos + 8;
+        int blueY = topPos + 90;
+        int greenY = topPos + 107;
+        int toggleX = leftPos + 151;
+        int toggleY = topPos + 89;
+        int confirmX = leftPos + 151;
+        int confirmY = topPos + 107;
+
+        // Directional arrow blitted from texture: UP (V=1) = sell, DOWN (V=21) = buy
+        int arrowV = buyMode ? 21 : 1;
+        g.blit(TEXTURE, toggleX, toggleY, 177, arrowV, 18, 18);
+        boolean arrowHover = mx >= toggleX && mx < toggleX + 18 && my >= toggleY && my < toggleY + 18;
+        if (arrowHover) g.fill(toggleX, toggleY, toggleX + 18, toggleY + 18, 0x30FFFFFF);
+
+        // BUY mode: render buy request split into stacks of 64 across the blue zone slots
+        if (buyMode) {
+            List<Map.Entry<Item, Integer>> slots = expandBuySlots();
+            for (int col = 0; col < TownHubMenu.DEPOSIT_SLOTS && col < slots.size(); col++) {
+                int sx = blueX + col * 18;
+                ItemStack stack = new ItemStack(slots.get(col).getKey(), slots.get(col).getValue());
+                g.renderFakeItem(stack, sx, blueY);
+                g.renderItemDecorations(font, stack, sx, blueY);
+            }
+        }
+
+        // Compute total emerald amount for overlay
+        int totalEmeralds = 0;
+        if (buyMode) {
+            for (Map.Entry<Item, Integer> e : buyRequest.entrySet()) {
+                String id = BuiltInRegistries.ITEM.getKey(e.getKey()).toString();
+                int[] prices = tradePrices.get(id);
+                if (prices != null) totalEmeralds += prices[0] * e.getValue();
+            }
+        } else {
+            // SELL mode: sum sell prices for items in deposit container
+            var deposit = this.menu.getDepositContainer();
+            for (int i = 0; i < deposit.getContainerSize(); i++) {
+                ItemStack stack = deposit.getItem(i);
+                if (stack.isEmpty()) continue;
+                String id = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+                int[] prices = tradePrices.get(id);
+                if (prices != null) totalEmeralds += prices[1] * stack.getCount();
+            }
+        }
+
+        // Green zone: ghost emerald stacks showing cost/reward
+        if (totalEmeralds > 0) {
+            int remaining = totalEmeralds;
+            int col = 0;
+            while (remaining > 0 && col < TownHubMenu.DEPOSIT_SLOTS) {
+                int stackSize = Math.min(remaining, 64);
+                ItemStack emeraldStack = new ItemStack(Items.EMERALD, stackSize);
+                int sx = blueX + col * 18;
+                g.pose().pushPose();
+                g.pose().translate(0, 0, 50);
+                // Semi-transparent ghost rendering
+                g.fill(sx, greenY, sx + 16, greenY + 16, 0x4400AA00);
+                g.renderFakeItem(emeraldStack, sx, greenY);
+                g.renderItemDecorations(font, emeraldStack, sx, greenY);
+                g.pose().popPose();
+                remaining -= stackSize;
+                col++;
+            }
+        }
+
+        // Mode toggle button (B = buy active / S = sell active) - always visible
+        boolean toggleBtnHover = mx >= confirmX && mx < confirmX + 18 && my >= confirmY && my < confirmY + 18;
+        g.fill(confirmX, confirmY, confirmX + 18, confirmY + 18, toggleBtnHover ? 0xFF555555 : 0xFF333333);
+        String modeLabel = buyMode ? "B" : "S";
+        g.drawCenteredString(font, modeLabel, confirmX + 9, confirmY + 5, 0xFFFFFFFF);
+    }
+
+    // Expands buyRequest into a list of (item, count<=64) pairs, one per visual blue-zone slot.
+    private List<Map.Entry<Item, Integer>> expandBuySlots() {
+        List<Map.Entry<Item, Integer>> result = new ArrayList<>();
+        for (Map.Entry<Item, Integer> entry : buyRequest.entrySet()) {
+            int remaining = entry.getValue();
+            while (remaining > 0) {
+                int batch = Math.min(remaining, 64);
+                result.add(Map.entry(entry.getKey(), batch));
+                remaining -= batch;
+            }
+        }
+        return result;
+    }
+
+    private boolean hasSellableItems() {
+        var deposit = this.menu.getDepositContainer();
+        for (int i = 0; i < deposit.getContainerSize(); i++) {
+            if (!deposit.getItem(i).isEmpty()) return true;
+        }
+        return false;
+    }
+
+    // 10x10 up-arrow pixel art for the trade zone buttons
+    private static void drawUpArrowSmall(GuiGraphics g, int bx, int by) {
+        int c = 0xFFCCCCCC;
+        g.fill(bx + 4, by,     bx + 6, by + 1, c);
+        g.fill(bx + 3, by + 1, bx + 7, by + 2, c);
+        g.fill(bx + 2, by + 2, bx + 8, by + 3, c);
+        g.fill(bx + 1, by + 3, bx + 9, by + 4, c);
+        g.fill(bx + 4, by + 4, bx + 6, by + 9, c);
+    }
+
+    // 10x10 down-arrow pixel art for the trade zone buttons
+    private static void drawDownArrowSmall(GuiGraphics g, int bx, int by) {
+        int c = 0xFFCCCCCC;
+        g.fill(bx + 4, by,     bx + 6, by + 5, c);
+        g.fill(bx + 1, by + 5, bx + 9, by + 6, c);
+        g.fill(bx + 2, by + 6, bx + 8, by + 7, c);
+        g.fill(bx + 3, by + 7, bx + 7, by + 8, c);
+        g.fill(bx + 4, by + 8, bx + 6, by + 9, c);
     }
 
     private void renderReopenButtons(GuiGraphics g, int mx, int my) {

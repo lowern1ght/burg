@@ -17,5 +17,6 @@
     { "defId": "workshop", "count": 1 }
 
   ],
-  "unlocked_building_ids": ["sheep_field", "lumberjack", "stone_breach", "wild_spot"]
+  "unlocked_building_ids": ["sheep_field", "lumberjack", "stone_breach", "wild_spot"],
+  "auto_upgrade_ids": ["settlement"]
 }

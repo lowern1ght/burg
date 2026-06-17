@@ -32,7 +32,7 @@
                 "element_type": "minecraft:single_pool_element",
                 "processors": "minecraft:empty",
                 "projection": "rigid",
-                "location": "onceuponatown:plains/jobs/fishing_pond"
+                "location": "onceuponatown:plains/jobs/lake"
             }
         },
         {
@@ -41,7 +41,7 @@
                 "element_type": "minecraft:single_pool_element",
                 "processors": "minecraft:empty",
                 "projection": "rigid",
-                "location": "onceuponatown:plains/jobs/mixed_wild_field"
+                "location": "onceuponatown:plains/jobs/wild_crops"
             }
         },
         {
@@ -50,7 +50,7 @@
                 "element_type": "minecraft:single_pool_element",
                 "processors": "minecraft:empty",
                 "projection": "rigid",
-                "location": "onceuponatown:plains/jobs/bee_tree"
+                "location": "onceuponatown:plains/jobs/wild_bee"
             }
         }
     ]

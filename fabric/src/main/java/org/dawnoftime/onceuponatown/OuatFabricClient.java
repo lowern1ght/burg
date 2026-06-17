@@ -17,6 +17,7 @@ import org.dawnoftime.onceuponatown.client.model.NpcModel;
 import org.dawnoftime.onceuponatown.client.renderer.NpcRenderer;
 import org.dawnoftime.onceuponatown.client.screen.TownHubScreen;
 import org.dawnoftime.onceuponatown.network.C2SAdvanceEraPacket;
+import org.dawnoftime.onceuponatown.network.C2SBuyPacket;
 import org.dawnoftime.onceuponatown.network.C2SClaimQuestPacket;
 import org.dawnoftime.onceuponatown.network.C2SDepositPacket;
 import org.dawnoftime.onceuponatown.network.C2SQueueBuildingPacket;
@@ -116,6 +117,11 @@ public class OuatFabricClient implements ClientModInitializer {
             var buf = PacketByteBufs.create();
             new C2SClaimQuestPacket(pos, questId).encode(buf);
             ClientPlayNetworking.send(C2SClaimQuestPacket.ID, buf);
+        };
+        NetworkHelper.sendBuyPacket = (pos, items) -> {
+            var buf = PacketByteBufs.create();
+            new C2SBuyPacket(pos, items).encode(buf);
+            ClientPlayNetworking.send(C2SBuyPacket.ID, buf);
         };
     }
 }

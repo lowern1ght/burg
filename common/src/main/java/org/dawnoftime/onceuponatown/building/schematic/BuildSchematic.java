@@ -456,6 +456,32 @@ public class BuildSchematic {
         return readJigsawPoints(level, origin, defId, pieceRotation, BlockPos.ZERO.below(9999));
     }
 
+    // Variant for initial village scan: includes terminator connectors (pool = empty).
+    // The mixin uses Pass-2 adjacency filtering as the real free/consumed test.
+    // Including terminators here allows the scan to recover free entry connectors on pieces
+    // that vanilla placed backwards (exit consumed instead of entry).
+    public static List<ConnectionPoint> readJigsawPointsAll(ServerLevel level, BlockPos bbMinPos,
+                                                             String defId, Rotation pieceRotation) {
+        BuildingDef def = BuildingDataHandler.get(defId).orElse(null);
+        if (def == null) return List.of();
+        Optional<StructureTemplate> tpl = level.getStructureManager().get(def.nbt);
+        if (tpl.isEmpty()) return List.of();
+        BlockPos origin = originFromBbMin(bbMinPos, tpl.get().getSize(), pieceRotation);
+
+        List<ConnectionPoint> points = new ArrayList<>();
+        for (StructureTemplate.StructureBlockInfo info :
+                tpl.get().filterBlocks(BlockPos.ZERO, new StructurePlaceSettings(), Blocks.JIGSAW)) {
+            if (info.nbt() == null) continue;
+            BlockPos rotatedRel = StructureTemplate.transform(info.pos(), Mirror.NONE, pieceRotation, BlockPos.ZERO);
+            BlockPos worldPos = origin.offset(rotatedRel);
+            Direction rawDir = info.state().getValue(JigsawBlock.ORIENTATION).front();
+            Direction rotatedDir = pieceRotation.rotate(rawDir);
+            String target = info.nbt().getString("target");
+            points.add(new ConnectionPoint(worldPos, rotatedDir, target));
+        }
+        return points;
+    }
+
     // Reads jigsaw blocks from a placed template to extract new ConnectionPoints in world coords.
     // Skips the entry jigsaw (at usedConnectorWorldPos) and terminators (pool = empty or minecraft:empty).
     public static List<ConnectionPoint> readJigsawPoints(ServerLevel level, BlockPos originPos,

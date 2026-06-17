@@ -14,6 +14,7 @@ import org.dawnoftime.onceuponatown.datapack.BuildingListDataHandler;
 import org.dawnoftime.onceuponatown.datapack.EraTransitionDataHandler;
 import org.dawnoftime.onceuponatown.datapack.EraTransitionDef;
 import org.dawnoftime.onceuponatown.datapack.QuestDataHandler;
+import org.dawnoftime.onceuponatown.datapack.TradePriceDataHandler;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -69,9 +70,18 @@ public class TownHubDataBuilder {
         }
         nextEraIds.removeAll(town.getUnlockedBuildingIds());
         List<BuildingDef> sortedDefs = BuildingDataHandler.getAll().stream()
-            .filter(def -> !def.terrainMatching && !def.id.startsWith("settlement"))
-            .filter(def -> !gatedIds.contains(def.id) || town.getUnlockedBuildingIds().contains(def.id) || nextEraIds.contains(def.id))
-            .sorted(Comparator.<BuildingDef, Boolean>comparing(def -> nextEraIds.contains(def.id))
+            .filter(def -> {
+                if (def.terrainMatching) return false;
+                if ("town_center".equals(def.category)) {
+                    return town.getBuildings().stream().anyMatch(b -> b.defId.equals(def.id));
+                }
+                return !gatedIds.contains(def.id)
+                    || town.getUnlockedBuildingIds().contains(def.id)
+                    || nextEraIds.contains(def.id);
+            })
+            .sorted(Comparator.<BuildingDef, Boolean>comparing(def -> "town_center".equals(def.category))
+                .reversed()
+                .thenComparing(def -> nextEraIds.contains(def.id))
                 .thenComparingInt(def -> BuildingListDataHandler.getIndex(def.id)))
             .toList();
         ListTag catalogTag = new ListTag();
@@ -80,6 +90,7 @@ public class TownHubDataBuilder {
         }
         hub.put("BuildingCatalog", catalogTag);
         hub.put("StockSnapshot", buildStockSnapshotTag(inv));
+        hub.put("TradePrices", TradePriceDataHandler.buildPricesTag());
         hub.put("UpgradeBuildings", buildUpgradeBuildingsTag());
 
         CompoundTag summaryData = new CompoundTag();
@@ -384,7 +395,7 @@ public class TownHubDataBuilder {
         List<PlacedBuilding> upgradeBuildings = town.getBuildings().stream()
             .filter(b -> {
                 BuildingDef bDef = BuildingDataHandler.get(b.defId).orElse(null);
-                return bDef != null && !bDef.terrainMatching && !b.defId.startsWith("settlement") && !bDef.upgrades.isEmpty();
+                return bDef != null && !bDef.terrainMatching && !bDef.upgrades.isEmpty();
             })
             .sorted((a, b2) -> {
                 BuildingDef da = BuildingDataHandler.get(a.defId).orElse(null);

@@ -23,18 +23,15 @@ import java.util.Set;
 
 public class TownHubMenu extends AbstractContainerMenu {
 
-    static final int ROWS = 5;
-    static final int COLS = 9;
-    static final int CHEST_SIZE = ROWS * COLS;
-    static final int DEPOSIT_SLOTS = 8;
+    public static final int ROWS = 4;
+    public static final int COLS = 9;
+    public static final int CHEST_SIZE = ROWS * COLS;   // 36
+    public static final int DEPOSIT_SLOTS = 8;
 
     private final SimpleContainer chestContainer;
-    // Separate container for the 8 deposit slots (indices 90-97 in the menu)
     private final SimpleContainer depositContainer;
-    // Anchor block position used server-side to identify which town this menu belongs to.
     private final BlockPos anchorPos;
 
-    // Called by MenuType factory on the client
     public TownHubMenu(int syncId, Inventory playerInventory) {
         super(MenuRegistry.TOWN_HUB, syncId);
         this.chestContainer = new SimpleContainer(CHEST_SIZE);
@@ -43,7 +40,6 @@ public class TownHubMenu extends AbstractContainerMenu {
         addSlots(playerInventory);
     }
 
-    // Called server-side when the player opens the anchor block
     public TownHubMenu(int syncId, Inventory playerInventory, Town town, BlockPos anchorPos) {
         super(MenuRegistry.TOWN_HUB, syncId);
         this.chestContainer = buildContainer(town);
@@ -54,8 +50,6 @@ public class TownHubMenu extends AbstractContainerMenu {
 
     public BlockPos getAnchorPos() { return anchorPos; }
 
-    // Rebuilds chest display slots from a stock snapshot tag {itemId -> count}.
-    // Called client-side by applyStockUpdate so the visual display stays in sync.
     public void rebuildFromStock(CompoundTag stockTag) {
         int slot = 0;
         for (String itemId : stockTag.getAllKeys()) {
@@ -72,7 +66,6 @@ public class TownHubMenu extends AbstractContainerMenu {
                 count -= stackCount;
             }
         }
-        // Clear any leftover slots from the previous state
         while (slot < CHEST_SIZE) {
             chestContainer.setItem(slot++, ItemStack.EMPTY);
         }
@@ -85,38 +78,34 @@ public class TownHubMenu extends AbstractContainerMenu {
     private void addSlots(Inventory playerInventory) {
         checkContainerSize(chestContainer, CHEST_SIZE);
 
-        // Village chest slots (0-53): read-only display, no player interaction
+        // Village chest slots (0-35): 4 rows, read-only display
         for (int row = 0; row < ROWS; row++) {
             for (int col = 0; col < COLS; col++) {
                 addSlot(new Slot(chestContainer, row * COLS + col, 8 + col * 18, 18 + row * 18) {
-                    @Override
-                    public boolean mayPlace(ItemStack stack) { return false; }
-                    @Override
-                    public boolean mayPickup(Player player) { return false; }
+                    @Override public boolean mayPlace(ItemStack stack) { return false; }
+                    @Override public boolean mayPickup(Player player) { return false; }
                 });
             }
         }
 
-        // Player inventory (54-80)
+        // Blue exchange zone (36-43): 8 slots at Y=90
+        for (int col = 0; col < DEPOSIT_SLOTS; col++) {
+            addSlot(new Slot(depositContainer, col, 8 + col * 18, 90));
+        }
+
+        // Player inventory (44-70)
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
-                addSlot(new Slot(playerInventory, col + row * 9 + 9,
-                    8 + col * 18, 140 + row * 18));
+                addSlot(new Slot(playerInventory, col + row * 9 + 9, 8 + col * 18, 140 + row * 18));
             }
         }
 
-        // Hotbar (81-89)
+        // Hotbar (71-79)
         for (int col = 0; col < 9; col++) {
             addSlot(new Slot(playerInventory, col, 8 + col * 18, 198));
         }
-
-        // Deposit slots: 8 green slots aligned with texture row at Y=108
-        for (int col = 0; col < DEPOSIT_SLOTS; col++) {
-            addSlot(new Slot(depositContainer, col, 8 + col * 18, 108));
-        }
     }
 
-    // Fills the container with village stock, multiple stacks per item if needed
     private static SimpleContainer buildContainer(Town town) {
         SimpleContainer container = new SimpleContainer(CHEST_SIZE);
         TownInventory inv = town.getTownInventory();
@@ -146,7 +135,7 @@ public class TownHubMenu extends AbstractContainerMenu {
     @Override
     public void removed(Player player) {
         super.removed(player);
-        // Return any items left in deposit slots to the player (same behavior as crafting table grid).
+        // Return any items left in deposit slots to the player
         for (int i = 0; i < depositContainer.getContainerSize(); i++) {
             ItemStack stack = depositContainer.getItem(i);
             if (!stack.isEmpty()) {
@@ -170,22 +159,22 @@ public class TownHubMenu extends AbstractContainerMenu {
         ItemStack stack = slot.getItem();
         result = stack.copy();
 
-        int playerStart = CHEST_SIZE;             // 54
-        int playerEnd   = CHEST_SIZE + 36;        // 90
-        int depositStart = playerEnd;             // 90
-        int depositEnd   = playerEnd + DEPOSIT_SLOTS; // 98
+        // Slot boundaries: chest 0-35, deposit 36-43, player 44-79
+        int depositStart = CHEST_SIZE;                            // 36
+        int depositEnd   = CHEST_SIZE + DEPOSIT_SLOTS;            // 44
+        int playerStart  = depositEnd;                            // 44
+        int playerEnd    = depositEnd + 36;                       // 80
 
         if (slotIndex < CHEST_SIZE) {
-            // Chest slots are read-only, cannot shift-click out
-            return ItemStack.EMPTY;
-        } else if (slotIndex < playerEnd) {
-            // Player inv/hotbar -> deposit slots only (never into chest)
-            if (!this.moveItemStackTo(stack, depositStart, depositEnd, false)) {
+            return ItemStack.EMPTY; // chest is read-only
+        } else if (slotIndex < depositEnd) {
+            // Deposit -> player inventory
+            if (!this.moveItemStackTo(stack, playerStart, playerEnd, true)) {
                 return ItemStack.EMPTY;
             }
         } else {
-            // Deposit slots -> player inventory
-            if (!this.moveItemStackTo(stack, playerStart, playerEnd, true)) {
+            // Player inv/hotbar -> deposit slots only (never into chest)
+            if (!this.moveItemStackTo(stack, depositStart, depositEnd, false)) {
                 return ItemStack.EMPTY;
             }
         }
@@ -195,5 +184,4 @@ public class TownHubMenu extends AbstractContainerMenu {
 
         return result;
     }
-
 }

@@ -8,8 +8,10 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.blockentity.TownAnchorBlockEntity;
+import org.dawnoftime.onceuponatown.datapack.TradePriceDataHandler;
 import org.dawnoftime.onceuponatown.screen.TownHubMenu;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.Town;
@@ -41,6 +43,7 @@ public record C2SDepositPacket(BlockPos anchorPos) {
             SimpleContainer deposit = menu.getDepositContainer();
 
             boolean changed = false;
+            int totalEmeralds = 0;
             for (int i = 0; i < deposit.getContainerSize(); i++) {
                 ItemStack stack = deposit.getItem(i);
                 if (stack.isEmpty()) continue;
@@ -49,7 +52,12 @@ public record C2SDepositPacket(BlockPos anchorPos) {
                 if (!acceptedWithQuests.contains(item)) continue;
 
                 changed = true;
-                int remaining = stack.getCount();
+                int count = stack.getCount();
+                int remaining = count;
+
+                // Accumulate emerald reward for each accepted item
+                int sellPrice = TradePriceDataHandler.getSellPrice(item);
+                if (sellPrice > 0) totalEmeralds += sellPrice * count;
 
                 // Step 1: consume units needed by active DELIVERY quests
                 remaining -= town.applyToDeliveryQuests(item, remaining);
@@ -64,6 +72,15 @@ public record C2SDepositPacket(BlockPos anchorPos) {
             }
 
             if (changed) {
+                // Pay out emeralds in stacks of 64 so inventory handles it correctly
+                int emeraldsLeft = totalEmeralds;
+                while (emeraldsLeft > 0) {
+                    int batch = Math.min(emeraldsLeft, 64);
+                    ItemStack reward = new ItemStack(Items.EMERALD, batch);
+                    if (!player.getInventory().add(reward)) player.drop(reward, false);
+                    emeraldsLeft -= batch;
+                }
+
                 LevelTowns.get(level).markDirty();
                 NetworkHelper.sendStockUpdatePacket.accept(player, town.getStockUpdateData(packet.anchorPos()));
             }

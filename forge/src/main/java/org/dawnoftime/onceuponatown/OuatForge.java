@@ -40,8 +40,10 @@ import org.dawnoftime.onceuponatown.datapack.EraTransitionDataHandler;
 import org.dawnoftime.onceuponatown.datapack.FoodListDataHandler;
 import org.dawnoftime.onceuponatown.datapack.QuestConfigDataHandler;
 import org.dawnoftime.onceuponatown.datapack.QuestDataHandler;
+import org.dawnoftime.onceuponatown.datapack.TradePriceDataHandler;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.network.C2SAdvanceEraPacket;
+import org.dawnoftime.onceuponatown.network.C2SBuyPacket;
 import org.dawnoftime.onceuponatown.network.C2SClaimQuestPacket;
 import org.dawnoftime.onceuponatown.network.C2SDepositPacket;
 import org.dawnoftime.onceuponatown.network.C2SQueueBuildingPacket;
@@ -304,6 +306,18 @@ public class OuatForge {
             Optional.of(NetworkDirection.PLAY_TO_SERVER)
         );
 
+        CHANNEL.registerMessage(15,
+            C2SBuyPacket.class,
+            C2SBuyPacket::encode,
+            C2SBuyPacket::decode,
+            (msg, ctx) -> {
+                ctx.get().enqueueWork(() ->
+                    C2SBuyPacket.Handler.handle(msg, ctx.get().getSender()));
+                ctx.get().setPacketHandled(true);
+            },
+            Optional.of(NetworkDirection.PLAY_TO_SERVER)
+        );
+
         NetworkHelper.sendTownHubPacket = (player, data) ->
             CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CTownHubPacket(data));
 
@@ -329,6 +343,12 @@ public class OuatForge {
             CHANNEL.sendToServer(new C2SRequestStockPacket(pos));
     }
 
+    // Called from OuatForgeClient to wire the buy packet sender
+    static void wireBuyPacket() {
+        NetworkHelper.sendBuyPacket = (pos, items) ->
+            CHANNEL.sendToServer(new C2SBuyPacket(pos, items));
+    }
+
     @SuppressWarnings("unchecked")
     private void onEntityAttributes(EntityAttributeCreationEvent event) {
         event.put((EntityType<Npc>) NPC_OBJ.get(), Npc.createAttributes().build());
@@ -346,6 +366,7 @@ public class OuatForge {
         EraTransitionDataHandler.reload(event.getServer());
         FoodListDataHandler.reload(event.getServer());
         QuestDataHandler.reload(event.getServer());
+        TradePriceDataHandler.reload(event.getServer());
     }
 
     private void onServerTick(TickEvent.ServerTickEvent event) {

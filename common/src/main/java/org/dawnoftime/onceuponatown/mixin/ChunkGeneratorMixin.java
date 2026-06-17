@@ -124,7 +124,7 @@ public class ChunkGeneratorMixin {
                         BuildingDef def = BuildingDataHandler.get(defId).get();
                         BlockPos origin = BuildSchematic.computeOriginFromBbMin(serverLevel, bbMin, def.nbt, rotation);
                         List<ConnectionPoint> allPoints =
-                            BuildSchematic.readJigsawPoints(serverLevel, bbMin, defId, rotation);
+                            BuildSchematic.readJigsawPointsAll(serverLevel, bbMin, defId, rotation);
                         entries.add(new PieceEntry(origin, defId, pieceBb, allPoints, rotation));
                         BuildSchematic.readAllJigsawPositions(serverLevel, bbMin, defId, rotation)
                             .forEach(allJigsawPositions::add);

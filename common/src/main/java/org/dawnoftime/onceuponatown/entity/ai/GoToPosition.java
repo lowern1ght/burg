@@ -11,7 +11,6 @@ public class GoToPosition {
     private BlockPos target;
     private final double speed;
     private final double arrivalRadius;
-    private int ticksSinceNavRefresh = 0;
     private int totalTicks = 0;
 
     public GoToPosition(Npc npc, BlockPos target, double speed, double arrivalRadius) {
@@ -22,10 +21,9 @@ public class GoToPosition {
         npc.getNavigation().moveTo(target.getX() + 0.5, target.getY(), target.getZ() + 0.5, speed);
     }
 
-    // Redirect navigation to a new block target. Resets the nav refresh counter.
+    // Redirect navigation to a new block target.
     public void updateTarget(BlockPos newTarget) {
         this.target = newTarget;
-        this.ticksSinceNavRefresh = 0;
         npc.getNavigation().moveTo(newTarget.getX() + 0.5, newTarget.getY(), newTarget.getZ() + 0.5, speed);
     }
 
@@ -37,9 +35,9 @@ public class GoToPosition {
             npc.getNavigation().stop();
             return true;
         }
-        // Re-issue moveTo every second so stroll goals cannot permanently override the build target.
-        if (++ticksSinceNavRefresh >= BuilderConfigDataHandler.get().pathRefreshIntervalTicks) {
-            ticksSinceNavRefresh = 0;
+        // Re-issue moveTo only when the path was actually cancelled (stroll goal interference).
+        // Avoids the stutter caused by interrupting an already-valid path every fixed interval.
+        if (npc.getNavigation().isDone()) {
             npc.getNavigation().moveTo(target.getX() + 0.5, target.getY(), target.getZ() + 0.5, speed);
         }
         return false;

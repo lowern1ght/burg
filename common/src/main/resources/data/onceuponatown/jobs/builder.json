@@ -1,6 +1,4 @@
 {
-  "idle_wait_ticks": 200,
-  "autonomous_road_interval_ticks": 1200,
   "walk_speed": 0.6,
   "block_reach_distance": 6.0,
   "block_delay_ticks": 4,
