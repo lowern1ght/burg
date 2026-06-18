@@ -1,20 +1,28 @@
 package org.dawnoftime.onceuponatown.client.gui.widgets;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class QuestDraggableWidget extends DraggableWidget {
 
     public static final int WIDGET_W = 170;
-    private static final int COND_H  = 10;
+    private static final int COND_H  = 20;
     private static final int BTN_H   = 12;
     private static final int PAD     = 3;
+    private static final int SLOT_SIZE = 16;
 
     private final String questId;
     private String questType = "TASK";
@@ -22,13 +30,30 @@ public class QuestDraggableWidget extends DraggableWidget {
     private String descKey;
     private final List<ClientCondition> conditions = new ArrayList<>();
     private final Consumer<String> onClaim;
+    // (conditionIndex, requestedAmount)
+    private BiConsumer<Integer, Integer> onDeliver = (condIdx, amount) -> {};
 
     // Updated by recomputeHeight(); used by both renderContent and contentMouseClicked
     private int claimBtnY = 0;
+    // Per-condition slot Y positions (absolute screen coords), updated each frame
+    private final List<Integer> condSlotYs = new ArrayList<>();
 
     private Runnable moveCallback;
 
-    private record ClientCondition(String type, String itemId, int required, int received) {}
+    private record ClientCondition(String type, String itemId, int required, int received) {
+        boolean isMet() {
+            if ("DELIVERY".equals(type)) return received >= required;
+            return true;
+        }
+        int remaining() { return Math.max(0, required - received); }
+        ItemStack asStack() {
+            if (itemId == null || itemId.isEmpty()) return ItemStack.EMPTY;
+            ResourceLocation rl = ResourceLocation.tryParse(itemId);
+            if (rl == null) return ItemStack.EMPTY;
+            var item = BuiltInRegistries.ITEM.get(rl);
+            return item == Items.AIR ? ItemStack.EMPTY : new ItemStack(item);
+        }
+    }
 
     public QuestDraggableWidget(CompoundTag tag, Consumer<String> onClaim, int x, int y,
                                 int freeZoneMaxX, int screenHeight) {
@@ -51,6 +76,9 @@ public class QuestDraggableWidget extends DraggableWidget {
 
     public void setMoveCallback(Runnable cb) { this.moveCallback = cb; }
 
+    // (conditionIndex, requestedAmount) -> send to server
+    public void setDeliveryCallback(BiConsumer<Integer, Integer> cb) { this.onDeliver = cb; }
+
     @Override
     protected void onMoved() {
         if (moveCallback != null) moveCallback.run();
@@ -63,7 +91,7 @@ public class QuestDraggableWidget extends DraggableWidget {
     }
 
     // -------------------------------------------------------------------------
-    // Dynamic height: computed from actual font line wrapping
+    // Dynamic height
     // -------------------------------------------------------------------------
 
     private void recomputeHeight() {
@@ -112,7 +140,6 @@ public class QuestDraggableWidget extends DraggableWidget {
         var font = Minecraft.getInstance().font;
         int lineY = cy + PAD;
 
-        // Description: all wrapped lines
         var descLines = font.split(Component.translatable(descKey), cw - 6);
         for (var line : descLines) {
             g.drawString(font, line, cx + 3, lineY, textColor, false);
@@ -122,24 +149,66 @@ public class QuestDraggableWidget extends DraggableWidget {
 
         if (isNote) return;
 
-        // Condition rows (TASK type only)
+        // Condition rows
         boolean allMet = true;
-        for (ClientCondition cond : conditions) {
-            boolean met = "DELIVERY".equals(cond.type()) && cond.received() >= cond.required();
+        condSlotYs.clear();
+        for (int i = 0; i < conditions.size(); i++) {
+            ClientCondition cond = conditions.get(i);
+            boolean met = cond.isMet();
             if (!met) allMet = false;
-            int color = met ? 0xFF55FF55 : 0xFFAAAAAA;
-            String check = met ? "[x]" : "[ ]";
-            String itemName = cond.itemId().contains(":")
-                ? cond.itemId().substring(cond.itemId().indexOf(':') + 1)
-                : cond.itemId();
-            g.drawString(font,
-                check + " " + formatId(itemName) + " (" + cond.received() + "/" + cond.required() + ")",
-                cx + 3, lineY, color, false);
+
+            int slotX = cx + 3;
+            int slotY = lineY + 2;
+            condSlotYs.add(slotY);
+
+            if ("DELIVERY".equals(cond.type())) {
+                // Slot border
+                int slotBorderColor = met ? 0xFF335533 : 0xFF555555;
+                g.fill(slotX - 1, slotY - 1, slotX + SLOT_SIZE + 1, slotY + SLOT_SIZE + 1, slotBorderColor);
+                int slotBg = met ? 0xFF1A331A : 0xFF1A1A1A;
+                g.fill(slotX, slotY, slotX + SLOT_SIZE, slotY + SLOT_SIZE, slotBg);
+
+                // Slot hover highlight
+                if (!met && mx >= slotX && mx < slotX + SLOT_SIZE && my >= slotY && my < slotY + SLOT_SIZE) {
+                    g.fill(slotX, slotY, slotX + SLOT_SIZE, slotY + SLOT_SIZE, 0x40FFFFFF);
+                }
+
+                // Item icon
+                ItemStack stack = cond.asStack();
+                if (!stack.isEmpty()) {
+                    if (met) {
+                        g.renderFakeItem(stack, slotX, slotY);
+                        g.fill(slotX, slotY, slotX + SLOT_SIZE, slotY + SLOT_SIZE, 0x88000000);
+                    } else {
+                        RenderSystem.enableBlend();
+                        RenderSystem.setShaderColor(1f, 1f, 1f, 0.5f);
+                        g.renderFakeItem(stack, slotX, slotY);
+                        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+                        RenderSystem.disableBlend();
+                    }
+                }
+
+                // Progress text and item name to the right of the slot
+                String itemName = formatId(cond.itemId().contains(":")
+                    ? cond.itemId().substring(cond.itemId().indexOf(':') + 1)
+                    : cond.itemId());
+                int color = met ? 0xFF55FF55 : 0xFFAAAAAA;
+                g.drawString(font, itemName, cx + 3 + SLOT_SIZE + 3, slotY, color, false);
+                g.drawString(font,
+                    cond.received() + " / " + cond.required(),
+                    cx + 3 + SLOT_SIZE + 3, slotY + 9, color, false);
+            } else {
+                // Non-DELIVERY condition: simple text row
+                condSlotYs.set(condSlotYs.size() - 1, -1);
+                int color = met ? 0xFF55FF55 : 0xFFAAAAAA;
+                String check = met ? "[x]" : "[ ]";
+                g.drawString(font, check + " " + cond.type(), cx + 3, lineY + 6, color, false);
+            }
+
             lineY += COND_H;
         }
         lineY += PAD;
 
-        // Keep claimBtnY in sync with the rendered position
         claimBtnY = lineY;
 
         // CLAIM button
@@ -157,10 +226,47 @@ public class QuestDraggableWidget extends DraggableWidget {
     @Override
     protected boolean contentMouseClicked(double mx, double my, int button) {
         if (button != 0) return isMouseOver(mx, my);
+
+        // Check delivery slot clicks
+        for (int i = 0; i < conditions.size() && i < condSlotYs.size(); i++) {
+            int slotY = condSlotYs.get(i);
+            if (slotY < 0) continue;
+            ClientCondition cond = conditions.get(i);
+            if (!"DELIVERY".equals(cond.type()) || cond.isMet()) continue;
+
+            int slotX = x + 3;
+            boolean inSlot = mx >= slotX && mx < slotX + SLOT_SIZE
+                          && my >= slotY && my < slotY + SLOT_SIZE;
+            if (!inSlot) continue;
+
+            var mc = Minecraft.getInstance();
+            if (mc.player == null) return true;
+
+            int remaining = cond.remaining();
+            if (remaining <= 0) return true;
+
+            if (Screen.hasShiftDown()) {
+                // Shift-click: take all needed from inventory + cursor
+                onDeliver.accept(i, remaining);
+            } else {
+                // Left-click: take from cursor if item matches
+                ItemStack carried = mc.player.containerMenu.getCarried();
+                ResourceLocation condItemRl = ResourceLocation.tryParse(cond.itemId());
+                if (!carried.isEmpty() && condItemRl != null) {
+                    var expectedItem = BuiltInRegistries.ITEM.get(condItemRl);
+                    if (expectedItem != Items.AIR && carried.getItem() == expectedItem) {
+                        int toSend = Math.min(carried.getCount(), remaining);
+                        onDeliver.accept(i, toSend);
+                    }
+                }
+            }
+            return true;
+        }
+
+        // CLAIM button
         int btnW = width - 6;
         if (mx >= x + 3 && mx < x + 3 + btnW && my >= claimBtnY && my < claimBtnY + BTN_H) {
-            boolean allMet = conditions.stream().allMatch(
-                c -> "DELIVERY".equals(c.type()) && c.received() >= c.required());
+            boolean allMet = conditions.stream().allMatch(ClientCondition::isMet);
             if (allMet) onClaim.accept(questId);
             return true;
         }

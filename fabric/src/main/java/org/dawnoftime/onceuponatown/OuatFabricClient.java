@@ -20,6 +20,7 @@ import org.dawnoftime.onceuponatown.network.C2SAdvanceEraPacket;
 import org.dawnoftime.onceuponatown.network.C2SBuyPacket;
 import org.dawnoftime.onceuponatown.network.C2SClaimQuestPacket;
 import org.dawnoftime.onceuponatown.network.C2SDepositPacket;
+import org.dawnoftime.onceuponatown.network.C2SQuestDeliverPacket;
 import org.dawnoftime.onceuponatown.network.C2SQueueBuildingPacket;
 import org.dawnoftime.onceuponatown.network.C2SRemoveQueuedBuildingPacket;
 import org.dawnoftime.onceuponatown.network.C2SRequestStockPacket;
@@ -28,6 +29,7 @@ import org.dawnoftime.onceuponatown.network.NetworkHelper;
 import org.dawnoftime.onceuponatown.network.S2CBuildingDefsPacket;
 import org.dawnoftime.onceuponatown.network.S2CBuildingListPacket;
 import org.dawnoftime.onceuponatown.network.S2CCitizenUpdatePacket;
+import org.dawnoftime.onceuponatown.network.S2CLogEntryPacket;
 import org.dawnoftime.onceuponatown.network.S2CEraUpdatePacket;
 import org.dawnoftime.onceuponatown.network.S2CQuestUpdatePacket;
 import org.dawnoftime.onceuponatown.network.S2CStockUpdatePacket;
@@ -78,6 +80,11 @@ public class OuatFabricClient implements ClientModInitializer {
                 S2CCitizenUpdatePacket packet = S2CCitizenUpdatePacket.decode(buf);
                 S2CCitizenUpdatePacket.Handler.handle(packet);
             });
+        ClientPlayNetworking.registerGlobalReceiver(S2CLogEntryPacket.ID,
+            (client, handler, buf, responseSender) -> {
+                S2CLogEntryPacket packet = S2CLogEntryPacket.decode(buf);
+                S2CLogEntryPacket.Handler.handle(packet);
+            });
         TooltipComponentCallback.EVENT.register(component -> {
             if (component instanceof ItemAndTitleTooltip t) return new ClientItemAndTitleTooltip(t);
             if (component instanceof BuildingProductionTooltip t) return new ClientBuildingProductionTooltip(t);
@@ -117,6 +124,11 @@ public class OuatFabricClient implements ClientModInitializer {
             var buf = PacketByteBufs.create();
             new C2SClaimQuestPacket(pos, questId).encode(buf);
             ClientPlayNetworking.send(C2SClaimQuestPacket.ID, buf);
+        };
+        NetworkHelper.sendQuestDeliverPacket = (pos, questId, condIdx, amount) -> {
+            var buf = PacketByteBufs.create();
+            new C2SQuestDeliverPacket(pos, questId, condIdx, amount).encode(buf);
+            ClientPlayNetworking.send(C2SQuestDeliverPacket.ID, buf);
         };
         NetworkHelper.sendBuyPacket = (pos, items) -> {
             var buf = PacketByteBufs.create();

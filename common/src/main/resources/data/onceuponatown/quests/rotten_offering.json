@@ -7,7 +7,7 @@
   "spawn_weight": 1,
   "duration_ticks": 12000,
   "conditions": [
-    { "type": "DELIVERY", "item": "minecraft:rotten_flesh", "required": 10 }
+    { "type": "DELIVERY", "item": "minecraft:rotten_flesh", "required": 10, "send_to_stock": false }
   ],
   "reward": { "type": "PLAYER", "item": "minecraft:emerald", "amount": 1 }
 }

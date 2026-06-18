@@ -1,12 +1,22 @@
 {
-  "food_list": [
-    { "item": "minecraft:apple",          "fuv": 1 },
-    { "item": "minecraft:carrot",         "fuv": 1 },
-    { "item": "minecraft:potato",         "fuv": 1 },
-    { "item": "minecraft:cooked_beef",    "fuv": 2 },
-    { "item": "minecraft:cooked_mutton",  "fuv": 2 },
-    { "item": "minecraft:cooked_porkchop","fuv": 2 },
-    { "item": "minecraft:baked_potato",   "fuv": 2 },
-    { "item": "minecraft:bread",          "fuv": 2 }
+  "feeding_schedule": [5000, 15000],
+
+  "resident_food": [
+    { "item": "minecraft:apple",           "fuv": 1 },
+    { "item": "minecraft:carrot",          "fuv": 1 },
+    { "item": "minecraft:potato",          "fuv": 1 },
+    { "item": "minecraft:cooked_beef",     "fuv": 2 },
+    { "item": "minecraft:cooked_mutton",   "fuv": 2 },
+    { "item": "minecraft:cooked_porkchop", "fuv": 2 },
+    { "item": "minecraft:baked_potato",    "fuv": 2 },
+    { "item": "minecraft:bread",           "fuv": 2 }
+  ],
+
+  "herd_food": [
+    { "item": "minecraft:wheat_seeds", "fuv": 1 },
+    { "item": "minecraft:wheat",       "fuv": 1 },
+    { "item": "minecraft:apple",       "fuv": 1 },
+    { "item": "minecraft:carrot",      "fuv": 1 },
+    { "item": "minecraft:potato",      "fuv": 1 }
   ]
 }

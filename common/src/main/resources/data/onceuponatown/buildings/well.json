@@ -1,6 +1,6 @@
 {
-  "id": "wild_spot",
-  "nbt": "onceuponatown:plains/gardens/wild_spot",
+  "id": "well",
+  "nbt": "onceuponatown:plains/gardens/well",
   "entry_pool": "onceuponatown:gardens",
   "icon_item": "minecraft:oak_leaves",
   "category": "gardens",
@@ -12,8 +12,8 @@
       "amount": 25
     },
     {
-      "item": "minecraft:wheat",
-      "amount": 15
+      "item": "minecraft:cobblestone",
+      "amount": 5
     }
   ]
 }

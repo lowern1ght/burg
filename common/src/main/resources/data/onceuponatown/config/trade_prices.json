@@ -1,47 +1,47 @@
 {
   "prices": [
-    { "item": "minecraft:oak_log",            "buy": 1, "sell": 1 },
-    { "item": "minecraft:oak_wood",           "buy": 1, "sell": 1 },
-    { "item": "minecraft:stripped_oak_log",   "buy": 2, "sell": 1 },
-    { "item": "minecraft:stripped_oak_wood",  "buy": 2, "sell": 1 },
+    { "item": "minecraft:oak_log",            "buy": 2, "sell": 1, "quantity": 30 },
+    { "item": "minecraft:oak_wood",           "buy": 2, "sell": 1, "quantity": 25 },
+    { "item": "minecraft:stripped_oak_log",   "buy": 3, "sell": 2, "quantity": 20 },
+    { "item": "minecraft:stripped_oak_wood",  "buy": 3, "sell": 2, "quantity": 20 },
 
-    { "item": "minecraft:oak_planks",         "buy": 1, "sell": 1 },
-    { "item": "minecraft:oak_stairs",         "buy": 1, "sell": 1 },
-    { "item": "minecraft:oak_slab",           "buy": 1, "sell": 1 },
-    { "item": "minecraft:oak_fence",          "buy": 1, "sell": 1 },
-    { "item": "minecraft:oak_fence_gate",     "buy": 1, "sell": 1 },
-    { "item": "minecraft:oak_trapdoor",       "buy": 1, "sell": 1 },
-    { "item": "minecraft:oak_door",           "buy": 1, "sell": 1 },
+    { "item": "minecraft:oak_planks",         "buy": 2, "sell": 1, "quantity": 25 },
+    { "item": "minecraft:oak_stairs",         "buy": 2, "sell": 1, "quantity": 20 },
+    { "item": "minecraft:oak_slab",           "buy": 2, "sell": 1, "quantity": 20 },
+    { "item": "minecraft:oak_fence",          "buy": 2, "sell": 1, "quantity": 20 },
+    { "item": "minecraft:oak_fence_gate",     "buy": 2, "sell": 1, "quantity": 20 },
+    { "item": "minecraft:oak_trapdoor",       "buy": 2, "sell": 1, "quantity": 20 },
+    { "item": "minecraft:oak_door",           "buy": 2, "sell": 1, "quantity": 20 },
 
-    { "item": "minecraft:stick",              "buy": 1, "sell": 1 },
-    { "item": "minecraft:charcoal",           "buy": 1, "sell": 1 },
-    { "item": "minecraft:torch",              "buy": 1, "sell": 1 },
-    { "item": "minecraft:campfire",           "buy": 1, "sell": 1 },
+    { "item": "minecraft:stick",              "buy": 2, "sell": 1, "quantity": 25 },
+    { "item": "minecraft:charcoal",           "buy": 2, "sell": 1, "quantity": 15 },
+    { "item": "minecraft:torch",              "buy": 2, "sell": 1, "quantity": 20 },
+    { "item": "minecraft:campfire",           "buy": 2, "sell": 1, "quantity": 8  },
 
-    { "item": "minecraft:cobblestone",        "buy": 1, "sell": 1 },
-    { "item": "minecraft:stone",              "buy": 2, "sell": 1 },
+    { "item": "minecraft:cobblestone",        "buy": 2, "sell": 1, "quantity": 25 },
+    { "item": "minecraft:stone",              "buy": 3, "sell": 2, "quantity": 15 },
 
-    { "item": "minecraft:oak_sapling",        "buy": 1, "sell": 1 },
+    { "item": "minecraft:oak_sapling",        "buy": 2, "sell": 1, "quantity": 45 },
 
-    { "item": "minecraft:wheat_seeds",        "buy": 1, "sell": 1 },
-    { "item": "minecraft:wheat",              "buy": 1, "sell": 1 },
-    { "item": "minecraft:bread",              "buy": 2, "sell": 1 },
+    { "item": "minecraft:wheat_seeds",        "buy": 2, "sell": 1, "quantity": 45 },
+    { "item": "minecraft:wheat",              "buy": 2, "sell": 1, "quantity": 25 },
+    { "item": "minecraft:bread",              "buy": 3, "sell": 2, "quantity": 15 },
 
-    { "item": "minecraft:apple",              "buy": 1, "sell": 1 },
-    { "item": "minecraft:carrot",             "buy": 1, "sell": 1 },
-    { "item": "minecraft:potato",             "buy": 1, "sell": 1 },
-    { "item": "minecraft:baked_potato",       "buy": 2, "sell": 1 },
+    { "item": "minecraft:apple",              "buy": 2, "sell": 1, "quantity": 15 },
+    { "item": "minecraft:carrot",             "buy": 2, "sell": 1, "quantity": 25 },
+    { "item": "minecraft:potato",             "buy": 2, "sell": 1, "quantity": 25 },
+    { "item": "minecraft:baked_potato",       "buy": 3, "sell": 2, "quantity": 15 },
 
-    { "item": "minecraft:porkchop",           "buy": 1, "sell": 1 },
-    { "item": "minecraft:cooked_porkchop",    "buy": 2, "sell": 1 },
-    { "item": "minecraft:mutton",             "buy": 1, "sell": 1 },
-    { "item": "minecraft:cooked_mutton",      "buy": 2, "sell": 1 },
-    { "item": "minecraft:beef",               "buy": 1, "sell": 1 },
-    { "item": "minecraft:cooked_beef",        "buy": 2, "sell": 1 },
+    { "item": "minecraft:porkchop",           "buy": 2, "sell": 1, "quantity": 15 },
+    { "item": "minecraft:cooked_porkchop",    "buy": 3, "sell": 2, "quantity": 10 },
+    { "item": "minecraft:mutton",             "buy": 2, "sell": 1, "quantity": 15 },
+    { "item": "minecraft:cooked_mutton",      "buy": 3, "sell": 2, "quantity": 10 },
+    { "item": "minecraft:beef",               "buy": 2, "sell": 1, "quantity": 15 },
+    { "item": "minecraft:cooked_beef",        "buy": 3, "sell": 2, "quantity": 10 },
 
-    { "item": "minecraft:leather",            "buy": 4, "sell": 2 },
-    { "item": "minecraft:honeycomb",          "buy": 4, "sell": 2 },
-    { "item": "minecraft:wool",               "buy": 4, "sell": 2 }
+    { "item": "minecraft:leather",            "buy": 5, "sell": 3, "quantity": 8  },
+    { "item": "minecraft:honeycomb",          "buy": 5, "sell": 3, "quantity": 8  },
+    { "item": "minecraft:wool",               "buy": 5, "sell": 3, "quantity": 10 }
 
 
 

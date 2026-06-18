@@ -13,6 +13,6 @@ public record QuestDef(
     int spawnWeight,
     long durationTicks
 ) {
-    public record ConditionTemplate(String type, String item, int required) {}
+    public record ConditionTemplate(String type, String item, int required, boolean sendToStock) {}
     public record RewardTemplate(String type, String item, int amount) {}
 }

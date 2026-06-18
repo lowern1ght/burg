@@ -6,6 +6,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import org.dawnoftime.onceuponatown.screen.TownHubMenu;
 import org.dawnoftime.onceuponatown.town.Town;
+import org.dawnoftime.onceuponatown.town.TownLogEntry;
 
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -20,6 +21,12 @@ public class NetworkHelper {
     public static BiConsumer<ServerPlayer, CompoundTag> sendQuestUpdatePacket   = (player, data) -> {};
     public static BiConsumer<ServerPlayer, CompoundTag> sendEraUpdatePacket     = (player, data) -> {};
     public static BiConsumer<ServerPlayer, CompoundTag> sendCitizenUpdatePacket = (player, data) -> {};
+    public static BiConsumer<ServerPlayer, CompoundTag> sendLogEntryPacket     = (player, data) -> {};
+
+    @FunctionalInterface
+    public interface QuestDeliverSender {
+        void send(BlockPos anchorPos, String questId, int conditionIndex, int requestedAmount);
+    }
 
     // C2S delegates (set by each platform client-side init)
     public static BiConsumer<BlockPos, String>  sendQueueBuildingPacket        = (pos, defId)     -> {};
@@ -28,6 +35,7 @@ public class NetworkHelper {
     public static BiConsumer<BlockPos, String>  sendAdvanceEraPacket           = (pos, pathId)    -> {};
     public static Consumer<BlockPos>            sendDepositPacket              = pos              -> {};
     public static BiConsumer<BlockPos, String>  sendClaimQuestPacket           = (pos, questId)   -> {};
+    public static QuestDeliverSender            sendQuestDeliverPacket         = (pos, questId, condIdx, amount) -> {};
     public static Consumer<BlockPos>            sendRequestStockPacket         = pos              -> {};
     // Carries requested items for BUY mode: List<(itemId, count)> encoded via C2SBuyPacket
     public static BiConsumer<BlockPos, List<C2SBuyPacket.Entry>> sendBuyPacket = (pos, items) -> {};
@@ -87,6 +95,19 @@ public class NetworkHelper {
         if (watchers.isEmpty()) return;
         CompoundTag data = town.getCitizenUpdateData(anchorPos);
         for (ServerPlayer w : watchers) sendCitizenUpdatePacket.accept(w, data);
+    }
+
+    // Sends a log entry to every player watching this town's hub.
+    public static void pushLogEntryToWatchers(ServerLevel level, Town town, BlockPos anchorPos, TownLogEntry entry) {
+        if (anchorPos == null) return;
+        List<ServerPlayer> watchers = getWatchers(level, anchorPos);
+        if (watchers.isEmpty()) return;
+        CompoundTag data = new CompoundTag();
+        data.putLong("AnchorPos", anchorPos.asLong());
+        data.putString("Type", entry.type().name());
+        data.putString("Param", entry.param());
+        data.putLong("Tick", entry.gameTick());
+        for (ServerPlayer w : watchers) sendLogEntryPacket.accept(w, data);
     }
 
     private static List<ServerPlayer> getWatchers(ServerLevel level, BlockPos anchorPos) {

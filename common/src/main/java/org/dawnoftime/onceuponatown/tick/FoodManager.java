@@ -11,6 +11,8 @@ import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.PlacedBuilding;
 import org.dawnoftime.onceuponatown.town.Town;
 import org.dawnoftime.onceuponatown.town.TownInventory;
+import org.dawnoftime.onceuponatown.town.TownLogEntry;
+import org.dawnoftime.onceuponatown.town.TownLogEntry.TownLogType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,12 +20,13 @@ import java.util.Map;
 
 public class FoodManager {
 
-    // Fires once per in-game day at sunrise (tick 6000 within each 24000-tick day).
+    // Fires at each tick listed in feeding_schedule (ticks within a 24000-tick day).
     public static void tick(Town town, ServerLevel level, long gameTime, long anchorKey) {
-        if (gameTime % 24000 != 6000) return;
+        if (!FoodRegistry.getFeedingSchedule().contains(gameTime % 24000)) return;
 
         TownInventory inv = town.getTownInventory();
 
+        // Resident section: compute demand and drain from resident food pool (strongest FUV first).
         float totalFoodDemandFloat = 0f;
         int totalResidentsCounted = 0;
         for (PlacedBuilding building : town.getBuildings()) {
@@ -39,7 +42,7 @@ public class FoodManager {
         int foodUnitsToDrain = (int) Math.ceil(totalFoodDemandFloat);
 
         int availableFoodUnits = 0;
-        for (Map.Entry<net.minecraft.world.item.Item, Integer> fEntry : FoodRegistry.entriesInOrder()) {
+        for (Map.Entry<net.minecraft.world.item.Item, Integer> fEntry : FoodRegistry.residentEntriesInOrder()) {
             availableFoodUnits += inv.getStock(fEntry.getKey()) * fEntry.getValue();
         }
 
@@ -57,7 +60,7 @@ public class FoodManager {
         if (toDrainUnits > 0) {
             List<ItemCost> drainCosts = new ArrayList<>();
             int remaining = toDrainUnits;
-            for (Map.Entry<net.minecraft.world.item.Item, Integer> fEntry : FoodRegistry.entriesInOrder()) {
+            for (Map.Entry<net.minecraft.world.item.Item, Integer> fEntry : FoodRegistry.residentEntriesInOrder()) {
                 if (remaining <= 0) break;
                 net.minecraft.world.item.Item foodItem = fEntry.getKey();
                 int fuv = fEntry.getValue();
@@ -73,15 +76,20 @@ public class FoodManager {
                 }
             }
             if (!drainCosts.isEmpty()) inv.removeStock(drainCosts);
+            BlockPos anchorPos = BlockPos.of(anchorKey);
+            TownLogEntry foodLog = new TownLogEntry(TownLogType.FOOD_CONSUMED, String.valueOf(toDrainUnits), level.getGameTime());
+            town.addLogEntry(foodLog);
+            NetworkHelper.pushLogEntryToWatchers(level, town, anchorPos, foodLog);
         }
 
         int prevActive = town.getActiveResidents();
         town.setActiveResidents(newActiveResidents);
 
-        // Compute remaining food after resident drain, then feed herd buildings in order.
-        int remainingFoodUnits = 0;
-        for (Map.Entry<net.minecraft.world.item.Item, Integer> fEntry : FoodRegistry.entriesInOrder()) {
-            remainingFoodUnits += inv.getStock(fEntry.getKey()) * fEntry.getValue();
+        // Herd section: independent pool from herd food list (strongest FUV first).
+        // availableHerdFoodUnits is computed before any herd drains; buildings compete sequentially.
+        int availableHerdFoodUnits = 0;
+        for (Map.Entry<net.minecraft.world.item.Item, Integer> fEntry : FoodRegistry.herdEntriesInOrder()) {
+            availableHerdFoodUnits += inv.getStock(fEntry.getKey()) * fEntry.getValue();
         }
         boolean herdChanged = false;
         for (PlacedBuilding building : town.getBuildings()) {
@@ -93,10 +101,10 @@ public class FoodManager {
             int demand = (int) Math.ceil(stats.resolvedHerd() * stats.resolvedConsumptionPerHerd());
             if (demand == 0) {
                 building.setHerdFed(true);
-            } else if (remainingFoodUnits >= demand) {
+            } else if (availableHerdFoodUnits >= demand) {
                 List<ItemCost> herdDrain = new ArrayList<>();
                 int herdRemaining = demand;
-                for (Map.Entry<net.minecraft.world.item.Item, Integer> fEntry : FoodRegistry.entriesInOrder()) {
+                for (Map.Entry<net.minecraft.world.item.Item, Integer> fEntry : FoodRegistry.herdEntriesInOrder()) {
                     if (herdRemaining <= 0) break;
                     net.minecraft.world.item.Item foodItem = fEntry.getKey();
                     int fuv = fEntry.getValue();
@@ -112,7 +120,7 @@ public class FoodManager {
                     }
                 }
                 if (!herdDrain.isEmpty()) inv.removeStock(herdDrain);
-                remainingFoodUnits -= demand;
+                availableHerdFoodUnits -= demand;
                 building.setHerdFed(true);
             } else {
                 building.setHerdFed(false);

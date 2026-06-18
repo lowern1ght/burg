@@ -187,7 +187,7 @@ public class NbtPreviewWidget {
         var pose = g.pose();
         pose.pushPose();
 
-        pose.translate(x + width / 2.0, y + height / 2.0, 100.0);
+        pose.translate(x - 1 + (width - 5) / 2.0, y + 9 + (height - 11) / 2.0, 100.0);
 
         // scale(s,-s,s): compensates for GUI screen-space Y-down projection.
         // The GUI projection flips all triangle winding CCW->CW. The -Y scale
@@ -238,8 +238,13 @@ public class NbtPreviewWidget {
         g.disableScissor();
 
         if (locked) {
-            int px = x + (width - 8) / 2;
-            int py = y + (height - 10) / 2;
+            // Center within the scissor-clipped visible zone (matches g.enableScissor offsets above)
+            int vx = x - 1;
+            int vy = y + 9;
+            int vw = width - 5;
+            int vh = height - 11;
+            int px = vx + (vw - 8) / 2;
+            int py = vy + (vh - 10) / 2;
             RenderSystem.disableDepthTest();
             g.pose().pushPose();
             g.pose().translate(0, 0, 400);

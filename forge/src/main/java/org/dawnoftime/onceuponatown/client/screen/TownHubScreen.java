@@ -30,6 +30,7 @@ import org.dawnoftime.onceuponatown.client.gui.widgets.TownSummaryWidget;
 import org.dawnoftime.onceuponatown.network.C2SBuyPacket;
 import org.dawnoftime.onceuponatown.network.NetworkHelper;
 import org.dawnoftime.onceuponatown.screen.TownHubMenu;
+import org.dawnoftime.onceuponatown.town.TownLogEntry;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -171,7 +172,8 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
                                  boolean nextEra,
                                  String nbtPath,
                                  boolean hasBuilt,
-                                 List<String> nbtLevels) {}
+                                 List<String> nbtLevels,
+                                 int builtCount) {}
     private record CostEntry(String itemId, int amount) {}
     private record ReqBuildingEntry(String defId, int required, int have) {}
     private record ProductionCell(Item item, int amount) {}
@@ -228,10 +230,15 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
                 int summaryH = DraggableWidget.TITLE_BAR_H + TownSummaryWidget.VISIBLE_H;
                 int startX = (savedSummaryX >= 0) ? Math.min(savedSummaryX, Math.max(0, freeZoneW - TownSummaryWidget.WIDGET_W)) : centerX(freeZoneW, TownSummaryWidget.WIDGET_W);
                 int startY = (savedSummaryY >= 0) ? Math.min(savedSummaryY, Math.max(0, this.height - summaryH)) : centerY(this.height, summaryH);
-                newWidgets.add(new TownSummaryWidget(hub.getCompound("MapData"), hub.getCompound("SummaryData"), startX, startY, freeZoneW, this.height));
+                TownSummaryWidget summaryWidget = new TownSummaryWidget(hub.getCompound("MapData"), hub.getCompound("SummaryData"), startX, startY, freeZoneW, this.height);
+                if (hub.contains("ActivityLog")) {
+                    summaryWidget.loadInitialLog(parseActivityLog(hub));
+                }
+                newWidgets.add(summaryWidget);
             }
             if (savedEraOpen) {
-                int startX = (savedEraX >= 0) ? Math.min(savedEraX, Math.max(0, freeZoneW - EraProgressDraggableWidget.WIDGET_W)) : centerX(freeZoneW, EraProgressDraggableWidget.WIDGET_W);
+                int eraW = EraProgressDraggableWidget.computeWidgetW(eraTransitions);
+                int startX = (savedEraX >= 0) ? Math.min(savedEraX, Math.max(0, freeZoneW - eraW)) : centerX(freeZoneW, eraW);
                 int startY = (savedEraY >= 0) ? savedEraY : centerY(this.height, DraggableWidget.TITLE_BAR_H + 80);
                 eraWidget = new EraProgressDraggableWidget(startX, startY, freeZoneW, this.height,
                     currentEra, eraTransitions,
@@ -380,13 +387,14 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
             boolean nextEra       = dt.getBoolean("NextEra");
             String nbtPath        = dt.getString("Nbt");
             boolean hasBuilt      = dt.getBoolean("HasBuilt");
+            int builtCount        = dt.getInt("BuiltCount");
             List<String> nbtLevels = new ArrayList<>();
             dt.getList("NbtLevels", Tag.TAG_STRING).forEach(t -> nbtLevels.add(t.getAsString()));
 
             buildingCatalog.add(new BuildingEntry(id, category, iconItem, cost, productionRows,
                 productionCells, requiredResidents, requiredBuildings,
                 productionBonus, baseConsumption, maxConsumption, maxResidents, nextEra,
-                nbtPath, hasBuilt, nbtLevels));
+                nbtPath, hasBuilt, nbtLevels, builtCount));
         });
 
         stockSnapshot.clear();
@@ -403,7 +411,7 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
             CompoundTag pricesTag = hub.getCompound("TradePrices");
             for (String itemId : pricesTag.getAllKeys()) {
                 CompoundTag priceEntry = pricesTag.getCompound(itemId);
-                tradePrices.put(itemId, new int[]{ priceEntry.getInt("buy"), priceEntry.getInt("sell") });
+                tradePrices.put(itemId, new int[]{ priceEntry.getInt("buy"), priceEntry.getInt("sell"), Math.max(1, priceEntry.getInt("quantity")) });
             }
         }
 
@@ -487,6 +495,8 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
                     id -> NetworkHelper.sendClaimQuestPacket.accept(anchorPos, id),
                     startX, startY, leftPos, height);
                 qw.setMoveCallback(() -> savedQuestPositions.put(qw.getQuestId(), new int[]{ qw.getX(), qw.getY() }));
+                qw.setDeliveryCallback((condIdx, amount) ->
+                    NetworkHelper.sendQuestDeliverPacket.send(anchorPos, qw.getQuestId(), condIdx, amount));
                 newQuests.add(qw);
             }
             questIdx++;
@@ -547,6 +557,11 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
             CompoundTag data = TownHubClientState.pendingCitizenUpdate;
             TownHubClientState.pendingCitizenUpdate = null;
             applyCitizenUpdate(data);
+        }
+        if (TownHubClientState.pendingLogEntry != null) {
+            CompoundTag data = TownHubClientState.pendingLogEntry;
+            TownHubClientState.pendingLogEntry = null;
+            applyLogEntry(data);
         }
 
         this.renderBackground(guiGraphics);
@@ -742,6 +757,36 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
         }
     }
 
+    private List<TownLogEntry> parseActivityLog(CompoundTag hub) {
+        List<TownLogEntry> result = new ArrayList<>();
+        hub.getList("ActivityLog", Tag.TAG_COMPOUND).forEach(raw -> {
+            CompoundTag lt = (CompoundTag) raw;
+            try {
+                TownLogEntry.TownLogType type = TownLogEntry.TownLogType.valueOf(lt.getString("Type"));
+                result.add(new TownLogEntry(type, lt.getString("Param"), lt.getLong("Tick")));
+            } catch (IllegalArgumentException ignored) {}
+        });
+        return result;
+    }
+
+    private void applyLogEntry(CompoundTag data) {
+        TownLogEntry.TownLogType type;
+        try { type = TownLogEntry.TownLogType.valueOf(data.getString("Type")); }
+        catch (IllegalArgumentException e) { return; }
+        TownLogEntry entry = new TownLogEntry(type, data.getString("Param"), data.getLong("Tick"));
+        if (cachedHubData != null) {
+            net.minecraft.nbt.ListTag log = cachedHubData.getList("ActivityLog", Tag.TAG_COMPOUND);
+            log.add(0, data);
+            cachedHubData.put("ActivityLog", log);
+        }
+        for (DraggableWidget w : layer1Widgets) {
+            if (w instanceof TownSummaryWidget sw) {
+                sw.appendLogEntry(entry);
+                break;
+            }
+        }
+    }
+
     private void renderTabs(GuiGraphics g, int mx, int my) {
         int btnX = leftPos - 16;
         int[] tabYs = { topPos + 20, topPos + 46, topPos + 72 };
@@ -803,7 +848,7 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
 
                 if (catalogIdx < buildingCatalog.size()) {
                     BuildingEntry entry = buildingCatalog.get(catalogIdx);
-                    boolean affordable = isAffordable(entry);
+                    boolean affordable = isAffordable(entry) && meetsPrerequisites(entry);
                     boolean selected = entry.id().equals(selectedCatalogBuildingId);
                     int color = affordable ? categoryColor(entry.category()) : dim(categoryColor(entry.category()));
                     g.fill(sx, sy, sx + CELL - 2, sy + CELL - 2, color);
@@ -815,21 +860,27 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
                         g.pose().translate(0, 0, 200);
                         drawPadlockIcon(g, sx + 4, sy + 2);
                         g.pose().popPose();
-                    } else if (!affordable) {
-                        g.fill(sx, sy, sx + CELL - 2, sy + 1, 0x88CC0000);
                     }
-                    if (!entry.nextEra() && !meetsPrerequisites(entry)) {
-                        g.fill(sx, sy, sx + 3, sy + 3, 0xFF886600);
-                    }
+
                     if (boostedBuildingIds.contains(entry.id())) {
                         g.pose().pushPose();
                         g.pose().translate(0, 0, 300);
-                        int bx = sx + CELL - 6;
-                        int by = sy + CELL - 6;
+                        int bx = sx + 1;
+                        int by = sy + 1;
                         int bc = 0xFFFFDD44;
                         g.fill(bx + 1, by,     bx + 2, by + 1, bc);
                         g.fill(bx,     by + 1, bx + 3, by + 2, bc);
                         g.fill(bx + 1, by + 2, bx + 2, by + 3, bc);
+                        g.pose().popPose();
+                    }
+
+                    if (entry.builtCount() > 0) {
+                        g.pose().pushPose();
+                        g.pose().translate(0, 0, 300);
+                        g.pose().scale(0.5f, 0.5f, 1.0f);
+                        String countText = String.valueOf(entry.builtCount());
+                        int textW = font.width(countText);
+                        g.drawString(font, countText, (sx + CELL - 3) * 2 - textW, (sy + CELL - 8) * 2, 0xFFFFFF, true);
                         g.pose().popPose();
                     }
                 } else {
@@ -936,7 +987,7 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
                 int color = ok ? 0x55FF55 : 0xFF5555;
                 String itemName = ce.itemId().contains(":")
                     ? ce.itemId().substring(ce.itemId().indexOf(':') + 1) : ce.itemId();
-                lines.add(Component.literal(ce.amount() + "x " + formatId(itemName))
+                lines.add(Component.literal(have + "/" + ce.amount() + " " + formatId(itemName))
                     .withStyle(s -> s.withColor(color)));
             }
             if (entry.requiredResidents() > 0) {
@@ -946,7 +997,7 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
             }
             for (ReqBuildingEntry req : entry.requiredBuildings()) {
                 boolean met = req.have() >= req.required();
-                lines.add(Component.literal(req.have() + "/" + req.required() + "x " + formatId(req.defId()))
+                lines.add(Component.literal(req.have() + "/" + req.required() + " " + formatId(req.defId()))
                     .withStyle(s -> s.withColor(met ? 0x55FF55 : 0xFF5555)));
             }
             int wCost = categoryWeights.getOrDefault(entry.category(), 0);
@@ -997,9 +1048,9 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
 
         // Era 0 lock overlay: covers the tab content so it is visible but non-interactive.
         if (currentEra == 0) {
-            g.fill(leftPos, topPos, leftPos + imageWidth, topPos + imageHeight, 0xC0222222);
-            int lockX = leftPos + imageWidth / 2 - 4;
-            int lockY = topPos + imageHeight / 2 - 5;
+            g.fill(leftPos + 7, topPos + 17, leftPos + 7 + 163, topPos + 17 + 176, 0xC0222222);
+            int lockX = leftPos + 7 + 163 / 2 - 4;
+            int lockY = topPos + 17 + 176 / 2 - 5;
             drawPadlockIcon(g, lockX, lockY);
         }
     }
@@ -1460,7 +1511,11 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
                     int summaryH = DraggableWidget.TITLE_BAR_H + TownSummaryWidget.VISIBLE_H;
                     int startX = (savedSummaryX >= 0) ? savedSummaryX : centerX(freeZoneW, TownSummaryWidget.WIDGET_W);
                     int startY = (savedSummaryY >= 0) ? savedSummaryY : centerY(this.height, summaryH);
-                    layer1Widgets.add(0, new TownSummaryWidget(cachedHubData.getCompound("MapData"), cachedHubData.getCompound("SummaryData"), startX, startY, freeZoneW, this.height));
+                    TownSummaryWidget sw = new TownSummaryWidget(cachedHubData.getCompound("MapData"), cachedHubData.getCompound("SummaryData"), startX, startY, freeZoneW, this.height);
+                    if (cachedHubData.contains("ActivityLog")) {
+                        sw.loadInitialLog(parseActivityLog(cachedHubData));
+                    }
+                    layer1Widgets.add(0, sw);
                     savedSummaryOpen = true;
                     summaryClosed = false;
                     return true;
@@ -1470,7 +1525,7 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
             if (eraClosed) {
                 if (mX >= btnX && mX < btnX + 14 && mY >= btnY && mY < btnY + 14) {
                     int freeZoneW = this.leftPos;
-                    int startX = (savedEraX >= 0) ? savedEraX : centerX(freeZoneW, EraProgressDraggableWidget.WIDGET_W);
+                    int startX = (savedEraX >= 0) ? savedEraX : centerX(freeZoneW, EraProgressDraggableWidget.computeWidgetW(eraTransitions));
                     int startY = (savedEraY >= 0) ? savedEraY : centerY(this.height, DraggableWidget.TITLE_BAR_H + 80);
                     eraWidget = new EraProgressDraggableWidget(startX, startY, freeZoneW, this.height,
                         currentEra, eraTransitions,
@@ -1618,17 +1673,17 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
                         ItemStack stack = slot.getItem();
                         String itemId = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
                         if (tradePrices.containsKey(itemId)) {
-                            int displayed = stack.getCount();
-                            int inStock = stockSnapshot.getOrDefault(itemId, 0);
-                            int current = buyRequest.getOrDefault(stack.getItem(), 0);
+                            int[] prices  = tradePrices.get(itemId);
+                            int qty       = prices[2];
+                            int inStock   = stockSnapshot.getOrDefault(itemId, 0);
+                            int current   = buyRequest.getOrDefault(stack.getItem(), 0);
                             int add;
-                            if (button == 0 && hasShiftDown()) add = displayed;
-                            else if (button == 1)             add = Math.max(1, displayed / 2);
-                            else                              add = 1;
-                            // Each item may span several 64-unit slots; cap by available slots
+                            if (button == 0 && hasShiftDown()) add = (inStock / qty) * qty;
+                            else                               add = qty;
+                            // Cap by available display slots and stock, then floor to lot boundary
                             int slotsUsedByOthers = expandBuySlots().size() - (int)Math.ceil((double)current / 64);
                             int maxSlots = Math.max(0, TownHubMenu.DEPOSIT_SLOTS - slotsUsedByOthers);
-                            int maxCount = Math.min(inStock, maxSlots * 64);
+                            int maxCount = (Math.min(inStock, maxSlots * 64) / qty) * qty;
                             int newCount = Math.min(current + add, maxCount);
                             if (newCount > 0) buyRequest.put(stack.getItem(), newCount);
                         }
@@ -1647,10 +1702,12 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
                         Item item = slots.get(col).getKey();
                         int slotCount = slots.get(col).getValue();
                         int totalCurrent = buyRequest.get(item);
+                        String rmItemId  = BuiltInRegistries.ITEM.getKey(item).toString();
+                        int[] rmPrices   = tradePrices.get(rmItemId);
+                        int rmQty        = (rmPrices != null) ? rmPrices[2] : 1;
                         int remove;
                         if (button == 0 && hasShiftDown()) remove = totalCurrent;
-                        else if (button == 1)              remove = Math.max(1, slotCount / 2);
-                        else                               remove = 1;
+                        else                               remove = rmQty;
                         int newCount = totalCurrent - remove;
                         if (newCount <= 0) buyRequest.remove(item);
                         else buyRequest.put(item, newCount);
@@ -1935,6 +1992,64 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
     }
 
     // Renders the trade zone overlay on the stock tab:
+    // Overrides vanilla tooltip to inject trade price icons when hovering a tradeable chest slot.
+    // Uses this.hoveredSlot (same detection as vanilla) to avoid any zone mismatch.
+    @Override
+    protected void renderTooltip(GuiGraphics g, int mx, int my) {
+        if (activeTab == 0 && hoveredSlot != null && hoveredSlot.hasItem()
+                && hoveredSlot.index < TownHubMenu.CHEST_SIZE) {
+            String itemId = BuiltInRegistries.ITEM.getKey(hoveredSlot.getItem().getItem()).toString();
+            int[] prices = tradePrices.get(itemId);
+            if (prices != null) {
+                int buy = prices[0], sell = prices[1], qty = prices[2];
+                Item item = hoveredSlot.getItem().getItem();
+
+                String labelBuy  = net.minecraft.network.chat.Component.translatable("onceuponatown.tooltip.trade_buy").getString();
+                String labelSell = net.minecraft.network.chat.Component.translatable("onceuponatown.tooltip.trade_sell").getString();
+                int labelW = Math.max(font.width(labelBuy), font.width(labelSell));
+
+                int rowH = 18;
+                int panW = 4 + labelW + 3 + 16 + 5 + 5 + 16 + 4;
+                int panH = 4 + rowH + rowH + 4;
+                int panX = mx + 10;
+                int panY = my - panH / 2;
+                if (panX + panW > this.width)  panX = mx - panW - 4;
+                if (panY < 0)                  panY = 0;
+                if (panY + panH > this.height) panY = this.height - panH;
+
+                // Vanilla tooltip colors: background 0xF0100010, border gradient 0x505000FF -> 0x5028007F
+                g.fill(panX,            panY,            panX + panW,     panY + panH,     0xF0100010);
+                g.fill(panX + 1,        panY,            panX + panW - 1, panY + 1,        0x505000FF);
+                g.fill(panX + 1,        panY + panH - 1, panX + panW - 1, panY + panH,     0x5028007F);
+                g.fill(panX,            panY + 1,        panX + 1,        panY + panH - 1, 0x505000FF);
+                g.fill(panX + panW - 1, panY + 1,        panX + panW,     panY + panH - 1, 0x5028007F);
+
+                int labelX = panX + 4;
+                int iconX1 = labelX + labelW + 3;
+                int slashX = iconX1 + 16 + 2;
+                int iconX2 = slashX + 5;
+
+                int row1Y = panY + 4;
+                g.drawString(font, labelBuy, labelX, row1Y + 5, 0xFFAAAAAA, false);
+                g.renderFakeItem(new ItemStack(item, qty), iconX1, row1Y);
+                g.renderItemDecorations(font, new ItemStack(item, qty), iconX1, row1Y);
+                g.drawString(font, "/", slashX, row1Y + 5, 0xFFAAAAAA, false);
+                g.renderFakeItem(new ItemStack(Items.EMERALD, buy), iconX2, row1Y);
+                g.renderItemDecorations(font, new ItemStack(Items.EMERALD, buy), iconX2, row1Y);
+
+                int row2Y = row1Y + rowH;
+                g.drawString(font, labelSell, labelX, row2Y + 5, 0xFFAAAAAA, false);
+                g.renderFakeItem(new ItemStack(item, qty), iconX1, row2Y);
+                g.renderItemDecorations(font, new ItemStack(item, qty), iconX1, row2Y);
+                g.drawString(font, "/", slashX, row2Y + 5, 0xFFAAAAAA, false);
+                g.renderFakeItem(new ItemStack(Items.EMERALD, sell), iconX2, row2Y);
+                g.renderItemDecorations(font, new ItemStack(Items.EMERALD, sell), iconX2, row2Y);
+                return;
+            }
+        }
+        super.renderTooltip(g, mx, my);
+    }
+
     // - Buy/sell mode toggle button at (151, 89)
     // - Blue zone content overlay (BUY mode: staged buy request; SELL mode: actual deposit slots)
     // - Emerald cost/reward overlay at Y=107
@@ -1971,17 +2086,23 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
             for (Map.Entry<Item, Integer> e : buyRequest.entrySet()) {
                 String id = BuiltInRegistries.ITEM.getKey(e.getKey()).toString();
                 int[] prices = tradePrices.get(id);
-                if (prices != null) totalEmeralds += prices[0] * e.getValue();
+                if (prices != null) {
+                    int qty = prices[2];
+                    totalEmeralds += prices[0] * (e.getValue() / qty);
+                }
             }
         } else {
-            // SELL mode: sum sell prices for items in deposit container
+            // SELL mode: sum sell prices per completed lot in deposit container
             var deposit = this.menu.getDepositContainer();
             for (int i = 0; i < deposit.getContainerSize(); i++) {
                 ItemStack stack = deposit.getItem(i);
                 if (stack.isEmpty()) continue;
                 String id = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
                 int[] prices = tradePrices.get(id);
-                if (prices != null) totalEmeralds += prices[1] * stack.getCount();
+                if (prices != null) {
+                    int qty = prices[2];
+                    totalEmeralds += prices[1] * (stack.getCount() / qty);
+                }
             }
         }
 

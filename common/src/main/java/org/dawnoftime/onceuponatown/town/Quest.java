@@ -17,6 +17,7 @@ public class Quest {
         public Item item;
         public int required;
         public int received;
+        public boolean sendToStock = false;
 
         public boolean isMet() {
             if ("DELIVERY".equals(type)) return received >= required;
@@ -30,6 +31,7 @@ public class Quest {
             if (item != null) tag.putString("Item", BuiltInRegistries.ITEM.getKey(item).toString());
             tag.putInt("Required", required);
             tag.putInt("Received", received);
+            if (sendToStock) tag.putBoolean("SendToStock", true);
             return tag;
         }
 
@@ -39,6 +41,7 @@ public class Quest {
             if (tag.contains("Item")) c.item = BuiltInRegistries.ITEM.get(new ResourceLocation(tag.getString("Item")));
             c.required = tag.getInt("Required");
             c.received = tag.getInt("Received");
+            c.sendToStock = tag.contains("SendToStock") && tag.getBoolean("SendToStock");
             return c;
         }
     }

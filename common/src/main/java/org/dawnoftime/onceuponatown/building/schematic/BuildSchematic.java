@@ -43,8 +43,8 @@ public class BuildSchematic {
     // Explicitly ignoring it here guarantees existing terrain is never overwritten at void positions.
     private static final BlockIgnoreProcessor SKIP_AIR = new BlockIgnoreProcessor(List.of(Blocks.AIR, Blocks.STRUCTURE_VOID));
 
-    // Blocks treated as surface noise: scanned past when finding terrain Y, cleared before path placement.
-    private static final Set<Block> TERRAIN_NOISE_BLOCKS;
+    // Filter A: blocks the terrain scan skips past when descending to find ground. Not deleted, not placed.
+    private static final Set<Block> SCAN_IGNORE_BLOCKS;
     static {
         Set<Block> s = new HashSet<>();
         s.add(Blocks.OAK_LEAVES); s.add(Blocks.BIRCH_LEAVES); s.add(Blocks.SPRUCE_LEAVES);
@@ -73,10 +73,8 @@ public class BuildSchematic {
         // Connection-point artifacts: jigsaw blocks (unconsumed connectors) can sit above
         // natural terrain at connector Y levels. Scanning through them prevents paths from
         // floating at building junction positions.
-        // DIRT_PATH is intentionally excluded: an existing path block means a road already
-        // snapped correctly at this column, so the column is valid and must not be rewritten.
         s.add(Blocks.JIGSAW);
-        TERRAIN_NOISE_BLOCKS = Collections.unmodifiableSet(s);
+        SCAN_IGNORE_BLOCKS = Collections.unmodifiableSet(s);
     }
 
     // Places the NBT structure into the world with the given rotation. Returns false on error.
@@ -96,9 +94,9 @@ public class BuildSchematic {
         return true;
     }
 
-    // Places a terrain-matching structure (path NBT) without writing any AIR blocks to the world.
-    // For each dirt_path column, scans downward to the first solid non-vegetation block
-    // and places the path there, clearing surface noise above it.
+    // Places a terrain-matching structure (road NBT) by anchoring each XZ column to the solid terrain surface.
+    // No deletions, no DIRT_PATH special-casing. Every non-air block in the NBT is placed.
+    // SCAN_IGNORE_BLOCKS (vegetation, logs, surface features) are skipped during the downward terrain scan.
     public static boolean placeTerrainMatched(ServerLevel level, BlockPos originPos,
                                                ResourceLocation nbtLocation, Rotation rotation) {
         Optional<StructureTemplate> templateOpt = level.getStructureManager().get(nbtLocation);
@@ -106,84 +104,51 @@ public class BuildSchematic {
             LOGGER.error("[OUAT] NBT not found: {}", nbtLocation);
             return false;
         }
-        StructureTemplate template = templateOpt.get();
 
-        for (StructureTemplate.StructureBlockInfo info :
-                template.filterBlocks(BlockPos.ZERO, new StructurePlaceSettings(), Blocks.DIRT_PATH)) {
-            BlockPos rotatedRel = StructureTemplate.transform(info.pos(), Mirror.NONE, rotation, BlockPos.ZERO);
-            int wx = originPos.getX() + rotatedRel.getX();
-            int wz = originPos.getZ() + rotatedRel.getZ();
+        // All non-air blocks with rotation applied; jigsaw blocks already resolved to final_state.
+        List<SchematicBlock> blocks = SchematicReader.readSortedBlocks(templateOpt.get(), rotation);
 
-            // Scan downward from world surface to find first solid, non-noise block.
-            // If a DIRT_PATH is already present in this column, a road was previously placed
-            // here correctly -- skip the column entirely rather than rewriting it.
-            int scanStart = level.getHeight(Heightmap.Types.WORLD_SURFACE, wx, wz) - 1;
-            int terrainY = Integer.MIN_VALUE;
-            boolean alreadyRoad = false;
-            for (int y = scanStart; y >= level.getMinBuildHeight(); y--) {
-                BlockState bs = level.getBlockState(new BlockPos(wx, y, wz));
-                if (bs.is(Blocks.DIRT_PATH)) { alreadyRoad = true; break; }
-                if (!bs.isAir() && !TERRAIN_NOISE_BLOCKS.contains(bs.getBlock())) {
-                    terrainY = y;
-                    break;
-                }
-            }
-            if (alreadyRoad) continue;
-            if (terrainY == Integer.MIN_VALUE) continue;
-
-            // Clear surface noise between terrain surface and original scan start
-            for (int cy = terrainY + 1; cy <= scanStart; cy++) {
-                level.setBlock(new BlockPos(wx, cy, wz), Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
-            }
-
-            // Replace terrain surface block with the path
-            level.setBlock(new BlockPos(wx, terrainY, wz), Blocks.DIRT_PATH.defaultBlockState(), Block.UPDATE_ALL);
+        // Group by XZ column using rotated local coordinates.
+        Map<Long, List<SchematicBlock>> columns = new HashMap<>();
+        for (SchematicBlock b : blocks) {
+            long key = BlockPos.asLong(b.localPos().getX(), 0, b.localPos().getZ());
+            columns.computeIfAbsent(key, k -> new ArrayList<>()).add(b);
         }
 
-        replaceJigsawBlocksTerrainMatched(level, originPos, template, rotation);
-        return true;
-    }
+        for (List<SchematicBlock> column : columns.values()) {
+            // templateFloorY: lowest non-air Y in this column within the template.
+            int templateFloorY = Integer.MAX_VALUE;
+            for (SchematicBlock b : column) {
+                if (b.localPos().getY() < templateFloorY) templateFloorY = b.localPos().getY();
+            }
 
-    // Variant of replaceJigsawBlocks for terrain-matched structures.
-    // Each jigsaw final_state is placed at the actual terrain Y of its column, matching
-    // the per-column snap applied to dirt_path blocks in placeTerrainMatched.
-    private static void replaceJigsawBlocksTerrainMatched(ServerLevel level, BlockPos originPos,
-                                                           StructureTemplate template, Rotation rotation) {
-        for (StructureTemplate.StructureBlockInfo info :
-                template.filterBlocks(BlockPos.ZERO, new StructurePlaceSettings(), Blocks.JIGSAW)) {
-            if (info.nbt() == null) continue;
-            BlockPos rotatedRel = StructureTemplate.transform(info.pos(), Mirror.NONE, rotation, BlockPos.ZERO);
-            int wx = originPos.getX() + rotatedRel.getX();
-            int wz = originPos.getZ() + rotatedRel.getZ();
+            int wx = originPos.getX() + column.get(0).localPos().getX();
+            int wz = originPos.getZ() + column.get(0).localPos().getZ();
 
-            String finalState = info.nbt().getString("final_state");
-            String blockId = finalState.contains("[") ? finalState.substring(0, finalState.indexOf('[')) : finalState;
-            ResourceLocation rl = ResourceLocation.tryParse(blockId);
-            BlockState toPlace = (rl != null && BuiltInRegistries.BLOCK.containsKey(rl))
-                ? BuiltInRegistries.BLOCK.get(rl).defaultBlockState()
-                : Blocks.AIR.defaultBlockState();
-
+            // Scan downward; skip SCAN_IGNORE_BLOCKS, stop at first solid block (Filter B).
             int scanStart = level.getHeight(Heightmap.Types.WORLD_SURFACE, wx, wz) - 1;
             int terrainY = Integer.MIN_VALUE;
             for (int y = scanStart; y >= level.getMinBuildHeight(); y--) {
                 BlockState bs = level.getBlockState(new BlockPos(wx, y, wz));
-                if (!bs.isAir() && !TERRAIN_NOISE_BLOCKS.contains(bs.getBlock())) {
+                if (!bs.isAir() && !SCAN_IGNORE_BLOCKS.contains(bs.getBlock())) {
                     terrainY = y;
                     break;
                 }
             }
 
             if (terrainY == Integer.MIN_VALUE) {
-                // No solid ground found — fall back to computed world Y
-                level.setBlock(new BlockPos(wx, originPos.getY() + rotatedRel.getY(), wz), toPlace, Block.UPDATE_ALL);
+                LOGGER.warn("[OUAT] Road column ({}, {}): no terrain found, skipping", wx, wz);
                 continue;
             }
 
-            for (int cy = terrainY + 1; cy <= scanStart; cy++) {
-                level.setBlock(new BlockPos(wx, cy, wz), Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+            int deltaY = terrainY - templateFloorY;
+
+            for (SchematicBlock b : column) {
+                level.setBlock(new BlockPos(wx, b.localPos().getY() + deltaY, wz), b.state(), Block.UPDATE_ALL);
             }
-            level.setBlock(new BlockPos(wx, terrainY, wz), toPlace, Block.UPDATE_ALL);
         }
+
+        return true;
     }
 
     // Replaces jigsaw blocks with their "turns_into" target block after structure placement.
@@ -263,28 +228,38 @@ public class BuildSchematic {
         return attachPoint.subtract(connectorWorldOffset);
     }
 
-    // Computes the world bounding box using only dirt_path blocks in the template (road footprint).
+    // Computes the tight world bounding box from the ground-layer blocks of the template (road footprint).
     // For terrain-matched roads, the NBT often contains large empty corners (L/T shapes) that would
-    // cause false bounding-box overlaps against adjacent buildings. Using the actual path footprint
+    // cause false bounding-box overlaps against adjacent buildings. Using only ground-layer blocks
     // gives a tight XZ box that matches what the road physically occupies in the world.
     public static Optional<BoundingBox> computeFootprintBoundingBox(ServerLevel level, BlockPos originPos,
                                                                       ResourceLocation nbtLocation, Rotation rotation) {
         Optional<StructureTemplate> template = level.getStructureManager().get(nbtLocation);
         if (template.isEmpty()) return Optional.empty();
 
-        List<StructureTemplate.StructureBlockInfo> pathBlocks =
-            template.get().filterBlocks(BlockPos.ZERO, new StructurePlaceSettings(), Blocks.DIRT_PATH);
-        if (pathBlocks.isEmpty()) return computeBoundingBox(level, originPos, nbtLocation, rotation);
+        List<SchematicBlock> allBlocks = SchematicReader.readSortedBlocks(template.get(), rotation);
+        if (allBlocks.isEmpty()) return computeBoundingBox(level, originPos, nbtLocation, rotation);
+
+        // Ground-layer blocks: one per XZ column, the one with the lowest Y.
+        Map<Long, SchematicBlock> groundBlocks = new HashMap<>();
+        for (SchematicBlock b : allBlocks) {
+            long key = BlockPos.asLong(b.localPos().getX(), 0, b.localPos().getZ());
+            SchematicBlock existing = groundBlocks.get(key);
+            if (existing == null || b.localPos().getY() < existing.localPos().getY()) {
+                groundBlocks.put(key, b);
+            }
+        }
+
+        if (groundBlocks.isEmpty()) return computeBoundingBox(level, originPos, nbtLocation, rotation);
 
         int minX = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE;
         int minZ = Integer.MAX_VALUE, maxZ = Integer.MIN_VALUE;
         int minY = Integer.MAX_VALUE, maxY = Integer.MIN_VALUE;
 
-        for (StructureTemplate.StructureBlockInfo info : pathBlocks) {
-            BlockPos rotated = StructureTemplate.transform(info.pos(), Mirror.NONE, rotation, BlockPos.ZERO);
-            int wx = originPos.getX() + rotated.getX();
-            int wy = originPos.getY() + rotated.getY();
-            int wz = originPos.getZ() + rotated.getZ();
+        for (SchematicBlock b : groundBlocks.values()) {
+            int wx = originPos.getX() + b.localPos().getX();
+            int wy = originPos.getY() + b.localPos().getY();
+            int wz = originPos.getZ() + b.localPos().getZ();
             if (wx < minX) minX = wx; if (wx > maxX) maxX = wx;
             if (wy < minY) minY = wy; if (wy > maxY) maxY = wy;
             if (wz < minZ) minZ = wz; if (wz > maxZ) maxZ = wz;

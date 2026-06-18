@@ -14,9 +14,12 @@
     { "item": "minecraft:cobblestone", "amount": 10 }
   ],
 
-  "required_residents": 5,
-  "required_buildings": [],
-  "unlocked_building_ids": ["lone_place"],
+  "required_residents": 4,
+  "required_buildings": [
+    { "defId": "oven", "count": 1 },
+    { "defId": "bee_field", "count": 1 }
+
+  ],  "unlocked_building_ids": ["beekeeper", "kitchen", "lone_place"],
   "unlock_new_builder": true,
 
   "next_orientation": "cooking"

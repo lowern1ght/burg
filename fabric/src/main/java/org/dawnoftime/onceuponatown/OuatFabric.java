@@ -26,6 +26,7 @@ import org.dawnoftime.onceuponatown.network.C2SAdvanceEraPacket;
 import org.dawnoftime.onceuponatown.network.C2SBuyPacket;
 import org.dawnoftime.onceuponatown.network.C2SClaimQuestPacket;
 import org.dawnoftime.onceuponatown.network.C2SDepositPacket;
+import org.dawnoftime.onceuponatown.network.C2SQuestDeliverPacket;
 import org.dawnoftime.onceuponatown.network.C2SQueueBuildingPacket;
 import org.dawnoftime.onceuponatown.network.C2SRemoveQueuedBuildingPacket;
 import org.dawnoftime.onceuponatown.network.C2SRequestStockPacket;
@@ -33,6 +34,7 @@ import org.dawnoftime.onceuponatown.network.C2SUpgradeBuildingPacket;
 import org.dawnoftime.onceuponatown.network.S2CBuildingDefsPacket;
 import org.dawnoftime.onceuponatown.network.S2CBuildingListPacket;
 import org.dawnoftime.onceuponatown.network.S2CCitizenUpdatePacket;
+import org.dawnoftime.onceuponatown.network.S2CLogEntryPacket;
 import org.dawnoftime.onceuponatown.network.S2CEraUpdatePacket;
 import org.dawnoftime.onceuponatown.network.S2CQuestUpdatePacket;
 import org.dawnoftime.onceuponatown.network.S2CStockUpdatePacket;
@@ -103,6 +105,11 @@ public class OuatFabric implements ModInitializer {
                 C2SClaimQuestPacket packet = C2SClaimQuestPacket.decode(buf);
                 server.execute(() -> C2SClaimQuestPacket.Handler.handle(packet, player));
             });
+        ServerPlayNetworking.registerGlobalReceiver(C2SQuestDeliverPacket.ID,
+            (server, player, handler, buf, responseSender) -> {
+                C2SQuestDeliverPacket packet = C2SQuestDeliverPacket.decode(buf);
+                server.execute(() -> C2SQuestDeliverPacket.Handler.handle(packet, player));
+            });
         ServerPlayNetworking.registerGlobalReceiver(C2SRequestStockPacket.ID,
             (server, player, handler, buf, responseSender) -> {
                 C2SRequestStockPacket packet = C2SRequestStockPacket.decode(buf);
@@ -142,6 +149,11 @@ public class OuatFabric implements ModInitializer {
             var buf = PacketByteBufs.create();
             new S2CCitizenUpdatePacket(data).encode(buf);
             ServerPlayNetworking.send(player, S2CCitizenUpdatePacket.ID, buf);
+        };
+        NetworkHelper.sendLogEntryPacket = (player, data) -> {
+            var buf = PacketByteBufs.create();
+            new S2CLogEntryPacket(data).encode(buf);
+            ServerPlayNetworking.send(player, S2CLogEntryPacket.ID, buf);
         };
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             var buf = PacketByteBufs.create();

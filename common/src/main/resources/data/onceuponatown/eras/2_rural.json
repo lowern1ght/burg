@@ -14,7 +14,7 @@
     { "item": "minecraft:cobblestone", "amount": 10 }
   ],
 
-  "required_residents": 5,
+  "required_residents": 4,
   "required_buildings": [
     { "defId": "wheat_field", "count": 2 }
   ],

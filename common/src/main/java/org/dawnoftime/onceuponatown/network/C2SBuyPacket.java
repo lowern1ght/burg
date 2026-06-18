@@ -66,12 +66,16 @@ public record C2SBuyPacket(BlockPos anchorPos, List<Entry> requested) {
                 if (rl == null) continue;
                 Item item = BuiltInRegistries.ITEM.get(rl);
                 if (item == null || item == Items.AIR) continue;
-                int price = TradePriceDataHandler.getBuyPrice(item);
+                int price    = TradePriceDataHandler.getBuyPrice(item);
                 if (price <= 0) continue;
-                if (!town.getTownInventory().hasStock(List.of(new ItemCost(item, entry.count())))) return;
-                totalCost += price * entry.count();
-                toGive.add(new ItemStack(item, entry.count()));
-                toRemove.add(new ItemCost(item, entry.count()));
+                int quantity = TradePriceDataHandler.getQuantity(item);
+                int lots     = entry.count() / quantity;
+                if (lots <= 0) continue;
+                int actualCount = lots * quantity;
+                if (!town.getTownInventory().hasStock(List.of(new ItemCost(item, actualCount)))) return;
+                totalCost += price * lots;
+                toGive.add(new ItemStack(item, actualCount));
+                toRemove.add(new ItemCost(item, actualCount));
             }
 
             if (toGive.isEmpty()) return;

@@ -19,6 +19,7 @@ import org.dawnoftime.onceuponatown.datapack.EraTransitionDef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -55,6 +56,10 @@ public class Town {
     private final List<Quest> activeQuests = new ArrayList<>();
     // NOTE quest def IDs that have already been shown. Once a NOTE is dismissed it never spawns again.
     private final Set<String> dismissedNoteIds = new HashSet<>();
+
+    // Sliding window of the last 20 activity events; persisted to NBT.
+    private final ArrayDeque<TownLogEntry> activityLog = new ArrayDeque<>();
+    private static final int LOG_MAX = 20;
 
     // Player-ordered queue of construction tasks (new builds and upgrades).
     // Resources are pre-reserved in queueReservedStock when an entry is added.
@@ -596,6 +601,19 @@ public class Town {
     // Quest management
     // -------------------------------------------------------------------------
 
+    // -------------------------------------------------------------------------
+    // Activity log
+    // -------------------------------------------------------------------------
+
+    public void addLogEntry(TownLogEntry entry) {
+        if (activityLog.size() >= LOG_MAX) activityLog.pollFirst();
+        activityLog.addLast(entry);
+    }
+
+    public List<TownLogEntry> getActivityLog() {
+        return List.copyOf(activityLog);
+    }
+
     public List<Quest> getActiveQuests() { return Collections.unmodifiableList(activeQuests); }
 
     public void addQuest(Quest q) { activeQuests.add(q); }
@@ -605,38 +623,6 @@ public class Town {
     public Set<String> getDismissedNoteIds() { return Collections.unmodifiableSet(dismissedNoteIds); }
 
     public void addDismissedNote(String defId) { dismissedNoteIds.add(defId); }
-
-    // Extended accepted set: production items + items needed by active DELIVERY quests.
-    public Set<Item> buildAcceptedItemSetWithQuests() {
-        Set<Item> accepted = buildAcceptedItemSet();
-        for (Quest q : activeQuests) {
-            for (Quest.Condition c : q.conditions) {
-                if ("DELIVERY".equals(c.type) && c.item != null && c.received < c.required) {
-                    accepted.add(c.item);
-                }
-            }
-        }
-        return accepted;
-    }
-
-    // Applies deposited units to matching DELIVERY quest conditions.
-    // Returns total units consumed across all matching conditions.
-    public int applyToDeliveryQuests(Item item, int amount) {
-        int totalConsumed = 0;
-        for (Quest q : activeQuests) {
-            for (Quest.Condition c : q.conditions) {
-                if ("DELIVERY".equals(c.type) && c.item == item) {
-                    int needed  = c.required - c.received;
-                    int consume = Math.min(needed, amount - totalConsumed);
-                    if (consume > 0) {
-                        c.received  += consume;
-                        totalConsumed += consume;
-                    }
-                }
-            }
-        }
-        return totalConsumed;
-    }
 
     // Tries to add item to town stock without checking the accepted set.
     // Used after quest consumption to route any remainder into stock.
@@ -784,6 +770,17 @@ public class Town {
         ListTag dismissedTag = new ListTag();
         dismissedNoteIds.forEach(id -> dismissedTag.add(StringTag.valueOf(id)));
         tag.put("DismissedNotes", dismissedTag);
+        if (!activityLog.isEmpty()) {
+            ListTag logTag = new ListTag();
+            for (TownLogEntry e : activityLog) {
+                CompoundTag lt = new CompoundTag();
+                lt.putString("Type", e.type().name());
+                lt.putString("Param", e.param());
+                lt.putLong("Tick", e.gameTick());
+                logTag.add(lt);
+            }
+            tag.put("ActivityLog", logTag);
+        }
         if (!activeBuilds.isEmpty()) {
             CompoundTag activeBuildsTag = new CompoundTag();
             activeBuilds.forEach((slot, state) -> activeBuildsTag.put(String.valueOf(slot), activeBuildStateToNbt(state)));
@@ -868,6 +865,15 @@ public class Town {
         if (tag.contains("DismissedNotes")) {
             tag.getList("DismissedNotes", Tag.TAG_STRING)
                 .forEach(t -> town.dismissedNoteIds.add(t.getAsString()));
+        }
+        if (tag.contains("ActivityLog")) {
+            tag.getList("ActivityLog", Tag.TAG_COMPOUND).forEach(t -> {
+                CompoundTag lt = (CompoundTag) t;
+                try {
+                    TownLogEntry.TownLogType type = TownLogEntry.TownLogType.valueOf(lt.getString("Type"));
+                    town.activityLog.addLast(new TownLogEntry(type, lt.getString("Param"), lt.getLong("Tick")));
+                } catch (IllegalArgumentException ignored) {}
+            });
         }
         if (tag.contains("ActiveBuilds")) {
             CompoundTag activeBuildsTag = tag.getCompound("ActiveBuilds");

@@ -13,4 +13,5 @@ public class TownHubClientState {
     public static @Nullable CompoundTag pendingQuestUpdate;
     public static @Nullable CompoundTag pendingEraUpdate;
     public static @Nullable CompoundTag pendingCitizenUpdate;
+    public static @Nullable CompoundTag pendingLogEntry;
 }

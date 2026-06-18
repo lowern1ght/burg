@@ -37,9 +37,7 @@ public record C2SDepositPacket(BlockPos anchorPos) {
 
             Town town = LevelTowns.get(level).getTownAt(packet.anchorPos()).orElse(null);
             if (town == null) return;
-            // Extended set includes quest items; base set is production items only (for routing)
-            Set<Item> acceptedWithQuests = town.buildAcceptedItemSetWithQuests();
-            Set<Item> productionItems    = town.buildAcceptedItemSet();
+            Set<Item> productionItems = town.buildAcceptedItemSet();
             SimpleContainer deposit = menu.getDepositContainer();
 
             boolean changed = false;
@@ -48,26 +46,16 @@ public record C2SDepositPacket(BlockPos anchorPos) {
                 ItemStack stack = deposit.getItem(i);
                 if (stack.isEmpty()) continue;
                 Item item = stack.getItem();
-                // Items not accepted by the village (no quest, not produced) stay in the slot
-                if (!acceptedWithQuests.contains(item)) continue;
+                if (!productionItems.contains(item)) continue;
 
                 changed = true;
                 int count = stack.getCount();
-                int remaining = count;
 
-                // Accumulate emerald reward for each accepted item
                 int sellPrice = TradePriceDataHandler.getSellPrice(item);
-                if (sellPrice > 0) totalEmeralds += sellPrice * count;
+                int quantity  = TradePriceDataHandler.getQuantity(item);
+                if (sellPrice > 0) totalEmeralds += sellPrice * (count / quantity);
 
-                // Step 1: consume units needed by active DELIVERY quests
-                remaining -= town.applyToDeliveryQuests(item, remaining);
-
-                // Step 2: route remainder to village stock if this item is produced by the village
-                if (remaining > 0 && productionItems.contains(item)) {
-                    town.tryAddToStockUnchecked(item, remaining);
-                }
-                // Step 3: any remaining amount is absorbed (consumed but not stored)
-
+                town.tryAddToStockUnchecked(item, count);
                 deposit.setItem(i, ItemStack.EMPTY);
             }
 

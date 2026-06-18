@@ -27,7 +27,7 @@ public class TradePriceDataHandler {
     private static final Gson GSON = new GsonBuilder().create();
     private static final Logger LOGGER = LoggerFactory.getLogger(TradePriceDataHandler.class);
 
-    // int[0] = buy price, int[1] = sell price
+    // int[0] = buy price, int[1] = sell price, int[2] = lot quantity (default 1)
     private static Map<Item, int[]> PRICE_MAP = Collections.emptyMap();
 
     public static void reload(MinecraftServer server) {
@@ -42,14 +42,15 @@ public class TradePriceDataHandler {
                     for (var el : json.getAsJsonArray("prices")) {
                         JsonObject obj = el.getAsJsonObject();
                         String itemId = obj.get("item").getAsString();
-                        int buy  = obj.get("buy").getAsInt();
-                        int sell = obj.get("sell").getAsInt();
+                        int buy      = obj.get("buy").getAsInt();
+                        int sell     = obj.get("sell").getAsInt();
+                        int quantity = obj.has("quantity") ? Math.max(1, obj.get("quantity").getAsInt()) : 1;
                         Item item = BuiltInRegistries.ITEM.getOptional(new ResourceLocation(itemId)).orElse(null);
                         if (item == null) {
                             LOGGER.warn("[OUAT] trade_prices.json: unknown item '{}', skipping", itemId);
                             continue;
                         }
-                        newMap.put(item, new int[]{ buy, sell });
+                        newMap.put(item, new int[]{ buy, sell, quantity });
                     }
                 }
             } catch (Exception e) {
@@ -71,6 +72,11 @@ public class TradePriceDataHandler {
         return p != null ? p[1] : 0;
     }
 
+    public static int getQuantity(Item item) {
+        int[] p = PRICE_MAP.get(item);
+        return p != null ? p[2] : 1;
+    }
+
     public static boolean isTradeable(Item item) {
         return PRICE_MAP.containsKey(item);
     }
@@ -83,6 +89,7 @@ public class TradePriceDataHandler {
             CompoundTag entry = new CompoundTag();
             entry.putInt("buy", prices[0]);
             entry.putInt("sell", prices[1]);
+            entry.putInt("quantity", prices[2]);
             tag.put(id, entry);
         });
         return tag;
