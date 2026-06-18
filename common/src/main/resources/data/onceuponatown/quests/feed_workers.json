@@ -4,10 +4,10 @@
   "icon": "minecraft:bread",
   "title": "quest.onceuponatown.feed_workers.title",
   "description": "quest.onceuponatown.feed_workers.desc",
-  "spawn_weight": 10,
+  "spawn_weight": 1,
   "duration_ticks": 12000,
   "conditions": [
-    { "type": "DELIVERY", "item": "minecraft:bread", "required": 10 }
+    { "type": "DELIVERY", "item": "minecraft:bread", "required": 10, "send_to_stock": false }
   ],
   "reward": { "type": "PLAYER", "item": "minecraft:emerald", "amount": 1 }
 }

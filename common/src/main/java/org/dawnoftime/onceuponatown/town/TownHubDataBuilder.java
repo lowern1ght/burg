@@ -96,7 +96,7 @@ public class TownHubDataBuilder {
         CompoundTag summaryData = new CompoundTag();
         summaryData.putString("Orientation", orientation);
         int totalRes = town.getTotalResidents();
-        int foodDemand = (int) Math.ceil(town.computeTotalFoodDemandFloat());
+        int foodDemand = (int) Math.ceil(town.computeTotalFoodDemandFloat()) * FoodRegistry.getFeedingSchedule().size();
         int totalHerd = town.getTotalHerd();
         int activeHerd = town.getActiveHerd();
         summaryData.putInt("TotalResidents", totalRes);
@@ -112,6 +112,7 @@ public class TownHubDataBuilder {
         hub.putInt("ActiveHerd", activeHerd);
 
         hub.put("Quests", buildQuestsTag());
+        hub.put("ActivityLog", buildActivityLogTag());
         return hub;
     }
 
@@ -192,7 +193,7 @@ public class TownHubDataBuilder {
         tag.put("AnchorPos", NbtUtils.writeBlockPos(anchorPos));
         tag.putInt("TotalResidents", town.getTotalResidents());
         tag.putInt("ActiveResidents", town.getActiveResidents());
-        tag.putInt("TotalFoodDemand", (int) Math.ceil(town.computeTotalFoodDemandFloat()));
+        tag.putInt("TotalFoodDemand", (int) Math.ceil(town.computeTotalFoodDemandFloat()) * FoodRegistry.getFeedingSchedule().size());
         tag.putInt("TotalHerd", town.getTotalHerd());
         tag.putInt("ActiveHerd", town.getActiveHerd());
         return tag;
@@ -300,6 +301,7 @@ public class TownHubDataBuilder {
         dt.putString("IconItem", def.iconItem);
         dt.putString("Nbt", def.nbt.toString());
         dt.putBoolean("HasBuilt", town.getBuildings().stream().anyMatch(b -> b.defId.equals(def.id)));
+        dt.putInt("BuiltCount", (int) town.getBuildings().stream().filter(b -> b.defId.equals(def.id)).count());
         if (!def.nbtLevels.isEmpty()) {
             ListTag nbtLevelsTag = new ListTag();
             for (BuildingDef.NbtLevel nl : def.nbtLevels) {
@@ -566,6 +568,18 @@ public class TownHubDataBuilder {
         el.putString("BuildingCategory", "town_center");
         el.put("Production", new ListTag());
         return el;
+    }
+
+    private ListTag buildActivityLogTag() {
+        ListTag logTag = new ListTag();
+        for (TownLogEntry e : town.getActivityLog()) {
+            CompoundTag lt = new CompoundTag();
+            lt.putString("Type", e.type().name());
+            lt.putString("Param", e.param());
+            lt.putLong("Tick", e.gameTick());
+            logTag.add(lt);
+        }
+        return logTag;
     }
 
     // Rotates a footprint grid (rows of '0'/'1' chars) by the given Rotation enum value.

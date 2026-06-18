@@ -13,19 +13,19 @@ import java.util.function.Consumer;
 
 public class EraProgressDraggableWidget extends DraggableWidget {
 
-    public static final int WIDGET_W         = 240;
-    private static final int WIDGET_W_SINGLE = 180;
-
-    private static final int COLOR_MET          = 0xFF55CC55;
-    private static final int COLOR_UNMET        = 0xFF555555;
-    private static final int COLOR_TEXT         = 0xFFCCCCCC;
-    private static final int COLOR_DIM          = 0xFF888888;
-    private static final int COLOR_HEADER       = 0xFF888888;
-    private static final int COLOR_CARD_BG      = 0xFF1A1A1A;
-    private static final int COLOR_CARD_SEL     = 0xFF223322;
-    private static final int COLOR_CARD_BORDER  = 0xFF55AA55;
-    private static final int CARD_PADDING       = 5;
-    private static final int BTN_H              = 12;
+    private static final int COLOR_MET         = 0xFF55CC55;
+    private static final int COLOR_UNMET       = 0xFF555555;
+    private static final int COLOR_TEXT        = 0xFFCCCCCC;
+    private static final int COLOR_DIM         = 0xFF888888;
+    private static final int COLOR_CARD_BG     = 0xFF1A1A1A;
+    private static final int COLOR_CARD_SEL    = 0xFF223322;
+    private static final int COLOR_CARD_BORDER = 0xFF55AA55;
+    private static final int CARD_PADDING      = 8;
+    private static final int BTN_H             = 12;
+    private static final int ADVANCE_BTN_H     = 14;
+    private static final int ADVANCE_BTN_GAP   = 6;
+    private static final int GAP_BETWEEN_CARDS = 6;
+    private static final int OUTER_PADDING     = 4;
 
     public record CostRow(String itemId, int amount, int have) {}
     public record ReqBuildRow(String defId, int count, int have) {}
@@ -64,13 +64,10 @@ public class EraProgressDraggableWidget extends DraggableWidget {
 
     private int contentHeight = 0;
     private final List<CardBounds> cardBounds = new ArrayList<>();
-    private final List<int[]> selectBtnBounds = new ArrayList<>(); // {x, y, w, h, cardIdx}
+    private final List<int[]> selectBtnBounds = new ArrayList<>();
+    private int[] advanceBtnBounds = null;
 
     private record CardBounds(int x, int y, int w, int h, int cardIndex) {}
-
-    private static int computeWidgetW(List<EraPathOption> options) {
-        return options.size() == 1 ? WIDGET_W_SINGLE : WIDGET_W;
-    }
 
     public EraProgressDraggableWidget(int x, int y, int freeZoneMaxX, int screenH,
                                        int currentEra, List<EraPathOption> pathOptions,
@@ -94,65 +91,67 @@ public class EraProgressDraggableWidget extends DraggableWidget {
     }
 
     // -------------------------------------------------------------------------
-    // Layout computation (single source of truth for card height)
+    // Layout computation
     // -------------------------------------------------------------------------
 
-    private static int computeUnifiedCardH(EraPathOption opt) {
+    private static int maxCondTextW(EraPathOption opt) {
+        var font = Minecraft.getInstance().font;
+        int max = font.width(opt.currentWeight() + "/" + opt.maxWeight() + " weight");
+        for (CostRow cr : opt.resourceCost())
+            max = Math.max(max, font.width(cr.have() + "/" + cr.amount() + " " + formatItemId(cr.itemId())));
+        if (opt.requiredResidents() > 0)
+            max = Math.max(max, font.width(opt.activeResidents() + "/" + opt.requiredResidents() + " residents"));
+        for (ReqBuildRow rb : opt.requiredBuildings())
+            max = Math.max(max, font.width(rb.have() + "/" + rb.count() + " " + formatBuildingId(rb.defId())));
+        return max;
+    }
+
+    private static int computeCardW(EraPathOption opt) {
+        var font = Minecraft.getInstance().font;
+        int headerW = 18 + font.width(opt.orientationLabel()); // icon(16) + gap(2) + label
+        int condBlockW = 4 + 3 + maxCondTextW(opt);           // square + gap + longest text
+        return Math.max(headerW, condBlockW) + CARD_PADDING * 2;
+    }
+
+    public static int computeWidgetW(List<EraPathOption> options) {
+        if (options.isEmpty()) return 160;
+        int total = OUTER_PADDING * 2;
+        for (int i = 0; i < options.size(); i++) {
+            total += computeCardW(options.get(i));
+            if (i < options.size() - 1) total += GAP_BETWEEN_CARDS;
+        }
+        var font = Minecraft.getInstance().font;
+        int minForTitle = font.width("Era Progress") + 40;
+        return Math.max(total, minForTitle);
+    }
+
+    private static int computeCardH(EraPathOption opt) {
         int h = CARD_PADDING;
-        h += 10 + 5 + 4; // icon+name row, gap, pre-requirements gap
-        h += 8 + 2;      // "Requirements:" label + gap
-        h += 11;         // weight row
+        h += 10 + 8; // icon+name row + gap
+        h += 11;     // weight row
         h += opt.resourceCost().size() * 11;
         if (opt.requiredResidents() > 0) h += 11;
         h += opt.requiredBuildings().size() * 11;
-        h += 5 + BTN_H;  // gap + Select button
+        h += 5 + BTN_H;
         h += CARD_PADDING;
         return h;
     }
 
     private static int computeContentH(List<EraPathOption> options) {
         if (options.isEmpty()) return 30;
-        int maxCardH = options.stream().mapToInt(EraProgressDraggableWidget::computeUnifiedCardH).max().orElse(60);
-        return 4 + maxCardH + 8;
+        int maxCardH = options.stream().mapToInt(EraProgressDraggableWidget::computeCardH).max().orElse(60);
+        return OUTER_PADDING + maxCardH + ADVANCE_BTN_GAP + ADVANCE_BTN_H + OUTER_PADDING;
     }
 
     // -------------------------------------------------------------------------
-    // Titlebar extras: "Advance Era" button
+    // Titlebar: Advance Era button is in the content area
     // -------------------------------------------------------------------------
 
     @Override
-    protected void renderTitleBarExtras(GuiGraphics g, int mouseX, int mouseY) {
-        if (pathOptions.isEmpty()) return;
-        var font = Minecraft.getInstance().font;
-        String btnText = "Advance Era";
-        int btnW = font.width(btnText) + 6;
-        int btnX = closeBtnX() - 2 - btnW;
-        boolean canAdvance = getActivePrereqsMet();
-        boolean hover = canAdvance && mouseX >= btnX && mouseX < btnX + btnW
-            && mouseY >= y && mouseY < y + TITLE_BAR_H;
-        int bgColor = canAdvance ? (hover ? 0xFF338833 : 0xFF225522) : 0xFF222222;
-        g.fill(btnX, y + 1, btnX + btnW, y + TITLE_BAR_H - 1, bgColor);
-        g.drawString(font, btnText, btnX + 3, y + 2, canAdvance ? 0xFF88FF88 : 0xFF555555, false);
-    }
+    protected void renderTitleBarExtras(GuiGraphics g, int mouseX, int mouseY) {}
 
     @Override
     protected boolean onTitleBarClick(double mouseX, double mouseY) {
-        if (pathOptions.isEmpty()) return false;
-        var font = Minecraft.getInstance().font;
-        String btnText = "Advance Era";
-        int btnW = font.width(btnText) + 6;
-        int btnX = closeBtnX() - 2 - btnW;
-        if (mouseX >= btnX && mouseX < btnX + btnW
-                && mouseY >= y && mouseY < y + TITLE_BAR_H) {
-            if (getActivePrereqsMet()) {
-                if (pathOptions.size() == 1) {
-                    onAdvance.accept(pathOptions.get(0).id());
-                } else if (selectedPathId != null) {
-                    onAdvance.accept(selectedPathId);
-                }
-            }
-            return true;
-        }
         return false;
     }
 
@@ -169,7 +168,7 @@ public class EraProgressDraggableWidget extends DraggableWidget {
     }
 
     // -------------------------------------------------------------------------
-    // Content rendering (unified layout for 1 or N cards)
+    // Content rendering
     // -------------------------------------------------------------------------
 
     @Override
@@ -183,27 +182,40 @@ public class EraProgressDraggableWidget extends DraggableWidget {
 
         cardBounds.clear();
         selectBtnBounds.clear();
+        advanceBtnBounds = null;
 
         if (pathOptions.isEmpty()) {
-            g.drawString(font, "No transitions available", cx + 4, cy + 10, COLOR_DIM, false);
+            g.drawString(font, "No transitions available", cx + OUTER_PADDING, cy + 10, COLOR_DIM, false);
             return;
         }
 
-        int maxCardH = pathOptions.stream().mapToInt(EraProgressDraggableWidget::computeUnifiedCardH).max().orElse(60);
+        int maxCardH = pathOptions.stream().mapToInt(EraProgressDraggableWidget::computeCardH).max().orElse(60);
         boolean multiPath = pathOptions.size() > 1;
 
-        int cardCount = pathOptions.size();
-        int gapBetween = 6;
-        int totalGaps = (cardCount - 1) * gapBetween + 8;
-        int cardW = (cw - totalGaps) / cardCount;
-
-        for (int ci = 0; ci < cardCount; ci++) {
+        int xCursor = cx + OUTER_PADDING;
+        for (int ci = 0; ci < pathOptions.size(); ci++) {
             EraPathOption opt = pathOptions.get(ci);
-            int cardX = cx + 4 + ci * (cardW + gapBetween);
-            int cardY = cy + 4;
+            int cardW = computeCardW(opt);
             boolean selected = opt.id().equals(selectedPathId);
-            renderCard(g, font, cardX, cardY, cardW, maxCardH, mx, my, opt, ci, selected, multiPath);
+            renderCard(g, font, xCursor, cy + OUTER_PADDING, cardW, maxCardH, mx, my, opt, ci, selected, multiPath);
+            xCursor += cardW + GAP_BETWEEN_CARDS;
         }
+
+        // Advance Era button below the cards
+        int advBtnY = cy + OUTER_PADDING + maxCardH + ADVANCE_BTN_GAP;
+        int advBtnW = cw - OUTER_PADDING * 2;
+        int advBtnX = cx + OUTER_PADDING;
+        boolean canAdvance = getActivePrereqsMet();
+        boolean advHover = canAdvance && mx >= advBtnX && mx < advBtnX + advBtnW
+                && my >= advBtnY && my < advBtnY + ADVANCE_BTN_H;
+        int advBgColor = canAdvance ? (advHover ? 0xFF338833 : 0xFF225522) : 0xFF222222;
+        g.fill(advBtnX, advBtnY, advBtnX + advBtnW, advBtnY + ADVANCE_BTN_H, advBgColor);
+        String advText = "Advance Era";
+        g.drawString(font, advText,
+                advBtnX + (advBtnW - font.width(advText)) / 2,
+                advBtnY + (ADVANCE_BTN_H - 8) / 2,
+                canAdvance ? 0xFF88FF88 : 0xFF555555, false);
+        advanceBtnBounds = new int[]{ advBtnX, advBtnY, advBtnW, ADVANCE_BTN_H };
     }
 
     private void renderCard(GuiGraphics g, net.minecraft.client.gui.Font font,
@@ -213,65 +225,65 @@ public class EraProgressDraggableWidget extends DraggableWidget {
         boolean hover = mx >= cx && mx < cx + cw && my >= cy && my < cy + fixedH;
         g.fill(cx, cy, cx + cw, cy + fixedH, selected ? COLOR_CARD_SEL : COLOR_CARD_BG);
         if (selected || hover) {
-            g.fill(cx,           cy,              cx + cw,     cy + 1,           COLOR_CARD_BORDER);
-            g.fill(cx,           cy + fixedH - 1, cx + cw,     cy + fixedH,      COLOR_CARD_BORDER);
-            g.fill(cx,           cy,              cx + 1,      cy + fixedH,      COLOR_CARD_BORDER);
-            g.fill(cx + cw - 1, cy,               cx + cw,     cy + fixedH,      COLOR_CARD_BORDER);
+            g.fill(cx,           cy,              cx + cw,    cy + 1,           COLOR_CARD_BORDER);
+            g.fill(cx,           cy + fixedH - 1, cx + cw,    cy + fixedH,      COLOR_CARD_BORDER);
+            g.fill(cx,           cy,              cx + 1,     cy + fixedH,      COLOR_CARD_BORDER);
+            g.fill(cx + cw - 1, cy,               cx + cw,    cy + fixedH,      COLOR_CARD_BORDER);
         }
 
         cardBounds.add(new CardBounds(cx, cy, cw, fixedH, cardIdx));
 
         int rowY = cy + CARD_PADDING;
 
-        renderItemIcon(g, opt.iconItem(), cx + CARD_PADDING, rowY);
-        g.drawString(font, opt.orientationLabel(), cx + CARD_PADDING + 18, rowY + 3, 0xFFEEEEEE, false);
-        rowY += 10 + 5 + 4;
+        // Icon + label, centered as a unit
+        int iconNameW = 18 + font.width(opt.orientationLabel());
+        int iconX = cx + (cw - iconNameW) / 2;
+        renderItemIcon(g, opt.iconItem(), iconX, rowY);
+        g.drawString(font, opt.orientationLabel(), iconX + 18, rowY + 3, 0xFFEEEEEE, false);
+        rowY += 10 + 8;
 
-        g.drawString(font, "Requirements:", cx + CARD_PADDING, rowY, COLOR_HEADER, false);
-        rowY += 8 + 2;
+        // Condition block: all squares share the same x axis, block centered in the card
+        int maxTW = maxCondTextW(opt);
+        int blockW = 4 + 3 + maxTW;
+        int blockX = cx + (cw - blockW) / 2;
 
-        renderCondRow(g, font, cx + CARD_PADDING, rowY,
-            opt.currentWeight() + "/" + opt.maxWeight() + " weight", opt.weightMet());
+        String weightText = opt.currentWeight() + "/" + opt.maxWeight() + " weight";
+        renderCondRow(g, font, blockX, rowY, weightText, opt.weightMet());
         rowY += 11;
 
         for (CostRow cr : opt.resourceCost()) {
-            renderCondRow(g, font, cx + CARD_PADDING, rowY,
-                cr.amount() + "x " + formatItemId(cr.itemId()), cr.have() >= cr.amount());
+            String text = cr.have() + "/" + cr.amount() + " " + formatItemId(cr.itemId());
+            renderCondRow(g, font, blockX, rowY, text, cr.have() >= cr.amount());
             rowY += 11;
         }
 
         if (opt.requiredResidents() > 0) {
-            renderCondRow(g, font, cx + CARD_PADDING, rowY,
-                opt.requiredResidents() + " residents", opt.residentsMet());
+            String text = opt.activeResidents() + "/" + opt.requiredResidents() + " residents";
+            renderCondRow(g, font, blockX, rowY, text, opt.residentsMet());
             rowY += 11;
         }
 
         for (ReqBuildRow rb : opt.requiredBuildings()) {
-            renderCondRow(g, font, cx + CARD_PADDING, rowY,
-                rb.count() + "x " + formatBuildingId(rb.defId()), rb.have() >= rb.count());
+            String text = rb.have() + "/" + rb.count() + " " + formatBuildingId(rb.defId());
+            renderCondRow(g, font, blockX, rowY, text, rb.have() >= rb.count());
             rowY += 11;
         }
 
-        // Select button anchored to the bottom of fixedH
-        int btnY  = cy + fixedH - CARD_PADDING - BTN_H;
-        int btnW  = cw - CARD_PADDING * 2;
-        int btnX  = cx + CARD_PADDING;
+        // Select button, stretches to card width with padding
+        int btnY = cy + fixedH - CARD_PADDING - BTN_H;
+        int btnW = cw - CARD_PADDING * 2;
+        int btnX = cx + CARD_PADDING;
         boolean isSelected = opt.id().equals(selectedPathId);
-        boolean btnHover   = selectable && mx >= btnX && mx < btnX + btnW && my >= btnY && my < btnY + BTN_H;
+        boolean btnHover = selectable && mx >= btnX && mx < btnX + btnW && my >= btnY && my < btnY + BTN_H;
 
         int btnColor;
-        if (!selectable) {
-            btnColor = 0xFF222222;
-        } else if (isSelected) {
-            btnColor = btnHover ? 0xFF55AA55 : 0xFF336633;
-        } else {
-            btnColor = btnHover ? 0xFF555555 : 0xFF333333;
-        }
+        if (!selectable)       btnColor = 0xFF222222;
+        else if (isSelected)   btnColor = btnHover ? 0xFF55AA55 : 0xFF336633;
+        else                   btnColor = btnHover ? 0xFF555555 : 0xFF333333;
 
         g.fill(btnX, btnY, btnX + btnW, btnY + BTN_H, btnColor);
         String btnText      = (!selectable || isSelected) ? "Selected" : "Select";
-        int    btnTextColor = (!selectable || isSelected) ? 0xFF88FF88 : 0xFFCCCCCC;
-        if (!selectable) btnTextColor = 0xFF444444;
+        int    btnTextColor = !selectable ? 0xFF444444 : (isSelected ? 0xFF88FF88 : 0xFFCCCCCC);
         g.drawString(font, btnText, btnX + (btnW - font.width(btnText)) / 2, btnY + 2, btnTextColor, false);
         selectBtnBounds.add(new int[]{ btnX, btnY, btnW, BTN_H, cardIdx });
     }
@@ -295,10 +307,23 @@ public class EraProgressDraggableWidget extends DraggableWidget {
         } catch (Exception ignored) {}
     }
 
-
     @Override
     protected boolean contentMouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0) return isMouseOver(mouseX, mouseY);
+
+        if (advanceBtnBounds != null) {
+            int[] b = advanceBtnBounds;
+            if (mouseX >= b[0] && mouseX < b[0] + b[2] && mouseY >= b[1] && mouseY < b[1] + b[3]) {
+                if (getActivePrereqsMet()) {
+                    if (pathOptions.size() == 1) {
+                        onAdvance.accept(pathOptions.get(0).id());
+                    } else if (selectedPathId != null) {
+                        onAdvance.accept(selectedPathId);
+                    }
+                }
+                return true;
+            }
+        }
 
         if (pathOptions.size() > 1) {
             for (int[] bb : selectBtnBounds) {

@@ -61,7 +61,8 @@ public class QuestDataHandler {
                 conditions.add(new QuestDef.ConditionTemplate(
                     c.get("type").getAsString(),
                     c.has("item") ? c.get("item").getAsString() : null,
-                    c.has("required") ? c.get("required").getAsInt() : 0
+                    c.has("required") ? c.get("required").getAsInt() : 0,
+                    c.has("send_to_stock") && c.get("send_to_stock").getAsBoolean()
                 ));
             }
         }

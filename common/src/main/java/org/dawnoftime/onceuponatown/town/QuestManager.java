@@ -60,6 +60,7 @@ public class QuestManager {
             if (ct.item() != null) c.item = BuiltInRegistries.ITEM.get(new ResourceLocation(ct.item()));
             c.required = ct.required();
             c.received = 0;
+            c.sendToStock = ct.sendToStock();
             q.conditions.add(c);
         }
         if (def.reward() != null) {

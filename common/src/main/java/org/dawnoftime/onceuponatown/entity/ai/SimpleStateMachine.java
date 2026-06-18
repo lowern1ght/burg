@@ -1,8 +1,6 @@
 package org.dawnoftime.onceuponatown.entity.ai;
 
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
@@ -21,6 +19,8 @@ import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.PlacedBuilding;
 import org.dawnoftime.onceuponatown.town.QueueEntry;
 import org.dawnoftime.onceuponatown.town.Town;
+import org.dawnoftime.onceuponatown.town.TownLogEntry;
+import org.dawnoftime.onceuponatown.town.TownLogEntry.TownLogType;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -44,6 +44,8 @@ public class SimpleStateMachine {
     // DefIds that have already received a suppressed skip message this session.
     // Cleared when the defId is placed or falls out of the queue.
     private final Set<String> warnedDefIds = new HashSet<>();
+
+    private enum QueueScanResult { STARTED_BUILD, BLOCKED, ALL_CLAIMED, EMPTY }
 
     // -------------------------------------------------------------------------
     // Placement outcome: carries either a valid result or the reason for failure.
@@ -120,11 +122,8 @@ public class SimpleStateMachine {
 
         List<BoundingBox> occupied = town.getOccupiedBoxes();
 
-        // Only the primary builder (slot 0) expands streets as a fallback.
-        boolean isPrimaryBuilder = town.getBuilderSlot(npc.getUUID()) == 0;
-
-        tickPlayerQueue(serverLevel, town, freePoints, occupied);
-        if (current == State.IDLE && isPrimaryBuilder) {
+        QueueScanResult result = tickPlayerQueue(serverLevel, town, freePoints, occupied);
+        if (result == QueueScanResult.BLOCKED) {
             tickStreetsOnly(serverLevel, town, freePoints, occupied);
         }
     }
@@ -132,12 +131,16 @@ public class SimpleStateMachine {
     // Player-directed queue: advances a per-builder cursor rather than re-scanning from 0 each tick.
     // Cursor advances on every skip; resets to 0 when the full queue has been walked.
     // CPs are never removed on failure -- only a successful placement consumes a CP.
-    private void tickPlayerQueue(ServerLevel serverLevel, Town town,
-                                  List<ConnectionPoint> freePoints, List<BoundingBox> occupied) {
+    // Returns BLOCKED only when at least one unclaimed entry had no valid spatial placement,
+    // so the caller can trigger road expansion exactly when the village needs it.
+    private QueueScanResult tickPlayerQueue(ServerLevel serverLevel, Town town,
+                                             List<ConnectionPoint> freePoints, List<BoundingBox> occupied) {
         List<QueueEntry> queue = town.getConstructionQueue();
-        if (queue.isEmpty()) return;
+        if (queue.isEmpty()) return QueueScanResult.EMPTY;
 
         UUID myId = npc.getUUID();
+        boolean anyUnclaimed = false;
+        boolean anyBlocked = false;
 
         // Clear warnedDefIds for any defId no longer present in the queue.
         Set<String> activeDefIds = new HashSet<>();
@@ -152,6 +155,7 @@ public class SimpleStateMachine {
                 continue;
             }
 
+            anyUnclaimed = true;
             QueueEntry entry = queue.get(i);
 
             // Upgrade entries: walk to the building and run the visual diff.
@@ -165,16 +169,19 @@ public class SimpleStateMachine {
                     town.releaseQueueClaim(i, myId);
                     town.consumeQueueEntry(entry);
                     LevelTowns.get(serverLevel).markDirty();
-                    return;
+                    return QueueScanResult.STARTED_BUILD;
                 }
 
                 town.claimQueueEntry(i, myId);
                 activeBuild = new BuildGoal(npc, new UpgradeAction(building, def, upgradeEntry.fromLevel(), town));
                 activeQueueEntry = entry;
                 current = State.BUILD;
-                broadcastUpgradeStart(serverLevel, upgradeEntry.defId(), upgradeEntry.buildingWorldPos());
+                TownLogEntry upgradeStartLog = new TownLogEntry(TownLogType.UPGRADE_START, upgradeEntry.defId(), serverLevel.getGameTime());
+                town.addLogEntry(upgradeStartLog);
+                LevelTowns.get(serverLevel).markDirty();
+                NetworkHelper.pushLogEntryToWatchers(serverLevel, town, npc.getTownAnchorPos(), upgradeStartLog);
                 NetworkHelper.pushBuildingListToWatchers(serverLevel, town, npc.getTownAnchorPos());
-                return;
+                return QueueScanResult.STARTED_BUILD;
             }
 
             String defId = ((QueueEntry.NewBuild) entry).defId();
@@ -202,6 +209,7 @@ public class SimpleStateMachine {
             }
 
             if (matchingCps.isEmpty()) {
+                anyBlocked = true;
                 warnedDefIds.add(defId);
                 queueCursor = i + 1;
                 continue;
@@ -232,9 +240,12 @@ public class SimpleStateMachine {
                     }
                     current = State.BUILD;
                     warnedDefIds.remove(defId);
-                    broadcastBuildStart(serverLevel, defId, s.pos());
+                    TownLogEntry buildStartLog = new TownLogEntry(TownLogType.BUILD_START, defId, serverLevel.getGameTime());
+                    town.addLogEntry(buildStartLog);
+                    LevelTowns.get(serverLevel).markDirty();
+                    NetworkHelper.pushLogEntryToWatchers(serverLevel, town, npc.getTownAnchorPos(), buildStartLog);
                     NetworkHelper.pushBuildingListToWatchers(serverLevel, town, npc.getTownAnchorPos());
-                    return;
+                    return QueueScanResult.STARTED_BUILD;
                 }
                 if (outcome.failure() == FailReason.BOUNDING_BOX_OVERLAP)        bbOverlaps++;
                 else if (outcome.failure() == FailReason.NO_COMPATIBLE_CONNECTOR) noConnector++;
@@ -243,11 +254,16 @@ public class SimpleStateMachine {
             if (noConnector > 0 && bbOverlaps == 0) {
                 warnedDefIds.add(defId);
             }
+            anyBlocked = true;
             queueCursor = i + 1;
         }
 
         // Reached end of queue -- reset cursor so the next tick rescans from index 0.
         queueCursor = 0;
+
+        if (anyBlocked) return QueueScanResult.BLOCKED;
+        if (!anyUnclaimed) return QueueScanResult.ALL_CLAIMED;
+        return QueueScanResult.ALL_CLAIMED;
     }
 
     // Extends the road network by one segment. Called only when the player queue has entries
@@ -266,7 +282,12 @@ public class SimpleStateMachine {
         streetCps.sort(java.util.Comparator.comparingLong(cp -> cp.pos().asLong()));
 
         if (streetCps.isEmpty() || streetCandidates.isEmpty()) {
-            broadcastVillageFullIfNeeded(serverLevel, town);
+            if (town.checkVillageFullTransition()) {
+                TownLogEntry fullLog = new TownLogEntry(TownLogType.VILLAGE_FULL, "", serverLevel.getGameTime());
+                town.addLogEntry(fullLog);
+                LevelTowns.get(serverLevel).markDirty();
+                NetworkHelper.pushLogEntryToWatchers(serverLevel, town, npc.getTownAnchorPos(), fullLog);
+            }
             return;
         }
 
@@ -293,13 +314,21 @@ public class SimpleStateMachine {
                     LevelTowns.get(serverLevel).markDirty();
                 }
                 current = State.BUILD;
-                broadcastBuildStart(serverLevel, candidate.id, s.pos());
+                TownLogEntry streetStartLog = new TownLogEntry(TownLogType.BUILD_START, candidate.id, serverLevel.getGameTime());
+                town.addLogEntry(streetStartLog);
+                LevelTowns.get(serverLevel).markDirty();
+                NetworkHelper.pushLogEntryToWatchers(serverLevel, town, npc.getTownAnchorPos(), streetStartLog);
                 NetworkHelper.pushBuildingListToWatchers(serverLevel, town, npc.getTownAnchorPos());
                 return;
             }
         }
 
-        broadcastVillageFullIfNeeded(serverLevel, town);
+        if (town.checkVillageFullTransition()) {
+            TownLogEntry fullLog = new TownLogEntry(TownLogType.VILLAGE_FULL, "", serverLevel.getGameTime());
+            town.addLogEntry(fullLog);
+            LevelTowns.get(serverLevel).markDirty();
+            NetworkHelper.pushLogEntryToWatchers(serverLevel, town, npc.getTownAnchorPos(), fullLog);
+        }
     }
 
     // Attempts to find a valid placement for a building at a given connection point.
@@ -384,8 +413,14 @@ public class SimpleStateMachine {
                     int claimIdx = qTown.getConstructionQueue().indexOf(activeQueueEntry);
                     if (claimIdx >= 0) qTown.releaseQueueClaim(claimIdx, npc.getUUID());
                     String placedDefId = activeQueueEntry instanceof QueueEntry.NewBuild nb ? nb.defId() : null;
+                    TownLogType doneType = activeQueueEntry instanceof QueueEntry.Upgrade ? TownLogType.UPGRADE_DONE : TownLogType.BUILD_DONE;
+                    String doneDefId = activeQueueEntry instanceof QueueEntry.NewBuild nb2 ? nb2.defId()
+                        : activeQueueEntry instanceof QueueEntry.Upgrade u2 ? u2.defId() : "";
                     qTown.consumeQueueEntry(activeQueueEntry);
                     if (placedDefId != null) qTown.onBuildingPlaced(placedDefId);
+                    TownLogEntry doneLog = new TownLogEntry(doneType, doneDefId, sl.getGameTime());
+                    qTown.addLogEntry(doneLog);
+                    NetworkHelper.pushLogEntryToWatchers(sl, qTown, npc.getTownAnchorPos(), doneLog);
                     LevelTowns.get(sl).markDirty();
                 } else if (activeBuild.isFailed() && activeQueueEntry != null && qTown != null) {
                     // Release claim on failure so another builder can attempt this entry.
@@ -417,46 +452,6 @@ public class SimpleStateMachine {
             buildStateTicks = 0;
             current = State.IDLE;
         }
-    }
-
-    private void broadcastSkipMessage(ServerLevel level, String townName, String message) {
-        Component msg = Component.literal("[" + townName + "] ")
-            .withStyle(ChatFormatting.GOLD)
-            .append(Component.literal(message).withStyle(ChatFormatting.WHITE));
-        level.getServer().getPlayerList().broadcastSystemMessage(msg, false);
-    }
-
-    private void broadcastVillageFullIfNeeded(ServerLevel level, Town town) {
-        if (!town.checkVillageFullTransition()) return;
-        Component msg = Component.literal("[" + town.getName() + "] ")
-            .withStyle(ChatFormatting.GOLD)
-            .append(Component.literal("has no connection points left. The village cannot expand further.")
-                .withStyle(ChatFormatting.WHITE));
-        level.getServer().getPlayerList().broadcastSystemMessage(msg, false);
-    }
-
-    private void broadcastBuildStart(ServerLevel level, String buildingId, BlockPos pos) {
-        Component msg = Component.literal("[Town] ")
-            .withStyle(ChatFormatting.GOLD)
-            .append(Component.literal("Builder started: ")
-                .withStyle(ChatFormatting.WHITE))
-            .append(Component.literal(buildingId)
-                .withStyle(ChatFormatting.YELLOW))
-            .append(Component.literal(" @ " + pos.toShortString())
-                .withStyle(ChatFormatting.GRAY));
-        level.getServer().getPlayerList().broadcastSystemMessage(msg, false);
-    }
-
-    private void broadcastUpgradeStart(ServerLevel level, String buildingId, BlockPos pos) {
-        Component msg = Component.literal("[Town] ")
-            .withStyle(ChatFormatting.GOLD)
-            .append(Component.literal("Upgrading: ")
-                .withStyle(ChatFormatting.WHITE))
-            .append(Component.literal(buildingId)
-                .withStyle(ChatFormatting.YELLOW))
-            .append(Component.literal(" @ " + pos.toShortString())
-                .withStyle(ChatFormatting.GRAY));
-        level.getServer().getPlayerList().broadcastSystemMessage(msg, false);
     }
 
     private Town findTown(ServerLevel level) {

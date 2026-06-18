@@ -46,6 +46,7 @@ import org.dawnoftime.onceuponatown.network.C2SAdvanceEraPacket;
 import org.dawnoftime.onceuponatown.network.C2SBuyPacket;
 import org.dawnoftime.onceuponatown.network.C2SClaimQuestPacket;
 import org.dawnoftime.onceuponatown.network.C2SDepositPacket;
+import org.dawnoftime.onceuponatown.network.C2SQuestDeliverPacket;
 import org.dawnoftime.onceuponatown.network.C2SQueueBuildingPacket;
 import org.dawnoftime.onceuponatown.network.C2SRemoveQueuedBuildingPacket;
 import org.dawnoftime.onceuponatown.network.C2SRequestStockPacket;
@@ -54,6 +55,7 @@ import org.dawnoftime.onceuponatown.network.NetworkHelper;
 import org.dawnoftime.onceuponatown.network.S2CBuildingDefsPacket;
 import org.dawnoftime.onceuponatown.network.S2CBuildingListPacket;
 import org.dawnoftime.onceuponatown.network.S2CCitizenUpdatePacket;
+import org.dawnoftime.onceuponatown.network.S2CLogEntryPacket;
 import org.dawnoftime.onceuponatown.network.S2CEraUpdatePacket;
 import org.dawnoftime.onceuponatown.network.S2CQuestUpdatePacket;
 import org.dawnoftime.onceuponatown.network.S2CStockUpdatePacket;
@@ -318,6 +320,29 @@ public class OuatForge {
             Optional.of(NetworkDirection.PLAY_TO_SERVER)
         );
 
+        CHANNEL.registerMessage(16,
+            C2SQuestDeliverPacket.class,
+            C2SQuestDeliverPacket::encode,
+            C2SQuestDeliverPacket::decode,
+            (msg, ctx) -> {
+                ctx.get().enqueueWork(() ->
+                    C2SQuestDeliverPacket.Handler.handle(msg, ctx.get().getSender()));
+                ctx.get().setPacketHandled(true);
+            },
+            Optional.of(NetworkDirection.PLAY_TO_SERVER)
+        );
+
+        CHANNEL.registerMessage(17,
+            S2CLogEntryPacket.class,
+            S2CLogEntryPacket::encode,
+            S2CLogEntryPacket::decode,
+            (msg, ctx) -> {
+                ctx.get().enqueueWork(() -> S2CLogEntryPacket.Handler.handle(msg));
+                ctx.get().setPacketHandled(true);
+            },
+            Optional.of(NetworkDirection.PLAY_TO_CLIENT)
+        );
+
         NetworkHelper.sendTownHubPacket = (player, data) ->
             CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CTownHubPacket(data));
 
@@ -339,6 +364,9 @@ public class OuatForge {
         NetworkHelper.sendCitizenUpdatePacket = (player, data) ->
             CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CCitizenUpdatePacket(data));
 
+        NetworkHelper.sendLogEntryPacket = (player, data) ->
+            CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CLogEntryPacket(data));
+
         NetworkHelper.sendRequestStockPacket = pos ->
             CHANNEL.sendToServer(new C2SRequestStockPacket(pos));
     }
@@ -347,6 +375,12 @@ public class OuatForge {
     static void wireBuyPacket() {
         NetworkHelper.sendBuyPacket = (pos, items) ->
             CHANNEL.sendToServer(new C2SBuyPacket(pos, items));
+    }
+
+    // Called from OuatForgeClient to wire the quest deliver packet sender
+    static void wireQuestDeliverPacket() {
+        NetworkHelper.sendQuestDeliverPacket = (pos, questId, condIdx, amount) ->
+            CHANNEL.sendToServer(new C2SQuestDeliverPacket(pos, questId, condIdx, amount));
     }
 
     @SuppressWarnings("unchecked")

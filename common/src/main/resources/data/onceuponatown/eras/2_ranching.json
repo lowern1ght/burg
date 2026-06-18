@@ -14,11 +14,12 @@
     { "item": "minecraft:cobblestone", "amount": 10 }
   ],
 
-  "required_residents": 5,
+  "required_residents": 4,
   "required_buildings": [
-    { "defId": "cow_field", "count": 2 }
+    { "defId": "oven", "count": 1 },
+    { "defId": "cow_field", "count": 1 }
   ],
-  "unlocked_building_ids": ["leather_workshop", "beekeeper", "pig_farm", "lone_place"],
+  "unlocked_building_ids": ["leather_workshop", "pig_farm", "lone_place"],
   "unlock_new_builder": true,
 
   "next_orientation": "ranching"

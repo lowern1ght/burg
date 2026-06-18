@@ -4,6 +4,6 @@
   "icon": "minecraft:paper",
   "title": "quest.onceuponatown.village_thriving.title",
   "description": "quest.onceuponatown.village_thriving.desc",
-  "spawn_weight": 10,
+  "spawn_weight": 1,
   "duration_ticks": 12000
 }

@@ -74,6 +74,7 @@ public class OuatForgeClient {
             NetworkHelper.sendClaimQuestPacket = (pos, questId) ->
                 OuatForge.CHANNEL.sendToServer(new C2SClaimQuestPacket(pos, questId));
             OuatForge.wireBuyPacket();
+            OuatForge.wireQuestDeliverPacket();
         });
     }
 
