@@ -12,7 +12,6 @@ import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FastColor;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import org.dawnoftime.onceuponatown.town.MapCategory;
@@ -327,7 +326,6 @@ public class TownMapWidget extends AbstractWidget {
             for (int x = minX; x <= maxX; x++) {
                 int diag = (x < maxX) ? ((x - minX) + dz) % STRIPE_SPACING : -1;
                 boolean yellow = diag >= 0 && diag >= STRIPE_WIDTH;
-                boolean black  = diag >= 0 && diag < STRIPE_WIDTH;
                 boolean cur = diag >= 0;
                 if (cur && runStart < 0) { runStart = x; runYellow = yellow; }
                 else if ((!cur || yellow != runYellow) && runStart >= 0) {

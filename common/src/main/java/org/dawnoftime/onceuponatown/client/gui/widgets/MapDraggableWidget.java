@@ -8,12 +8,10 @@ import java.util.function.Consumer;
 public class MapDraggableWidget extends DraggableWidget {
 
     private final TownMapWidget mapWidget;
-    private final CompoundTag mapData;
 
     public MapDraggableWidget(int x, int y, int width, int height,
                                int freeZoneMaxX, int screenH, CompoundTag mapData) {
         super(x, y, width, height, freeZoneMaxX, screenH);
-        this.mapData = mapData;
         this.mapWidget = new TownMapWidget(x, y + TITLE_BAR_H, width, height - TITLE_BAR_H, mapData);
     }
 

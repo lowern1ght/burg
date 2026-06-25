@@ -13,7 +13,6 @@ import org.dawnoftime.onceuponatown.building.schematic.SchematicEntity;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicReader;
 import org.dawnoftime.onceuponatown.building.terrain.TerrainCarver;
 import org.dawnoftime.onceuponatown.datapack.BuilderConfigDataHandler;
-import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.town.BuildingDef;
 import org.dawnoftime.onceuponatown.town.ConnectionPoint;

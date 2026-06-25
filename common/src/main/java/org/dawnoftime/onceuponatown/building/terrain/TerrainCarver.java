@@ -1,19 +1,16 @@
 package org.dawnoftime.onceuponatown.building.terrain;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.Vec3i;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.JigsawBlock;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import java.util.HashSet;
 import java.util.Set;
@@ -97,21 +94,6 @@ public class TerrainCarver {
         } catch (Exception e) {
             // silently ignored -- terrain fill failure does not block placement
         }
-    }
-
-    // Scans the world at floorY within the bounding box and collects every non-air (x,z) position.
-    // Run after NBT placement so the actual placed blocks are in the world.
-    private static Set<Long> buildSolidFootprint(ServerLevel level, int[] fp, int floorY) {
-        Set<Long> result = new HashSet<>();
-        for (int x = fp[0]; x <= fp[1]; x++) {
-            for (int z = fp[2]; z <= fp[3]; z++) {
-                BlockPos pos = new BlockPos(x, floorY, z);
-                if (level.isLoaded(pos) && !level.getBlockState(pos).isAir()) {
-                    result.add(packXZ(x, z));
-                }
-            }
-        }
-        return result;
     }
 
     // Expands the solid footprint by 1 block in all 4 cardinal directions.
@@ -304,22 +286,6 @@ public class TerrainCarver {
             }
         } catch (Exception e) {
             // silently ignored
-        }
-        return columns;
-    }
-
-    // Collects world XZ columns that lie one step ahead of each jigsaw connector in the template.
-    // These are connection faces — passC must not fill them so adjacent buildings can snap cleanly.
-    private static Set<Long> buildJigsawApproachColumns(StructureTemplate template, BlockPos origin, Rotation rotation) {
-        Set<Long> columns = new HashSet<>();
-        for (StructureTemplate.StructureBlockInfo info :
-                template.filterBlocks(BlockPos.ZERO, new StructurePlaceSettings(), Blocks.JIGSAW)) {
-            Direction localFacing = info.state().getValue(JigsawBlock.ORIENTATION).front();
-            Direction worldFacing = rotation.rotate(localFacing);
-            BlockPos rotatedRel = StructureTemplate.transform(info.pos(), Mirror.NONE, rotation, BlockPos.ZERO);
-            int jigsawWorldX = origin.getX() + rotatedRel.getX();
-            int jigsawWorldZ = origin.getZ() + rotatedRel.getZ();
-            columns.add(packXZ(jigsawWorldX + worldFacing.getStepX(), jigsawWorldZ + worldFacing.getStepZ()));
         }
         return columns;
     }

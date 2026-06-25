@@ -336,46 +336,7 @@ public class BuildSchematic {
         return false;
     }
 
-    // Repositions each dirt_path block to the true solid terrain surface.
-    // Removes the path first so OCEAN_FLOOR is not polluted by the path block itself,
-    // then re-places it at the correct Y. Clears non-solid residue (plants, leaves)
-    // up to 2 blocks above the final path position.
-    public static void applyTerrainMatching(ServerLevel level, BoundingBox bb) {
-        for (int x = bb.minX(); x <= bb.maxX(); x++) {
-            for (int z = bb.minZ(); z <= bb.maxZ(); z++) {
-                BlockPos roadBlockPos = null;
-                for (int y = bb.minY(); y <= bb.maxY(); y++) {
-                    BlockPos candidate = new BlockPos(x, y, z);
-                    if (level.getBlockState(candidate).is(Blocks.DIRT_PATH)) {
-                        roadBlockPos = candidate;
-                        break;
-                    }
-                }
-                if (roadBlockPos == null) continue;
 
-                // Remove path first so OCEAN_FLOOR is not polluted by the path block itself.
-                // Without this, OCEAN_FLOOR returns pathY (path IS a solid block), masking the real terrain.
-                level.setBlock(roadBlockPos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
-
-                // OCEAN_FLOOR now returns the true solid terrain surface (ignores plants, ferns, leaves).
-                int solidSurfaceY = level.getHeight(Heightmap.Types.OCEAN_FLOOR, x, z) - 1;
-
-                BlockPos finalPathPos = new BlockPos(x, solidSurfaceY, z);
-                level.setBlock(finalPathPos, Blocks.DIRT_PATH.defaultBlockState(), Block.UPDATE_ALL);
-
-                // Clear non-solid residue above the path (fern, tall_grass upper half, leaves).
-                for (int clearY = solidSurfaceY + 1; clearY <= solidSurfaceY + 2; clearY++) {
-                    BlockState above = level.getBlockState(new BlockPos(x, clearY, z));
-                    if (above.isAir()) break;
-                    if (!above.isSolid()) {
-                        level.setBlock(new BlockPos(x, clearY, z), Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
-                    } else {
-                        break;
-                    }
-                }
-            }
-        }
-    }
 
     // Returns positions of ALL jigsaw blocks in a vanilla-placed template, including terminators.
     // Used in ChunkGeneratorMixin to detect which connections were consumed during vanilla generation.

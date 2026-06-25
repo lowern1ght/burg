@@ -73,10 +73,6 @@ public class TradePriceDataHandler {
         return p != null ? p[2] : 1;
     }
 
-    public static boolean isTradeable(Item item) {
-        return PRICE_MAP.containsKey(item);
-    }
-
     // Serializes the price map for client sync (embedded in hub packet).
     public static CompoundTag buildPricesTag() {
         CompoundTag tag = new CompoundTag();

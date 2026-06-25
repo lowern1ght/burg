@@ -54,9 +54,7 @@ public class TownSummaryWidget extends DraggableWidget {
     private final ArrayDeque<TownLogEntry> logEntries = new ArrayDeque<>();
 
     private enum RowType { ITEM, SECTION_HEADER, PROD_GRID, TRANSFORM_GRID }
-    private record Row(ItemStack icon, Component text, RowType type) {
-        boolean isSection() { return type == RowType.SECTION_HEADER; }
-    }
+    private record Row(ItemStack icon, Component text, RowType type) {}
 
     // Grid cells for production and transformation sections
     private record GridCell(ItemStack stack, boolean locked) {}
