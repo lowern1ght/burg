@@ -64,7 +64,7 @@ public class TownAnchorBlockEntity extends BlockEntity implements MenuProvider {
             level.addParticle(
                 ParticleTypes.LAVA,
                 pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
-                (double)(random.nextFloat() / 2.0f), 5.0E-5, (double)(random.nextFloat() / 2.0f)
+                (double)(random.nextFloat() / 2.0f), 0.05, (double)(random.nextFloat() / 2.0f)
             );
         }
     }

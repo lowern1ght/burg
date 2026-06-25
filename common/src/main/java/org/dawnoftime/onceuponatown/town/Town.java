@@ -215,20 +215,6 @@ public class Town {
         }
     }
 
-    // Returns the structure label (e.g. "Settlement", "Village") for the current era and orientation.
-    public String resolveStructureLabel() {
-        if (currentEra == 0) {
-            EraDef def = EraTransitionDataHandler.getEraDefByOrientation(getOrDeriveOrientation());
-            return def != null ? def.structureLabel : "";
-        }
-        for (EraTransitionDef t : EraTransitionDataHandler.getAll()) {
-            if (t.fromEra != currentEra - 1) continue;
-            String resultOrientation = t.nextOrientation.isEmpty() ? t.fromOrientation : t.nextOrientation;
-            if (resultOrientation.equals(getOrDeriveOrientation())) return t.structureLabel;
-        }
-        return "";
-    }
-
     // Returns era transitions currently available given era and orientation.
     public List<EraTransitionDef> getAvailableTransitions() {
         return EraTransitionDataHandler.getAvailableTransitions(currentEra, getOrDeriveOrientation());
@@ -292,14 +278,6 @@ public class Town {
         return true;
     }
 
-    // Returns all building defs whose entry pool matches the connection point, regardless of cost.
-    // Used to distinguish PENDING_RESOURCES (compatible building exists but unaffordable) from DEAD (no compatible building).
-    public List<BuildingDef> getPotentialBuildings(ConnectionPoint point) {
-        return BuildingDataHandler.getAll().stream()
-            .filter(def -> point.targetName().isEmpty() || def.entryPool.equals(point.targetName()))
-            .toList();
-    }
-
     // Returns the building defIds that receive the orientation bonus.
     // Uses currentOrientation (persisted) so the result stays correct after path branching.
     public List<String> getBoostedBuildingIds() {
@@ -345,10 +323,6 @@ public class Town {
         int maxX = boxes.stream().mapToInt(BoundingBox::maxX).max().getAsInt();
         int maxZ = boxes.stream().mapToInt(BoundingBox::maxZ).max().getAsInt();
         return new BlockPos[]{ new BlockPos(minX, 0, minZ), new BlockPos(maxX, 0, maxZ) };
-    }
-
-    public CompoundTag getTownMapData() {
-        return new TownHubDataBuilder(this).buildMapData();
     }
 
     // -------------------------------------------------------------------------
@@ -663,31 +637,11 @@ public class Town {
         return accepted;
     }
 
-    // Tries to add `amount` of `item` to the town stock.
-    // Returns how many units were actually accepted (may be less if near cap, 0 if rejected).
-    // Fallback cap of 999 applies for items whose getMaxStock() returns 0 (transformation outputs).
-    public int tryDepositItem(Item item, int amount, Set<Item> acceptedItems) {
-        if (!acceptedItems.contains(item)) return 0;
-        TownInventory inv = getTownInventory();
-        int maxStock = inv.getMaxStock(item);
-        if (maxStock == 0) maxStock = 999;
-        int room = maxStock - inv.getStock(item);
-        if (room <= 0) return 0;
-        int toAdd = Math.min(amount, room);
-        inv.addStock(List.of(new ItemCost(item, toAdd)));
-        return toAdd;
-    }
-
     public Map<Item, Integer> getReserveStock() { return reserveStock; }
 
     public List<PlacedBuilding> getBuildings() { return buildings; }
     public List<UUID> getBuilderNpcIds() { return builderNpcIds; }
     public int getTargetBuilderCount() { return targetBuilderCount; }
-
-    // Appends a builder UUID in the next available slot. No-op if already registered.
-    public void addBuilderNpcId(UUID id) {
-        if (!builderNpcIds.contains(id)) builderNpcIds.add(id);
-    }
 
     // Replaces the UUID at the given slot index (used by TickScheduler on respawn).
     public void setBuilderNpcIdAtSlot(int slot, UUID id) {

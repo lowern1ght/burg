@@ -2,7 +2,6 @@ package org.dawnoftime.onceuponatown.entity.ai;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
-import org.dawnoftime.onceuponatown.datapack.BuilderConfigDataHandler;
 import org.dawnoftime.onceuponatown.entity.Npc;
 
 public class GoToPosition {

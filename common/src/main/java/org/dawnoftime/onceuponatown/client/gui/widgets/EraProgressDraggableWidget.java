@@ -57,7 +57,6 @@ public class EraProgressDraggableWidget extends DraggableWidget {
         List<UnlockEntry> unlocked
     ) {}
 
-    private int currentEra;
     private List<EraPathOption> pathOptions = new ArrayList<>();
     private String selectedPathId = null;
     private final Consumer<String> onAdvance;
@@ -73,14 +72,12 @@ public class EraProgressDraggableWidget extends DraggableWidget {
                                        int currentEra, List<EraPathOption> pathOptions,
                                        Consumer<String> onAdvance) {
         super(x, y, computeWidgetW(pathOptions), TITLE_BAR_H + computeContentH(pathOptions), freeZoneMaxX, screenH);
-        this.currentEra = currentEra;
         this.pathOptions = new ArrayList<>(pathOptions);
         this.onAdvance = onAdvance;
         this.contentHeight = computeContentH(pathOptions);
     }
 
     public void updateData(int currentEra, List<EraPathOption> pathOptions) {
-        this.currentEra = currentEra;
         this.pathOptions = new ArrayList<>(pathOptions);
         this.contentHeight = computeContentH(pathOptions);
         this.width = computeWidgetW(pathOptions);

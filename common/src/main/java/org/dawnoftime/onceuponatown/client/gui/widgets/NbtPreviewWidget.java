@@ -301,7 +301,4 @@ public class NbtPreviewWidget {
         return mx >= x && mx < x + width && my >= y && my < y + height;
     }
 
-    public static void clearCache() {
-        CACHE.clear();
-    }
 }

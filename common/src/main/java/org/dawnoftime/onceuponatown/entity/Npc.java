@@ -199,7 +199,6 @@ public class Npc extends PathfinderMob {
         playSound(SoundEvents.BOOK_PAGE_TURN, 0.6f, 0.9f + getRandom().nextFloat() * 0.2f);
     }
 
-    public void holdInOffHand(ItemStack stack) { setItemInHand(InteractionHand.OFF_HAND, stack); }
     public void holdInMainHand(ItemStack stack) { setItemInHand(InteractionHand.MAIN_HAND, stack); }
 
     public void freeHands() {
@@ -213,8 +212,6 @@ public class Npc extends PathfinderMob {
         entityData.set(DATA_BUILD_GENERATION, entityData.get(DATA_BUILD_GENERATION) + 1);
     }
 
-    // Stub accessors used by NpcModel for animations - simplified in v1
-    public int getUnhappyCounter() { return 0; }
     public boolean isCrossingArms() { return false; }
     public boolean isReading() { return entityData.get(DATA_IS_READING); }
     public int getBuildGeneration() { return entityData.get(DATA_BUILD_GENERATION); }

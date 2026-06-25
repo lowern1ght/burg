@@ -40,20 +40,6 @@ public class NetworkHelper {
     // Carries requested items for BUY mode: List<(itemId, count)> encoded via C2SBuyPacket
     public static BiConsumer<BlockPos, List<C2SBuyPacket.Entry>> sendBuyPacket = (pos, items) -> {};
 
-    // Sends a fresh full hub packet to every player watching this town's hub.
-    // Each player gets a personalized copy with their ChatSubscribed flag.
-    public static void pushHubToWatchers(ServerLevel level, Town town, BlockPos anchorPos) {
-        if (anchorPos == null) return;
-        List<ServerPlayer> watchers = getWatchers(level, anchorPos);
-        if (watchers.isEmpty()) return;
-        CompoundTag hubData = town.getHubData(anchorPos);
-        for (ServerPlayer watcher : watchers) {
-            CompoundTag perPlayer = hubData.copy();
-            perPlayer.putBoolean("ChatSubscribed", town.isChatSubscriber(watcher.getUUID()));
-            sendTownHubPacket.accept(watcher, perPlayer);
-        }
-    }
-
     // Sends a targeted stock update to every watcher.
     public static void pushStockToWatchers(ServerLevel level, Town town, BlockPos anchorPos) {
         if (anchorPos == null) return;

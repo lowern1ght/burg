@@ -8,7 +8,6 @@ import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.client.model.geom.builders.*;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.item.CrossbowItem;
@@ -152,7 +151,4 @@ public class NpcModel<T extends Npc> extends HumanoidModel<T> {
         this.leftArm.visible = !crossedArms;
     }
 
-    public ModelPart getRandomModelPart(RandomSource random) {
-        return this.parts.get(random.nextInt(this.parts.size()));
-    }
 }
