@@ -1,29 +1,18 @@
 plugins {
     id 'multiloader-loader'
-    id 'net.neoforged.moddev.legacyforge'
+    id 'net.neoforged.moddev'
     id 'me.modmuss50.mod-publish-plugin'
 }
 
-mixin {
-    add(sourceSets.main, "${mod_id}.refmap.json")
+// Mixin configuration block — the 1.0.x ModDev plugin does not register a `mixin {}`
+// extension at project level, so the refmap wiring (`mixin { add(...) }`,
+// `config(...)`) belongs to a separate Mixin Gradle plugin that the second pass
+// will add. For this structural pass the manifest attribute below is the only
+// wire-up the build needs.
 
-    config("${mod_id}.mixins.json")
-    config("${mod_id}.forge.mixins.json")
-}
+neoForge {
+    version = "${neoforge_version}"
 
-legacyForge {
-    version = "${minecraft_version}-${forge_version}"
-
-    validateAccessTransformers = true
-
-    def at = project(':common').file('src/main/resources/META-INF/accesstransformer.cfg')
-    if (at.exists()) {
-        accessTransformers.from(at.absolutePath) //["src/main/resources/META-INF/accesstransformer.cfg"]
-    }
-    parchment {
-        minecraftVersion = parchment_minecraft
-        mappingsVersion = parchment_version
-    }
     runs {
         client {
             client()
@@ -38,8 +27,8 @@ legacyForge {
     }
 
     mods {
-        "${mod_id}" {
-            sourceSet sourceSets.main
+        register("${mod_id}") {
+            sourceSet(sourceSets.main)
         }
     }
 }
@@ -53,13 +42,12 @@ dependencies {
 }
 
 jar {
-    finalizedBy('reobfJar')
     manifest.attributes([
             "MixinConfigs": "${mod_id}.mixins.json,${mod_id}.forge.mixins.json"
     ])
 }
 
 publishMods {
-    file = layout.buildDirectory.file("libs/${mod_id}-forge-${minecraft_version}-${project.version}.jar")
-    modLoaders.add("forge")
+    file = layout.buildDirectory.file("libs/${mod_id}-neoforge-${minecraft_version}-${project.version}.jar")
+    modLoaders.add("neoforge")
 }

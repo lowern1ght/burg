@@ -25,18 +25,9 @@ repositories {
         }
         filter { includeGroupAndSubgroups('org.spongepowered') }
     }
-    exclusiveContent {
-        forRepositories(
-                maven {
-                    name = 'ParchmentMC'
-                    url = 'https://maven.parchmentmc.org/'
-                },
-                maven {
-                    name = "NeoForge"
-                    url = 'https://maven.neoforged.net/releases'
-                }
-        )
-        filter { includeGroup('org.parchmentmc.data') }
+    maven {
+        name = 'NeoForged'
+        url = 'https://maven.neoforged.net/releases'
     }
     maven {
         name = 'BlameJared'
@@ -88,16 +79,12 @@ processResources {
             'group'                        : project.group, //Else we target the task's group.
             'minecraft_version'            : minecraft_version,
             'minecraft_version_range'      : minecraft_version_range,
-            'fabric_version'               : fabric_version,
-            'fabric_loader_version'        : fabric_loader_version,
             'mod_name'                     : mod_name,
             'mod_author'                   : mod_author,
             'mod_id'                       : mod_id,
             'license'                      : license,
             'description'                  : project.description,
-            "forge_version"                : forge_version,
-            "forge_version_range"          : forge_version_range,
-            "forge_loader_version_range": forge_loader_version_range,
+            'neoforge_version'             : neoforge_version,
             'credits'                      : credits,
             'java_version'                 : java_version
     ]
@@ -106,11 +93,11 @@ processResources {
         key, value -> [(key): value instanceof String ? value.replace("\n", "\\\\n") : value]
     }
 
-    filesMatching(['META-INF/mods.toml']) {
+    filesMatching(['META-INF/mods.toml', 'META-INF/neoforge.mods.toml']) {
         expand expandProps
     }
 
-    filesMatching(['pack.mcmeta', 'fabric.mod.json', '*.mixins.json']) {
+    filesMatching(['pack.mcmeta', '*.mixins.json']) {
         expand jsonExpandProps
     }
 
