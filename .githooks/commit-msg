@@ -1,0 +1,19 @@
+#!/bin/sh
+# Strip AI co-authorship trailers before the commit is written.
+#
+# Agents are instructed by their own harness to append a `Co-Authored-By:` line
+# for themselves. This repository does not want them, and a hook is the only
+# place that reliably enforces it — relying on the agent to remember means it
+# comes back the first time the instruction is re-read.
+#
+# Installed for everyone via `git config core.hooksPath .githooks`.
+msg="$1"
+tmp="$msg.stripped"
+
+grep -viE '^[[:space:]]*(co-authored-by|co-committed-by)[[:space:]]*:.*(claude|opus|sonnet|haiku|anthropic|noreply@anthropic\.com|copilot|chatgpt|gpt-|gemini|cursor)' "$msg" \
+  | grep -viE '^[[:space:]]*(generated with|🤖 generated with).*(claude|anthropic|copilot|chatgpt)' \
+  > "$tmp"
+
+# Collapse the blank lines a removed trailer block leaves behind.
+awk 'BEGIN{blank=0} /^[[:space:]]*$/{blank++; next} {while(blank-->0) print ""; blank=0; print} END{}' "$tmp" > "$msg"
+rm -f "$tmp"

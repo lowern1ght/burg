@@ -1,0 +1,53 @@
+{
+  "id": "wall_corner",
+  "nbt": "onceuponatown:military/wall_corner/wall_corner",
+  "entry_pool": "onceuponatown:military",
+  "icon_item": "minecraft:cobblestone_wall",
+  "category": "military",
+  "weight": 2,
+
+  "residents": 0,
+  "consumption_per_resident": 0.0,
+  "construction_cost": [
+    { "item": "minecraft:oak_log", "amount": 64 },
+    { "item": "minecraft:oak_fence", "amount": 6 }
+  ],
+
+  "nbt_levels": [
+    "onceuponatown:military/wall_corner/wall_corner_lvl1",
+    "onceuponatown:military/wall_corner/wall_corner_lvl2",
+    "onceuponatown:military/wall_corner/wall_corner_lvl3",
+    "onceuponatown:military/wall_corner/wall_corner_lvl4"
+  ],
+  "upgrades": [
+    {
+      "upgrade_cost": [
+        { "item": "minecraft:cobblestone", "amount": 52 },
+        { "item": "minecraft:oak_planks", "amount": 48 },
+        { "item": "minecraft:oak_log", "amount": 40 }
+      ]
+    },
+    {
+      "upgrade_cost": [
+        { "item": "minecraft:cobblestone", "amount": 180 },
+        { "item": "minecraft:cobblestone_slab", "amount": 18 },
+        { "item": "minecraft:cobblestone_wall", "amount": 10 }
+      ]
+    },
+    {
+      "upgrade_cost": [
+        { "item": "minecraft:cobblestone", "amount": 50 },
+        { "item": "minecraft:cobblestone_stairs", "amount": 6 },
+        { "item": "minecraft:lantern", "amount": 2 }
+      ]
+    },
+    {
+      "upgrade_cost": [
+        { "item": "minecraft:oak_planks", "amount": 36 },
+        { "item": "minecraft:oak_slab", "amount": 30 },
+        { "item": "minecraft:oak_stairs", "amount": 16 },
+        { "item": "minecraft:oak_log", "amount": 8 }
+      ]
+    }
+  ]
+}

@@ -13,3 +13,14 @@
 *.pyd binary
 *.cfg text eol=lf
 *.jks binary
+
+# Minecraft binary data — MUST stay binary. These are gzip streams; the
+# catch-all `* text eol=lf` above normalizes CRLF inside the compressed
+# bytes and destroys them irrecoverably on add/checkout.
+*.nbt binary
+*.mcstructure binary
+*.schem binary
+*.schematic binary
+*.dat binary
+*.mca binary
+*.ogg binary
