@@ -65,9 +65,8 @@ public class TownAnchorBlock extends BaseEntityBlock {
                     // is indistinguishable from a broken screen; this is how the second anchor the
                     // spawn command placed managed to look identical to the real one.
                     if (player instanceof ServerPlayer sp) {
-                        sp.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                            "[OUAT] No town is registered at " + pos + " — this campfire is not"
-                            + " a town centre. `/ouat debug verify` lists the ones that are."));
+                        sp.sendSystemMessage(net.minecraft.network.chat.Component.translatable(
+                            "onceuponatown.message.town_anchor.no_town", pos.toShortString()));
                     }
                     return InteractionResult.FAIL;
                 }
@@ -97,11 +96,12 @@ public class TownAnchorBlock extends BaseEntityBlock {
     public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
         if (level instanceof net.minecraft.server.level.ServerLevel serverLevel
                 && player instanceof ServerPlayer sp) {
-            LevelTowns.get(serverLevel).getTownAt(pos).ifPresent(town ->
-                sp.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                    "[OUAT] '" + town.getName() + "' lives here (" + town.getBuildings().size()
-                    + " building(s)). The campfire is the town's door, not the town — remove it and"
-                    + " the settlement would be orphaned, so it is being put back.")));
+            LevelTowns.get(serverLevel).getTownAt(pos).ifPresent(town -> {
+                String townName = town.getName();
+                int buildingCount = town.getBuildings().size();
+                sp.sendSystemMessage(net.minecraft.network.chat.Component.translatable(
+                    "onceuponatown.message.town_anchor.cant_remove", townName, buildingCount));
+            });
         }
         if (!player.isCreative()) return state;
         return super.playerWillDestroy(level, pos, state, player);

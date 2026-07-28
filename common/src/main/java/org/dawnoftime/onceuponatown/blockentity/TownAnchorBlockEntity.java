@@ -84,7 +84,7 @@ public class TownAnchorBlockEntity extends BlockEntity implements MenuProvider {
 
     @Override
     public Component getDisplayName() {
-        return Component.literal("Town Hub");
+        return Component.translatable("block.onceuponatown.town_anchor");
     }
 
     @Override
