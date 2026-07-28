@@ -158,5 +158,22 @@
   "onceuponatown.message.debug.enlist.no_town": "No town in this level to enlist them into",
   "onceuponatown.message.debug.enlist.done": "enlisted %d villager(s) into the town at %s",
   "onceuponatown.message.debug.enlist.none": " (none were unaffiliated)",
-  "onceuponatown.message.debug.clear": "removed %d citizen(s)"
+  "onceuponatown.message.debug.clear": "removed %d citizen(s)",
+
+  "onceuponatown.bar.speed": "Speed",
+  "onceuponatown.bar.output": "Output",
+  "onceuponatown.bar.capacity": "Capacity",
+  "onceuponatown.bar.residents": "Residents",
+  "onceuponatown.bar.food": "Food",
+  "onceuponatown.bar.stock": "Stock",
+  "onceuponatown.bar.herd": "Herd",
+  "onceuponatown.bar.herd_food": "Herd Food",
+  "onceuponatown.bar.tip.cadence": "%d%% faster  (max %d%%)",
+  "onceuponatown.bar.tip.amount": "+%d output  (max +%d)",
+  "onceuponatown.bar.tip.capacity": "+%d stacks  (max +%d)",
+  "onceuponatown.bar.tip.residents": "+%d residents  (max +%d)",
+  "onceuponatown.bar.tip.food": "+%.2f food/res  (max +%.2f)",
+  "onceuponatown.bar.tip.stock": "+%d%% village stock  (max +%d%%)",
+  "onceuponatown.bar.tip.herd": "+%d animals  (max +%d)",
+  "onceuponatown.bar.tip.herd_food": "+%.2f food/animal  (max +%.2f)"
 }

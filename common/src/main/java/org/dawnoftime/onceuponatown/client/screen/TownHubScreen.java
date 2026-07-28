@@ -680,9 +680,9 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
                     int unlockAtLevel = pt.getInt("UnlockAtLevel");
                     boolean locked    = unlockAtLevel >= 0 && currentLevel < unlockAtLevel;
                     Item item         = BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId));
-                    MutableComponent text = Component.literal("x" + amount + " ")
-                        .append(Component.translatable(item.getDescriptionId()))
-                        .append(Component.literal(" / " + seconds + "s"))
+                    MutableComponent text = Component.translatable(
+                        "onceuponatown.tooltip.production_amount_secs", amount,
+                        Component.translatable(item.getDescriptionId()), seconds)
                         .withStyle(ChatFormatting.GRAY);
                     productionRows.add(new BuildingProductionTooltip.Row(new ItemStack(item), text, locked));
                     productionCells.add(new ProductionCell(item, amount, locked));
@@ -700,9 +700,9 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
                     int unlockAtLevel = tt.getInt("UnlockAtLevel");
                     boolean locked    = unlockAtLevel >= 0 && currentLevel < unlockAtLevel;
                     Item outputItem   = BuiltInRegistries.ITEM.get(ResourceLocation.parse(outputId));
-                    MutableComponent text = Component.literal("x" + outputAmount + " ")
-                        .append(Component.translatable(outputItem.getDescriptionId()))
-                        .append(Component.literal(" / " + seconds + "s"))
+                    MutableComponent text = Component.translatable(
+                        "onceuponatown.tooltip.production_amount_secs", outputAmount,
+                        Component.translatable(outputItem.getDescriptionId()), seconds)
                         .withStyle(ChatFormatting.GRAY);
                     productionRows.add(new BuildingProductionTooltip.Row(new ItemStack(outputItem), text, locked));
                     productionCells.add(new ProductionCell(outputItem, outputAmount, locked));
@@ -952,47 +952,66 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
             ClientQueueEntry qe = constructionQueueClient.get(hoveredQueueSlot);
             BuildingEntry entry = findCatalogEntry(qe.defId());
             List<Component> lines = new ArrayList<>();
+            MutableComponent buildingName = Component.translatable(
+                "onceuponatown.building." + qe.defId())
+                .withStyle(s -> s.withColor(ChatFormatting.GOLD).withItalic(true));
             if (qe.isUpgrade()) {
-                lines.add(Component.literal("Upgrade: " + formatId(qe.defId())).withStyle(s -> s.withBold(true)));
+                lines.add(Component.translatable("onceuponatown.tooltip.upgrade_label", buildingName)
+                    .withStyle(s -> s.withBold(true)));
             } else {
-                lines.add(Component.literal(formatId(qe.defId())).withStyle(s -> s.withBold(true)));
+                lines.add(buildingName.withStyle(s -> s.withBold(true)));
             }
-            lines.add(Component.literal("Shift + Right-click to remove").withStyle(s -> s.withColor(0x888888)));
+            lines.add(Component.translatable("onceuponatown.tooltip.shift_right_remove")
+                .withStyle(s -> s.withColor(0x888888)));
             g.renderComponentTooltip(font, lines, mx, my);
         } else if (hoveredCatalogSlot >= 0 && hoveredCatalogSlot < buildingCatalog.size()) {
             BuildingEntry entry = buildingCatalog.get(hoveredCatalogSlot);
             List<Component> lines = new ArrayList<>();
-            lines.add(Component.literal(formatId(entry.id())).withStyle(s -> s.withBold(true)));
+            lines.add(Component.translatable("onceuponatown.building." + entry.id())
+                .withStyle(s -> s.withColor(ChatFormatting.GOLD).withItalic(true).withBold(true)));
             if (entry.nextEra()) {
-                lines.add(Component.literal("Unlocks at next era").withStyle(s -> s.withColor(0xAAAAAA)));
+                lines.add(Component.translatable("onceuponatown.tooltip.unlock_next_era")
+                    .withStyle(s -> s.withColor(0xAAAAAA)));
                 g.renderComponentTooltip(font, lines, mx, my);
                 return;
             }
             for (CostEntry ce : entry.cost()) {
                 int have = stockSnapshot.getOrDefault(ce.itemId(), 0);
                 boolean ok = have >= ce.amount();
-                int color = ok ? 0x55FF55 : 0xFF5555;
-                String itemName = ce.itemId().contains(":")
-                    ? ce.itemId().substring(ce.itemId().indexOf(':') + 1) : ce.itemId();
-                lines.add(Component.literal(have + "/" + ce.amount() + " " + formatId(itemName))
-                    .withStyle(s -> s.withColor(color)));
+                Component itemName = resolveItemName(ce.itemId());
+                lines.add(Component.translatable("onceuponatown.tooltip.cost_progress",
+                        have, ce.amount(), itemName)
+                    .withStyle(s -> s.withColor(ok ? 0x55FF55 : 0xFF5555)));
             }
             if (entry.requiredResidents() > 0) {
                 boolean met = activeResidents >= entry.requiredResidents();
-                lines.add(Component.literal(activeResidents + "/" + entry.requiredResidents() + " active residents")
+                lines.add(Component.translatable("onceuponatown.tooltip.required_residents",
+                        activeResidents, entry.requiredResidents())
                     .withStyle(s -> s.withColor(met ? 0x55FF55 : 0xFF5555)));
             }
             for (ReqBuildingEntry req : entry.requiredBuildings()) {
                 boolean met = req.have() >= req.required();
-                lines.add(Component.literal(req.have() + "/" + req.required() + " " + formatId(req.defId()))
+                Component bldName = Component.translatable("onceuponatown.building." + req.defId())
+                    .withStyle(s -> s.withColor(ChatFormatting.GOLD).withItalic(true));
+                lines.add(Component.translatable("onceuponatown.tooltip.required_buildings",
+                        req.have(), req.required(), bldName)
                     .withStyle(s -> s.withColor(met ? 0x55FF55 : 0xFF5555)));
             }
             int wCost = entry.weight();
             boolean weightOk = currentWeight + wCost <= maxWeight;
-            lines.add(Component.literal(wCost + " weight")
+            lines.add(Component.translatable("onceuponatown.tooltip.weight_cost", wCost)
                 .withStyle(s -> s.withColor(weightOk ? 0x55FF55 : 0xFF5555)));
             g.renderComponentTooltip(font, lines, mx, my);
         }
+    }
+
+    // Resolves a Minecraft item by id and returns its vanilla description Component.
+    // Falls back to the raw id if the registry has no entry, so a stray datapack
+    // string still shows up as text rather than disappearing.
+    private static Component resolveItemName(String itemId) {
+        Item item = BuiltInRegistries.ITEM.get(ResourceLocation.tryParse(itemId));
+        if (item == null || item == Items.AIR) return Component.literal(itemId);
+        return Component.translatable(item.getDescriptionId());
     }
 
     private void renderUpgradeTab(GuiGraphics g, int mx, int my) {
@@ -1101,88 +1120,106 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
         if (totalCadence > 0.001f) {
             float fill = curCadence / totalCadence;
             float ghost = showGhost ? ghostCadence / totalCadence : 0f;
-            g.drawString(font, "Speed", barX, gaugeY, 0xFFFF8800, false);
+            g.drawString(font, Component.translatable("onceuponatown.bar.speed").getString(),
+                barX, gaugeY, 0xFFFF8800, false);
             gaugeY += 13;
             renderStatBar(g, barX, gaugeY, barW, barH, fill, ghost,0xFFFF8800, ghostColor);
             barLabelYs[numActiveBars] = gaugeY - 7;
-            barTooltips[numActiveBars] = (int)(curCadence * 100) + "% faster  (max " + (int)(totalCadence * 100) + "%)";
+            barTooltips[numActiveBars] = Component.translatable(
+                "onceuponatown.bar.tip.cadence",
+                (int)(curCadence * 100), (int)(totalCadence * 100)).getString();
             numActiveBars++;
             gaugeY += barH + 6;
         }
         if (totalAmount > 0) {
             float fill = (float) curAmount / totalAmount;
             float ghost = showGhost ? (float) ghostAmount / totalAmount : 0f;
-            g.drawString(font, "Output", barX, gaugeY, 0xFFFFFF00, false);
+            g.drawString(font, Component.translatable("onceuponatown.bar.output").getString(),
+                barX, gaugeY, 0xFFFFFF00, false);
             gaugeY += 13;
             renderStatBar(g, barX, gaugeY, barW, barH, fill, ghost,0xFFFFFF00, ghostColor);
             barLabelYs[numActiveBars] = gaugeY - 7;
-            barTooltips[numActiveBars] = "+" + curAmount + " output  (max +" + totalAmount + ")";
+            barTooltips[numActiveBars] = Component.translatable(
+                "onceuponatown.bar.tip.amount", curAmount, totalAmount).getString();
             numActiveBars++;
             gaugeY += barH + 6;
         }
         if (totalCapacity > 0) {
             float fill = (float) curCapacity / totalCapacity;
             float ghost = showGhost ? (float) ghostCapacity / totalCapacity : 0f;
-            g.drawString(font, "Capacity", barX, gaugeY, 0xFF4488FF, false);
+            g.drawString(font, Component.translatable("onceuponatown.bar.capacity").getString(),
+                barX, gaugeY, 0xFF4488FF, false);
             gaugeY += 13;
             renderStatBar(g, barX, gaugeY, barW, barH, fill, ghost,0xFF4488FF, ghostColor);
             barLabelYs[numActiveBars] = gaugeY - 7;
-            barTooltips[numActiveBars] = "+" + curCapacity + " stacks  (max +" + totalCapacity + ")";
+            barTooltips[numActiveBars] = Component.translatable(
+                "onceuponatown.bar.tip.capacity", curCapacity, totalCapacity).getString();
             numActiveBars++;
             gaugeY += barH + 6;
         }
         if (totalResidents > 0) {
             float fill = (float) curResidents / totalResidents;
             float ghost = showGhost ? (float) ghostResidentsVal / totalResidents : 0f;
-            g.drawString(font, "Residents", barX, gaugeY, 0xFFAA7744, false);
+            g.drawString(font, Component.translatable("onceuponatown.bar.residents").getString(),
+                barX, gaugeY, 0xFFAA7744, false);
             gaugeY += 13;
             renderStatBar(g, barX, gaugeY, barW, barH, fill, ghost,0xFFAA7744, ghostColor);
             barLabelYs[numActiveBars] = gaugeY - 7;
-            barTooltips[numActiveBars] = "+" + curResidents + " residents  (max +" + totalResidents + ")";
+            barTooltips[numActiveBars] = Component.translatable(
+                "onceuponatown.bar.tip.residents", curResidents, totalResidents).getString();
             numActiveBars++;
             gaugeY += barH + 6;
         }
         if (totalFood > 0.001f) {
             float fill = curFood / totalFood;
             float ghost = showGhost ? ghostFood / totalFood : 0f;
-            g.drawString(font, "Food", barX, gaugeY, 0xFFCC3333, false);
+            g.drawString(font, Component.translatable("onceuponatown.bar.food").getString(),
+                barX, gaugeY, 0xFFCC3333, false);
             gaugeY += 13;
             renderStatBar(g, barX, gaugeY, barW, barH, fill, ghost,0xFFCC3333, ghostColor);
             barLabelYs[numActiveBars] = gaugeY - 7;
-            barTooltips[numActiveBars] = String.format("+%.2f food/res  (max +%.2f)", curFood, totalFood);
+            barTooltips[numActiveBars] = Component.translatable(
+                "onceuponatown.bar.tip.food", curFood, totalFood).getString();
             numActiveBars++;
             gaugeY += barH + 6;
         }
         if (totalStock > 0.001) {
             float fill = (float)(curStock / totalStock);
             float ghost = showGhost ? (float)(ghostStock / totalStock) : 0f;
-            g.drawString(font, "Stock", barX, gaugeY, 0xFFFFCC00, false);
+            g.drawString(font, Component.translatable("onceuponatown.bar.stock").getString(),
+                barX, gaugeY, 0xFFFFCC00, false);
             gaugeY += 13;
             renderStatBar(g, barX, gaugeY, barW, barH, fill, ghost,0xFFFFCC00, ghostColor);
             barLabelYs[numActiveBars] = gaugeY - 7;
-            barTooltips[numActiveBars] = "+" + (int)(curStock * 100) + "% village stock  (max +" + (int)(totalStock * 100) + "%)";
+            barTooltips[numActiveBars] = Component.translatable(
+                "onceuponatown.bar.tip.stock",
+                (int)(curStock * 100), (int)(totalStock * 100)).getString();
             numActiveBars++;
             gaugeY += barH + 6;
         }
         if (totalHerd > 0) {
             float fill = (float) curHerd / totalHerd;
             float ghost = showGhost ? (float) ghostHerd / totalHerd : 0f;
-            g.drawString(font, "Herd", barX, gaugeY, 0xFF88BB44, false);
+            g.drawString(font, Component.translatable("onceuponatown.bar.herd").getString(),
+                barX, gaugeY, 0xFF88BB44, false);
             gaugeY += 13;
             renderStatBar(g, barX, gaugeY, barW, barH, fill, ghost, 0xFF88BB44, ghostColor);
             barLabelYs[numActiveBars] = gaugeY - 7;
-            barTooltips[numActiveBars] = "+" + curHerd + " animals  (max +" + totalHerd + ")";
+            barTooltips[numActiveBars] = Component.translatable(
+                "onceuponatown.bar.tip.herd", curHerd, totalHerd).getString();
             numActiveBars++;
             gaugeY += barH + 6;
         }
         if (totalHerdFood > 0.001f) {
             float fill = curHerdFood / totalHerdFood;
             float ghost = showGhost ? ghostHerdFood / totalHerdFood : 0f;
-            g.drawString(font, "Herd Food", barX, gaugeY, 0xFFCC6633, false);
+            g.drawString(font, Component.translatable("onceuponatown.bar.herd_food").getString(),
+                barX, gaugeY, 0xFFCC6633, false);
             gaugeY += 13;
             renderStatBar(g, barX, gaugeY, barW, barH, fill, ghost, 0xFFCC6633, ghostColor);
             barLabelYs[numActiveBars] = gaugeY - 7;
-            barTooltips[numActiveBars] = String.format("+%.2f food/animal  (max +%.2f)", curHerdFood, totalHerdFood);
+            barTooltips[numActiveBars] = Component.translatable(
+                "onceuponatown.bar.tip.herd_food", curHerdFood, totalHerdFood).getString();
             numActiveBars++;
         }
     }
@@ -1299,7 +1336,8 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
         if (currentEra == 0
                 && mx >= leftPos && mx < leftPos + imageWidth
                 && my >= topPos + 16 && my < topPos + imageHeight) {
-            g.renderTooltip(font, Component.literal("Unlockable at Era 1"), mx, my);
+            g.renderTooltip(font, Component.translatable("onceuponatown.tooltip.unlockable_era_1"),
+                mx, my);
             return;
         }
 
@@ -1307,7 +1345,8 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
         for (int i = 0; i < numActiveBars; i++) {
             int labelY = barLabelYs[i];
             if (my >= labelY && my < labelY + 13 && mx >= leftPos + 12 && mx < leftPos + imageWidth - 8) {
-                g.renderTooltip(font, Component.literal(barTooltips[i]).withStyle(s -> s.withColor(0xCCCCCC)), mx, my);
+                g.renderTooltip(font, Component.literal(barTooltips[i]).withStyle(s -> s.withColor(0xCCCCCC)),
+                    mx, my);
                 return;
             }
         }
@@ -1333,24 +1372,26 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
         int maxLevel = defEntry != null ? defEntry.upgrades().size() : 0;
 
         List<Component> lines = new ArrayList<>();
-        lines.add(Component.literal(formatId(entry.defId()))
-            .withStyle(s -> s.withBold(true)));
+        lines.add(Component.translatable("onceuponatown.building." + entry.defId())
+            .withStyle(s -> s.withColor(ChatFormatting.GOLD).withItalic(true).withBold(true)));
 
         if (defEntry != null && maxLevel > 0 && entry.upgradeLevel() < maxLevel) {
             List<ClientBuildingDefsRegistry.CostEntry> costs = defEntry.upgrades().get(entry.upgradeLevel()).upgradeCost();
             for (ClientBuildingDefsRegistry.CostEntry ce : costs) {
                 int have = stockSnapshot.getOrDefault(ce.itemId(), 0);
                 boolean ok = have >= ce.amount();
-                String itemName = ce.itemId().contains(":")
-                    ? ce.itemId().substring(ce.itemId().indexOf(':') + 1) : ce.itemId();
-                lines.add(Component.literal(ce.amount() + "x " + formatId(itemName))
+                Component itemName = resolveItemName(ce.itemId());
+                lines.add(Component.translatable("onceuponatown.tooltip.upgrade_cost",
+                        ce.amount(), itemName)
                     .withStyle(s -> s.withColor(ok ? 0x55FF55 : 0xFF5555)));
             }
             if (!canAffordUpgrade(entry, defEntry)) {
-                lines.add(Component.literal("Not enough resources").withStyle(s -> s.withColor(0xFF5555)));
+                lines.add(Component.translatable("onceuponatown.tooltip.not_enough_resources")
+                    .withStyle(s -> s.withColor(0xFF5555)));
             }
         } else if (maxLevel > 0 && entry.upgradeLevel() >= maxLevel) {
-            lines.add(Component.literal("Fully upgraded").withStyle(s -> s.withColor(0xFFFFDD44)));
+            lines.add(Component.translatable("onceuponatown.tooltip.fully_upgraded")
+                .withStyle(s -> s.withColor(0xFFFFDD44)));
         }
         g.renderComponentTooltip(font, lines, mx, my);
     }
