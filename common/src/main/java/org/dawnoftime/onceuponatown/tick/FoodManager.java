@@ -20,6 +20,51 @@ import java.util.Map;
 
 public class FoodManager {
 
+    /**
+     * A day's food demand, in food units, summed over the buildings.
+     *
+     * <p>Extracted verbatim from the feeding pass so that {@link Settlers} can ask "could this
+     * town feed one more mouth" without keeping a second idea of what food costs. Two copies of
+     * this sum would drift, and the one that drifted would be the one nobody was watching.
+     *
+     * <p>Note that it bills the town for its <b>beds</b>, not for the people on its roll: the
+     * figure comes from {@code resolvedResidents()} per building. That was the only meaning
+     * available while population was a number, and it is worth revisiting now that it is a list
+     * of real people — but changing it moves the balance, so it is left alone here.
+     */
+    public static float residentFoodDemand(Town town) {
+        float demand = 0f;
+        for (PlacedBuilding building : town.getBuildings()) {
+            BuildingDef def = BuildingDataHandler.get(building.getDefId()).orElse(null);
+            if (def == null) continue;
+            BuildingDef.ResolvedBuildingStats stats = def.resolveAtLevel(building.getUpgradeLevel());
+            int res = stats.resolvedResidents();
+            if (res > 0) demand += res * stats.resolvedConsumptionPerResident();
+        }
+        return demand;
+    }
+
+    /** Beds, summed the same way the demand is, so the two always agree about who is counted. */
+    public static int residentCapacity(Town town) {
+        int total = 0;
+        for (PlacedBuilding building : town.getBuildings()) {
+            BuildingDef def = BuildingDataHandler.get(building.getDefId()).orElse(null);
+            if (def == null) continue;
+            total += def.resolveAtLevel(building.getUpgradeLevel()).resolvedResidents();
+        }
+        return total;
+    }
+
+    /** Everything edible in the town store, converted to food units by its FUV. */
+    public static int availableResidentFoodUnits(Town town) {
+        int units = 0;
+        TownInventory inv = town.getTownInventory();
+        for (Map.Entry<net.minecraft.world.item.Item, Integer> e : FoodRegistry.residentEntriesInOrder()) {
+            units += inv.getStock(e.getKey()) * e.getValue();
+        }
+        return units;
+    }
+
     // Fires at each tick listed in feeding_schedule (ticks within a 24000-tick day).
     public static void tick(Town town, ServerLevel level, long gameTime, long anchorKey) {
         if (!FoodRegistry.getFeedingSchedule().contains(gameTime % 24000)) return;
@@ -27,24 +72,11 @@ public class FoodManager {
         TownInventory inv = town.getTownInventory();
 
         // Resident section: compute demand and drain from resident food pool (strongest FUV first).
-        float totalFoodDemandFloat = 0f;
-        int totalResidentsCounted = 0;
-        for (PlacedBuilding building : town.getBuildings()) {
-            BuildingDef def = BuildingDataHandler.get(building.getDefId()).orElse(null);
-            if (def == null) continue;
-            BuildingDef.ResolvedBuildingStats stats = def.resolveAtLevel(building.getUpgradeLevel());
-            int res = stats.resolvedResidents();
-            if (res > 0) {
-                totalResidentsCounted += res;
-                totalFoodDemandFloat += res * stats.resolvedConsumptionPerResident();
-            }
-        }
+        float totalFoodDemandFloat = residentFoodDemand(town);
+        int totalResidentsCounted = residentCapacity(town);
         int foodUnitsToDrain = (int) Math.ceil(totalFoodDemandFloat);
 
-        int availableFoodUnits = 0;
-        for (Map.Entry<net.minecraft.world.item.Item, Integer> fEntry : FoodRegistry.residentEntriesInOrder()) {
-            availableFoodUnits += inv.getStock(fEntry.getKey()) * fEntry.getValue();
-        }
+        int availableFoodUnits = availableResidentFoodUnits(town);
 
         int newActiveResidents;
         if (foodUnitsToDrain == 0) {

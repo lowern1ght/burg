@@ -36,6 +36,7 @@ public class TickScheduler {
 
                 ProductionManager.tick(town, level, gameTime, anchorKey);
                 FoodManager.tick(town, level, gameTime, anchorKey);
+                Settlers.tick(town, level, gameTime, BlockPos.of(anchorKey));
                 tickQuests(town, level, gameTime, anchorKey);
                 EraManager.tick(town, level, gameTime, anchorKey);
             }

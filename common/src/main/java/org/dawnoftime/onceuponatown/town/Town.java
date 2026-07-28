@@ -50,6 +50,9 @@ public class Town {
     private final List<UUID> builderNpcIds = new ArrayList<>();
     // Who lives here. Unordered; see getResidentNpcIds for why this is a roll and not a count.
     private final List<UUID> residentNpcIds = new ArrayList<>();
+    // Game time of the last arrival, so word of the town spreads at a pace rather than in a
+    // burst the moment a house goes up. Persisted: without it, a reload readmits immediately.
+    private long lastSettlerArrival = 0L;
     // How many builders should be active. Starts at 1, incremented by era transitions with unlock_new_builder.
     private int targetBuilderCount = 1;
     // Runtime-only claim map: queue index -> builder UUID. Prevents two builders from picking the same entry.
@@ -660,6 +663,10 @@ public class Town {
      */
     public List<UUID> getResidentNpcIds() { return residentNpcIds; }
 
+    public long getLastSettlerArrival() { return lastSettlerArrival; }
+
+    public void setLastSettlerArrival(long gameTime) { this.lastSettlerArrival = gameTime; }
+
     /** @return true if this person was not already on the roll. */
     public boolean addResident(UUID id) {
         if (id == null || residentNpcIds.contains(id)) return false;
@@ -757,6 +764,7 @@ public class Town {
             residentIdsTag.add(idTag);
         }
         tag.put("ResidentNpcIds", residentIdsTag);
+        tag.putLong("LastSettlerArrival", lastSettlerArrival);
         tag.putInt("TargetBuilderCount", targetBuilderCount);
         ListTag buildingsTag = new ListTag();
         buildings.forEach(b -> buildingsTag.add(b.toNbt()));
@@ -832,6 +840,7 @@ public class Town {
         if (tag.hasUUID("BuilderNpcId")) {
             town.builderNpcIds.add(tag.getUUID("BuilderNpcId"));
         }
+        town.lastSettlerArrival = tag.getLong("LastSettlerArrival");
         if (tag.contains("ResidentNpcIds")) {
             tag.getList("ResidentNpcIds", Tag.TAG_COMPOUND).forEach(t -> {
                 CompoundTag idTag = (CompoundTag) t;
