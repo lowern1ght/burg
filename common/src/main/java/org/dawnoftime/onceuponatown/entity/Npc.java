@@ -68,6 +68,13 @@ public class Npc extends AgeableMob implements TownNpc {
     public float clientBuildPlacedAtAge = -1000f;
 
     private SimpleStateMachine stateMachine;
+    // A settler's working day. Built lazily like the state machine, and for the same reason:
+    // the entity exists before its town does on a fresh load.
+    private org.dawnoftime.onceuponatown.entity.ai.WorkShift workShift;
+    // Where this person works, or null for the idle. Persisted so a trade survives a reload.
+    private BlockPos jobSite = null;
+    // How good they are at it. Grows a step per completed shift, capped by the job config.
+    private int skill = 0;
     // What this person is for. Defaults to BUILDER so that every Npc already saved in a world
     // keeps behaving exactly as it did before this field existed.
     private Role role = Role.BUILDER;
@@ -138,6 +145,11 @@ public class Npc extends AgeableMob implements TownNpc {
             if (role == Role.BUILDER) {
                 if (stateMachine == null) stateMachine = new SimpleStateMachine(this);
                 stateMachine.tick();
+            } else {
+                if (workShift == null) {
+                    workShift = new org.dawnoftime.onceuponatown.entity.ai.WorkShift(this);
+                }
+                workShift.tick();
             }
             if (readingTicksRemaining > 0 && --readingTicksRemaining == 0) {
                 entityData.set(DATA_IS_READING, false);
@@ -147,14 +159,46 @@ public class Npc extends AgeableMob implements TownNpc {
     }
 
     @Override
+    public void remove(RemovalReason reason) {
+        if (workShift != null && level() instanceof ServerLevel sl && townAnchorPos != null) {
+            Town town = LevelTowns.get(sl).getTownAt(townAnchorPos).orElse(null);
+            workShift.onRemoved(town);
+            // Struck off the roll only on a real death or removal, NOT when the chunk unloads:
+            // a settler whose chunk is unloaded is still a resident, and removing them here would
+            // quietly depopulate any town the player walks away from.
+            if (town != null && reason == RemovalReason.KILLED) {
+                town.removeResident(getUUID());
+                LevelTowns.get(sl).markDirty();
+            }
+        }
+        super.remove(reason);
+    }
+
+    @Override
     public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
         if (townAnchorPos != null) tag.put("TownAnchorPos", Constants.writeBlockPos(townAnchorPos));
         tag.putString("Role", role.name());
+        if (jobSite != null) tag.put("JobSite", Constants.writeBlockPos(jobSite));
+        tag.putInt("Skill", skill);
     }
 
     /** What this person is for. Never null. */
     public Role getRole() { return role; }
+
+    /** The building this person works at, or null for the idle. */
+    public BlockPos getJobSite() { return jobSite; }
+    public void setJobSite(BlockPos pos) { this.jobSite = pos; }
+
+    /**
+     * How good they are at their trade, 0 up to the job config's cap.
+     *
+     * <p>Ours, not vanilla's villager experience. That was the obvious place to put it and it is
+     * the wrong one: villager XP is spent by vanilla to decide trade unlocks and is stripped by
+     * `LoseJobOnSiteLoss`, so a mechanic built on it would be fighting rules we do not own.
+     */
+    public int getSkill() { return skill; }
+    public void setSkill(int skill) { this.skill = skill; }
 
     /**
      * Set before the entity enters the world, and not changed afterwards.
@@ -187,6 +231,8 @@ public class Npc extends AgeableMob implements TownNpc {
         super.readAdditionalSaveData(tag);
         if (tag.contains("TownAnchorPos")) townAnchorPos = Constants.readBlockPos(tag, "TownAnchorPos");
         // Absent means BUILDER: every Npc saved before the role existed was one.
+        if (tag.contains("JobSite")) jobSite = Constants.readBlockPos(tag, "JobSite");
+        skill = tag.getInt("Skill");
         if (tag.contains("Role")) {
             try {
                 role = Role.valueOf(tag.getString("Role"));

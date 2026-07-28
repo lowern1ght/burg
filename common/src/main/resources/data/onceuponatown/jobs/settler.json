@@ -1,0 +1,105 @@
+{
+  "//": "What a settler does for a living. Same four fields as the builder's secondary_activities,",
+  "//2": "because the format was already right: a building to go to, a tool to hold, an animation,",
+  "//3": "and a block inside that building's own bounding box to stand at and work.",
+  "//4": "target_block is searched ONLY inside the building it belongs to, so a common block like",
+  "//5": "oak_log is safe here and does not turn every wall in town into a workplace.",
+
+  "work_ticks": 2400,
+  "skill_per_shift": 1,
+  "max_skill": 5,
+
+  "//6": "manned_window_ticks: how long one finished shift keeps a workplace counted as manned.",
+  "//7": "Longer than a shift on purpose, so a settler working steadily never flickers unmanned.",
+  "manned_window_ticks": 6000,
+
+  "//8": "unmanned_output: what a workplace WITH a job defined produces when nobody worked it.",
+  "//9": "0.5 is deliberately not 0.0 -- a hard gate would stop every existing town dead the",
+  "//10": "moment this shipped, before a single settler had walked in. Set it to 0.0 when you want",
+  "//11": "no worker to mean no goods, and to 1.0 to make work purely decorative again.",
+  "unmanned_output": 0.5,
+
+  "//12": "What each level of skill adds. At max_skill 5 that is 1.75x for a master.",
+  "skill_bonus_per_level": 0.15,
+
+  "jobs": [
+    {
+      "requiredBuilding": "lumberjack",
+      "heldItem": "minecraft:stone_axe",
+      "animationType": "CHOP",
+      "target_block": "minecraft:oak_log"
+    },
+    {
+      "requiredBuilding": "grove",
+      "heldItem": "minecraft:stone_axe",
+      "animationType": "CHOP",
+      "target_block": "minecraft:oak_log"
+    },
+    {
+      "requiredBuilding": "carpenter",
+      "heldItem": "minecraft:oak_planks",
+      "animationType": "CRAFT",
+      "target_block": "minecraft:crafting_table"
+    },
+    {
+      "requiredBuilding": "workshop",
+      "heldItem": "minecraft:oak_planks",
+      "animationType": "CRAFT",
+      "target_block": "minecraft:crafting_table"
+    },
+    {
+      "requiredBuilding": "stone_breach",
+      "heldItem": "minecraft:stone_pickaxe",
+      "animationType": "MINE",
+      "target_block": "minecraft:stone"
+    },
+    {
+      "requiredBuilding": "wild_stone",
+      "heldItem": "minecraft:stone_pickaxe",
+      "animationType": "MINE",
+      "target_block": "minecraft:stone"
+    },
+    {
+      "requiredBuilding": "kitchen",
+      "heldItem": "minecraft:bread",
+      "animationType": "CRAFT",
+      "target_block": "minecraft:smoker"
+    },
+    {
+      "requiredBuilding": "oven",
+      "heldItem": "minecraft:bread",
+      "animationType": "CRAFT",
+      "target_block": "minecraft:crafting_table"
+    },
+    {
+      "requiredBuilding": "granary",
+      "heldItem": "minecraft:wheat",
+      "animationType": "CRAFT",
+      "target_block": "minecraft:composter"
+    },
+    {
+      "requiredBuilding": "wheat_farm",
+      "heldItem": "minecraft:wheat",
+      "animationType": "CRAFT",
+      "target_block": "minecraft:composter"
+    },
+    {
+      "requiredBuilding": "leather_workshop",
+      "heldItem": "minecraft:leather",
+      "animationType": "CRAFT",
+      "target_block": "minecraft:cauldron"
+    },
+    {
+      "requiredBuilding": "beekeeper",
+      "heldItem": "minecraft:honeycomb",
+      "animationType": "CRAFT",
+      "target_block": "minecraft:beehive"
+    },
+    {
+      "requiredBuilding": "merchant_shop",
+      "heldItem": "minecraft:gold_nugget",
+      "animationType": "CRAFT",
+      "target_block": "minecraft:lectern"
+    }
+  ]
+}

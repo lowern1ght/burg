@@ -53,6 +53,11 @@ public class Town {
     // Game time of the last arrival, so word of the town spreads at a pace rather than in a
     // burst the moment a house goes up. Persisted: without it, a reload readmits immediately.
     private long lastSettlerArrival = 0L;
+    // Which settler holds the trade at which building. Persisted, unlike the builder's queue
+    // claims: a settler must keep the same trade across a reload or it is not a trade, it is a
+    // thing it happens to be doing. Deriving "is this taken" by scanning for other settlers
+    // instead would fail exactly while their chunks are unloaded, which is most of the time.
+    private final Map<BlockPos, UUID> jobClaims = new HashMap<>();
     // How many builders should be active. Starts at 1, incremented by era transitions with unlock_new_builder.
     private int targetBuilderCount = 1;
     // Runtime-only claim map: queue index -> builder UUID. Prevents two builders from picking the same entry.
@@ -667,6 +672,21 @@ public class Town {
 
     public void setLastSettlerArrival(long gameTime) { this.lastSettlerArrival = gameTime; }
 
+    /** Who works at this building, or null. */
+    public UUID getJobHolder(BlockPos buildingPos) { return jobClaims.get(buildingPos); }
+
+    /** @return false if somebody already holds it. One trade, one worker. */
+    public boolean claimJob(BlockPos buildingPos, UUID settler) {
+        if (jobClaims.containsKey(buildingPos)) return false;
+        jobClaims.put(buildingPos, settler);
+        return true;
+    }
+
+    /** Give up whatever this settler held. Safe to call for somebody who held nothing. */
+    public void releaseJob(UUID settler) {
+        jobClaims.values().removeIf(id -> id.equals(settler));
+    }
+
     /** @return true if this person was not already on the roll. */
     public boolean addResident(UUID id) {
         if (id == null || residentNpcIds.contains(id)) return false;
@@ -765,6 +785,14 @@ public class Town {
         }
         tag.put("ResidentNpcIds", residentIdsTag);
         tag.putLong("LastSettlerArrival", lastSettlerArrival);
+        ListTag jobClaimsTag = new ListTag();
+        jobClaims.forEach((pos, id) -> {
+            CompoundTag c = new CompoundTag();
+            c.putLong("Pos", pos.asLong());
+            c.putUUID("Id", id);
+            jobClaimsTag.add(c);
+        });
+        tag.put("JobClaims", jobClaimsTag);
         tag.putInt("TargetBuilderCount", targetBuilderCount);
         ListTag buildingsTag = new ListTag();
         buildings.forEach(b -> buildingsTag.add(b.toNbt()));
@@ -841,6 +869,12 @@ public class Town {
             town.builderNpcIds.add(tag.getUUID("BuilderNpcId"));
         }
         town.lastSettlerArrival = tag.getLong("LastSettlerArrival");
+        if (tag.contains("JobClaims")) {
+            tag.getList("JobClaims", Tag.TAG_COMPOUND).forEach(t -> {
+                CompoundTag c = (CompoundTag) t;
+                if (c.hasUUID("Id")) town.jobClaims.put(BlockPos.of(c.getLong("Pos")), c.getUUID("Id"));
+            });
+        }
         if (tag.contains("ResidentNpcIds")) {
             tag.getList("ResidentNpcIds", Tag.TAG_COMPOUND).forEach(t -> {
                 CompoundTag idTag = (CompoundTag) t;

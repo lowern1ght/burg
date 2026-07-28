@@ -60,6 +60,30 @@ public class PlacedBuilding {
     public double getInstanceProductionMultiplier() { return instanceProductionMultiplier; }
     public void setInstanceProductionMultiplier(double value) { this.instanceProductionMultiplier = value; }
 
+    /**
+     * Game time of the last completed shift here, and the skill of whoever worked it.
+     *
+     * <p>Two numbers on the building rather than a lookup from the building to its worker, and
+     * that is the point: {@code ProductionManager} runs over buildings on a timer and must not
+     * have to find, load or wait for an entity to decide what a workshop produced. A stamp also
+     * survives the worker walking off, dying or having its chunk unloaded mid-shift.
+     */
+    private long lastWorkedTick = Long.MIN_VALUE;
+    private int lastWorkerSkill = 0;
+
+    public void recordWork(long gameTime, int workerSkill) {
+        this.lastWorkedTick = gameTime;
+        this.lastWorkerSkill = workerSkill;
+    }
+
+    public long getLastWorkedTick() { return lastWorkedTick; }
+    public int getLastWorkerSkill() { return lastWorkerSkill; }
+
+    /** Whether somebody has worked here recently enough for the place to count as manned. */
+    public boolean isManned(long gameTime, long window) {
+        return lastWorkedTick != Long.MIN_VALUE && gameTime - lastWorkedTick <= window;
+    }
+
     public int getUpgradeLevel() { return upgradeLevel; }
     public void setUpgradeLevel(int level) { this.upgradeLevel = level; }
 
@@ -96,6 +120,10 @@ public class PlacedBuilding {
             stockTag.putInt(key, qty);
         });
         tag.put("Stock", stockTag);
+        if (lastWorkedTick != Long.MIN_VALUE) {
+            tag.putLong("LastWorkedTick", lastWorkedTick);
+            tag.putInt("LastWorkerSkill", lastWorkerSkill);
+        }
         if (bb != null) {
             CompoundTag bbTag = new CompoundTag();
             bbTag.putInt("MinX", bb.minX());
@@ -131,6 +159,10 @@ public class PlacedBuilding {
             ? Rotation.values()[tag.getInt("Rotation")]
             : Rotation.NONE;
         PlacedBuilding b = new PlacedBuilding(defId, pos, bb, rotation);
+        if (tag.contains("LastWorkedTick")) {
+            b.lastWorkedTick = tag.getLong("LastWorkedTick");
+            b.lastWorkerSkill = tag.getInt("LastWorkerSkill");
+        }
         if (tag.contains("InstanceProductionMultiplier"))
             b.instanceProductionMultiplier = tag.getDouble("InstanceProductionMultiplier");
         if (tag.contains("UpgradeLevel"))

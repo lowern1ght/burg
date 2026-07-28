@@ -66,6 +66,7 @@ import org.dawnoftime.onceuponatown.datapack.BuildingListDataHandler;
 import org.dawnoftime.onceuponatown.datapack.EraTransitionDataHandler;
 import org.dawnoftime.onceuponatown.datapack.FoodListDataHandler;
 import org.dawnoftime.onceuponatown.datapack.QuestDataHandler;
+import org.dawnoftime.onceuponatown.datapack.SettlerJobsDataHandler;
 import org.dawnoftime.onceuponatown.datapack.TradePriceDataHandler;
 import org.dawnoftime.onceuponatown.entity.Citizen;
 import org.dawnoftime.onceuponatown.entity.Npc;
@@ -262,6 +263,7 @@ public class OuatForge {
         EraTransitionDataHandler.reload(event.getServer());
         FoodListDataHandler.reload(event.getServer());
         QuestDataHandler.reload(event.getServer());
+        SettlerJobsDataHandler.reload(event.getServer());
         TradePriceDataHandler.reload(event.getServer());
     }
 
