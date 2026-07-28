@@ -19,6 +19,10 @@ import org.dawnoftime.onceuponatown.client.gui.tooltip.BuildingProductionTooltip
 import org.dawnoftime.onceuponatown.client.gui.tooltip.ClientBuildingProductionTooltip;
 import org.dawnoftime.onceuponatown.client.gui.tooltip.ClientItemAndTitleTooltip;
 import org.dawnoftime.onceuponatown.client.gui.tooltip.ItemAndTitleTooltip;
+import net.minecraft.client.model.geom.ModelLayerLocation;
+import net.minecraft.client.model.geom.builders.LayerDefinition;
+import java.util.function.Supplier;
+import org.dawnoftime.onceuponatown.client.model.NpcHeadModels;
 import org.dawnoftime.onceuponatown.client.model.NpcModel;
 import org.dawnoftime.onceuponatown.client.renderer.CitizenRenderer;
 import org.dawnoftime.onceuponatown.client.renderer.NpcRenderer;
@@ -66,6 +70,23 @@ public class OuatForgeClient {
     @SubscribeEvent
     public static void onRegisterLayerDefinitions(EntityRenderersEvent.RegisterLayerDefinitions event) {
         event.registerLayerDefinition(NpcModel.LAYER_LOCATION, NpcModel::createBodyLayer);
+        // Hair, beards and headwear. Geometry rather than paint because a texture cannot change a
+        // silhouette on this rig — see NpcHeadModels. A null supplier is a variant that IS the
+        // absence of the thing (beard 0, headwear 0); NpcHeadLayer skips the same slots, and both
+        // read the arrays out of NpcHeadModels so they cannot drift apart.
+        register(event, NpcHeadModels.HAIR_LAYERS, NpcHeadModels.hair());
+        register(event, NpcHeadModels.BEARD_LAYERS, NpcHeadModels.beards());
+        register(event, NpcHeadModels.HEADWEAR_LAYERS, NpcHeadModels.headwear());
+    }
+
+    private static void register(EntityRenderersEvent.RegisterLayerDefinitions event,
+                                 ModelLayerLocation[] where,
+                                 Supplier<LayerDefinition>[] what) {
+        for (int i = 0; i < where.length; i++) {
+            if (what[i] != null) {
+                event.registerLayerDefinition(where[i], what[i]);
+            }
+        }
     }
 
     @SubscribeEvent

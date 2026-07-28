@@ -1,5 +1,33 @@
 """Relay the NPC textures from the villager mesh's UV onto the player mesh's UV.
 
+**RETIRED, 2026-07-29. Nothing calls the relay any more; do not delete it.**
+
+What retired it: every texture the mod ships is now AUTHORED on the player UV, so there is
+nothing left to relay from the villager net.
+
+  * the skins — `make_citizen_skins.py` draws all 48 bodies (4 complexions x 6 faces x 2 sexes)
+    straight onto the player layout. Before it, `make_female_skins.py` had already done the six
+    women that way; this module's `SKIN_PARTS` half is what produced the six MEN, and it is the
+    reason they shipped bald, monobrowed and green-eyed: it faithfully carried the villager's own
+    face over and lost two rows in the 10->8 head crop.
+  * the garments — all nine `*_clothes.png` in git are already relayed output. Measured to
+    confirm before writing this note: `builder_clothes.png`'s mask is on the player UV (torso
+    front rows 6-11 covered, rows 0-5 only at cols 0-1 and 6-7, a 9-texel wedge on each shoulder
+    outer, nothing on a base region). `make_npc_textures.recolour` cuts the other eight from it
+    without touching the layout. So `GARMENT_PARTS` has nothing to convert either.
+
+Dead below, kept because a relay is unrepeatable once its input is gone: `SKIN_PARTS`,
+`GARMENT_PARTS`, `ALREADY_PLAYER_UV`, `SKIN_MUST_FILL`, `fit`, `relay`, `report`, `main`,
+`SRC_DIR`, `OUT_DIR`.
+
+**Still live, and moved out:** the mesh region table. `faces`, `PLAYER_BOXES`, `NEW_REGIONS`,
+`MIRROR_SWAP` and `player_sampled` now live in `npc_uv.py` and are re-exported here so existing
+imports keep working. They moved because they are imported by every NPC tool in this directory
+and a retired script is a bad place to keep a live rule — the same reason `solids.py` was made
+the single shape model.
+
+--- what it did, while it did it ---
+
 `NpcModel.createBodyLayer()` used to build a villager: head 8x10x8, a nose, a torso 6 deep and
 a 20-tall robe hanging past the legs. It now builds a person on the player's own layout. The
 textures did not move with it, and the mismatch is not subtle — the old mesh MIRRORED its right
@@ -29,6 +57,12 @@ import sys
 
 from PIL import Image
 
+# Re-exported from the module that now owns them, so `from remap_npc_uv import PLAYER_BOXES`
+# keeps working everywhere it is already written. `npc_uv` is the single owner; this is an alias
+# list and must never grow a second definition.
+from npc_uv import (MIRROR_SWAP, NEW_REGIONS, PLAYER_BOXES, faces,  # noqa: F401
+                    player_sampled)
+
 SRC_DIR = os.path.join("..", "common", "src", "main", "resources", "assets",
                        "onceuponatown", "textures", "entity", "npc")
 OUT_DIR = "npc_uv_out"
@@ -39,22 +73,8 @@ OUT_DIR = "npc_uv_out"
 ALREADY_PLAYER_UV = ("citizen_skin_f",)
 
 
-def faces(u, v, w, h, d):
-    """The six face rectangles of a Minecraft box net at texOffs(u, v).
-
-    A box unwraps top/bottom in a d-tall strip, then right/front/left/back in an h-tall one.
-    Total net is 2d+2w wide and d+h tall — the same convention CubeListBuilder emits, which is
-    why this can be read straight off a texOffs and a box size.
-    """
-    return {
-        "top":    (u + d,         v,     w, d),
-        "bottom": (u + d + w,     v,     w, d),
-        "right":  (u,             v + d, d, h),
-        "front":  (u + d,         v + d, w, h),
-        "left":   (u + d + w,     v + d, d, h),
-        "back":   (u + 2 * d + w, v + d, w, h),
-    }
-
+# `faces()` moved to `npc_uv.py`, verbatim, and is imported above. Nothing is lost — a symbol
+# move is create-then-remove in one file, and the text is in the new module unchanged.
 
 # name -> (source box, destination box, vertical anchor)
 #
@@ -84,58 +104,9 @@ GARMENT_PARTS = [
     ("l_sleeve",    (44, 22, 4, 12, 4), (48, 48, 4, 12, 4), "center", True),
 ]
 
-# Which faces swap when a limb is mirrored. Every face is also flipped horizontally: that pair
-# of operations is what `CubeListBuilder.mirror()` does, and reproducing it in the texture is
-# what lets a dedicated left-limb region look like the mirrored right one it replaces.
-MIRROR_SWAP = {"right": "left", "left": "right",
-               "front": "front", "back": "back",
-               "top": "top", "bottom": "bottom"}
-
-# The new mesh, box by box, read off `NpcModel.createBodyLayer()`: texOffs and size, base cube
-# then second layer. THE single owner of this table — `make_female_skins` and
-# `make_npc_textures` both import it, because for one afternoon two copies of the old villager
-# table disagreed and a checker reported 126 phantom "invisible pixels" on every file in the mod.
-PLAYER_BOXES = {
-    "head":        (0, 0, 8, 8, 8),
-    "hat":         (32, 0, 8, 8, 8),
-    "body":        (16, 16, 8, 12, 4),
-    "body_outer":  (16, 32, 8, 12, 4),
-    "r_arm":       (40, 16, 4, 12, 4),
-    "r_arm_outer": (40, 32, 4, 12, 4),
-    "l_arm":       (32, 48, 4, 12, 4),
-    "l_arm_outer": (48, 48, 4, 12, 4),
-    "r_leg":       (0, 16, 4, 12, 4),
-    "r_leg_outer": (0, 32, 4, 12, 4),
-    "l_leg":       (16, 48, 4, 12, 4),
-    "l_leg_outer": (0, 48, 4, 12, 4),
-}
-
-
-def player_sampled():
-    """Every texel any face of any box on the player mesh actually reads.
-
-    Anything opaque outside this set is paint nobody will ever see. Note that it is NOT the
-    union of `NEW_REGIONS`: a region is the bounding rectangle of a net and a net has four empty
-    corners, so the rectangle over-counts by 128 texels on the head alone.
-    """
-    used = set()
-    for dims in PLAYER_BOXES.values():
-        for _, (x, y, w, h) in faces(*dims).items():
-            for yy in range(y, y + h):
-                for xx in range(x, x + w):
-                    used.add((xx, yy))
-    return used
-
-
-# The bounding rectangles of those nets, for the per-region report.
-NEW_REGIONS = {
-    "head": (0, 0, 32, 16),        "hat": (32, 0, 64, 16),
-    "body": (16, 16, 40, 32),      "body_outer": (16, 32, 40, 48),
-    "r_arm": (40, 16, 56, 32),     "r_arm_outer": (40, 32, 56, 48),
-    "l_arm": (32, 48, 48, 64),     "l_arm_outer": (48, 48, 64, 64),
-    "r_leg": (0, 16, 16, 32),      "r_leg_outer": (0, 32, 16, 48),
-    "l_leg": (16, 48, 32, 64),     "l_leg_outer": (0, 48, 16, 64),
-}
+# `MIRROR_SWAP`, `PLAYER_BOXES`, `player_sampled()` and `NEW_REGIONS` moved to `npc_uv.py`,
+# verbatim, and are imported above. They had to LEAVE rather than be shadowed by the import:
+# a second definition further down the same file is the exact failure the split is for.
 
 # A skin must fill these or the person has a hole in them. Garments are allowed to be sparse —
 # a tunic covers the torso and nothing else — so they are checked separately.

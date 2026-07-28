@@ -343,9 +343,19 @@ def check() -> int:
     """
     used = player_sampled()
     faults = 0
+    skipped = []
     print(f"  {'file':30s} {'painted':>7} {'stray':>6}  {'regions'}")
     for path in sorted(OUT.glob("*.png")):
         im = Image.open(path).convert("RGBA")
+        # Not everything in this directory is a 64x64 body net any more. `npc_hair.png` and
+        # `npc_headwear.png` are 64x32 UNIFORM MATERIALS for the cubes in `NpcHeadModels`, which
+        # all sample texOffs(0,0), so they have no regions to report and the player-UV rules do
+        # not apply to them. This used to walk range(64) unconditionally and crashed on the first
+        # one — and a check that crashes teaches people to stop running it, which is exactly what
+        # the villager-table incident at the top of this file was about.
+        if im.size != (64, 64):
+            skipped.append(f"{path.name} ({im.size[0]}x{im.size[1]})")
+            continue
         px = im.load()
         opaque = {(x, y) for y in range(64) for x in range(64) if px[x, y][3] > 8}
         stray = opaque - used
@@ -354,7 +364,12 @@ def check() -> int:
             counts[part] = sum(1 for _, (x, y, w, h) in faces.items()
                                for yy in range(y, y + h) for xx in range(x, x + w)
                                if px[xx, yy][3] > 8)
-        is_skin = "skin" in path.name
+        # A garment is `*_clothes.png` and everything else on the 64x64 net is a BODY. This used
+        # to be `"skin" in path.name`, which silently depended on a filename convention: the
+        # moment the authored bodies arrived as `citizen_m_c0_f0.png` the substring stopped
+        # matching, all 48 were judged as garments, and the gate reported "352px of garment on
+        # body" for every one of them. Classify by the thing's job, not by its name.
+        is_skin = not path.name.endswith("_clothes.png")
         bad = []
         if stray:
             bad.append(f"{len(stray)}px outside every net")
@@ -372,10 +387,12 @@ def check() -> int:
             faults += 1
             print(f"  {'':30s} FAIL: {'; '.join(bad)}")
     print()
+    if skipped:
+        print(f"  not a 64x64 body net, so not judged here: {', '.join(skipped)}")
     if faults:
         print(f"{faults} file(s) with real faults.")
         return 1
-    n = len(list(OUT.glob('*.png')))
+    n = len(list(OUT.glob('*.png'))) - len(skipped)
     print(f"OK — {n} file(s): no garment on a base layer, no skin with a hole in it, "
           f"no invisible paint.")
     return 0

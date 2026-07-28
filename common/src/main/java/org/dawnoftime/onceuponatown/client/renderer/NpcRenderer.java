@@ -9,16 +9,38 @@ import net.minecraft.client.renderer.entity.HumanoidMobRenderer;
 import net.minecraft.client.renderer.entity.layers.HumanoidArmorLayer;
 import net.minecraft.resources.ResourceLocation;
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.client.CitizenLook;
 import org.dawnoftime.onceuponatown.client.model.NpcModel;
 import org.dawnoftime.onceuponatown.client.model.layer.NpcClothesLayer;
+import org.dawnoftime.onceuponatown.client.model.layer.NpcHeadLayer;
 import org.dawnoftime.onceuponatown.entity.Npc;
 
 public class NpcRenderer extends HumanoidMobRenderer<Npc, NpcModel<Npc>> {
-    private static final ResourceLocation NPC_BASE_SKIN = ResourceLocation.fromNamespaceAndPath(Ouat.MOD_ID, "textures/entity/npc/default_skin.png");
+
+    /**
+     * The builder's body, chosen rather than rolled — and it had to be chosen because of an
+     * accident worth recording.
+     *
+     * <p>{@code citizen_skin_0.png} and {@code default_skin.png} were <b>the same file</b>: git
+     * blob {@code 4f5ef400} for both, because the old pipeline's first complexion was the identity
+     * transform. So the most-seen NPC in the game was silently on the citizen path and wore that
+     * set's worst artefact — a torso of thirteen desaturated greys at median luminance 98, which
+     * is the real reason he read as wearing a black cloak. It was never a bug in the garment code.
+     *
+     * <p>He is now the {@code warm} complexion with the {@code lined} face, and
+     * {@link CitizenLook#BUILDER} gives him a short beard to match. {@code default_skin.png} stays
+     * on disk untouched; nothing reads it any more.
+     */
+    private static final ResourceLocation NPC_BASE_SKIN = CitizenLook.body(CitizenLook.BUILDER);
+
+    /** Kept so the file it names is not orphaned silently. Nothing reads it. */
+    private static final ResourceLocation RETIRED_DEFAULT_SKIN =
+        ResourceLocation.fromNamespaceAndPath(Ouat.MOD_ID, "textures/entity/npc/default_skin.png");
 
     public NpcRenderer(EntityRendererProvider.Context context) {
         super(context, new NpcModel<>(context.bakeLayer(NpcModel.LAYER_LOCATION)), 0.5F);
         this.addLayer(new NpcClothesLayer<>(this));
+        this.addLayer(new NpcHeadLayer<>(this, context));
         this.addLayer(new HumanoidArmorLayer<>(this,
             new HumanoidArmorModel<>(context.bakeLayer(ModelLayers.PLAYER_INNER_ARMOR)),
             new HumanoidArmorModel<>(context.bakeLayer(ModelLayers.PLAYER_OUTER_ARMOR)),

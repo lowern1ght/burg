@@ -12,8 +12,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.npc.Villager;
 import org.dawnoftime.onceuponatown.Constants;
+import org.dawnoftime.onceuponatown.client.CitizenLook;
 import org.dawnoftime.onceuponatown.client.model.NpcModel;
 import org.dawnoftime.onceuponatown.client.model.layer.NpcClothesLayer;
+import org.dawnoftime.onceuponatown.client.model.layer.NpcHeadLayer;
 import org.dawnoftime.onceuponatown.entity.citizen.Citizens;
 
 /**
@@ -68,6 +70,10 @@ public class TownVillagerRenderer extends HumanoidMobRenderer<Villager, NpcModel
         }
         return out;
     }
+    // ^ RETIRED, and kept only so the twelve files it names are not orphaned silently. Nothing
+    // reads MEN or WOMEN any more: getTextureLocation goes through CitizenLook, which indexes the
+    // 48 authored bodies by (sex, complexion, face). Deleting these — and the twelve PNGs — is a
+    // separate decision for whoever owns the asset list.
 
     /** A genuine vanilla renderer, kept for the villagers that are nobody's. */
     private final VillagerRenderer vanilla;
@@ -76,6 +82,8 @@ public class TownVillagerRenderer extends HumanoidMobRenderer<Villager, NpcModel
         super(context, new NpcModel<>(context.bakeLayer(NpcModel.LAYER_LOCATION)), 0.5F);
         this.vanilla = new VillagerRenderer(context);
         this.addLayer(new NpcClothesLayer<>(this));
+        // Hair, beard and headwear: the only part of the look that can change a silhouette.
+        this.addLayer(new NpcHeadLayer<>(this, context));
         // Registered even though a citizen wears none yet: it is the same layer the builder
         // already had, it costs nothing while the slots are empty, and it is the whole reason
         // a garrison will be readable by equipment instead of by seven bespoke textures.
@@ -96,20 +104,24 @@ public class TownVillagerRenderer extends HumanoidMobRenderer<Villager, NpcModel
     }
 
     /**
-     * Which of the twelve skins this citizen wears.
+     * Which body this citizen wears: one of 48, by sex, complexion and face.
      *
-     * <p>Two independent rolls off the UUID, and they have to stay independent: the sex comes
-     * from {@link Citizens#isFemale}, which is {@code CitizenNames.isFeminine} — the FIRST draw
-     * of the name generator's sequence, which is why the sex and the name can never disagree —
-     * and the complexion from {@link Citizens#faceOf}, which is a salted hash of the same id.
+     * <p>Independent rolls off the UUID, and they have to stay independent — see
+     * {@link CitizenLook} for the salt and why sharing a hash between two axes puts a town out in
+     * visible pairs. The sex comes from {@link Citizens#isFemale}, which is
+     * {@code CitizenNames.isFeminine}, the FIRST draw of the name generator's sequence, which is
+     * why a Hedda can never come out a man.
+     *
+     * <p>Hair, beard and headwear are NOT here. They are geometry on {@code NpcHeadLayer},
+     * because the twelve skins this replaces had three distinct alpha masks between them and the
+     * six men shared one: a texture cannot change an outline on this rig.
      *
      * <p>Only reached for a citizen: {@link #render} hands anything that is not one to a real
      * {@code VillagerRenderer}, which resolves its own texture.
      */
     @Override
     public ResourceLocation getTextureLocation(Villager villager) {
-        ResourceLocation[] set = Citizens.isFemale(villager) ? WOMEN : MEN;
-        return set[Citizens.faceOf(villager)];
+        return CitizenLook.body(villager);
     }
 
     /**

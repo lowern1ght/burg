@@ -7,8 +7,10 @@ import net.minecraft.client.renderer.entity.HumanoidMobRenderer;
 import net.minecraft.client.renderer.entity.layers.HumanoidArmorLayer;
 import net.minecraft.resources.ResourceLocation;
 import org.dawnoftime.onceuponatown.Constants;
+import org.dawnoftime.onceuponatown.client.CitizenLook;
 import org.dawnoftime.onceuponatown.client.model.NpcModel;
 import org.dawnoftime.onceuponatown.client.model.layer.NpcClothesLayer;
+import org.dawnoftime.onceuponatown.client.model.layer.NpcHeadLayer;
 import org.dawnoftime.onceuponatown.entity.Citizen;
 
 /**
@@ -26,8 +28,9 @@ import org.dawnoftime.onceuponatown.entity.Citizen;
  */
 public class CitizenRenderer extends HumanoidMobRenderer<Citizen, NpcModel<Citizen>> {
 
-    // One per base skin, resolved once. Vanilla varies a villager the same way, by its TYPE;
-    // the only difference is that ours are recolours of one drawn skin, not seven drawings.
+    // RETIRED, and kept only so the six files it names are not orphaned silently. Nothing reads
+    // SKINS any more — see getTextureLocation. Removing this, and the twelve retired PNGs, is a
+    // separate decision for whoever owns the asset list.
     private static final ResourceLocation[] SKINS = new ResourceLocation[Citizen.SKIN_VARIANTS];
 
     static {
@@ -40,14 +43,28 @@ public class CitizenRenderer extends HumanoidMobRenderer<Citizen, NpcModel<Citiz
     public CitizenRenderer(EntityRendererProvider.Context context) {
         super(context, new NpcModel<>(context.bakeLayer(NpcModel.LAYER_LOCATION)), 0.5F);
         this.addLayer(new NpcClothesLayer<>(this));
+        this.addLayer(new NpcHeadLayer<>(this, context));
         this.addLayer(new HumanoidArmorLayer<>(this,
             new HumanoidArmorModel<>(context.bakeLayer(ModelLayers.PLAYER_INNER_ARMOR)),
             new HumanoidArmorModel<>(context.bakeLayer(ModelLayers.PLAYER_OUTER_ARMOR)),
             context.getModelManager()));
     }
 
+    /**
+     * The same 48 authored bodies every other citizen uses.
+     *
+     * <p>This used to index {@code citizen_skin_0..5} off the synced {@code DATA_SKIN}, which left
+     * two appearance systems in the mod for one cast — the failure this repo keeps paying for, and
+     * the reason {@code make_npc_textures --check} spent an afternoon measuring a retired villager
+     * layout. {@link CitizenLook} is the single owner now.
+     *
+     * <p>{@code Citizen.getSkinVariant} is deliberately left alone: it is synced state that a save
+     * already holds, and a chief given a chosen face still wants it. It simply is not what picks
+     * the texture. Reconciling the two — feeding the synced value into
+     * {@link CitizenLook.Look#face()} — is a small follow-up, not a rendering change.
+     */
     @Override
     public ResourceLocation getTextureLocation(Citizen citizen) {
-        return SKINS[citizen.getSkinVariant()];
+        return CitizenLook.body(citizen);
     }
 }
