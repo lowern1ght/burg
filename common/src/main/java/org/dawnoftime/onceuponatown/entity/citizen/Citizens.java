@@ -120,6 +120,75 @@ public final class Citizens {
         return level.getEntitiesOfClass(Villager.class, box, Citizens::isCitizen);
     }
 
+    // --- joining a town automatically -----------------------------------------------------
+
+    /**
+     * How far from the anchor a villager still counts as living in the town.
+     *
+     * <p>128, because that is what world generation means by the town: {@code
+     * plains_town.json} carries {@code max_distance_from_center: 116}, so no piece of a
+     * settlement is ever further out than that. Picking a number out of the air here would
+     * either absorb a neighbouring vanilla village or leave the far end of our own streets
+     * populated by strangers.
+     */
+    public static final int ENLIST_RADIUS = 128;
+
+    /**
+     * Take a villager into the nearest town, if it is standing in one and is nobody's yet.
+     *
+     * <p><b>This closes the hole that made a generated village full of strangers.</b> {@link
+     * #enlist} was only ever called from four places — the debug command, the two build actions
+     * and the manual retrofit sweep — and not one of them runs for a village that world
+     * generation placed. Vanilla's jigsaw puts {@code house.nbt} down itself, and 7 villagers
+     * ship inside the author's NBTs (1 in {@code house}, 2 in {@code house_2}, 2 in {@code
+     * house_3}, 1 each in {@code house_lvl2} and {@code house_3_lvl4}); those are the village's
+     * whole population, and every one of them arrived unaffiliated. Same for anything vanilla
+     * breeds afterwards, and same for the entities {@code BuildSchematic.place} spawns, since it
+     * places them through the template with {@code setIgnoreEntities(false)} rather than through
+     * {@code NewBuildAction}'s own loop.
+     *
+     * <p>Hooked to the entity JOIN rather than to a spawn, on purpose: join also fires when a
+     * villager is read back off disk as its chunk loads, so an existing save retrofits itself as
+     * the player walks around it instead of needing the command run once per village.
+     *
+     * @return whether this call took the villager in
+     */
+    public static boolean autoEnlist(ServerLevel level, Villager villager) {
+        if (data(villager).isMember()) return false;
+        BlockPos anchor = LevelTowns.get(level).getAllTownEntries().stream()
+            .map(e -> BlockPos.of(e.getKey()))
+            .filter(a -> a.distSqr(villager.blockPosition())
+                <= (double) ENLIST_RADIUS * ENLIST_RADIUS)
+            .min(java.util.Comparator.comparingDouble(a -> a.distSqr(villager.blockPosition())))
+            .orElse(null);
+        if (anchor == null) return false;
+        enlist(villager, anchor);
+        return true;
+    }
+
+    /**
+     * Enlist every unaffiliated villager already standing around a town that has just been
+     * registered.
+     *
+     * <p>Needed as well as {@link #autoEnlist} because of an ordering race that cannot be fixed
+     * from the join side: {@code ChunkGeneratorMixin} registers the town from a task deferred to
+     * the server thread, while the villagers are placed during chunk generation. So the first
+     * arrivals join before any town exists to join, and {@code autoEnlist} correctly refuses
+     * them. This is the other half — run it once the anchor is known.
+     *
+     * @return how many were taken in
+     */
+    public static int enlistAllNear(ServerLevel level, BlockPos anchor) {
+        int taken = 0;
+        for (Villager v : level.getEntitiesOfClass(
+                Villager.class, new AABB(anchor).inflate(ENLIST_RADIUS))) {
+            if (data(v).isMember()) continue;
+            enlist(v, anchor);
+            taken++;
+        }
+        return taken;
+    }
+
     // --- identity, derived from the UUID unless deliberately overridden ---
 
     /**

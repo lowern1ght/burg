@@ -18,6 +18,7 @@ import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.blockentity.TownAnchorBlockEntity;
 import org.dawnoftime.onceuponatown.building.schematic.BuildSchematic;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
+import org.dawnoftime.onceuponatown.entity.citizen.Citizens;
 import org.dawnoftime.onceuponatown.datapack.EraTransitionDataHandler;
 import org.dawnoftime.onceuponatown.registry.BlockRegistry;
 import org.dawnoftime.onceuponatown.town.BuildingDef;
@@ -25,6 +26,8 @@ import org.dawnoftime.onceuponatown.town.ConnectionPoint;
 import org.dawnoftime.onceuponatown.town.ItemCost;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.Town;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -37,6 +40,8 @@ import java.util.Set;
 
 @Mixin(StructureStart.class)
 public class ChunkGeneratorMixin {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ChunkGeneratorMixin.class);
 
     @Inject(
         method = "placeInChunk",
@@ -161,6 +166,21 @@ public class ChunkGeneratorMixin {
 
             LevelTowns.get(serverLevel).registerTown(anchorPos, town);
             LevelTowns.get(serverLevel).markDirty();
+
+            // The villagers are already standing here. Vanilla's jigsaw placed the houses
+            // itself, and 7 villagers ship inside the author's house NBTs — they ARE the
+            // village's starting population. They joined the level during chunk generation,
+            // before this deferred task ran, so `Citizens.autoEnlist` found no town to put
+            // them in and correctly refused. This is the other half of that: now that the
+            // anchor is known, take in everyone who is already here.
+            //
+            // Without it a generated village is a town full of strangers — rendered by
+            // vanilla, counted by nothing, and competing for our workstations.
+            int taken = Citizens.enlistAllNear(serverLevel, anchorPos);
+            if (taken > 0) {
+                LOGGER.info("[OUAT] Generated town at {} enlisted {} villager(s) that were"
+                    + " already standing in it", anchorPos, taken);
+            }
         });
     }
 

@@ -25,6 +25,7 @@ import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.level.ChunkEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
@@ -162,6 +163,7 @@ public class OuatForge {
         NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedIn);
         NeoForge.EVENT_BUS.addListener(this::onStartTracking);
         NeoForge.EVENT_BUS.addListener(this::onChunkLoad);
+        NeoForge.EVENT_BUS.addListener(this::onEntityJoin);
     }
 
     // Populate the common static fields after all DeferredRegister suppliers have run
@@ -272,6 +274,19 @@ public class OuatForge {
      * is most of the ways an anchor can actually go: a {@code /fill} from across the map, a wither,
      * another mod's world edit.
      */
+    /**
+     * A villager that turns up inside one of our towns becomes one of ours.
+     *
+     * <p>Join and not spawn: join also fires when a villager is read back off disk as its chunk
+     * loads, so a village that already exists retrofits itself as the player walks through it.
+     * Wandering traders are not {@code Villager} and are left alone.
+     */
+    private void onEntityJoin(EntityJoinLevelEvent event) {
+        if (!(event.getLevel() instanceof ServerLevel level)) return;
+        if (!(event.getEntity() instanceof Villager villager)) return;
+        Citizens.autoEnlist(level, villager);
+    }
+
     private void onChunkLoad(ChunkEvent.Load event) {
         if (!(event.getLevel() instanceof ServerLevel level)) return;
         TownIntegrity.healAnchors(level, event.getChunk());
