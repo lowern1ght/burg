@@ -152,8 +152,10 @@ public class TownMapWidget extends AbstractWidget {
     private MapElement createBuildingMapElement(CompoundTag tag, BlockPos nwCorner) {
         String buildType = tag.getString("BuildType");
         double instanceBonus = tag.getDouble("InstanceBonus");
-        // Append a gold star to the name for orientation-boosted buildings.
-        MutableComponent name = Component.translatable("onceuponatown.building." + buildType);
+        // Buildings render in the mod's accent (gold + italic) so a player can scan a tooltip
+        // and tell at a glance which lines come from this mod versus a vanilla item name.
+        MutableComponent name = Component.translatable("onceuponatown.building." + buildType)
+            .withStyle(s -> s.withColor(ChatFormatting.GOLD).withItalic(true));
         if (instanceBonus > 0) {
             name = name.append(Component.literal(" ★").withStyle(ChatFormatting.GOLD));
         }
@@ -172,8 +174,10 @@ public class TownMapWidget extends AbstractWidget {
             desc.add(Component.translatable("onceuponatown.tooltip.under_upgrade")
                 .withStyle(ChatFormatting.YELLOW));
         }
-        desc.add(Component.literal("Left-click: details").withStyle(ChatFormatting.DARK_GRAY));
-        desc.add(Component.literal("Right-click: upgrade").withStyle(ChatFormatting.DARK_GRAY));
+        desc.add(Component.translatable("onceuponatown.tooltip.left_click_details")
+            .withStyle(ChatFormatting.DARK_GRAY));
+        desc.add(Component.translatable("onceuponatown.tooltip.right_click_upgrade")
+            .withStyle(ChatFormatting.DARK_GRAY));
         return new MapElement(MapCategory.BUILDING, buildingCategory, buildType, desc, Optional.empty(),
             null, minX, minX + sizeX, minZ, minZ + sizeZ, instanceBonus > 0, worldPosLong, isUpgrading);
     }

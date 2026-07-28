@@ -8,6 +8,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.dawnoftime.onceuponatown.network.NetworkHelper;
@@ -205,7 +206,9 @@ public class QuestHubWidget extends DraggableWidget {
         List<QuestRow> active = showNotes ? noteRows : taskRows;
 
         if (active.isEmpty()) {
-            String msg = showNotes ? "No new notices." : "No active tasks.";
+            String msg = showNotes
+                ? Component.translatable("onceuponatown.tooltip.no_new_notices").getString()
+                : Component.translatable("onceuponatown.tooltip.no_active_tasks").getString();
             g.drawString(font, msg, cx + (contentW - font.width(msg)) / 2, cy + VISIBLE_H / 2 - 4, 0xFF888888, false);
         } else {
             int cardY = cy + PAD - scrollPx;
@@ -302,9 +305,12 @@ public class QuestHubWidget extends DraggableWidget {
     private static String condText(CondRow cond) {
         if ("DELIVERY".equals(cond.type())) {
             int have = Math.min(cond.countInInventory(), cond.required());
-            String name = formatId(cond.itemId().contains(":")
-                ? cond.itemId().substring(cond.itemId().indexOf(':') + 1) : cond.itemId());
-            return have + "/" + cond.required() + " " + name;
+            Item item = BuiltInRegistries.ITEM.get(ResourceLocation.tryParse(cond.itemId()));
+            Component itemName = (item == null || item == Items.AIR)
+                ? Component.literal(cond.itemId())
+                : Component.translatable(item.getDescriptionId());
+            return Component.translatable("onceuponatown.tooltip.cost_progress",
+                have, cond.required(), itemName).getString();
         }
         return cond.type();
     }

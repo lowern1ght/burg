@@ -215,17 +215,27 @@ public class TownSummaryWidget extends DraggableWidget {
 
     private Component logEntryToComponent(TownLogEntry entry) {
         String param = entry.param();
-        String resolved = param.isEmpty() ? "" : Component.translatable("onceuponatown.building." + param).getString();
-        String text = switch (entry.type()) {
-            case BUILD_START    -> "Builder: starting " + resolved;
-            case BUILD_DONE     -> "Builder: " + resolved + " built";
-            case UPGRADE_START  -> "Builder: upgrading " + resolved;
-            case UPGRADE_DONE   -> "Builder: " + resolved + " upgraded";
-            case FOOD_CONSUMED  -> "Village consumed " + param + " food units";
-            case VILLAGE_FULL   -> "Village: no space left to expand";
+        int amount = parseIntSafe(param);
+        MutableComponent body = switch (entry.type()) {
+            case BUILD_START   -> Component.translatable("onceuponatown.message.village.build_start",
+                Component.translatable("onceuponatown.building." + param));
+            case BUILD_DONE    -> Component.translatable("onceuponatown.message.village.build_done",
+                Component.translatable("onceuponatown.building." + param));
+            case UPGRADE_START -> Component.translatable("onceuponatown.message.village.upgrade_start",
+                Component.translatable("onceuponatown.building." + param));
+            case UPGRADE_DONE  -> Component.translatable("onceuponatown.message.village.upgrade_done",
+                Component.translatable("onceuponatown.building." + param));
+            case FOOD_CONSUMED -> Component.translatable("onceuponatown.message.village.food_consumed", amount);
+            case VILLAGE_FULL  -> Component.translatable("onceuponatown.message.village.full");
         };
         int color = logColor(entry.type());
-        return Component.literal(text).withStyle(s -> s.withColor(color));
+        // Building names travel as a Component argument, so they keep the mod's gold accent
+        // inline with the rest of the message body.
+        return body.withStyle(s -> s.withColor(color));
+    }
+
+    private static int parseIntSafe(String s) {
+        try { return Integer.parseInt(s); } catch (NumberFormatException e) { return 0; }
     }
 
     // -------------------------------------------------------------------------
@@ -238,7 +248,10 @@ public class TownSummaryWidget extends DraggableWidget {
 
         if (showLogs) {
             if (logEntries.isEmpty()) {
-                rows.add(new Row(null, Component.literal("No activity yet.").withStyle(s -> s.withColor(0xFF888888)), RowType.ITEM));
+                rows.add(new Row(null,
+                    Component.translatable("onceuponatown.tooltip.no_activity")
+                        .withStyle(s -> s.withColor(0xFF888888)),
+                    RowType.ITEM));
             } else {
                 for (TownLogEntry e : logEntries) {
                     rows.add(new Row(null, logEntryToComponent(e), RowType.ITEM));
@@ -258,7 +271,8 @@ public class TownSummaryWidget extends DraggableWidget {
         int activeHerd      = summaryData.getInt("ActiveHerd");
 
         rows.add(new Row(null,
-            Component.literal("Orientation: " + capitalize(orientation))
+            Component.translatable("onceuponatown.tooltip.orientation_label",
+                Component.translatable("onceuponatown.orientation." + orientation))
                 .withStyle(s -> s.withColor(COLOR_ORIENT_TEXT)),
             RowType.ITEM));
 
@@ -267,10 +281,10 @@ public class TownSummaryWidget extends DraggableWidget {
                          : activeResidents * 2 >= totalResidents ? 0xFFFFAA00
                          : 0xFFFF5555;
             Item egg = BuiltInRegistries.ITEM.get(ResourceLocation.parse("minecraft:villager_spawn_egg"));
-            MutableComponent txt = Component.literal("Residents: ")
-                .withStyle(s -> s.withColor(0xFFCCCCCC))
-                .append(Component.literal(String.valueOf(activeResidents)).withStyle(s -> s.withColor(resColor)))
-                .append(Component.literal(" / " + totalResidents).withStyle(s -> s.withColor(0xFFCCCCCC)));
+            MutableComponent txt = Component.translatable("onceuponatown.tooltip.residents_label",
+                Component.literal(String.valueOf(activeResidents)).withStyle(s -> s.withColor(resColor)),
+                totalResidents)
+                .withStyle(s -> s.withColor(0xFFCCCCCC));
             rows.add(new Row(new ItemStack(egg), txt, RowType.ITEM));
         }
 
@@ -279,16 +293,17 @@ public class TownSummaryWidget extends DraggableWidget {
                           : activeHerd * 2 >= totalHerd ? 0xFFFFAA00
                           : 0xFFFF5555;
             Item pig = BuiltInRegistries.ITEM.get(ResourceLocation.parse("minecraft:pig_spawn_egg"));
-            MutableComponent txt = Component.literal("Herd: ")
-                .withStyle(s -> s.withColor(0xFFCCCCCC))
-                .append(Component.literal(String.valueOf(activeHerd)).withStyle(s -> s.withColor(herdColor)))
-                .append(Component.literal(" / " + totalHerd).withStyle(s -> s.withColor(0xFFCCCCCC)));
+            MutableComponent txt = Component.translatable("onceuponatown.tooltip.herd_label",
+                Component.literal(String.valueOf(activeHerd)).withStyle(s -> s.withColor(herdColor)),
+                totalHerd)
+                .withStyle(s -> s.withColor(0xFFCCCCCC));
             rows.add(new Row(new ItemStack(pig), txt, RowType.ITEM));
         }
 
         if (totalFoodDemand > 0) {
             rows.add(new Row(new ItemStack(Items.BREAD),
-                Component.literal(totalFoodDemand + " food units / day").withStyle(s -> s.withColor(0xFFDDDDDD)),
+                Component.translatable("onceuponatown.tooltip.food_per_day", totalFoodDemand)
+                    .withStyle(s -> s.withColor(0xFFDDDDDD)),
                 RowType.ITEM));
         }
 
@@ -334,7 +349,8 @@ public class TownSummaryWidget extends DraggableWidget {
         }
 
         if (!prodData.isEmpty() || !lockedProdData.isEmpty()) {
-            rows.add(new Row(null, Component.literal("Produces / min").withStyle(s -> s.withColor(COLOR_SECTION_TEXT)), RowType.SECTION_HEADER));
+            rows.add(new Row(null, Component.translatable("onceuponatown.tooltip.produces_per_min")
+                .withStyle(s -> s.withColor(COLOR_SECTION_TEXT)), RowType.SECTION_HEADER));
             rows.add(new Row(null, null, RowType.PROD_GRID));
             for (Map.Entry<String, int[]> e : prodData.entrySet()) {
                 Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(e.getKey()));
@@ -350,7 +366,8 @@ public class TownSummaryWidget extends DraggableWidget {
         }
 
         if (!transforms.isEmpty() || !lockedTransforms.isEmpty()) {
-            rows.add(new Row(null, Component.literal("Transforms / min").withStyle(s -> s.withColor(COLOR_SECTION_TEXT)), RowType.SECTION_HEADER));
+            rows.add(new Row(null, Component.translatable("onceuponatown.tooltip.transforms_per_min")
+                .withStyle(s -> s.withColor(COLOR_SECTION_TEXT)), RowType.SECTION_HEADER));
             rows.add(new Row(null, null, RowType.TRANSFORM_GRID));
             for (Map.Entry<String, int[]> e : transforms.entrySet()) {
                 Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(e.getKey()));
