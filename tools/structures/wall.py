@@ -111,6 +111,13 @@ WALK = BODY_TOP + 1        # the cell a player's feet occupy: 7
 HEAD_CLEAR = 2             # cells above the walk that must stay empty
 
 
+# Measured, not assumed: on `house_lvl6` the ridge sits at x=4, the west slope
+# (x=3) is `facing=east` and the east slope (x=5) is `facing=west`. Both point at
+# the ridge. So **`facing` names the direction of the TALL half of a stair.**
+# Every comment in this file used to say the opposite and every stair was
+# therefore reversed.
+
+
 def shift(cell: Coord2, direction: str, n: int = 1) -> Coord2:
     vx, vz = OUT_VEC[direction]
     return (cell[0] + vx * n, cell[1] + vz * n)
@@ -293,7 +300,7 @@ def ramp_block(tier: Tier, y: int, rng: random.Random,
     if not steps:
         return None
     top = len(steps) - 1
-    t = (y - 1) / max(1, BODY_TOP - 1) * top + bias
+    t = (y - 1) / max(1, tier.body_top - 1) * top + bias
     t = max(0.0, min(float(top), t + rng.uniform(-RAMP_JITTER, RAMP_JITTER)))
     i = int(t)
     group = steps[top] if i >= top else (
@@ -319,10 +326,29 @@ class Tier:
     oversail: bool = False     # projecting parapet on brackets
     dressed: bool = False      # plank walk and interior torches
     hoarding: bool = False     # covered timber fighting gallery
+    # Body height. Every tier shares BODY_TOP so a mixed-tier ring has no step —
+    # except the earth rampart, which is half height on purpose: it is a stockade
+    # you stand behind, not a curtain you patrol, and at full height it cost 62
+    # logs and a hill of earth for one segment. Its walk sits lower, so the joint
+    # between a raised segment and an unraised one has a step. That is an upgrade
+    # boundary rather than a finished wall, and it buys half the material.
+    body_top: int = BODY_TOP
+
+    @property
+    def walk(self) -> int:
+        """The cell this tier's walk surface is stood in.
+
+        Ask the tier, never the module constant. Halving the rampart and leaving
+        the gate and the tower on `WALK` is exactly how level 0 came out with its
+        curtain walking at 4 and its gatehouse at 7 — the two pieces could not be
+        joined, and the gate's own stair climbed to a floor that was not there.
+        """
+        return self.body_top + 1
 
 
 TIERS: Tuple[Tier, ...] = (
-    Tier("rampart", "earth bank behind an oak stockade", rampart=True),
+    Tier("rampart", "low earth bank behind an oak stockade", rampart=True,
+         body_top=BODY_TOP // 2),
     Tier("frame", "oak frame on a cobblestone plinth", frame=True, plinth=2),
     Tier("cobble", "cobble and stone, andesite gradient, merlons",
          stone=COBBLE, piers=True, loops=True, merlons=True),
@@ -461,7 +487,7 @@ def build_body(vox: Voxels, pal: Palette, tier: Tier,
     m = tier.stone
     for st in stations:
         cs = styles[st.i]
-        for y in range(1, BODY_TOP + 1):
+        for y in range(1, tier.body_top + 1):
             vox.set((st.outer[0], y, st.outer[1]),
                     _face_block(m, cs, y, rng, tier))
             # The core is never seen; spending the contrast tone here would
@@ -520,8 +546,8 @@ def _timber_frame(vox: Voxels, pal: Palette, tier: Tier,
     axis = stations[0].run_axis if stations else "z"
     for st in stations:
         post = (st.i % 3 == 0)
-        for y in range(tier.plinth + 1, BODY_TOP + 1):
-            beam_course = y in (tier.plinth + 1, BODY_TOP)
+        for y in range(tier.plinth + 1, tier.body_top + 1):
+            beam_course = y in (tier.plinth + 1, tier.body_top)
             for cell in (st.outer, st.mid, st.inner):
                 if post and cell is st.outer:
                     blk = w.post
@@ -541,15 +567,16 @@ def _build_rampart(vox: Voxels, pal: Palette, tier: Tier,
     so this is built from what it is rather than copied.
     """
     w = pal.wood
+    top = tier.body_top
     for st in stations:
-        for y in range(1, BODY_TOP + 1):
+        for y in range(1, top + 1):
             vox.set((st.outer[0], y, st.outer[1]), w.post)
             vox.set((st.mid[0], y, st.mid[1]), pal.trodden(rng))
             vox.set((st.inner[0], y, st.inner[1]), pal.trodden(rng))
         # A grass crust on the bank, as an earth rampart would grow.
-        vox.set((st.mid[0], BODY_TOP, st.mid[1]),
+        vox.set((st.mid[0], top, st.mid[1]),
                 pal.grass() if rng.random() < 0.6 else pal.trodden(rng))
-        vox.set((st.inner[0], BODY_TOP, st.inner[1]), pal.grass())
+        vox.set((st.inner[0], top, st.inner[1]), pal.grass())
 
 
 # ── devices ─────────────────────────────────────────────────────────
@@ -564,7 +591,9 @@ def arrow_loops(vox: Voxels, tier: Tier, stations: Sequence[Station],
     """
     if not tier.loops:
         return
-    y = BODY_TOP - 2
+    y = tier.body_top - 2
+    if y < 1:
+        return                      # too short to have an eye height
     k = 0
     while k < len(stations) - 1:
         st = stations[k]
@@ -636,7 +665,8 @@ def in_box(vox: Voxels, p: Coord) -> bool:
     return 0 <= p[0] < sx and 0 <= p[1] < sy and 0 <= p[2] < sz
 
 
-def clear_walk(vox: Voxels, stations: Sequence[Station]) -> None:
+def clear_walk(vox: Voxels, stations: Sequence[Station],
+               walk: int = WALK) -> None:
     """Guarantee the invariant: the walk lane is passable for two cells up.
 
     Called last on every piece, so devices may be careless about the walk lane —
@@ -649,7 +679,7 @@ def clear_walk(vox: Voxels, stations: Sequence[Station]) -> None:
     """
     from .traverse import is_passable
     for st in stations:
-        for y in range(WALK, WALK + HEAD_CLEAR):
+        for y in range(walk, walk + HEAD_CLEAR):
             p = (st.mid[0], y, st.mid[1])
             if not is_passable(vox.get(p)):
                 vox.set(p, None)
@@ -683,7 +713,7 @@ def wall_head(vox: Voxels, pal: Palette, tier: Tier,
     and it is also what makes walking the wall worth doing.
     """
     if tier.rampart:
-        _rampart_head(vox, pal, stations, rng)
+        _rampart_head(vox, pal, tier, stations, rng)
         return
     if tier.hoarding:
         hoarding(vox, pal, tier, stations, styles, rng, step_at)
@@ -698,33 +728,39 @@ def wall_head(vox: Voxels, pal: Palette, tier: Tier,
         # different stone from the wall you walk between. `00ed` boards its
         # walk in timber and that reads well there, but on a masonry curtain a
         # plank floor is oak doing a job stone should do.
-        vox.set((st.mid[0], BODY_TOP, st.mid[1]),
+        vox.set((st.mid[0], tier.body_top, st.mid[1]),
                 m.block("base2") if tier.dressed else m.block("main"))
+        # The outer face's own top course stays masonry: floor material there is
+        # visible from outside and reads as the floor sticking out of the wall.
+        vox.set((st.outer[0], tier.body_top, st.outer[1]), m.block("main"))
 
         if tier.oversail:
             out1 = st.face(1)
-            # The parapet oversails the face for the whole length.
-            vox.set((out1[0], WALK, out1[1]), m.block("main"))
+            # The parapet oversails the face for the whole length. Thickening it
+            # to two cells did hide the exposed deck edge, but by making the head
+            # fat — a symptom fix. The edge is dealt with where it comes from:
+            # the top course of the outer row is masonry, not floor material.
+            vox.set((out1[0], tier.walk, out1[1]), m.block("main"))
             if cs.is_pier:
                 # A bracket steps the oversail down onto the pier.
-                vox.set((out1[0], BODY_TOP, out1[1]), m.block("main"))
-                vox.set((out1[0], BODY_TOP - 1, out1[1]),
-                        m.stairs(facing=OPPOSITE[st.out], half="top"))
-            # else: nothing at (out1, BODY_TOP) — the shadow slot.
+                vox.set((out1[0], tier.body_top, out1[1]), m.block("main"))
+                vox.set((out1[0], tier.body_top - 1, out1[1]),
+                        m.stairs(facing=st.out, half="top"))
+            # else: nothing at (out1, body_top) — the shadow slot.
         else:
-            vox.set((st.outer[0], WALK, st.outer[1]), m.block("main"))
+            vox.set((st.outer[0], tier.walk, st.outer[1]), m.block("main"))
 
     if tier.merlons:
         _merlons(vox, pal, tier, stations, rng)
     else:
         # The timber-framed tier gets a timber head. Stone battlements on an oak
         # wall is the kind of mismatch that makes a progression look accidental.
-        _timber_crest(vox, pal, stations)
+        _timber_crest(vox, pal, tier, stations)
     _inner_rail(vox, pal, tier, stations, rng)
     # From the first tier that has a real walk. A wall someone stands watch on
     # is a wall that needs light to stand watch by; only the earth rampart, which
     # predates the garrison, goes without.
-    _interior_lighting(vox, pal, stations, rng)
+    _interior_lighting(vox, pal, tier, stations, rng)
 
 
 def _merlons(vox: Voxels, pal: Palette, tier: Tier,
@@ -755,22 +791,22 @@ def _merlons(vox: Voxels, pal: Palette, tier: Tier,
         span = min(run, len(stations) - k)
         for j in range(span):
             cell = stations[k + j].face(line)
-            vox.set((cell[0], WALK + 1, cell[1]), m.block("main"))
+            vox.set((cell[0], tier.walk + 1, cell[1]), m.block("main"))
         k += run + rng.choice((1, 2, 2))
 
 
-def _timber_crest(vox: Voxels, pal: Palette,
+def _timber_crest(vox: Voxels, pal: Palette, tier: Tier,
                   stations: Sequence[Station]) -> None:
     """Level 1's head: oak posts with a fence rail between them."""
     w = pal.wood
     axis = stations[0].run_axis if stations else "z"
     for st in stations:
         if st.i % 3 == 0:
-            vox.set((st.outer[0], WALK, st.outer[1]), w.post)
-            vox.set((st.outer[0], WALK + 1, st.outer[1]), w.post)
+            vox.set((st.outer[0], tier.walk, st.outer[1]), w.post)
+            vox.set((st.outer[0], tier.walk + 1, st.outer[1]), w.post)
         else:
-            vox.set((st.outer[0], WALK, st.outer[1]), w.beam(axis))
-            vox.set((st.outer[0], WALK + 1, st.outer[1]), w.fence(axis))
+            vox.set((st.outer[0], tier.walk, st.outer[1]), w.beam(axis))
+            vox.set((st.outer[0], tier.walk + 1, st.outer[1]), w.fence(axis))
 
 
 def _inner_rail(vox: Voxels, pal: Palette, tier: Tier,
@@ -795,15 +831,16 @@ def _inner_rail(vox: Voxels, pal: Palette, tier: Tier,
         # masonry as a single cube. A log that starts and stops in mid-air reads
         # as a block someone forgot to remove; a post is planted.
         if post:
-            vox.set((st.inner[0], BODY_TOP, st.inner[1]), w.post)
-            vox.set((st.inner[0], WALK, st.inner[1]), w.post)
+            vox.set((st.inner[0], tier.body_top, st.inner[1]), w.post)
+            vox.set((st.inner[0], tier.walk, st.inner[1]), w.post)
         else:
-            vox.set((st.inner[0], BODY_TOP, st.inner[1]),
+            vox.set((st.inner[0], tier.body_top, st.inner[1]),
                     m.block("main") if tier.merlons else w.beam(st.run_axis))
-            vox.set((st.inner[0], WALK, st.inner[1]), w.fence(st.run_axis))
+            vox.set((st.inner[0], tier.walk, st.inner[1]),
+                    w.fence(st.run_axis))
 
 
-def _interior_lighting(vox: Voxels, pal: Palette,
+def _interior_lighting(vox: Voxels, pal: Palette, tier: Tier,
                        stations: Sequence[Station],
                        rng: random.Random) -> None:
     """Torches on the inner face, pointing into the walk.
@@ -816,22 +853,24 @@ def _interior_lighting(vox: Voxels, pal: Palette,
             continue
         # `facing` names the direction the torch points away from its support.
         facing = st.out
-        p = (st.mid[0], WALK, st.mid[1])
-        support = (st.inner[0], WALK, st.inner[1])
+        p = (st.mid[0], tier.walk, st.mid[1])
+        support = (st.inner[0], tier.walk, st.inner[1])
         if vox.occupied(support) and not vox.occupied(p):
             vox.set(p, pal.torch(facing))
 
 
-def _rampart_head(vox: Voxels, pal: Palette, stations: Sequence[Station],
-                  rng: random.Random) -> None:
+def _rampart_head(vox: Voxels, pal: Palette, tier: Tier,
+                  stations: Sequence[Station], rng: random.Random) -> None:
     """Level 0's head: the stockade crest, rough and uneven."""
     w = pal.wood
+    walk = tier.body_top + 1
     axis = stations[0].run_axis if stations else "z"
     for st in stations:
-        vox.set((st.outer[0], WALK, st.outer[1]), w.post)
+        vox.set((st.outer[0], walk, st.outer[1]), w.post)
+        # Stakes of unequal height: the ragged skyline is what carries a palisade.
         if st.i % 3 != 2:
-            vox.set((st.outer[0], WALK + 1, st.outer[1]), w.post)
-        vox.set((st.inner[0], WALK, st.inner[1]), w.fence(axis))
+            vox.set((st.outer[0], walk + 1, st.outer[1]), w.post)
+        vox.set((st.inner[0], walk, st.inner[1]), w.fence(axis))
 
 
 def hoarding(vox: Voxels, pal: Palette, tier: Tier,
@@ -857,28 +896,28 @@ def hoarding(vox: Voxels, pal: Palette, tier: Tier,
     m = tier.stone
     w = pal.wood
     axis = stations[0].run_axis if stations else "z"
-    y_roof = WALK + HEAD_CLEAR                 # 9: clears the walk
+    y_roof = tier.walk + HEAD_CLEAR                 # 9: clears the walk
 
     for st in stations:
         out1, out2 = st.face(1), st.face(2)
         # Brackets, every other station, visibly carrying the floor.
         if st.i % 2 == 0:
-            vox.set((out1[0], BODY_TOP - 1, out1[1]), w.beam(
+            vox.set((out1[0], tier.body_top - 1, out1[1]), w.beam(
                 "x" if axis == "z" else "z"))
         # Floor: the stone wall top, continued outward one cell.
-        vox.set((st.outer[0], BODY_TOP, st.outer[1]), w.planks)
-        vox.set((st.mid[0], BODY_TOP, st.mid[1]), w.planks)
-        vox.set((out1[0], BODY_TOP, out1[1]), w.planks)
+        vox.set((st.outer[0], tier.body_top, st.outer[1]), m.block("main"))
+        vox.set((st.mid[0], tier.body_top, st.mid[1]), w.planks)
+        vox.set((out1[0], tier.body_top, out1[1]), w.planks)
 
         # Rail and posts at the gallery's outer edge; the gap above the rail is
         # the loophole, and it is a void rather than a block.
         if st.i % 3 == 0:
-            vox.set((out1[0], WALK, out1[1]), w.post)
-            vox.set((out1[0], WALK + 1, out1[1]), w.post)
+            vox.set((out1[0], tier.walk, out1[1]), w.post)
+            vox.set((out1[0], tier.walk + 1, out1[1]), w.post)
         else:
-            vox.set((out1[0], WALK, out1[1]), w.fence(axis))
+            vox.set((out1[0], tier.walk, out1[1]), w.fence(axis))
         # Inner rail, so the gallery can be walked without falling off.
-        vox.set((st.inner[0], WALK, st.inner[1]), w.fence(axis))
+        vox.set((st.inner[0], tier.walk, st.inner[1]), w.fence(axis))
 
         # Roof: a shallow gable over the whole gallery, clear of the walk. The
         # eave oversails at ROOF level, not at floor level — carried out one
@@ -887,16 +926,19 @@ def hoarding(vox: Voxels, pal: Palette, tier: Tier,
         # of standable cells nobody can ever reach.
         vox.set((out2[0], y_roof, out2[1]), w.slab("bottom"))
         vox.set((out1[0], y_roof, out1[1]),
-                w.stairs(facing=st.out, half="bottom"))
+                w.stairs(facing=OPPOSITE[st.out], half="bottom"))
         vox.set((st.outer[0], y_roof, st.outer[1]), w.planks)
         vox.set((st.mid[0], y_roof, st.mid[1]), w.planks)
         vox.set((st.inner[0], y_roof, st.inner[1]),
-                w.stairs(facing=OPPOSITE[st.out], half="bottom"))
+                w.stairs(facing=st.out, half="bottom"))
         vox.set((st.outer[0], y_roof + 1, st.outer[1]), w.slab("bottom"))
         vox.set((st.mid[0], y_roof + 1, st.mid[1]), w.slab("bottom"))
 
-    _roof_planting(vox, pal, stations, y_roof + 1, rng)
-    _interior_lighting(vox, pal, stations, rng)
+    # Same reasoning as `_devices(repeating=)`: only the shorter runs, which
+    # belong to corners and towers, get roof planting.
+    if len(stations) < RUN_LEN:
+        _roof_planting(vox, pal, stations, y_roof + 1, rng)
+    _interior_lighting(vox, pal, tier, stations, rng)
 
 
 def _roof_planting(vox: Voxels, pal: Palette, stations: Sequence[Station],
@@ -951,6 +993,17 @@ RUN_LEN = 8            # stations in a straight segment
 CORNER_ARM = 4         # stations per arm beyond the elbow
 TOWER_SIDE = 5
 TOWER_RISE = WALK + 3  # highest tower block: its deck is walked at WALK + 4
+
+
+def tower_rise(tier: Tier) -> int:
+    """The tower's top solid course: three above this tier's own walk.
+
+    A tower has to clear the curtain it flanks, so it is measured from the walk
+    rather than from the module constant. On the halved rampart the constant put
+    the deck six cells above a bank three courses high, and the ladder that
+    climbed to it started from a floor the piece no longer had.
+    """
+    return tier.walk + 3
 # The column the tower ladder occupies, and the wall it hangs on at LADDER_Z - 1.
 # It is a constant because two passes have to agree about it: the arrow slits are
 # cut before the ladder is hung, so they cannot look for a ladder that is not
@@ -960,8 +1013,16 @@ LADDER_Z = 2
 
 
 def _devices(vox: Voxels, pal: Palette, tier: Tier,
-             runs: Sequence[List[Station]], seed: int) -> None:
-    """The full device stack, then the walk-clearance guarantee."""
+             runs: Sequence[List[Station]], seed: int,
+             repeating: bool = False) -> None:
+    """The full device stack, then the walk-clearance guarantee.
+
+    `repeating` marks a piece that tiles — the straight segment. Distinctive
+    decoration is suppressed there: a leaf clump baked into a tiling piece is not
+    randomness, it is a pattern. The same clump lands in the same cell of every
+    segment of the run and the eye catches the repeat at once. A single NBT cannot
+    vary between its own placements, so the only safe amount is none.
+    """
     for ri, stations in enumerate(runs):
         rng = random.Random(seed * 131 + ri * 7717 + 11)
         styles = column_styles(stations, tier, rng)
@@ -971,8 +1032,9 @@ def _devices(vox: Voxels, pal: Palette, tier: Tier,
         wall_head(vox, pal, tier, stations, styles, rng, step_at)
         rubble(vox, pal, tier, stations, rng)
         base_planting(vox, pal, stations, rng)
-        climbing_leaves(vox, pal, stations, rng)
-        clear_walk(vox, stations)
+        if not repeating:
+            climbing_leaves(vox, pal, stations, rng)
+        clear_walk(vox, stations, tier.body_top + 1)
 
 
 def compose_straight(tier: Tier, seed: int = 0,
@@ -985,7 +1047,7 @@ def compose_straight(tier: Tier, seed: int = 0,
     rng = random.Random(seed + 501)
     lay_ground(vox, pal, rng, [c for st in stations
                                for c in (st.outer, st.mid, st.inner)])
-    _devices(vox, pal, tier, [stations], seed)
+    _devices(vox, pal, tier, [stations], seed, repeating=True)
     connector(vox, (A_MID, 0, 0), "north", entry=True)
     connector(vox, (A_MID, 0, RUN_LEN - 1), "south", entry=False)
     return vox
@@ -1043,7 +1105,7 @@ def _elbow(vox: Voxels, pal: Palette, tier: Tier, lo: int, hi: int,
     for x in range(lo, hi + 1):
         for z in range(lo, hi + 1):
             edge = x == lo or z == lo          # the two outer faces
-            for y in range(1, BODY_TOP + 1):
+            for y in range(1, tier.body_top + 1):
                 if tier.rampart:
                     blk = w.post if edge else pal.trodden(rng)
                 elif tier.frame and y > tier.plinth:
@@ -1055,17 +1117,28 @@ def _elbow(vox: Voxels, pal: Palette, tier: Tier, lo: int, hi: int,
                 vox.set((x, y, z), blk)
             # The deck. Everything above it is cleared below, so the walk turns
             # through the corner instead of stopping at it.
-            deck = w.planks if (tier.dressed or tier.hoarding) \
-                else (pal.grass() if tier.rampart else m.block("main"))
-            vox.set((x, BODY_TOP, z), deck)
+            #
+            # The two outer rows keep a masonry top course. Nobody walks on them —
+            # the parapet stands there — and they are the cells you see from
+            # outside, so plank floor or grass there reads as the floor sticking
+            # out through the wall. This is the cell the corner was reported on:
+            # (2, 6, 4) came out `oak_planks`. Thickening the parapet to cover it
+            # was the wrong fix; it hid the edge by making the corner fat.
+            if edge:
+                deck = w.post if tier.rampart else m.block("main")
+            else:
+                deck = w.planks if (tier.dressed or tier.hoarding) \
+                    else (pal.grass() if tier.rampart else m.block("main"))
+            vox.set((x, tier.body_top, z), deck)
 
     # Clear the platform, then rebuild only the parapet. Clearing first is what
     # guarantees the turn is passable regardless of what the arms left behind.
     # It must stop at `hi`: reaching one cell further took the parapet and rail
     # off the arms' first station and opened a hole in the curtain.
+    walk = tier.body_top + 1
     for x in range(lo - 1, hi + 1):
         for z in range(lo - 1, hi + 1):
-            for y in range(WALK, WALK + HEAD_CLEAR + 3):
+            for y in range(walk, walk + HEAD_CLEAR + 3):
                 if in_box(vox, (x, y, z)):
                     vox.set((x, y, z), None)
 
@@ -1076,9 +1149,9 @@ def _elbow(vox: Voxels, pal: Palette, tier: Tier, lo: int, hi: int,
         for x in range(lo, hi + 1):
             for z in range(lo, hi + 1):
                 if x == lo or z == lo:
-                    vox.set((x, WALK, z), w.post)
+                    vox.set((x, walk, z), w.post)
                 elif x == hi and z == hi:
-                    vox.set((x, WALK, z), w.fence("z"))
+                    vox.set((x, walk, z), w.fence("z"))
         return
 
     # A parapet one course taller than the curtain's: the corner reads as a
@@ -1100,16 +1173,24 @@ def _elbow(vox: Voxels, pal: Palette, tier: Tier, lo: int, hi: int,
     for x in range(lo, hi + 1):
         for z in range(lo, hi + 1):
             if x == lo or z == lo:
-                vox.set((x, WALK, z), m.block("main"))
+                vox.set((x, walk, z), m.block("main"))
+                # Carry the parapet one cell out on the oversail tiers too, so the
+                # corner reads continuous with the arms instead of stepping back
+                # from them at the joint.
+                if tier.oversail:
+                    for out in ((lo - 1, z) if x == lo else None,
+                                (x, lo - 1) if z == lo else None):
+                        if out and in_box(vox, (out[0], walk, out[1])):
+                            vox.set((out[0], walk, out[1]), m.block("main"))
                 if (x + z) % 2 == 0:
-                    vox.set((x, WALK + 1, z), m.block("main"))
-                    vox.set((x, WALK + 2, z), m.slab("bottom"))
+                    vox.set((x, walk + 1, z), m.block("main"))
+                    vox.set((x, walk + 2, z), m.slab("bottom"))
             elif x == hi and z == hi:
-                vox.set((x, WALK, z), w.fence(None))
+                vox.set((x, walk, z), w.fence(None))
     # One torch at the corner, on the inside face of the outer parapet. It has
     # to hang on a full block: a `*_wall` block has no solid face to take a
     # torch, so the inner railing is not a candidate however convenient it looks.
-    vox.set((A_MID, WALK, lo + 1), pal.torch("south"))
+    vox.set((A_MID, walk, lo + 1), pal.torch("south"))
 
 
 def compose_gate(tier: Tier, seed: int = 0,
@@ -1170,7 +1251,7 @@ def _courtyard_steps(vox: Voxels, pal: Palette, tier: Tier) -> None:
     # Start one cell in from the edge. Put the bottom tread on the box edge and
     # there is nowhere to step onto it from — the next piece begins there — so the
     # flight was unclimbable despite being built correctly.
-    for k in range(BODY_TOP):
+    for k in range(tier.body_top):
         z = (RUN_LEN - 2) - k
         y = 1 + k
         if z <= 0:
@@ -1181,12 +1262,13 @@ def _courtyard_steps(vox: Voxels, pal: Palette, tier: Tier) -> None:
                 vox.set((x, fill, z),
                         pal.trodden(random.Random(z * 31 + fill)) if timber
                         else m.block("main"))
-        # `facing` names the low side of a stair, so it points back down the run.
-        vox.set((x, y, z), w.stairs(facing="south") if timber
-                else m.stairs(facing="south", half="bottom"))
-        if y == BODY_TOP:
+        # The tall half faces the way you are climbing: the run ascends toward
+        # -z, so north.
+        vox.set((x, y, z), w.stairs(facing="north") if timber
+                else m.stairs(facing="north", half="bottom"))
+        if y == tier.body_top:
             # Open the rail where it arrives, and keep the landing clear.
-            for dy in range(WALK, WALK + HEAD_CLEAR):
+            for dy in range(tier.walk, tier.walk + HEAD_CLEAR):
                 vox.set((A_IN, dy, z), None)
                 vox.set((x, dy, z), None)
 
@@ -1200,33 +1282,50 @@ def _pierce_gate(vox: Voxels, pal: Palette, tier: Tier, z0: int, z1: int,
     m = tier.stone
     w = pal.wood
 
+    # Clearance through the passage. A player is two cells tall, so two is the
+    # floor. The halved earth rampart is three courses high and its top course has
+    # to carry the walk across the gap, which leaves exactly two — so level 0 gets
+    # the minimum and every tier above it gets the extra cell.
+    head = max(2, min(HEAD, tier.body_top - 1))
+    arched = head + 2 <= tier.body_top
+
     # The passage, and its head built as a real arch profile rather than as one
     # stair and a full block. Reading upward from the opening:
     #
-    #     y = BODY_TOP   solid: carries the wall walk over the gate
-    #     y = HEAD + 2   stairs, half=top, springing in toward the centre
-    #     y = HEAD + 1   top slabs, chamfering the head of the opening
-    #     y = 1 .. HEAD  clear
+    #     y = body_top   solid: carries the wall walk over the gate
+    #     y = head + 2   stairs, half=top, springing in toward the centre
+    #     y = head + 1   top slabs, chamfering the head of the opening
+    #     y = 1 .. head  clear
     #
     # The slab course is what makes it read as an arch: the opening narrows in
     # half-block steps instead of stopping dead on a square lintel.
     for z in (z0, z1):
         for x in range(A_OUT, A_IN + 1):
-            for y in range(1, HEAD + 1):
+            for y in range(1, head + 1):
                 vox.set((x, y, z), None)
             vox.set((x, 0, z), state("dirt_path"))
-            vox.set((x, HEAD + 1, z), m.slab("top"))
-            vox.set((x, HEAD + 2, z), m.stairs(
-                facing="south" if z == z0 else "north", half="top"))
-            # Solid between the arch and the walk floor, so the walk is carried.
-            for y in range(HEAD + 3, BODY_TOP + 1):
-                vox.set((x, y, z), m.block("main"))
+            if arched:
+                vox.set((x, head + 1, z), m.slab("top"))
+                vox.set((x, head + 2, z), m.stairs(
+                    facing="north" if z == z0 else "south", half="top"))
+                # Solid between the arch and the walk floor: the walk is carried.
+                for y in range(head + 3, tier.body_top + 1):
+                    vox.set((x, y, z), m.block("main"))
+            else:
+                # A three-course bank has no room to arch. The gap is spanned by
+                # a timber lintel — which is what carries the walk across, and
+                # what timber is for. Stone that shallow over an opening is the
+                # one thing masonry cannot do.
+                for y in range(head + 1, tier.body_top + 1):
+                    vox.set((x, y, z), w.beam("z"))
 
     # A projecting slab hood over the outer mouth: a drip course, and the detail
-    # that tells you which side of the gate is outside.
-    for z in range(z0 - 1, z1 + 2):
-        if 0 <= z < vox.size[2]:
-            vox.set((A_OUT - 1, HEAD + 2, z), m.slab("bottom"))
+    # that tells you which side of the gate is outside. It needs a wall above it
+    # to project from, so the unarched gateway goes without.
+    if arched:
+        for z in range(z0 - 1, z1 + 2):
+            if 0 <= z < vox.size[2]:
+                vox.set((A_OUT - 1, head + 2, z), m.slab("bottom"))
 
     # Double doors in the middle of the tunnel, opening inward.
     if not tier.rampart:
@@ -1240,7 +1339,7 @@ def _pierce_gate(vox: Voxels, pal: Palette, tier: Tier, z0: int, z1: int,
     for k, z in enumerate((z0 - 1, z1 + 1)):
         if not (0 <= z < vox.size[2]):
             continue
-        rise = WALK + (3 if k == 0 else 2)
+        rise = tier.walk + (3 if k == 0 else 2)
         for y in range(1, rise + 1):
             for x in range(A_OUT, A_IN + 1):
                 if tier.rampart:
@@ -1249,10 +1348,13 @@ def _pierce_gate(vox: Voxels, pal: Palette, tier: Tier, z0: int, z1: int,
                     vox.set((x, y, z), m.block("main") if rng.random() < 0.82
                             else m.block("weathered"))
         # The doorway through the tower: two cells of clearance on the walk.
-        for y in range(WALK, WALK + HEAD_CLEAR):
+        for y in range(tier.walk, tier.walk + HEAD_CLEAR):
             vox.set((A_MID, y, z), None)
-        # An arched head over the doorway, and a lintel so it reads as a gate.
-        vox.set((A_MID, WALK + HEAD_CLEAR, z), m.block("main"))
+        # A lintel over the doorway, so it reads as a gate. Timber on the earth
+        # tier: a cobblestone lintel in an oak stockade was stone appearing a
+        # level before the village has any.
+        vox.set((A_MID, tier.walk + HEAD_CLEAR, z),
+                w.beam("z") if tier.rampart else m.block("main"))
         if not tier.rampart:
             for x in (A_OUT, A_IN):
                 vox.set((x, rise + 1, z), m.block("main"))
@@ -1277,7 +1379,7 @@ def _gate_storey(vox: Voxels, pal: Palette, tier: Tier,
     curtain still runs underneath it.
     """
     w = pal.wood
-    y0 = WALK + HEAD_CLEAR              # 9 — clear of the walk
+    y0 = tier.walk + HEAD_CLEAR         # clear of the walk
     for z in (z0, z1):
         for x in range(A_OUT - 1, A_IN + 1):
             vox.set((x, y0, z), w.beam("z"))
@@ -1293,10 +1395,10 @@ def _gate_storey(vox: Voxels, pal: Palette, tier: Tier,
     # A pitched cap over the storey.
     y_top = y0 + 3
     for z in (z0, z1):
-        vox.set((A_OUT - 1, y_top, z), w.stairs(facing="west"))
+        vox.set((A_OUT - 1, y_top, z), w.stairs(facing="east"))
         vox.set((A_OUT, y_top, z), w.slab("bottom"))
         vox.set((A_MID, y_top, z), w.slab("bottom"))
-        vox.set((A_IN, y_top, z), w.stairs(facing="east"))
+        vox.set((A_IN, y_top, z), w.stairs(facing="west"))
 
 
 def compose_tower(tier: Tier, seed: int = 0,
@@ -1348,7 +1450,7 @@ def _tower_body(vox: Voxels, pal: Palette, tier: Tier,
     w = pal.wood
     x0, x1 = 0, A_IN
     z0, z1 = 1, TOWER_SIDE
-    rise = TOWER_RISE
+    rise = tower_rise(tier)
 
     for x in range(x0, x1 + 1):
         for z in range(z0, z1 + 1):
@@ -1370,7 +1472,7 @@ def _tower_body(vox: Voxels, pal: Palette, tier: Tier,
     deck = w.planks if (tier.dressed or tier.hoarding) else m.block("main")
     for x in range(x0 + 1, x1):
         for z in range(z0 + 1, z1):
-            vox.set((x, BODY_TOP, z), deck)
+            vox.set((x, tier.body_top, z), deck)
             vox.set((x, rise, z), deck)
 
     # Order matters. The top rung hangs on the parapet, so the parapet has to be
@@ -1425,7 +1527,7 @@ def _spiral(vox: Voxels, pal: Palette, tier: Tier, rise: int) -> None:
     # stairwell opening. An earlier version then "punched the floors" at the same
     # coordinates and deleted the ladder at both floor levels — the run came out
     # with two gaps in it. Only the landing beside it needs clearing.
-    for floor_y in (BODY_TOP, rise):
+    for floor_y in (tier.body_top, rise):
         for dy in (1, 2):
             q = (lx + 1, floor_y + dy, lz)
             cur = vox.get(q)
@@ -1440,11 +1542,12 @@ def _tower_openings(vox: Voxels, pal: Palette, tier: Tier,
     w = pal.wood
     # The curtain runs straight through: clear the walk lane and both doorways.
     for z in range(z0, z1 + 1):
-        for y in range(WALK, WALK + HEAD_CLEAR):
+        for y in range(tier.walk, tier.walk + HEAD_CLEAR):
             vox.set((A_MID, y, z), None)
     # Arched heads on the two through-openings, so they read as doorways.
     for z in (z0, z1):
-        vox.set((A_MID, WALK + HEAD_CLEAR, z), m.block("main"))
+        vox.set((A_MID, tier.walk + HEAD_CLEAR, z),
+                w.beam("z") if tier.rampart else m.block("main"))
 
     # Ground-floor door on the courtyard side, and room to walk in.
     # Never clear a stair: the first two steps of the spiral live here, and an
@@ -1476,14 +1579,14 @@ def _tower_openings(vox: Voxels, pal: Palette, tier: Tier,
     # wall the ladder hangs on. Cutting one there left rungs with nothing behind
     # them, which is both unsupported and a hole in the climb.
     def slit(y: int, z: int) -> None:
-        if z == LADDER_Z:
+        if z == LADDER_Z or y < 1:
             return                      # the ladder hangs on this wall
         vox.set((0, y, z), None)
 
     if tier.loops:
         for z in (z0 + 1, z1 - 1):
-            slit(BODY_TOP - 3, z)
-        slit(BODY_TOP - 1, zc)
+            slit(tier.body_top - 3, z)
+        slit(tier.body_top - 1, zc)
         slit(rise - 1, zc)
 
 
@@ -1539,20 +1642,52 @@ def compose(kind: str, level: int, seed: int = 0) -> Voxels:
 
 # ── the promise, as a test ──────────────────────────────────────────
 
+def walk_level(vox: Voxels) -> int:
+    """The piece's own walk elevation, read off what was built.
+
+    Not the shared `WALK` constant: the earth rampart is half height, so asking
+    about the constant would test a cell in its open sky. Derived from the piece
+    means one check works for every tier.
+    """
+    from .traverse import standable
+    _sx, sy, sz = vox.size
+    if standable(vox, (A_MID, WALK, sz - 1)) is not None:
+        return WALK
+    # Scanning from the very top would find the roof of the hoarding gallery, not
+    # the walk, so the shared elevation is tried first and this is only for the
+    # tiers that really are lower.
+    for y in range(min(sy - 1, WALK), 0, -1):
+        if standable(vox, (A_MID, y, sz - 1)) is not None:
+            return y
+    return WALK
+
+
 def walk_endpoints(kind: str, vox: Voxels) -> Tuple[List[Coord], List[Coord]]:
     """The two ends of the walk, in the piece's own coordinates."""
     sx, _sy, sz = vox.size
+    w = walk_level(vox)
     if kind == "wall_corner":
-        return [(A_MID, WALK, sz - 1)], [(sx - 1, WALK, A_MID)]
-    return [(A_MID, WALK, 0)], [(A_MID, WALK, sz - 1)]
+        return [(A_MID, w, sz - 1)], [(sx - 1, w, A_MID)]
+    return [(A_MID, w, 0)], [(A_MID, w, sz - 1)]
 
 
 def climb_endpoints(vox: Voxels) -> Tuple[List[Coord], List[Coord]]:
-    """Ground outside the tower door, and the roof deck."""
+    """Ground outside the tower door, and the roof deck.
+
+    The deck elevation is read off the piece, not taken from `TOWER_RISE`: the
+    rampart tier's tower is shorter, and a goal cell in its open sky is a test
+    that can only fail.
+    """
+    from .traverse import standable
     _sx, sy, _sz = vox.size
     zc = (1 + TOWER_SIDE) // 2
     ground = [(A_IN + 1, 1, zc), (A_IN + 2, 1, zc)]
-    deck = [(x, TOWER_RISE + 1, z) for x in range(1, A_IN)
-            for z in range(2, TOWER_SIDE)
-            if TOWER_RISE + 1 < sy]
-    return ground, deck
+    inside = [(x, z) for x in range(1, A_IN) for z in range(2, TOWER_SIDE)]
+    # The highest standable course inside the parapet is the deck. Scanning down
+    # from the box top finds it whatever the tier's height turned out to be.
+    for y in range(sy - 1, 1, -1):
+        deck = [(x, y, z) for x, z in inside
+                if standable(vox, (x, y, z)) is not None]
+        if deck:
+            return ground, deck
+    return ground, []

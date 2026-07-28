@@ -82,6 +82,7 @@ from nbtlib import List as NbtList
 
 from .compose import JIGSAW_ORIENTATION, jigsaw
 from .corpus import modernize
+from .fabric import Canvas, Fault
 from pathlib import Path
 
 from .nbtio import BlockState, Coord, Voxels, load, state
@@ -115,9 +116,16 @@ class Stone:
                      shape="straight", waterlogged="false")
 
     def rail(self) -> BlockState:
-        """A `*_wall` block: 1.5 tall, see over but not cross — a dry-stone fold."""
-        return state(f"{self.cut}_wall", up="true", north="none", south="none",
-                     west="none", east="none", waterlogged="false")
+        """A rail is OAK, even on a masonry course.
+
+        This used to return a `*_wall` block as a "dry-stone fold". Two rulings
+        kill it: a farm boundary never turns to stone, and stone `*_wall` blocks
+        are out of our vocabulary altogether. It also measured badly on its own
+        terms — a fence does not connect to a `*_wall` (0 of 8 in the author's
+        files), so every joint between the two read as a broken run.
+        """
+        return state("oak_fence", north="false", south="false", west="false",
+                     east="false", waterlogged="false")
 
 
 @dataclass(frozen=True)
@@ -213,6 +221,9 @@ STURDY = {
 FULL_BLOCKS = STURDY
 
 RAILS = {"oak_fence", "cobblestone_wall", "glass_pane", "iron_bars"}
+# Decoration a rail may be built straight through.
+SOFT_DECOR = {"short_grass", "grass", "oak_leaves", "oak_sapling",
+              "flower_pot", "dandelion", "poppy"}
 
 
 # ── ground mixes ────────────────────────────────────────────────────
@@ -330,7 +341,7 @@ TERRAIN_LIKE = {"grass_block", "dirt", "coarse_dirt", "dirt_path", "podzol",
 
 
 def graft(dst: Voxels, donor: Voxels, at: Coord2,
-          drop_terrain: bool = True) -> None:
+          keep_ground_in: Optional[Tuple[int, int, int, int]] = None) -> None:
     """Stamp a donor building into the plot at `at`, block-entity data included.
 
     Skips the donor's own ground layer — the plot lays its own, and two terrain
@@ -338,8 +349,17 @@ def graft(dst: Voxels, donor: Voxels, at: Coord2,
     entities, which belong to the donor's life as a standalone building.
     """
     ox, oz = at
+    x0, x1, z0, z1 = keep_ground_in or (0, -1, 0, -1)
     for (x, y, z), b in donor.solid_items():
-        if drop_terrain and y == 0:
+        # His ground layer is dropped **outside** his walls, because the plot lays
+        # its own — but kept inside them, because that is where his water, his
+        # paths and the floor under his walls live. Dropping it everywhere and then
+        # laying ground over the top drowned his ponds and left the lily pads
+        # sitting on dirt.
+        # His ground is dropped outside his walls — the plot lays its own — but
+        # **water is kept wherever he dug it**: his ponds sit outside the wall
+        # bbox, so dropping them there stranded the lily pads he floated on top.
+        if y == 0 and b.short != "water" and not (x0 <= x <= x1 and z0 <= z <= z1):
             continue
         if b.short == "jigsaw":
             continue
@@ -363,7 +383,7 @@ class Breed:
 
     key: str                    # output name, also the folder name
     entity: str                 # entity id shipped in the NBT
-    family: str = "house"       # which of the author's house ladders to graft
+    family: str                 # which of the author's house ladders to graft
     yard: Coord2                # the flank arm of the yard, w x d
     strip: int                  # depth of the working arm behind the house;
                                 # 0 for a compact yard with no arm at all
@@ -373,7 +393,9 @@ class Breed:
     graze: bool = True          # tufts of grass left standing inside
     holding_pen: bool = False   # a small sorting pen for shearing
     wallow: bool = False        # a mud hollow with water in it
-    dry_stone: bool = False     # wall-block infill in the piers from lvl4
+    boundary: str = "postrail"  # postrail | hurdle | boarded
+    water: str = "pond"         # pond | dip | wallow
+    byre_form: str = "lean"     # lean | gable | low
     milking: bool = False       # cauldron and barrel by the shed
     wool: bool = False          # wool bales in the loft, shearing bench
     note: str = ""
@@ -388,21 +410,21 @@ class Breed:
 # top-tier herd of four.
 COW = Breed(
     key="cow_pasture", entity="minecraft:cow", family="house_3",
-    yard=(11, 11), strip=5,
-    clip=2, byre=5,
+    yard=(11, 11), strip=5, clip=2, byre=5,
+    boundary="postrail", byre_form="lean", water="pond",
     ground=GRAZED, graze=True, milking=True,
     note="the widest yard, kept in grass, big trough and a milking corner")
 PIG = Breed(
     key="pig_sty", entity="minecraft:pig", family="house",
-    yard=(8, 10), strip=0, clip=1,
-    byre=4,
+    yard=(8, 10), strip=0, clip=1, byre=4,
+    boundary="boarded", byre_form="low", water="wallow",
     ground=MIRE, graze=False, wallow=True,
     note="compact and churned to mud, a wallow, fed at the house door")
 SHEEP = Breed(
     key="sheep_fold", entity="minecraft:sheep", family="house_2",
-    yard=(9, 10), strip=5,
-    clip=2, byre=4,
-    ground=FOLD, graze=True, dry_stone=True, wool=True, holding_pen=True,
+    yard=(9, 10), strip=5, clip=2, byre=4,
+    boundary="hurdle", byre_form="gable", water="dip",
+    ground=FOLD, graze=True, wool=True, holding_pen=True,
     note="dry-stone fold with a holding pen for shearing, wool store")
 
 BREEDS: Tuple[Breed, ...] = (COW, PIG, SHEEP)
@@ -422,21 +444,27 @@ class Tier:
                                 # 4 pitched, 5 barn
     kerb: bool = False          # trough kerbed in stone rather than a puddle
     annex: bool = False         # a lower lean-to store against one gable
+    weathered: bool = False     # mossy skirt and rubble spill at the pier feet
+    planters: bool = False      # greenery on the pier caps, boxes on the byre
+    stores: bool = False        # a hay stack, and the fold's wool store
     lantern: bool = False       # prestige fitting: lvl4 and up only
     rich: bool = False          # posts finished with a stair cap
     herd: int = 2               # animals shipped in the file
 
 
 LADDER: Tuple[Tier, ...] = (
-    Tier("base", "the author's plainest house, a crooked yard fence, a puddle", crooked=True, herd=2),
-    Tier("lvl1", "house_lvl1, fence put straight, open byre off the house wall", shelter=1, herd=2),
-    Tier("lvl2", "house_lvl2, stone-pier fence, kerbed trough, byre with a rack", piers=True, shelter=2, kerb=True, herd=3),
-    Tier("lvl3", "house_lvl3, byre gabled and shuttered, muck heap, worn paths", piers=True, shelter=3, kerb=True, herd=3),
+    Tier("base", "the family's plainest house, a crooked yard fence, a puddle", crooked=True, herd=2),
+    Tier("lvl1", "next house rung, fence straightened, open byre off its wall", shelter=1, herd=2),
+    Tier("lvl2", "fence framed on posts, kerbed trough and cauldron, hay rack", piers=True, shelter=2, kerb=True, herd=3),
+    Tier("lvl3", "byre walled, muck heap, holding pen, worn paths",
+         piers=True, shelter=3, kerb=True, weathered=True, herd=3),
     # Beds arrive in the donor at lvl4, which is where the JSON grants residents.
-    Tier("lvl4", "house_lvl4 (beds), byre on a stone plinth, a lantern", piers=True, shelter=4, kerb=True, lantern=True,
-         rich=True, herd=4),
-    Tier("lvl5", "house_lvl6, the byre run out to full length, deep eave", piers=True, shelter=5, kerb=True, annex=True,
+    Tier("lvl4", "the rung with beds (residents), byre plinth, lantern, planters",
+         piers=True, shelter=4, kerb=True, weathered=True, planters=True,
          lantern=True, rich=True, herd=4),
+    Tier("lvl5", "top house rung, byre at full length, deep eave, winter stores",
+         piers=True, shelter=5, kerb=True, annex=True, weathered=True,
+         planters=True, stores=True, lantern=True, rich=True, herd=4),
 )
 
 
@@ -760,7 +788,8 @@ def _patch_field(cells: Sequence[Coord2], mix: Sequence[str],
 
 
 def lay_ground(vox: Voxels, breed: Breed, mask: Set[Coord2], ring: Set[Coord2],
-               wear: Sequence[Coord2], rng: random.Random) -> None:
+               wear: Sequence[Coord2], rng: random.Random,
+               herd: int = 2, keep: Optional[Set[Coord2]] = None) -> None:
     """Grass over the plot, the yard mix inside the fence, wear where they stand.
 
     `wear` is where the animals and the farmer actually are — the gate, the
@@ -780,6 +809,11 @@ def lay_ground(vox: Voxels, breed: Breed, mask: Set[Coord2], ring: Set[Coord2],
     worn = _patch_field(sorted(mask), TRODDEN, rng)
 
     for (x, z) in plot:
+        if keep and (x, z) in keep:
+            continue          # the donor's own ground, inside his walls
+        here = vox.get((x, 0, z))
+        if here is not None and here.short == "water":
+            continue          # and his water, wherever he dug it
         if (x, z) not in mask:
             vox.set((x, 0, z), _ground_state(outside[(x, z)]))
             continue
@@ -790,7 +824,11 @@ def lay_ground(vox: Voxels, breed: Breed, mask: Set[Coord2], ring: Set[Coord2],
         # whole shed frontage that covered the yard — every pen rendered as a
         # mud pit with a green border. The author's `cow_field` keeps roughly
         # half its interior in grass.
-        p_worn = {0: 0.9, 1: 0.5, 2: 0.2}.get(near, 0.05)
+        # More stock, more wear: the yard of a four-head farm is not the yard
+        # of a two-head one, and this is the cheapest way for the ground to say
+        # which rung it is on.
+        heavy = 1.0 + 0.12 * (herd - 2)
+        p_worn = min(1.0, {0: 0.9, 1: 0.5, 2: 0.2}.get(near, 0.05) * heavy)
         if (x, z) in ring:
             p_worn = max(p_worn, 0.4)       # trodden along the fence line
         name = worn[(x, z)] if rng.random() < p_worn else inside[(x, z)]
@@ -859,67 +897,158 @@ def dashed_path(vox: Voxels, start: Coord2, direction: str, length: int,
 
 # ── the boundary ────────────────────────────────────────────────────
 
+# How the boundary is built at each rung, per grammar: how often a masonry pier
+# stands, and what fills the bays between them. This is the **wholesale** part of
+# the ladder — swapping sixty blocks of boundary from rung to rung is what makes
+# one level read as a different farm from the last, where a handful of extra props
+# does not. Measured: level-to-level similarity of built content sat at 0.90 with
+# a fixed boundary, against 0.79 across the author's own house ladder.
+#
+#   timber    the pasture — oak rails, masonry arriving late and sparsely
+#   drystone  the fold — stone from the moment it can be afforded, ending as a
+#             continuous dry-stone wall between close-set piers
+#   rail_low  the sty — mostly boarded rails, barely any stone at all
+BOUNDARY_LADDER = {
+    # (post spacing, infill) per rung. **No stone anywhere in the run.** The
+    # user's ruling, and it is the realistic one: a farmer with a better year buys
+    # straighter timber, more posts, boards and a proper gate — he does not rebuild
+    # his pasture fence in masonry. Stone stays where stone belongs on a farm: the
+    # plinth under the byre, the kerb of a trough, the basin of a sheep dip.
+    #
+    #   rail    `oak_fence` — see-over post and rail
+    #   double  two courses of it, a hurdle you cannot lean over
+    #   panel   `oak_planks` boarded with a rail on top: a solid pen wall
+    #
+    # post-and-rail  cattle: airy, heavy posts, never boarded — they need to see
+    # hurdle         sheep: light and close-set, doubled as the fold gets kept
+    # boarded        pigs: they push and root, so boards early
+    "postrail": ((0, "rail"), (5, "rail"), (4, "rail"), (4, "rail"),
+                 (3, "double"), (3, "double")),
+    "hurdle":   ((0, "rail"), (4, "rail"), (3, "double"), (3, "double"),
+                 (2, "double"), (2, "double")),
+    "boarded":  ((0, "rail"), (5, "rail"), (5, "rail"), (4, "panel"),
+                 (3, "panel"), (3, "panel")),
+}
+
+
 def fence_ring(vox: Voxels, tier: Tier, breed: Breed, ring: Sequence[Coord2],
                skip: Set[Coord2], pal: Palette, rng: random.Random) -> None:
-    """The enclosure itself, at the tier's material.
+    """The enclosure, in **this breed's** grammar.
 
-    Three grammars, one per stage of the ladder:
+    Three of them, because three yards built the same way are one yard three
+    times — measured at 0.88 cosine similarity between the breeds against 0.67
+    across the author's own three animal fields.
 
-    * **crooked** (base) — oak fence with the odd post out of true: a log stub
-      leaning in, a rail missing its cap. Poor, and it has to read as poor.
-    * **straight** (lvl1) — oak fence with log posts at intervals, which is what
-      the author does along the north edge of `sheep_field`.
-    * **piers** (lvl2+) — the stone-pier fence of reference `05d4`: a cobblestone
-      post capped with a slab every third cell, oak fence spanning between them.
-      For the fold the infill becomes a dry-stone wall course from lvl4.
+    * **timber** (the pasture) — oak rails on log posts, each post capped with a
+      slab; masonry piers only once the tier has stone, and then sparsely.
+    * **drystone** (the fold) — a low `cobblestone_wall` course between capped
+      cobblestone piers from the very first tier that can afford stone. A fold is
+      dry stone in life and it is the one legitimate use of a `*_wall` block:
+      a railing you can see over but not cross.
+    * **rail_low** (the sty) — oak rails with an `oak_trapdoor` course laid along
+      the inside, which is the author's own pen railing in `pig_farm_lvl6..8`,
+      and hardly any stone.
     """
+    grammar = breed.boundary
+    rung = LADDER.index(tier)
+    post_every, infill = BOUNDARY_LADDER[grammar][rung]
     for i, (x, z) in enumerate(ring):
         if (x, z) in skip:
             continue
-        pier = tier.piers and i % 3 == 0
-        if pier:
-            # Three tones, so the run has depth rather than one flat grey:
-            # cobblestone carries the field, mossy climbs the foot of some posts,
-            # andesite gives the odd post its own colour.
-            roll = rng.random()
-            tone = (pal.stone.weathered if roll < 0.3
-                    else pal.stone.second if roll < 0.42 else pal.stone.main)
-            vox.set((x, 1, z), state(tone))
-            vox.set((x, 2, z), pal.stone.slab("bottom"))
-        elif tier.piers and breed.dry_stone:
-            # A fold is dry stone: the infill is a wall course, not a rail.
-            vox.set((x, 1, z), pal.stone.rail())
-        elif tier.crooked:
-            if rng.random() < 0.12:
-                # Out of true: a log stub where a post rotted and was replaced.
-                _capped_post(vox, (x, z), pal)
-            else:
-                vox.set((x, 1, z), pal.wood.fence())
-        else:
-            if i % 4 == 0:
-                _capped_post(vox, (x, z), pal)
-            else:
-                vox.set((x, 1, z), pal.wood.fence())
+        if post_every and i % post_every == 0:
+            _capped_post(vox, (x, z), pal)
+            continue
+        if tier.crooked and rng.random() < 0.12:
+            _capped_post(vox, (x, z), pal)   # a post that rotted and was replaced
+            continue
+        if infill == "panel":
+            # Boarded: a plank between the posts with a rail over it. The rail on
+            # top is not decoration — a bare full block in a boundary is a step,
+            # and the animals leave over it.
+            vox.set((x, 1, z), pal.wood.planks)
+            vox.set((x, 2, z), pal.wood.fence())
+            continue
+        vox.set((x, 1, z), pal.wood.fence())
+        if infill == "double":
+            vox.set((x, 2, z), pal.wood.fence())
 
 
 def _capped_post(vox: Voxels, cell: Coord2, pal: Palette) -> None:
-    """A log post in the boundary, with a rail on top of it.
+    """A log post in the boundary, with a **slab** cap on top of it.
 
-    **The cap is not decoration.** A bare full block in a fence line is a
-    mounting block: an animal jumps a full block, so it hops onto the post
-    (rise 1.0) and walks out over the fence beside it. This was the actual
-    escape route the jump-aware check found in every pen — the boundary had no
-    hole in it anywhere, and the animals still got out over its own posts.
+    The cap is not decoration. A bare full block in a fence line is a mounting
+    block: an animal jumps a full block, hops onto the post and walks out over the
+    rail beside it — the escape route the jump-aware check found in every pen. A
+    lone fence on top of a post connects on no side and renders as a stub, which
+    the author does nowhere in 115 files, so it is a slab: a capped post, and its
+    top at +1.5 cannot be reached from the ground either.
     """
     x, z = cell
     vox.set((x, 1, z), state("oak_log", axis="y"))
-    # A **slab** cap, not a rail. A lone fence on top of a post connects to
-    # nothing on any side and renders as a stub sticking out of the post — the
-    # fabric check counted 15 of them in one yard, and the author does not do it
-    # anywhere in 115 files. A slab reads as a capped post, matches how the
-    # stone piers are finished, and still defeats the jump: its top is at +1.5,
-    # so it cannot be reached from the ground either.
+    # No cap where the donor already has something two cells up: the slab would sit
+    # directly under his rail, and a rail over a bottom slab is something he does
+    # **nowhere** in 121 files. It is also unnecessary — an animal cannot stand on
+    # the post if the cell above its head is blocked, which is the whole point of
+    # the cap.
+    if vox.occupied((x, 3, z)):
+        # And take out the cap this post inherited from the rung below, where the
+        # donor had nothing overhead yet. Growing on top of the previous rung means
+        # its decisions arrive with it, valid or not.
+        below = vox.get((x, 2, z))
+        if below is not None and below.short.endswith("_slab"):
+            vox.set((x, 2, z), None)
+        return
     vox.set((x, 2, z), pal.wood.slab("bottom"))
+
+
+def rubble(vox: Voxels, ring: Sequence[Coord2], mask: Set[Coord2],
+           pal: Palette, rng: random.Random) -> int:
+    """Loose stone at the foot of a masonry run (`2b41`).
+
+    Ground-level only, so it is never a step: the escape model would flag a full
+    block at pen level beside the rail, and rightly.
+    """
+    spilled = 0
+    for (x, z) in ring:
+        b = vox.get((x, 1, z))
+        if b is None or b.short not in ("cobblestone", "mossy_cobblestone",
+                                        "andesite"):
+            continue
+        for dx, dz in NEIGH4:
+            q = (x + dx, z + dz)
+            if q in mask and rng.random() < 0.3:
+                vox.set((q[0], 0, q[1]), state("cobblestone" if rng.random() < 0.6
+                                               else "mossy_cobblestone"))
+                spilled += 1
+    return spilled
+
+
+def rail_course(vox: Voxels, ring: Sequence[Coord2], mask: Set[Coord2],
+                pal: Palette, rng: random.Random,
+                skip: Optional[Set[Coord2]] = None) -> int:
+    """Trapdoors laid along the inside of the rail — the sty's own railing.
+
+    `pig_farm_lvl6..8` runs oak trapdoors horizontally as pen railing, up to five
+    in a line, which is why the critic tolerates a run of them. Placed on the
+    yard side of a rail so it reads as a boarded pen rather than open fence.
+    """
+    laid = 0
+    for (x, z) in ring:
+        if not vox.occupied((x, 1, z)):
+            continue
+        for dx, dz in NEIGH4:
+            q = (x + dx, z + dz)
+            if q not in mask or vox.occupied((q[0], 1, q[1])):
+                continue
+            if skip and q in skip:
+                continue          # never board over the shelter's own floor
+            if rng.random() < 0.45:
+                facing = {(1, 0): "west", (-1, 0): "east",
+                          (0, 1): "north", (0, -1): "south"}[(dx, dz)]
+                vox.set((q[0], 1, q[1]), pal.wood.trapdoor(facing, "top"))
+                laid += 1
+            break
+    return laid
 
 
 def close_diagonals(vox: Voxels, mask: Set[Coord2], pal: Palette) -> int:
@@ -956,10 +1085,17 @@ def close_diagonals(vox: Voxels, mask: Set[Coord2], pal: Palette) -> int:
                 # clipped corner the closing cell is the corner that was cut
                 # away, so an inside-only rule left those steps open — which is
                 # where the remaining gaps in the run were.
+                # A tuft of grass or a leaf does not close a run, and it must
+                # not block the closing either: the pier-foot planting landed in
+                # exactly these cells and left fourteen corners open again.
+                def free(c: Coord2) -> bool:
+                    b = vox.get((c[0], 1, c[1]))
+                    return b is None or b.short in SOFT_DECOR
+
                 inside = [c for c in ((x + dx, z), (x, z + dz))
-                          if c in mask and not vox.occupied((c[0], 1, c[1]))]
+                          if c in mask and free(c)]
                 outside = [c for c in ((x + dx, z), (x, z + dz))
-                           if c not in mask and not vox.occupied((c[0], 1, c[1]))
+                           if c not in mask and free(c)
                            and vox.occupied((c[0], 0, c[1]))]
                 if inside or outside:
                     gaps.append((inside or outside)[0])
@@ -987,8 +1123,9 @@ def hang_gate(vox: Voxels, cell: Coord2, pal: Palette, tier: Tier) -> None:
             vox.set((jx, 1, z), state("oak_log", axis="y"))
             # Capped for the same reason every other post in the run is: an
             # uncapped jamb is a step out of the pen, right beside the gate.
-            vox.set((jx, 2, z), pal.stone.slab("bottom") if tier.piers
-                    else pal.wood.slab("bottom"))
+            # Timber, like the rest of the run: a stone-capped gatepost is the
+            # first step toward a masonry fence, and a farm never takes it.
+            vox.set((jx, 2, z), pal.wood.slab("bottom"))
 
 
 # ── the shelter ─────────────────────────────────────────────────────
@@ -1115,135 +1252,6 @@ def _walls(vox: Voxels, shed: Shed, pal: Palette, top: int,
                 vox.set((x, y, z), pal.wood.planks)
 
 
-def _flat_roof(vox: Voxels, shed: Shed, pal: Palette, y: int) -> None:
-    """A lean-to lid: slabs, with the eave course oversailing by one.
-
-    Only the poorest rung uses this. Over anything longer than three cells a
-    single flat course of slabs reads as a tarp stretched over the yard, which
-    is what lvl2 and lvl3 looked like before `_mono_roof` replaced it.
-    """
-    for (x, z) in shed.cells:
-        vox.set((x, y, z), pal.wood.slab("bottom"))
-    for x in range(shed.x0, shed.x1 + 1):
-        vox.set((x, y, shed.z1 + 1), pal.wood.slab("top"))
-
-
-def _mono_roof(vox: Voxels, shed: Shed, pal: Palette, eave: int) -> int:
-    """A single-pitch roof falling toward the yard — the shape a lean-to has.
-
-    One course higher at the back than at the front, so the plane actually
-    slopes: stairs carry the fall and the course under the back stairs is closed
-    with plank, or the slope is a shelf with a gap into the shed behind it.
-    """
-    z0, z1 = shed.z0, shed.z1
-    for x in range(shed.x0, shed.x1 + 1):
-        vox.set((x, eave, z0), pal.wood.planks)
-        vox.set((x, eave + 1, z0), pal.wood.stairs("south", "bottom"))
-        for z in range(z0 + 1, z1):
-            vox.set((x, eave, z), pal.wood.stairs("south", "bottom"))
-        vox.set((x, eave, z1), pal.wood.slab("bottom"))
-        # Eave over the yard face, so the fall has somewhere to land.
-        vox.set((x, eave, z1 + 1), pal.wood.slab("top"))
-    return eave + 1
-
-
-def _pitched_roof(vox: Voxels, shed: Shed, pal: Palette, eave: int,
-                  oversail: bool) -> int:
-    """The author's own roof: stairs stepping inward one course per layer.
-
-    Measured over the corpus rather than assumed — 82% of his builds ten or more
-    tall pitch the roof this way, and the flat-slab lid this replaces is only
-    right on a five-tall cottage. The ridge closes in slabs.
-
-    Returns the ridge height.
-    """
-    depth = shed.z1 - shed.z0 + 1
-    steps = (depth + 1) // 2
-    y = eave
-    z_lo, z_hi = shed.z0, shed.z1
-    if oversail:
-        # Deep eave on beam ends, over the yard face only (`078d`). The back row
-        # of the shed *is* the fence line, so oversailing there would hang the
-        # barn roof outside the pen over open ground.
-        for x in range(shed.x0, shed.x1 + 1):
-            vox.set((x, y, z_hi + 1), pal.wood.stairs("north", "bottom"))
-        for x in (shed.x0, shed.x1):
-            vox.set((x, y - 1, z_hi + 1), pal.wood.beam("z"))
-    for step in range(steps):
-        for x in range(shed.x0, shed.x1 + 1):
-            if z_lo < z_hi:
-                vox.set((x, y, z_lo), pal.wood.stairs("south", "bottom"))
-                vox.set((x, y, z_hi), pal.wood.stairs("north", "bottom"))
-            else:
-                vox.set((x, y, z_lo), pal.wood.slab("bottom"))
-        if z_lo >= z_hi:
-            break
-        # Close the void behind each course, or the roof is a pair of ramps
-        # with the loft open to the sky between them.
-        for x in range(shed.x0, shed.x1 + 1):
-            for z in range(z_lo + 1, z_hi):
-                if not vox.occupied((x, y, z)) and step > 0:
-                    vox.set((x, y, z), pal.wood.planks)
-        z_lo, z_hi = z_lo + 1, z_hi - 1
-        y += 1
-    return y
-
-
-def shelter(vox: Voxels, shed: Shed, breed: Breed, tier: Tier, pal: Palette,
-            rng: random.Random) -> int:
-    """Build the shelter for this tier. Returns its highest block.
-
-    **Long, low, and only as tall as it has to be.** Measured off the author's
-    own animal building, `pig_farm`: 12x10 on the ground with the eave three
-    courses up, cobblestone below, timber frame above, and one broad roof plane
-    over the lot. Two versions of this module got that backwards — a 4x3
-    footprint with the posts at y=4 and the ridge at y=6 — and rendered as a
-    plank tower parked in a field. The user's word for it was accurate.
-
-    So: the body is two courses (interior clearance y=1..2, which is what a cow
-    and a farmer both need), the eave sits at y=3, and only the barn takes a
-    third course. Extra rungs buy *length and massing*, never height.
-    """
-    if tier.shelter == 1:
-        # Two posts and a plank: the poorest shelter that is still a shelter.
-        for (x, z) in ((shed.x0, shed.z1), (shed.x1, shed.z1)):
-            for y in (1, 2):
-                vox.set((x, y, z), pal.wood.post)
-        _flat_roof(vox, shed, pal, 3)
-        return 3
-    if tier.shelter == 2:
-        _frame(vox, shed, pal, 3)
-        # A back wall even on the open shed. Two reasons, and the second is not
-        # cosmetic: a byre open on all four sides is a table on legs, and the
-        # back row *is* the boundary — left as a bare rail, the hay rack in
-        # front of it becomes the step an animal uses to get over it.
-        for x in range(shed.x0 + 1, shed.x1):
-            vox.set((x, 1, shed.z0), pal.wood.fence())
-            vox.set((x, 2, shed.z0), pal.wood.planks)
-        return _mono_roof(vox, shed, pal, 3)
-    if tier.shelter == 3:
-        _frame(vox, shed, pal, 3)
-        _walls(vox, shed, pal, 3, rng)
-        return _mono_roof(vox, shed, pal, 3)
-    if tier.shelter == 4:
-        # Same squat body, but the lid becomes a pitch: a stair course each side
-        # and a slab ridge, which over three cells of depth is the author's own
-        # roof at the smallest size it exists in.
-        _frame(vox, shed, pal, 3)
-        _walls(vox, shed, pal, 3, rng)
-        return _pitched_roof(vox, shed, pal, 3, oversail=False)
-    # lvl5, the barn: one course taller, a cell deeper, and — the device that
-    # actually makes a farm building read — a lower roof plane beside the main
-    # one instead of a single bigger box (`0c6c`, `4c7e`: cluster massing).
-    top = 4
-    _frame(vox, shed, pal, top)
-    _walls(vox, shed, pal, top, rng)
-    ridge = _pitched_roof(vox, shed, pal, top, oversail=True)
-    if tier.annex:
-        _annex(vox, shed, pal, rng)
-    return ridge
-
-
 def _annex(vox: Voxels, shed: Shed, pal: Palette, rng: random.Random) -> int:
     """A store lean-to against one gable, under a lower roof.
 
@@ -1279,27 +1287,6 @@ def _annex(vox: Voxels, shed: Shed, pal: Palette, rng: random.Random) -> int:
     vox.set((dx, 2, z1), pal.wood.door("north", "upper", "left"))
     return 3
 
-
-def _side_door(vox: Voxels, shed: Shed, pal: Palette,
-               rng: random.Random) -> None:
-    """A door in the gable wall, for the farmer.
-
-    Not in the yard face. That face is the animals' way in and doors across it
-    would dam the shelter — the barn version of the gatehouse whose own flanking
-    piers blocked the passage. The stock walks in under the open front; the
-    farmer comes in from the side.
-    """
-    x = rng.choice((shed.x0, shed.x1))
-    facing = "east" if x == shed.x0 else "west"
-    z = shed.z0 + 1
-    if z >= shed.z1:
-        return
-    vox.set((x, 1, z), pal.wood.door(facing, "lower", "left"))
-    vox.set((x, 2, z), pal.wood.door(facing, "upper", "left"))
-    vox.set((x, 3, z), pal.wood.beam("z"))
-
-
-# ── fittings and props ──────────────────────────────────────────────
 
 def feeder(vox: Voxels, cells: Sequence[Coord2], pal: Palette,
            rng: random.Random) -> None:
@@ -1348,6 +1335,25 @@ def yard_props(vox: Voxels, breed: Breed, tier: Tier, shed: Optional[Shed],
         c = spot()
         if c:
             vox.set((c[0], 1, c[1]), state("composter", level="0"))
+    if tier.stores:
+        # A stack of fodder for the winter, and the fold's wool store: the top
+        # rung is when a farm has a surplus worth storing.
+        for i in range(3):
+            c = spot()
+            if c:
+                vox.set((c[0], 1, c[1]), state("hay_block",
+                                               axis=("y", "x", "z")[i % 3]))
+        if breed.wool:
+            for _ in range(2):
+                c = spot()
+                if c:
+                    vox.set((c[0], 1, c[1]), state("white_wool"))
+    if tier.planters:
+        # A pot by the yard gate and a box of greenery: the fittings a farm gets
+        # once it is no longer scraping by (`078d`, `35962`).
+        c = spot()
+        if c:
+            vox.set((c[0], 1, c[1]), state("flower_pot"))
     if breed.wool and tier.shelter >= 2:
         c = spot()
         if c:
@@ -1475,14 +1481,171 @@ def stock(vox: Voxels, breed: Breed, tier: Tier, free: Sequence[Coord2],
              and vox.occupied((c[0], 0, c[1]))
              and (vox.get((c[0], 0, c[1])) or state("air")).short != "water"]
     rng.shuffle(spots)
+    # Spread them out if the yard allows, crowd them if it does not: a compact sty
+    # at the top rung has a pond, a muck heap and its winter stores, and insisting
+    # on three cells between animals left the fourth pig unplaced.
     chosen: List[Coord2] = []
-    for c in spots:
-        if all(abs(c[0] - o[0]) + abs(c[1] - o[1]) >= 3 for o in chosen):
-            chosen.append(c)
+    for gap in (3, 2, 1):
+        chosen = []
+        for c in spots:
+            if all(abs(c[0] - o[0]) + abs(c[1] - o[1]) >= gap for o in chosen):
+                chosen.append(c)
+            if len(chosen) == tier.herd:
+                break
         if len(chosen) == tier.herd:
             break
     for c in chosen:
         vox.entities.append(animal(breed.entity, c, 1, rng))
+
+
+# ── water ───────────────────────────────────────────────────────────
+#
+# Two grammars, both measured off his files rather than invented:
+#
+#   **natural** — `lake.nbt`, `cow_field`: water at **y=0**, dug into the terrain
+#   layer, rim of `coarse_dirt` / `rooted_dirt` / `grass_block`, and `lily_pad`
+#   **at y=1 directly over water** (53 of his 54 pads sit exactly like that).
+#   **built** — `fountain_place`: a masonry floor at y=0 and water at **y=1**
+#   held in by a cobblestone rim in the same course. That is how a raised basin
+#   is done here, and it is what a sheep dip is.
+#
+# He has no clay, gravel, sand or sugar cane anywhere in 121 files, so a bank is
+# earth and a basin is cobblestone. Water is kept two cells clear of the boundary:
+# a swimming animal floats a block higher than a standing one, and a pond against
+# the fence would be a step nobody modelled.
+
+POND_RIM = ("coarse_dirt", "rooted_dirt", "coarse_dirt", "dirt")
+
+
+def pond(vox: Voxels, cells: Sequence[Coord2], size: int,
+         rng: random.Random) -> List[Coord2]:
+    """Kept for the standalone case; the ladder uses grow_blob + pond_cells."""
+    """A dug pond: an irregular blob of water at ground level, banked in earth."""
+    if not cells:
+        return []
+    anchor = cells[rng.randrange(len(cells))]
+    blob = {anchor}
+    frontier = [anchor]
+    while len(blob) < size and frontier:
+        x, z = frontier.pop(rng.randrange(len(frontier)))
+        for dx, dz in NEIGH4:
+            q = (x + dx, z + dz)
+            if q in cells and q not in blob and rng.random() < 0.7:
+                blob.add(q)
+                frontier.append(q)
+    for (x, z) in blob:
+        vox.set((x, 0, z), state("water", level="0"))
+        vox.set((x, 1, z), None)
+    rim = {(x + dx, z + dz) for (x, z) in blob for dx, dz in NEIGH4} - blob
+    for (x, z) in sorted(rim):
+        if vox.get((x, 0, z)) is None:
+            continue
+        vox.set((x, 0, z), state(POND_RIM[rng.randrange(len(POND_RIM))]))
+        if rng.random() < 0.3 and not vox.occupied((x, 1, z)):
+            vox.set((x, 1, z), state("short_grass"))       # reeds at the bank
+    for (x, z) in sorted(blob):
+        if rng.random() < 0.3:
+            vox.set((x, 1, z), state("lily_pad"))
+    return sorted(blob)
+
+
+def dip_pool(vox: Voxels, cells: Sequence[Coord2], pal: Palette,
+             rng: random.Random) -> List[Coord2]:
+    """A sheep dip: a stone basin you drive the flock through.
+
+    Real husbandry — a fleece is washed before shearing — and built in his
+    fountain grammar: masonry floor, water held at pen level by a cobblestone
+    rim, and a stair at one end so the sheep walk down into it.
+    """
+    # Along either axis: restricting the basin to a north-south run left the
+    # fold's crowded rungs with nowhere to put it at all.
+    run = None
+    pool = set(cells)
+    for (x, z) in cells:
+        for line in ([(x, z), (x, z + 1), (x, z + 2)],
+                     [(x, z), (x + 1, z), (x + 2, z)]):
+            if all(c in pool for c in line):
+                run = line
+                break
+        if run:
+            break
+    if run is None:
+        return []
+    for (x, z) in run:
+        vox.set((x, 0, z), state(pal.stone.main))
+        vox.set((x, 1, z), state("water", level="0"))
+    rim = {(x + dx, z + dz) for (x, z) in run for dx, dz in NEIGH4} - set(run)
+    for (x, z) in sorted(rim):
+        if vox.get((x, 0, z)) is None or vox.occupied((x, 1, z)):
+            continue
+        vox.set((x, 1, z), state(pal.stone.main if rng.random() < 0.7
+                                 else pal.stone.weathered))
+    # The way in: a stair down at the near end, facing along the run.
+    x, z = run[-1]
+    along_z = run[0][0] == run[-1][0]
+    step = (x, z + 1) if along_z else (x + 1, z)
+    if not vox.occupied((step[0], 1, step[1])):
+        # Facing **away** from the basin, because facing is the tall side: the
+        # flock walks down the low half into the water. Facing it the other way
+        # builds a step up out of the pool.
+        vox.set((step[0], 1, step[1]),
+                pal.stone.stairs("south" if along_z else "east", "bottom"))
+    return sorted(set(run) | rim)
+
+
+def runnel(vox: Voxels, mask: Set[Coord2], source: Sequence[Coord2],
+           target: Coord2, avoid: Set[Coord2], rng: random.Random) -> List[Coord2]:
+    """A shallow watercourse **inside** the pasture, from the pond to the trough.
+
+    Water belongs in the enclosure, not beside it: an earlier version ran a ditch
+    down the plot margin, outside the fence, which is water the stock cannot reach
+    and reads as a border drawn round the plot. This one crosses the yard the
+    animals stand in, banked in earth like his `lake.nbt`, and is planked over
+    where the worn path crosses it.
+
+    It wanders: at each step it takes the axis that closes the most distance, but
+    a third of the time it takes the other one instead.
+    """
+    if not source:
+        return []
+    x, z = min(source, key=lambda c: abs(c[0] - target[0]) + abs(c[1] - target[1]))
+    cut: List[Coord2] = []
+    for _ in range(14):
+        if (x, z) == target:
+            break
+        dx = (1 if target[0] > x else -1) if target[0] != x else 0
+        dz = (1 if target[1] > z else -1) if target[1] != z else 0
+        if dx and dz:
+            if rng.random() < 0.33:
+                dx = 0
+            else:
+                dz = 0
+        elif not dx and not dz:
+            break
+        nxt = (x + dx, z + dz)
+        if nxt not in mask or nxt in avoid:
+            break
+        x, z = nxt
+        if vox.get((x, 0, z)) is None:
+            break
+        vox.set((x, 0, z), state("water", level="0"))
+        vox.set((x, 1, z), None)
+        cut.append((x, z))
+    for (cx, cz) in cut:
+        for ddx, ddz in NEIGH4:
+            q = (cx + ddx, cz + ddz)
+            if q in cut or q not in mask or vox.get((q[0], 0, q[1])) is None:
+                continue
+            vox.set((q[0], 0, q[1]),
+                    state(POND_RIM[rng.randrange(len(POND_RIM))]))
+            if rng.random() < 0.2 and not vox.occupied((q[0], 1, q[1])):
+                vox.set((q[0], 1, q[1]), state("short_grass"))
+    # A plank sill where the stock and the farmer cross it.
+    if len(cut) >= 3:
+        cross = cut[len(cut) // 2]
+        vox.set((cross[0], 1, cross[1]), state("oak_slab", type="top",
+                                               waterlogged="false"))
+    return cut
 
 
 # ── the composer ────────────────────────────────────────────────────
@@ -1506,6 +1669,9 @@ class Pen:
     shed: Optional[Shed]
     seed: int = 0
     house_at: Coord2 = (1, 1)
+    # What the checked writer complained about while this rung was built. Empty is
+    # the only acceptable value in a shipped file; the driver gates on it.
+    faults: List[Fault] = field(default_factory=list)
 
     @property
     def name(self) -> str:
@@ -1572,61 +1738,154 @@ def open_ring(vox: Voxels, mask: Set[Coord2]) -> List[Coord2]:
 
 def lean_to(vox: Voxels, shed: Shed, tier: Tier, pal: Palette,
             rng: random.Random) -> int:
-    """A byre built **against the farmhouse wall**, roofed off it.
+    """A byre against the farmhouse wall, roofed off it — the longhouse form.
 
-    The longhouse arrangement, and the answer to a free-standing shed being
-    rejected twice: the animals' shelter shares a wall with the house instead of
-    standing on its own in the middle of the plot. The house carries the back
-    side, so the roof needs no rear gable and the two volumes read as one
-    farmstead. The pitch falls away from the house, which is why the course
-    against the wall is the high one.
+    The house carries the back side, so the roof needs no rear gable and the two
+    volumes read as one farmstead. The pitch falls away from the house, which is
+    why the course against the wall is the high one.
     """
     x0, x1 = shed.x0, shed.x1
     z0, z1 = shed.z0, shed.z1
     body = 3 if tier.shelter >= 4 else 2
 
-    # The outer post line takes the loads the house does not: ends always, then
-    # every third bay.
     for z in range(z0, z1 + 1):
         if z in (z0, z1) or (z - z0) % 3 == 0:
             for y in range(1, body + 1):
                 vox.set((x1, y, z), pal.wood.post)
         elif tier.shelter >= 4:
-            # Stone plinth between the posts: the author's stone-base grammar.
             vox.set((x1, 1, z), state(pal.stone.main if rng.random() < 0.75
                                       else pal.stone.weathered))
-
-    # Gable ends, from the tier that walls the byre in: rail below, panel above.
     if tier.shelter >= 3:
         for z in (z0, z1):
             for x in range(x0, x1):
                 vox.set((x, 1, z), pal.wood.fence())
                 for y in range(2, body + 1):
                     vox.set((x, y, z), pal.wood.planks)
-        if tier.shelter >= 3:
-            shutter_z = rng.choice((z0, z1))
-            vox.set((x0 + 1 if x0 + 1 < x1 else x0, 2, shutter_z),
-                    pal.wood.trapdoor("south", "bottom"))
+        vox.set((x0 + 1 if x0 + 1 < x1 else x0, 2, rng.choice((z0, z1))),
+                pal.wood.trapdoor("south", "bottom"))
 
-    # Beam course on the open face, then the fall: one course down per cell out
-    # from the wall, stairs carrying the slope and a slab at the eave.
-    high = body + 2
+    # **One continuous course**, all at the same height, falling away from the
+    # house through the stairs' own shape. The earlier version stepped down a
+    # whole block over a single cell, which left the cell under the step empty —
+    # a notch you could see through into the byre — and finished with an eave slab
+    # hanging in the air one cell past the posts. Both were what the user was
+    # pointing at, and both come from doing roof arithmetic per column instead of
+    # laying a plane.
+    # **`facing` is the tall side.** Measured, not recalled: 648 of the author's
+    # stair runs ascend toward their facing and none against it, and on the west
+    # slope of his roofs the stairs face east — tall half inward, toward the ridge.
+    # A lean-to's high side is the house wall on the **west**, so its stairs face
+    # west. They faced east, which pitched every byre roof backwards: the tall half
+    # sat at the eave and the roof climbed away from the house.
+    roof_y = body + 1
     for z in range(z0, z1 + 1):
-        vox.set((x1, body + 1, z), pal.wood.beam("z"))
-        for i, x in enumerate(range(x0, x1 + 1)):
-            y = max(body + 1, high - i)
-            vox.set((x, y, z), pal.wood.stairs("east", "bottom") if x < x1
-                    else pal.wood.slab("bottom"))
-        # Eave one cell past the posts: an edge for the fall and a shadow line
-        # on the yard.
-        vox.set((x1 + 1, body + 1, z), pal.wood.slab("top"))
-        # And close the join against the house: the top course stops one cell
-        # short of the wall column, which left a one-cell slot open to the sky
-        # between the two roofs at every top tier. Only filled where the donor
-        # has not already built something there.
-        if not vox.occupied((x0 - 1, high, z)):
-            vox.set((x0 - 1, high, z), pal.wood.slab("bottom"))
-    return high
+        for x in range(x0, x1 + 1):
+            vox.set((x, roof_y, z), pal.wood.stairs("west", "bottom"))
+        # The eave projects one cell past the post line and lands on a **beam
+        # end** — `oak_log` lying proud of the frame, his own device (`1b95`,
+        # `725f`). Measured: his roofs are never cantilevered more than two cells
+        # from a supported column, and mostly one.
+        if (z - z0) % 2 == 0:
+            vox.set((x1 + 1, body, z), pal.wood.beam("x"))
+        vox.set((x1 + 1, roof_y, z), pal.wood.slab("bottom"))
+        # And close the join against the house, where the donor has not already.
+        if not vox.occupied((x0 - 1, roof_y, z)):
+            vox.set((x0 - 1, roof_y, z), pal.wood.slab("bottom"))
+    return roof_y
+
+
+def gable_byre(vox: Voxels, shed: Shed, tier: Tier, pal: Palette,
+               rng: random.Random) -> int:
+    """A free-standing shelter with a two-sided pitch — the fold's own building.
+
+    Stone plinth, timber above, a stair course each side and a slab ridge. Two
+    stair facings instead of one, which is half of what makes the author's roofs
+    read as roofs rather than as ramps.
+    """
+    x0, x1, z0, z1 = shed.x0, shed.x1, shed.z0, shed.z1
+    body = 2 if tier.shelter < 4 else 3
+    for x in range(x0, x1 + 1):
+        for z in (z0, z1):
+            corner = x in (x0, x1)
+            for y in range(1, body + 1):
+                if corner:
+                    vox.set((x, y, z), pal.wood.post)
+                elif y == 1:
+                    vox.set((x, y, z), state(pal.stone.main if rng.random() < 0.7
+                                             else pal.stone.weathered))
+                elif z == z0 or tier.shelter >= 3:
+                    vox.set((x, y, z), pal.wood.planks)
+    # The pitch: stairs facing in from both long sides, slab ridge between — and
+    # the **gable triangle filled** at each end column. Left open, the two end
+    # walls are a hole into the attic, which is the same defect as a stepped
+    # lean-to leaving a notch: a roof plane is not a roof until its ends close.
+    y = body + 1
+    lo, hi = z0, z1
+    while lo < hi:
+        for x in range(x0, x1 + 1):
+            vox.set((x, y, lo), pal.wood.stairs("south", "bottom"))
+            vox.set((x, y, hi), pal.wood.stairs("north", "bottom"))
+        for x in (x0, x1):
+            for z in range(lo + 1, hi):
+                if not vox.occupied((x, y, z)):
+                    vox.set((x, y, z), pal.wood.planks)
+        lo, hi = lo + 1, hi - 1
+        y += 1
+    if lo == hi:
+        for x in range(x0, x1 + 1):
+            vox.set((x, y, lo), pal.wood.slab("bottom"))
+    return y
+
+
+def low_sty(vox: Voxels, shed: Shed, tier: Tier, pal: Palette,
+            rng: random.Random) -> int:
+    """A sty: squat, boarded, flat-lidded — and with a floor left to stand on.
+
+    Posts at the four corners only, stone plinth along the back, rails down the
+    sides and boarded across the front, slab lid at y=3. The first version walled
+    every perimeter cell of a two-wide box, which left no interior at all.
+
+    It stays the lowest of the three forms on purpose: the byre's eave is at 4 and
+    the fold's ridge at 5 or 6.
+    """
+    x0, x1, z0, z1 = shed.x0, shed.x1, shed.z0, shed.z1
+    corners = {(x0, z0), (x1, z0), (x0, z1), (x1, z1)}
+    for (cx, cz) in corners:
+        for y in (1, 2):
+            vox.set((cx, y, cz), pal.wood.post)
+    for x in range(x0 + 1, x1):
+        vox.set((x, 1, z0), state(pal.stone.main if rng.random() < 0.7
+                                  else pal.stone.weathered))
+        if tier.shelter >= 3:
+            vox.set((x, 2, z0), pal.wood.planks)
+        # Boarded front: the author's own pen railing used as a low wall.
+        vox.set((x, 1, z1), pal.wood.trapdoor("north", "top"))
+    for z in range(z0 + 1, z1):
+        for x in (x0, x1):
+            vox.set((x, 1, z), pal.wood.fence())
+    for x in range(x0, x1 + 1):
+        for z in range(z0, z1 + 1):
+            vox.set((x, 3, z), pal.wood.slab("bottom"))
+    return 3
+
+
+def shelter_for(breed: Breed, shed: Shed, tier: Tier, vox: Voxels,
+                pal: Palette, rng: random.Random) -> int:
+    """Dispatch on the breed's own shelter form, and add the top rung's annex.
+
+    The annex was reachable only from a `shelter()` that nothing called any more,
+    so the rung that promises cluster massing was quietly building without it —
+    dead code claiming a device in its own note.
+    """
+    if breed.byre_form == "gable":
+        top = gable_byre(vox, shed, tier, pal, rng)
+    elif breed.byre_form == "low":
+        top = low_sty(vox, shed, tier, pal, rng)
+    else:
+        top = lean_to(vox, shed, tier, pal, rng)
+    if tier.annex:
+        _annex(vox, shed, pal, rng)
+    return top
 
 
 def holding_pen(vox: Voxels, cells: Sequence[Coord2], pal: Palette,
@@ -1672,8 +1931,8 @@ def dung_heap(vox: Voxels, cells: Sequence[Coord2],
             vox.set((q[0], 0, q[1]), state("coarse_dirt"))
 
 
-def clear_mounts(vox: Voxels, mask: Set[Coord2],
-                 keep: Set[Coord2]) -> List[Coord2]:
+def clear_mounts(vox: Voxels, mask: Set[Coord2], keep: Set[Coord2],
+                 ring: Optional[Set[Coord2]] = None) -> List[Coord2]:
     """Remove any full block left standing beside a rail. The last word on it.
 
     The clear lane is applied when props are placed, but `close_diagonals` runs
@@ -1687,8 +1946,13 @@ def clear_mounts(vox: Voxels, mask: Set[Coord2],
     `keep` excludes the byre, whose hay rack is meant to sit against its own
     gable.
     """
-    rails = {(p[0], p[2]) for p, b in vox.solid_items()
-             if p[1] == 1 and b.short.endswith(("_fence", "_fence_gate", "_wall"))}
+    # **The whole boundary line**, not just its rails. A masonry pier is part of
+    # the boundary and its slab cap sits at +1.5, so a full block beside a pier is
+    # the same step as one beside a fence — the sheep dip's rim landed next to a
+    # pier and the flock left over it, while a rails-only rule saw nothing.
+    rails = set(ring) if ring else set()
+    rails |= {(p[0], p[2]) for p, b in vox.solid_items()
+              if p[1] == 1 and b.short.endswith(("_fence", "_fence_gate", "_wall"))}
     gone: List[Coord2] = []
     for (x, z) in sorted(mask):
         if (x, z) in keep:
@@ -1745,7 +2009,8 @@ def plot_depth(breed: "Breed") -> int:
     return worst
 
 
-def absorb_pockets(vox: Voxels, mask: Set[Coord2]) -> Set[Coord2]:
+def absorb_pockets(vox: Voxels, mask: Set[Coord2],
+                   house: Tuple[int, int, int, int]) -> Set[Coord2]:
     """Add cells that are walled off from the apron into the yard.
 
     The donor's walls are not straight lines — its north face is a cell short in
@@ -1760,8 +2025,14 @@ def absorb_pockets(vox: Voxels, mask: Set[Coord2]) -> Set[Coord2]:
     a single line, and the yard follows the building's real silhouette.
     """
     sx, _sy, sz = vox.size
+    hx0, hx1, hz0, hz1 = house
+    # **His rooms are not pockets.** The inside of the grafted house is air at
+    # pen level and unreachable from the apron, so a plain flood absorbed it into
+    # the yard — and the fence run, the piers and the props were then built
+    # through his living room: 14 cells of it in `cow_pasture_lvl2` alone.
     open_cell = {(x, z) for x in range(sx) for z in range(sz)
-                 if _mob_passable(vox.get((x, 1, z))) and (x, z) not in mask}
+                 if _mob_passable(vox.get((x, 1, z))) and (x, z) not in mask
+                 and not (hx0 <= x <= hx1 and hz0 <= z <= hz1)}
     border = [(x, z) for (x, z) in open_cell
               if x in (0, sx - 1) or z in (0, sz - 1)]
     seen = set(border)
@@ -1776,194 +2047,437 @@ def absorb_pockets(vox: Voxels, mask: Set[Coord2]) -> Set[Coord2]:
     return mask | (open_cell - seen)
 
 
-def compose_farmstead(breed: Breed, tier: Tier, seed: int = 0) -> Pen:
-    """One farmstead: the author's house, with this animal's yard beside it."""
+@dataclass
+class Plan:
+    """Every positional decision for a family, taken **once**.
+
+    The old composer decided the gate, the trough, the byre box, the pond and every
+    prop slot per rung, from a per-rung seed. The result was a set that rebuilt
+    itself each level: measured against the author's ladders, 75% of one of his
+    levels survives verbatim into the next, and only 48% of ours did — the devices
+    all shifted by a cell or two. Planning once and letting the rungs *add* to a
+    copy of the previous rung is what makes a ladder grow instead.
+
+    Everything here is sized for the **top** rung, so a lower rung is always a
+    prefix of it: the byre reaches its full length by lvl5 and never moves, the pond
+    is dug from the same blob outward, props come off an ordered list.
+    """
+
+    breed: Breed
+    seed: int
+    sx: int
+    sz: int
+    wall_x: int
+    house_at: Dict[int, Coord2]          # rung -> graft offset
+    bounds: Dict[int, Tuple[int, int, int, int]]
+    mask: Set[Coord2]
+    inner: List[Coord2]
+    ring: List[Coord2]
+    walk: List[Coord2]
+    gate: Coord2
+    door: Coord2
+    byre_box: Tuple[int, int, int, int]  # the lvl5 extent; lower rungs are shorter
+    trough: List[Coord2]
+    pond: List[Coord2]                   # ordered: rung k digs a prefix
+    props: List[Coord2]                  # ordered slots, never reshuffled
+    wear: List[Coord2]                   # ordered: wear spreads, never retreats
+    house_ground: Set[Coord2]
+
+
+def plan_farmstead(breed: Breed, seed: int = 0) -> Plan:
+    """Lay out the farmstead once, for the whole ladder."""
     rng = random.Random(seed * 7919 + 13)
-    pal = Palette(stone=Stone(), wood=Timber())
-    house = donor_house(breed_donors(breed)[LADDER.index(tier)])
     hw, hd = house_box(breed)
     yw, yd = breed.yard
-
-    # The plot is the same size at every level, which the author does in all 98
-    # of his buildings and which `UpgradeAction` relies on: it replaces the NBT
-    # at the same origin, so a level that needs a wider box may not fit where
-    # the last one stood. `house.nbt` is a cell narrower than `house_lvl2` and
-    # up, so the donor is shifted east until its **east wall** lands on the same
-    # column at every rung, and the yard beyond it never moves.
-    wall_x = MARGIN + hw - 1          # where the house's east wall always sits
+    donors = breed_donors(breed)
+    wall_x = MARGIN + hw - 1
     strip = breed.strip
-    # The house stands at the front, on the street, with its door on the south
-    # edge as the donor built it, and the yard wraps behind and beside it —
-    # **flush against its real walls**, measured rather than taken from the box.
-    bx0, bx1, bz0, bz1 = house_bounds(house)
-    # Clamped: a donor whose walls start further in than the strip is deep would
-    # otherwise be grafted above the top of the plot and lose its northern rows.
-    house_at = (wall_x - bx1, max(MARGIN, MARGIN + strip - bz0))
-    wall_north = house_at[1] + bz0     # the row the yard's strip butts onto
+
+    bounds, house_at = {}, {}
+    for rung, name in enumerate(donors):
+        bx0, bx1, bz0, bz1 = house_bounds(donor_house(name))
+        bounds[rung] = (bx0, bx1, bz0, bz1)
+        house_at[rung] = (wall_x - bx1, max(MARGIN, MARGIN + strip - bz0))
     sx = MARGIN + hw + yw + MARGIN
-    # Deep enough for **both** the house box and the yard the breed asks for. It
-    # was sized from the house alone, so the flank ran past the south edge of the
-    # plot: the row that should have been the boundary had yard on both sides of
-    # it, was never fenced, and the animals walked straight out.
     sz = plot_depth(breed)
-    height = max(box_height(tier), house.top_y() + 2)
-    vox = Voxels((sx, height, sz), {}, f"{breed.key}_{tier.key}")
 
-    mask = yard_region(wall_x, wall_north, yw, yd, house_at[0] + bx0,
+    # The yard is derived from the **top** rung's house, so it is the same yard at
+    # every rung: a mask that shifted with the donor was half the churn.
+    top = len(donors) - 1
+    tbx0, tbx1, tbz0, tbz1 = bounds[top]
+    wall_north = max(house_at[r][1] + bounds[r][2] for r in range(len(donors)))
+    mask = yard_region(wall_x, wall_north, yw, yd, house_at[top][0] + tbx0,
                        breed.clip, sz)
-    yx0, yx1 = wall_x + 1, wall_x + yw
-    yz0 = MARGIN
-    # The flank's own front row, over the whole arm rather than over its outer
-    # column: the corner clip shortens that column, so measuring there put the
-    # front two rows too far north and left no run to hang a gate in at all.
-    yz1 = max(c[1] for c in mask if c[0] > wall_x)
+    # The house's own ground is the **union** over the ladder: every cell any rung's
+    # house covers. Two wrong versions cost a cycle each — the top rung's footprint
+    # alone left cells that were neither yard nor wall on the poorer rungs, and the
+    # intersection put yard cells *inside* the bigger houses, so the herd walked
+    # through his rooms and out the far side. The union is the only choice that
+    # never overlaps a house at any rung and is still the same yard at every rung.
+    per_rung = []
+    for r in range(len(donors)):
+        rbx0, rbx1, rbz0, rbz1 = bounds[r]
+        per_rung.append({(house_at[r][0] + x, house_at[r][1] + z)
+                         for x in range(rbx0, rbx1 + 1)
+                         for z in range(rbz0, rbz1 + 1)})
+    house_ground = set.union(*per_rung)
+    mask -= house_ground
     rim = set(boundary(mask))
-
-    # The house goes in before anything reads the plot: `absorb_pockets` and
-    # `open_ring` both need to know where its walls actually are.
-    graft(vox, house, house_at)
-    mask = absorb_pockets(vox, mask)
-    rim = set(boundary(mask))
-
-    byre: Optional[Shed] = None
-    if tier.shelter >= 1:
-        depth = 2 if tier.shelter < 4 else 3
-        blen = max(2, min(breed.byre + (1 if tier.shelter >= 4 else 0),
-                          yz1 - yz0 - 1))
-        # Against the house's east wall, starting level with the working arm, so
-        # the byre and the muck heap share the trodden end of the yard and the
-        # far end stays open ground.
-        bz0 = wall_north + 1
-        byre = Shed(yx0, yx0 + depth - 1, bz0, bz0 + blen - 1)
-    byre_cells = set(byre.cells) if byre else set()
-
     inner = sorted(mask - rim)
-    open_cells = [c for c in inner if c not in byre_cells]
-    if not open_cells:
-        raise ValueError("yard has no open ground left")
+    ring = sorted(rim)
+    walk = ring_walk(rim)
 
-    # The gate hangs in the yard's own south boundary — a cell whose south
-    # neighbour is neither yard nor house. Taking `max(z)` of the outer column
-    # instead put the gate inside the yard on the L-shaped plan, so the fence had
-    # no opening at all and nothing could walk in; `check_pen` caught it.
     def in_house(c: Coord2) -> bool:
-        return (house_at[0] + bx0 <= c[0] <= house_at[0] + bx1
-                and house_at[1] + bz0 <= c[1] <= house_at[1] + bz1)
+        return c in house_ground
 
-    # Only the flank's street-facing run. The strip behind the house also has a
-    # south boundary — wherever the donor's north wall has a gap — but a gate
-    # there opens into the dead pocket between fence and wall, and `check_pen`
-    # said so plainly: 84 standable yard cells, none of them reachable.
+    yz1 = max(c[1] for c in mask if c[0] > wall_x)
     front = sorted(c for c in mask
                    if c[1] == yz1 and c[0] > wall_x
                    and (c[0], c[1] + 1) not in mask
                    and not in_house((c[0], c[1] + 1)))
     if len(front) < 3:
         raise ValueError("yard has no street-facing run to hang a gate in")
-    # Nearest the house end of the run, so the walk from the street door to the
-    # yard is short — but never dead centre.
-    off = rng.choice((0, 1, 2))
-    gate = front[min(len(front) - 2, 1 + off)]
+    gate = front[min(len(front) - 2, 1 + rng.choice((0, 1, 2)))]
+    ddx, ddz = house_door(donor_house(donors[top]))
+    door = (house_at[top][0] + ddx, house_at[top][1] + ddz)
 
-    trough_anchor = min(open_cells,
-                        key=lambda c: (abs(c[0] - yx1) + abs(c[1] - yz1)))
-    hollow = [trough_anchor]
+    # The byre at full length; a rung shorter is the same box with fewer rows.
+    depth = 3 if breed.byre_form == "low" else 3
+    blen = max(2, min(breed.byre + 1, yz1 - MARGIN - 1))
+    bz0 = wall_north + 1
+    bx0 = wall_x + 1 + (2 if breed.byre_form == "gable" else 0)
+    byre_box = (bx0, bx0 + depth - 1, bz0, bz0 + blen - 1)
+
+    byre_cells = {(x, z) for x in range(byre_box[0], byre_box[1] + 1)
+                  for z in range(byre_box[2], byre_box[3] + 1)}
+    open_cells = [c for c in inner if c not in byre_cells]
+    if not open_cells:
+        raise ValueError("yard has no open ground left")
+
+    anchor = min(open_cells, key=lambda c: (abs(c[0] - (wall_x + yw)) + abs(c[1] - yz1)))
+    trough = [anchor]
     for dx, dz in ((0, 1), (1, 0), (0, 2)):
-        q = (trough_anchor[0] + dx, trough_anchor[1] + dz)
-        if q in open_cells and len(hollow) < (3 if tier.kerb else 2):
-            hollow.append(q)
+        q = (anchor[0] + dx, anchor[1] + dz)
+        if q in open_cells and len(trough) < 3:
+            trough.append(q)
 
-    dx, dz = house_door(house)
-    door = (house_at[0] + dx, house_at[1] + dz)
-    wear = [gate, door] + hollow
-    if byre:
-        wear += [(byre.x1 + 1, z) for z in range(byre.z0, byre.z1 + 1)]
-    lay_ground(vox, breed, mask, rim, wear, rng)
-
-    # The donor plants bushes round its plot. A leaf block is standable at
-    # +1.0, so one growing against the yard fence is a mounting block and one
-    # growing against the house is a stair onto its roof — `sheep_fold` base
-    # escaped exactly that way. They come out inside the yard and its lane.
-    yard_zone = mask | {(c[0] + dx, c[1] + dz) for c in mask
-                        for dx, dz in NEIGH4}
-    for (x, y, z), b in list(vox.solid_items()):
-        if y >= 1 and (x, z) in yard_zone and b.short in ("oak_leaves",
-                                                          "oak_sapling"):
-            vox.set((x, y, z), None)
-        # The donor fences its own garden. Inside the farmstead's yard — or one
-        # cell from it — that line runs parallel to the yard's own boundary with
-        # a dead cell between the two, which is the fence looking like it was
-        # built twice. His street-side garden fence is further out and stays.
-        if y >= 1 and (x, z) in yard_zone and b.short.endswith(("_fence",
-                                                                "_fence_gate")):
-            vox.set((x, y, z), None)
-
-    ring = open_ring(vox, mask)
-    walk = ring_walk(set(ring))
-    fence_ring(vox, tier, breed, walk, skip={gate}, pal=pal, rng=rng)
-    hang_gate(vox, gate, pal, tier)
-
-    if byre:
-        lean_to(vox, byre, tier, pal, rng)
-
-    water_hollow(vox, hollow, tier.kerb, pal.stone, rng)
-    if breed.wallow:
-        # A sty is a mire: mud round the wallow, not a lawn with a pond in it.
-        for (x, z) in open_cells:
-            if min(abs(x - h[0]) + abs(z - h[1]) for h in hollow) <= 2 \
-                    and rng.random() < 0.7:
-                vox.set((x, 0, z), state(MIRE[rng.randrange(len(MIRE))]))
-
-    free = [c for c in open_cells if c not in hollow
-            and not vox.occupied((c[0], 1, c[1]))]
-    # One cell of clearance inside every fenced run: nothing a full block high
-    # goes here, or it is a step over the boundary.
     lane = {(c[0] + dx, c[1] + dz) for c in ring for dx, dz in NEIGH4}
-    prop_cells = [c for c in free if c not in lane]
+    setback = 2 if breed.water == "dip" else 1
+    span = range(-setback, setback + 1)
+    near_ring = {(c[0] + dx, c[1] + dz) for c in ring for dx in span for dz in span}
+    deep = [c for c in open_cells if c not in near_ring and c not in trough]
+    pond = grow_blob(deep, 13, rng) if deep else []
 
+    slots = [c for c in open_cells
+             if c not in lane and c not in trough and c not in pond]
+    rng.shuffle(slots)
+
+    wear = [gate, door] + trough + [(byre_box[1] + 1, z)
+                                    for z in range(byre_box[2], byre_box[3] + 1)]
+    spread = [c for c in inner if c not in wear]
+    rng.shuffle(spread)
+    wear += spread
+
+    return Plan(breed=breed, seed=seed, sx=sx, sz=sz, wall_x=wall_x,
+                house_at=house_at, bounds=bounds, mask=mask, inner=inner,
+                ring=ring, walk=walk, gate=gate, door=door, byre_box=byre_box,
+                trough=trough, pond=pond, props=slots, wear=wear,
+                house_ground=house_ground)
+
+
+def grow_blob(cells: Sequence[Coord2], size: int,
+              rng: random.Random) -> List[Coord2]:
+    """An irregular blob, in the order it grew — so a prefix is a smaller blob."""
+    if not cells:
+        return []
+    pool = set(cells)
+    anchor = cells[rng.randrange(len(cells))]
+    order = [anchor]
+    blob = {anchor}
+    frontier = [anchor]
+    while len(blob) < size and frontier:
+        x, z = frontier.pop(rng.randrange(len(frontier)))
+        for dx, dz in NEIGH4:
+            q = (x + dx, z + dz)
+            if q in pool and q not in blob and rng.random() < 0.7:
+                blob.add(q)
+                order.append(q)
+                frontier.append(q)
+    return order
+
+
+def byre_for(plan: Plan, tier: Tier) -> Optional[Shed]:
+    """This rung's byre: the planned box, shorter at the early rungs.
+
+    It only ever grows, and it grows from the same corner, so the byre of rung N is
+    a sub-box of rung N+1's — that is what keeps it out of the "changed" column.
+
+    Each form has a floor size below which it has no interior at all: a sty walls
+    its own perimeter, so under 3x3 there is nowhere to stand, and a gable needs
+    three cells of depth to carry a ridge. `check_pen` refuses anything smaller,
+    and rightly — a shelter you cannot enter is furniture.
+    """
+    if tier.shelter == 0:
+        return None
+    x0, x1, z0, z1 = plan.byre_box
+    grow = {1: 3, 2: 4, 3: 5, 4: 6, 5: 99}[tier.shelter]
+    z_end = min(z1, z0 + max(2, grow) - 1)
+    if plan.breed.byre_form == "lean":
+        width = 2 if tier.shelter < 4 else min(3, x1 - x0 + 1)
+    else:
+        width = 3 if tier.shelter < 5 else min(4, x1 - x0 + 1)
+    z_end = max(z_end, z0 + (1 if plan.breed.byre_form == "lean"
+                             and tier.shelter == 1 else 2))
+    return Shed(x0, min(x1, x0 + width - 1), z0, min(z1, z_end))
+
+
+def build_rung(plan: Plan, tier: Tier, prev: Optional[Voxels]) -> Pen:
+    """One rung, built **on top of** the previous one.
+
+    Only three things are allowed to change what is already there: the house is
+    replaced by its next level, the boundary is upgraded in place, and the byre
+    extends along its planned box. Everything else is addition.
+    """
+    breed = plan.breed
+    rung = LADDER.index(tier)
+    rng = random.Random(plan.seed * 7919 + 101 + rung)
+    pal = Palette(stone=Stone(), wood=Timber())
+    house = donor_house(breed_donors(breed)[rung])
+    bx0, bx1, bz0, bz1 = plan.bounds[rung]
+    at = plan.house_at[rung]
+    height = max(box_height(tier), house.top_y() + 2)
+
+    # Every write below goes through the fabric canvas: same `set`/`get`, but it
+    # refuses the three things that are wrong no matter what the rest of the build
+    # looks like — a cube on a bottom slab, a rail on one, a roof block bearing on
+    # nothing — and tags each pass, so a complaint names the pass instead of a
+    # coordinate to go hunting from.
+    if prev is None:
+        vox = Canvas(Voxels((plan.sx, height, plan.sz), {},
+                            f"{breed.key}_{tier.key}"))
+        with vox.device("ground"):
+            lay_ground(vox, breed, plan.mask, set(plan.ring),
+                       plan.wear[:6], rng, tier.herd, plan.house_ground)
+    else:
+        vox = Canvas(prev.copy(f"{breed.key}_{tier.key}"))
+        vox.size = (plan.sx, max(height, prev.size[1]), plan.sz)
+        vox.entities = []
+        # The previous rung's house comes out whole; his next level replaces it.
+        pbx0, pbx1, pbz0, pbz1 = plan.bounds[rung - 1]
+        pat = plan.house_at[rung - 1]
+        for x in range(pat[0] + pbx0 - 1, pat[0] + pbx1 + 2):
+            for z in range(pat[1] + pbz0 - 1, pat[1] + pbz1 + 2):
+                for y in range(1, vox.size[1]):
+                    if (x, z) not in plan.mask:
+                        vox.set((x, y, z), None)
+
+    # Unchecked: this is his building, finished, and his chimney stands on his own
+    # furnace. Still tagged, so if one of our devices later trips over one of his
+    # cells the report says whose cell it was.
+    with vox.device("graft " + house.name, checked=False):
+        graft(vox, house, at, keep_ground_in=(bx0, bx1, bz0, bz1))
+    for (x, y, z), b in list(vox.solid_items()):
+        if y != 1 or (x, z) not in plan.mask:
+            continue
+        if b.short in ("oak_leaves", "oak_sapling") or \
+                b.short.endswith(("_fence", "_fence_gate")):
+            if (x, z) in plan.house_ground:
+                vox.set((x, y, z), None)
+
+    # Wear spreads with the herd; it never retreats, so this only ever adds.
+    with vox.device("wear"):
+        for c in plan.wear[:6 + 3 * rung]:
+            if c in plan.mask and not vox.occupied((c[0], 1, c[1])):
+                vox.set((c[0], 0, c[1]),
+                        state(TRODDEN[rng.randrange(len(TRODDEN))]))
+
+    # The plan's ring was measured against the **top** rung's house. A lower rung's
+    # donor is smaller and leaves runs open that the plan does not know about, so the
+    # boundary for this rung is the union: the planned run plus whatever this house
+    # fails to close. It only ever adds, so the run stays stable up the ladder.
+    absorbed = absorb_pockets(vox, plan.mask,
+                              (at[0] + bx0, at[0] + bx1, at[1] + bz0, at[1] + bz1))
+    extra = [c for c in open_ring(vox, absorbed) if c not in set(plan.ring)]
+    walk = plan.walk + [c for c in ring_walk(set(extra)) if c not in set(plan.walk)]
+    ring = sorted(set(plan.ring) | set(extra))
+    with vox.device("boundary"):
+        fence_ring(vox, tier, breed, walk, skip={plan.gate}, pal=pal, rng=rng)
+        hang_gate(vox, plan.gate, pal, tier)
+
+    byre = byre_for(plan, tier)
+    byre_cells = set(byre.cells) if byre else set()
+    if byre:
+        # Clear the shelter's own volume first. This is the one place where growing
+        # on top of the previous rung bites: last rung's roof is still sitting at
+        # head height inside the box this rung wants to build in, and `check_pen`
+        # rightly refused a byre nobody could stand up in. The author removes 8% of
+        # a level for the same reason — you do take the old lean-to down to build
+        # the byre.
+        for (cx, cz) in byre_cells | {(byre.x1 + 1, z)
+                                      for z in range(byre.z0, byre.z1 + 1)}:
+            for y in range(1, min(vox.size[1], 8)):
+                vox.set((cx, y, cz), None)
+        # The byre stands **on** the yard's west boundary, so that clear took the
+        # fence with it and the herd walked out through its own shelter. Whatever
+        # any pass removes, the boundary is re-asserted below.
+        with vox.device(breed.byre_form + " byre"):
+            shelter_for(breed, byre, tier, vox, pal, rng)
+        if breed.boundary == "boarded":
+            with vox.device("rail course"):
+                rail_course(vox, ring, plan.mask, pal, rng, byre_cells)
+
+    with vox.device("trough"):
+        water_hollow(vox, plan.trough[:3 if tier.kerb else 2], tier.kerb,
+                     pal.stone, rng)
+
+    # The pond is dug from the same blob outward: a prefix at every rung.
+    wet: List[Coord2] = []
+    if tier.kerb and plan.pond:
+        want = {2: 6, 3: 9, 4: 11, 5: 13}.get(tier.shelter, 0)
+        wet = plan.pond[:want]
+        with vox.device(breed.water + " water"):
+            if breed.water == "dip":
+                wet = dip_pool(vox,
+                               [c for c in plan.pond if c not in byre_cells],
+                               pal, rng) or wet[:4]
+                if wet and not any(vox.get((c[0], 1, c[1])) for c in wet):
+                    pond_cells(vox, wet, rng)
+            else:
+                pond_cells(vox, wet, rng)
+                if breed.water == "wallow":
+                    for (x, z) in {(c[0] + dx, c[1] + dz) for c in wet
+                                   for dx, dz in NEIGH4} - set(wet):
+                        if vox.get((x, 0, z)) is not None \
+                                and rng.random() < 0.8:
+                            vox.set((x, 0, z),
+                                    state(MIRE[rng.randrange(len(MIRE))]))
+                if breed.water == "pond" and wet:
+                    runnel(vox, plan.mask, wet, plan.trough[0],
+                           byre_cells, rng)
+
+    free = [c for c in plan.props if c not in wet
+            and not vox.occupied((c[0], 1, c[1]))]
     if byre and tier.shelter >= 2:
-        # Hay is a full block, so the rack obeys the clear lane exactly like the
-        # props do. It did not, and that was the leak: the animal stood on its
-        # own feed and stepped onto the capped post beside it.
+        # Never in a boundary cell: the byre's west column *is* the yard's run
+        # here, and a hay bale there is a step onto the fence.
         rack = [(byre.x0, z) for z in range(byre.z0 + 1, byre.z1)
                 if not vox.occupied((byre.x0, 1, z))
-                and (byre.x0, z) not in lane][:2]
-        feeder(vox, rack, pal, rng)
-    elif prop_cells:
-        c = prop_cells[rng.randrange(len(prop_cells))]
-        vox.set((c[0], 1, c[1]), state("hay_block", axis="z"))
+                and (byre.x0, z) not in set(ring)][:2]
+        with vox.device("feed rack"):
+            feeder(vox, rack, pal, rng)
+    elif free:
+        with vox.device("feed rack"):
+            vox.set((free[0][0], 1, free[0][1]), state("hay_block", axis="z"))
 
     if breed.holding_pen and tier.shelter >= 3:
-        used = holding_pen(vox, [c for c in prop_cells if c[0] > yx0 + 2],
-                           pal, rng)
-        prop_cells = [c for c in prop_cells if c not in used]
-    if tier.shelter >= 3 and prop_cells:
-        near_byre = [c for c in prop_cells if byre and abs(c[0] - byre.x1) <= 2]
-        dung_heap(vox, near_byre[:1] or prop_cells[:1], rng)
-        dashed_path(vox, gate, "north", 3, rng)
-        dashed_path(vox, door, "south", 2, rng)
+        with vox.device("holding pen"):
+            holding_pen(vox, [c for c in free if c[0] > plan.wall_x + 3], pal, rng)
+    if tier.shelter >= 3:
+        with vox.device("muck heap"):
+            dung_heap(vox, free[1:2] or free[:1], rng)
+        with vox.device("paths"):
+            dashed_path(vox, plan.gate, "north", 3, rng)
+            dashed_path(vox, plan.door, "south", 2, rng)
 
-    yard_props(vox, breed, tier, byre, list(prop_cells), pal, rng, lane)
-    lighting(vox, tier, walk, byre, pal, rng)
-    planting(vox, breed, mask, free, rng)
+    # Keep standing room for the herd: a compact sty at the top rung has a pond, a
+    # muck heap and its stores, and the fourth pig had nowhere left to be.
+    reserve = tier.herd + 2
+    with vox.device("yard fittings"):
+        yard_props(vox, breed, tier, byre,
+                   list(free[:max(0, len(free) - reserve)]), pal, rng,
+                   {(c[0] + dx, c[1] + dz) for c in ring for dx, dz in NEIGH4})
+    if tier.weathered:
+        with vox.device("rubble"):
+            rubble(vox, ring, plan.mask, pal, rng)
+    with vox.device("lighting"):
+        lighting(vox, tier, walk, byre, pal, rng)
+    with vox.device("planting"):
+        planting(vox, breed, plan.mask, free, rng)
 
-    # One terminator, in front of the farmhouse door — the author's own
-    # convention for a house, and where a street should meet this plot.
-    vox.set((door[0], 0, sz - 1),
-            state("jigsaw", orientation=JIGSAW_ORIENTATION["south"]),
-            jigsaw(JOBS_TARGET))
+    with vox.device("jigsaw"):
+        vox.set((plan.door[0], 0, plan.sz - 1),
+                state("jigsaw", orientation=JIGSAW_ORIENTATION["south"]),
+                jigsaw(JOBS_TARGET))
 
-    # Last, so that rails added by the byre, the holding pen and the props are
-      # all part of the run being checked.
-    close_diagonals(vox, mask, pal)
-    clear_mounts(vox, mask, byre_cells)
-    reconnect(vox)
-    stock(vox, breed, tier, [c for c in free
-                             if not vox.occupied((c[0], 1, c[1]))], rng)
+    # **The boundary invariant.** Every run cell holds something an animal cannot
+    # pass, whatever earlier passes did to it. Cheaper and safer than auditing each
+    # pass: the byre clear, the pocket absorption and the donor swap have each
+    # opened a hole here at some point in this file's history.
+    with vox.device("boundary invariant"):
+        for c in ring:
+            if c == plan.gate:
+                continue
+            if not vox.occupied((c[0], 1, c[1])):
+                vox.set((c[0], 1, c[1]), pal.wood.fence())
+
+    with vox.device("diagonal closure"):
+        close_diagonals(vox, plan.mask, pal)
+    # `keep` protects the byre's own fittings — but not where the byre stands on
+    # the boundary, or it protects the defect instead.
+    with vox.device("mount clearance"):
+        clear_mounts(vox, plan.mask, byre_cells - set(ring), set(ring))
+    with vox.device("lily tidy"):
+        for (x, y, z), b in list(vox.solid_items()):
+            if b.short == "lily_pad":
+                below = vox.get((x, y - 1, z))
+                if below is None or below.short != "water":
+                    vox.set((x, y, z), None)
+    with vox.device("reconnect"):
+        reconnect(vox)
+    # The byre counts as standing room: by the top rung a compact sty has a pond, a
+    # muck heap and its props in the yard, and the fourth pig had nowhere to go.
+    with vox.device("herd"):
+        stock(vox, breed, tier,
+              [c for c in list(plan.inner) + sorted(byre_cells)
+               if not vox.occupied((c[0], 1, c[1]))], rng)
     trim(vox)
     vox.name = f"{breed.key}{'' if tier.key == 'base' else '_' + tier.key}"
-    return Pen(vox=vox, breed=breed, tier=tier, yard=inner, mask=mask,
-               gate=gate, shed=byre, seed=seed, house_at=house_at)
+    return Pen(vox=vox.vox, breed=breed, tier=tier, yard=plan.inner,
+               mask=plan.mask, gate=plan.gate, shed=byre, seed=plan.seed,
+               house_at=at, faults=list(vox.faults))
+
+
+def pond_cells(vox: Voxels, cells: Sequence[Coord2],
+               rng: random.Random) -> None:
+    """Dig the given cells as water, bank them, and float a pad or two."""
+    for (x, z) in cells:
+        vox.set((x, 0, z), state("water", level="0"))
+        vox.set((x, 1, z), None)
+    rim = {(x + dx, z + dz) for (x, z) in cells for dx, dz in NEIGH4} - set(cells)
+    for (x, z) in sorted(rim):
+        if vox.get((x, 0, z)) is None or vox.get((x, 0, z)).short == "water":
+            continue
+        vox.set((x, 0, z), state(POND_RIM[rng.randrange(len(POND_RIM))]))
+        if rng.random() < 0.3 and not vox.occupied((x, 1, z)):
+            vox.set((x, 1, z), state("short_grass"))
+    for (x, z) in cells:
+        if rng.random() < 0.3 and not vox.occupied((x, 1, z)):
+            vox.set((x, 1, z), state("lily_pad"))
+
+
+def compose_ladder(breed: Breed, seed: int = 0) -> List[Pen]:
+    """The whole family, each rung grown out of the one before it."""
+    plan = plan_farmstead(breed, seed)
+    pens: List[Pen] = []
+    prev: Optional[Voxels] = None
+    for tier in LADDER:
+        pen = build_rung(plan, tier, prev)
+        pens.append(pen)
+        prev = pen.vox
+    return pens
+
+
+def compose_farmstead(breed: Breed, tier: Tier, seed: int = 0) -> Pen:
+    """One rung. Builds the ladder up to it, because a rung is not independent."""
+    wanted = LADDER.index(tier)
+    plan = plan_farmstead(breed, seed)
+    prev: Optional[Voxels] = None
+    pen = None
+    for t in LADDER[:wanted + 1]:
+        pen = build_rung(plan, t, prev)
+        prev = pen.vox
+    assert pen is not None
+    return pen
 
 
 compose_pen = compose_farmstead          # what the driver calls

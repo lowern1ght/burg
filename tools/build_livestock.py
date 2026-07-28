@@ -20,8 +20,9 @@ Two hard gates, both of which have to pass before a file is written:
   failure even when it renders beautifully. This is the pen's equivalent of
   `traverse.check_route` on the wall set.
 
-The seed is searched until both pass, and anything still failing is reported
-rather than written.
+The seed is searched **per family**, and a seed only counts if every rung of the
+ladder passes both gates — because the rungs are not independent: each one is grown
+out of the previous rung's voxels, the way the author's own levels are.
 
 Unlike the military set there is no donor to stretch and nothing to harvest: the
 corpus has three animal fields and they are 9x9 fenced patches with a puddle in
@@ -59,6 +60,10 @@ class Result:
     pen: Optional[Pen] = None
     verdict: Optional[Verdict] = None
     problems: List[str] = None          # functional failures
+    # What the checked writer refused while this rung was built. A build with any of
+    # these does not ship: they are the cases that are wrong regardless of context,
+    # and the rule behind each one fires nowhere in the author's 121 files.
+    fabric: List[str] = None
     seed: int = 0
     error: str = ""
 
@@ -70,45 +75,39 @@ class Result:
     @property
     def ok(self) -> bool:
         return (self.verdict is not None and self.verdict.ok
-                and not self.problems and not self.error)
+                and not self.problems and not self.fabric and not self.error)
 
 
-def build_one(breed: Breed, tier: Tier) -> Result:
-    """Search seeds until both gates pass; keep the least-bad if none does."""
-    best: Optional[Result] = None
+def build_family(breed: Breed) -> List[Result]:
+    """Build one family as a **ladder**, and gate the whole ladder together.
+
+    A rung is not independent any more: `compose_ladder` grows each one out of the
+    previous one's voxels, which is what the author does — 75% of one of his levels
+    survives verbatim into the next, against 48% when every rung was composed from
+    parameters. So the seed is searched for the family, not per rung: a seed counts
+    only if **every** rung passes both gates.
+    """
+    best: Optional[List[Result]] = None
     for seed in range(SEED_TRIES):
         try:
-            pen = pasture.compose_pen(breed, tier, seed=seed)
+            pens = pasture.compose_ladder(breed, seed=seed)
         except Exception as exc:                     # noqa: BLE001
-            return Result(breed, tier, error=f"{type(exc).__name__}: {exc}")
-        vox = pen.vox
-        # NOT `cap_pillars` and NOT `tidy_leaves` here. Both are military-set
-        # finishing passes and both reach into the **grafted donor**, which is
-        # the author's own house and is already finished:
-        #
-        #   `cap_pillars` re-caps his interior posts — 16 cells changed, some at
-        #   roof level inside his own pitch, which `check_fabric` then reported
-        #   as a hole in the roof plane. It also overwrote the boundary posts'
-        #   slab caps with stairs.
-        #   `tidy_leaves` removes leaves with no neighbour, which on a donor
-        #   means his **roof planters** — six of them on `house.nbt`.
-        #
-        # The byre's own posts stand under a beam and a roof, so there is nothing
-        # left to cap, and the yard's planting always sits on the ground. It removes leaves with no neighbour, which on a
-        # grafted donor means the author's own **roof planters** — six of them on
-        # `house.nbt` — and pulling them out left a gap in the middle of his roof
-        # plane. `check_fabric` reported it as a hole, and it was. The yard's own
-        # planting always sits on the ground, so there is nothing to tidy.
-        modernize(vox)
-        verdict = judge(vox)
-        problems = check_pen(pen)
-        res = Result(breed, tier, pen, verdict, problems, seed)
-        if res.ok:
-            return res
-        score = len(verdict.failures) + 2 * len(problems)
-        if best is None or score < (len(best.verdict.failures)
-                                    + 2 * len(best.problems)):
-            best = res
+            return [Result(breed, t, error=f"{type(exc).__name__}: {exc}")
+                    for t in LADDER]
+        rows: List[Result] = []
+        for pen in pens:
+            modernize(pen.vox)
+            rows.append(Result(breed, pen.tier, pen, judge(pen.vox),
+                               check_pen(pen),
+                               [str(f) for f in pen.faults], seed))
+        if all(r.ok for r in rows):
+            return rows
+        def cost(rs):
+            return sum(len(r.verdict.failures) + 2 * len(r.problems)
+                       + 2 * len(r.fabric) for r in rs)
+        score = cost(rows)
+        if best is None or score < cost(best):
+            best = rows
     assert best is not None
     return best
 
@@ -122,9 +121,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("--no-sheets", action="store_true")
     a = ap.parse_args(argv)
 
-    jobs = [(b, t) for b in BREEDS for t in LADDER]
-    results = [build_one(b, t) for b, t in jobs
-               if not a.only or a.only in f"{b.key}_{t.key}"]
+    results: List[Result] = []
+    for breed in BREEDS:
+        rows = build_family(breed)
+        results += [r for r in rows
+                    if not a.only or a.only in f"{r.breed.key}_{r.tier.key}"]
 
     written, failed = 0, 0
     for res in results:
@@ -145,6 +146,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 print(f"          style: {f.code}: {f.message.splitlines()[0]}")
             for p in res.problems or []:
                 print(f"          function: {p}")
+            for p in res.fabric or []:
+                print(f"          fabric: {p}")
             continue
         if not a.dry_run:
             group = OUT / res.breed.key

@@ -34,6 +34,16 @@ from .nbtio import BlockState, Coord, Voxels, load, save
 APRON_FALLBACK = ("grass_block", "coarse_dirt", "dirt", "dirt_path")
 
 # Singular features that must not be multiplied when a slice is repeated.
+#
+# Suffixes that make a block singular whatever wood or stone it is made of. The
+# explicit set below misses variants, and it missed the important one outright:
+# a DOOR. `armory_lvl4` shipped three oak doors side by side at (8,4,4..6) — one
+# door in the donor, the stretch inserting two copies of the slice that held it.
+# Three doors in a row is not a wider building, it is a mistake you can see from
+# outside.
+SINGULAR_SUFFIX = ("_door", "_trapdoor", "_wall_banner", "_banner", "_wall_sign",
+                   "_sign", "_hanging_sign", "_lectern", "_bell")
+
 NO_DUPLICATE = {
     "oak_trapdoor", "spruce_trapdoor", "iron_trapdoor",
     "white_wall_banner", "red_wall_banner", "brown_wall_banner",
@@ -132,6 +142,75 @@ def repeatable_slices(vox: Voxels, axis: str, lo: int, hi: int) -> List[int]:
     return [i for sc, i in scored if sc >= best * 0.8]
 
 
+# How much of the walk area a stretch may cost before the pick is rejected. Not
+# zero: inserting a slice adds cells, and a copy of a furnished slice can legally
+# put a barrel where a cell used to be free.
+REACH_TOLERANCE = 0.03
+
+
+def _singular(b: BlockState) -> bool:
+    """One per building: never copied into a duplicated slice."""
+    return b.short in NO_DUPLICATE or b.short.endswith(SINGULAR_SUFFIX)
+
+
+def _interior_reach(vox: Voxels) -> float:
+    """Fraction of the ROOFED cells reachable from outside the build.
+
+    The one number that says "you can get in, and get about once you are in".
+
+    It has to be the roofed cells and not every walkable cell. Measured over the
+    whole build the donor `house_3_lvl2` scores 0.464 — most of what a player can
+    stand on is apron and roof slope, and the ratio is swamped. Its rooms score
+    30 of 31. A stretch that walled the interior into one-cell slots moved the
+    whole-build number by 0.009, which no tolerance can catch, and the indoor
+    number from 0.97 to 0.67.
+
+    A cell counts as indoor if something solid roofs its column — the same rule
+    `check_usable` uses, kept identical on purpose so the gate and the report
+    cannot disagree about what a room is.
+    """
+    from .traverse import reachable, walkable
+    cells = walkable(vox)
+    if not cells:
+        return 1.0
+    sx, sy, sz = vox.size
+    inside = set()
+    for p in cells:
+        for y in range(p[1] + 2, sy):
+            if vox.occupied((p[0], y, p[2])):
+                inside.add(p)
+                break
+    border = [p for p in cells
+              if (p[0] in (0, sx - 1) or p[2] in (0, sz - 1))
+              and p not in inside]
+    if not inside or not border:
+        return 1.0
+    seen = reachable(vox, border)
+    return sum(1 for p in inside if p in seen) / len(inside)
+
+
+def _insert_slices(vox: Voxels, axis: str, delta: int, picks: Sequence[int],
+                   new_size: Tuple[int, int, int], axis_i: int) -> Voxels:
+    """Build the lengthened copy with `picks` duplicated into the gap."""
+    out = Voxels(new_size, {}, f"{vox.name}+{axis}{delta:+d}")
+    picks = sorted(picks)
+    insert_at = picks[0]
+    for pos, b in vox.solid_items():
+        shift = delta if pos[axis_i] >= insert_at else 0
+        out.take(vox, pos, _shift(pos, axis, shift), b)
+    # Minus anything that must not be multiplied. Jigsaw blocks are connection
+    # points: extra copies let the mod graft neighbours onto a wall face.
+    # Trapdoors, signs and banners are singular features — duplicating the slice
+    # that holds one turned a single hatch into a row of four identical
+    # trapdoors.
+    for n, src in enumerate(picks):
+        for pos, b in _slice_cells(vox, axis, src).items():
+            if b.short == "jigsaw" or _singular(b):
+                continue
+            out.take(vox, pos, _shift(pos, axis, insert_at - src + n), b)
+    return out
+
+
 def stretch(vox: Voxels, axis: str, delta: int,
             ana: Optional[Anatomy] = None,
             seed: int = 0, allow_cross_ridge: bool = False) -> Voxels:
@@ -175,24 +254,30 @@ def stretch(vox: Voxels, axis: str, delta: int,
                 f"{vox.name or 'donor'}: no slice along {axis!r} resembles both "
                 "its neighbours closely enough to duplicate safely; every "
                 "candidate is an end cap or a one-off bay")
-        picks = [candidates[rng.randrange(len(candidates))] for _ in range(delta)]
-        picks.sort()
-        insert_at = picks[0]
-
-        for pos, b in vox.solid_items():
-            i = pos[axis_i]
-            shift = delta if i >= insert_at else 0
-            out.take(vox, pos, _shift(pos, axis, shift), b)
-        # Lay the duplicated slices into the gap, minus anything that must not
-        # be multiplied. Jigsaw blocks are connection points: extra copies let
-        # the mod graft neighbours onto a wall face. Trapdoors, signs and
-        # banners are singular features — duplicating the slice that holds one
-        # turned a single hatch into a row of four identical trapdoors.
-        for n, src in enumerate(picks):
-            for pos, b in _slice_cells(vox, axis, src).items():
-                if b.short == "jigsaw" or b.short in NO_DUPLICATE:
-                    continue
-                out.take(vox, pos, _shift(pos, axis, insert_at - src + n), b)
+        # Resembling both neighbours is necessary and NOT sufficient. In
+        # `house_3_lvl2` the interior counter runs as two identical slab rows, so
+        # a third copy scores as invisible — and it walls the room into
+        # one-cell slots, because the gap those rows stop short of is the only
+        # thing joining the two halves of the floor. `armory_lvl2` measured 30 of
+        # 45 ground cells reachable and its door opening into masonry.
+        #
+        # So the pick is verified, not trusted: lay the copies, ask `traverse`
+        # whether the building is still as connected as the donor was, and try
+        # the next candidate if it is not. Similarity is a shape test; this is
+        # the function test, and only the second one can see a blocked door.
+        order = list(candidates)
+        rng.shuffle(order)
+        before = _interior_reach(vox)
+        fallback = None
+        for src_pick in order:
+            cand = _insert_slices(vox, axis, delta, [src_pick] * delta,
+                                  tuple(new_size), axis_i)
+            if _interior_reach(cand) >= before - REACH_TOLERANCE:
+                return cand
+            fallback = fallback if fallback is not None else cand
+        # Every candidate closes something. Keep the first — the caller's gate
+        # will report it — rather than silently refusing to build at all.
+        return fallback if fallback is not None else out
     else:
         drop = set()
         candidates = repeatable_slices(vox, axis, lo, hi) or [

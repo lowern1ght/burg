@@ -59,6 +59,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from structures.fabric import Canvas
 from structures.nbtio import BlockState, Coord, Voxels, load
 from structures.pasture import FULL_BLOCKS, NEIGH4, STURDY, VEC, AXIS_OF
 
@@ -66,6 +67,10 @@ LIVESTOCK = Path("../common/src/main/resources/data/onceuponatown/structure/live
 CORPUS = Path("../common/src/main/resources/data/onceuponatown/structure")
 
 ROOF_MATERIAL = ("_slab", "_stairs")
+# Too thin or too small to bridge a corner or to fill a dead cell.
+SIDE_ATTACHED_SOFT = {"short_grass", "grass", "oak_sapling",
+                      "flower_pot", "torch", "wall_torch", "lantern",
+                      "chain", "dandelion", "poppy"}
 RAIL_SUFFIX = ("_fence", "_pane", "_bars")
 
 
@@ -184,10 +189,13 @@ def line_faults(vox: Voxels, y: int = 1) -> Dict[str, List[str]]:
     out: Dict[str, List[str]] = {"diagonal": [], "duplicate": []}
     rails = {(p[0], p[2]) for p, b in vox.solid_items()
              if p[1] == y and b.short.endswith(("_fence", "_fence_gate", "_wall"))}
+    # Anything solid in the corner cell bridges the step visually — a slab, a
+    # trapdoor, a bed. Requiring a *barrier* there reported 14 false positives,
+    # every one inside the author's own house where his fences meet across a slab
+    # or a trapdoor. The question this metric asks is whether the run looks
+    # broken, not whether a cow could squeeze through.
     barrier = {(p[0], p[2]) for p, b in vox.solid_items()
-               if p[1] == y and (b.short in FULL_BLOCKS
-                                 or b.short.endswith(("_fence", "_fence_gate",
-                                                      "_wall", "_door")))}
+               if p[1] == y and b.short not in SIDE_ATTACHED_SOFT}
     for (x, z) in sorted(rails):
         for dx, dz in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
             q = (x + dx, z + dz)
@@ -209,6 +217,75 @@ def line_faults(vox: Voxels, y: int = 1) -> Dict[str, List[str]]:
     return out
 
 
+# ── half blocks ─────────────────────────────────────────────────────
+
+# A bottom slab fills the **lower** half of its cell, so a cube in the cell above
+# it hangs half a block clear of what is supposedly holding it up. Measured over
+# the author's 121 files: 6 occurrences in total, max 2 per file, and every one is
+# an `oak_trapdoor` — which attaches to a side and reads fine. So cubes resting on
+# a bottom slab are a fault, and side-attached blocks are not.
+#
+# The reverse — a top slab with nothing beneath it — is NOT a fault: he has 2846
+# of them, up to 90 in one file, because a top slab is a step, a table top and a
+# railing surface in its own right.
+SLAB_RIDERS_MAX = 0
+SIDE_ATTACHED = {"oak_trapdoor", "spruce_trapdoor", "iron_trapdoor", "torch",
+                 "wall_torch", "lantern", "ladder", "oak_wall_sign", "chain",
+                 "tripwire_hook", "white_wall_banner", "red_wall_banner",
+                 "brown_wall_banner", "short_grass", "grass", "flower_pot"}
+
+
+def slab_faults(vox: Voxels) -> List[str]:
+    """Cubes and rails sitting in the empty upper half of a bottom slab's cell.
+
+    Delegated to `fabric.Canvas`, which is the same code that refuses the write in
+    the first place. It used to be a second implementation here, with its own list of
+    side-attached ids, and two copies of a rule are two rules: the writer once
+    rejected a fence over a fence that this one allowed. One authority, checked by
+    `calibrate_fabric.py --selftest`.
+    """
+    return [f"{f.kind}: {f.detail} at {f.pos}"
+            for f in Canvas(vox).inspect_all()]
+
+
+def cantilever_faults(vox: Voxels, min_y: int = 2) -> List[str]:
+    """Roof blocks too far from anything holding them up.
+
+    Measured over the author's 121 files: a roof block with no column under it is
+    1 cell from a supported column 2076 times, 2 cells 355 times, 3 cells ten
+    times and 4 cells once (`oven.nbt`). So a deep eave is his idiom and a shelf
+    floating four cells out is not. Mine had two blocks with **no** supported
+    column within four cells — genuinely hanging in the air.
+    """
+    solid = {p for p, b in vox.solid_items()}
+
+    def supported(x: int, z: int, y: int) -> bool:
+        return any((x, yy, z) in solid for yy in range(1, y))
+
+    out: List[str] = []
+    for p, b in sorted(vox.solid_items()):
+        x, y, z = p
+        if y < min_y or not b.short.endswith(ROOF_MATERIAL):
+            continue
+        if supported(x, z, y):
+            continue
+        reach = None
+        for r in range(1, 4):
+            for dx in range(-r, r + 1):
+                dz = r - abs(dx)
+                for cand in ((x + dx, y, z + dz), (x + dx, y, z - dz)):
+                    if cand in solid and supported(cand[0], cand[2], y):
+                        reach = r
+                        break
+                if reach:
+                    break
+            if reach:
+                break
+        if reach is None:
+            out.append(f"{b.short}@{p} has no support within 3 cells")
+    return out
+
+
 # ── reporting ───────────────────────────────────────────────────────
 
 # Thresholds, measured above. Only three of the five gate anything.
@@ -223,7 +300,13 @@ def report(paths: Sequence[Path], strict_props: bool = True) -> int:
         vox.name = p.stem
         wrong, stumps = fence_faults(vox)
         roof = roof_faults(vox)
+        riders = slab_faults(vox)
+        floaters = cantilever_faults(vox)
         faults = []
+        if floaters:
+            faults.append(("cantilever", floaters))
+        if len(riders) > SLAB_RIDERS_MAX:
+            faults.append(("slab-rider", riders))
         if strict_props and wrong:
             faults.append(("fence-props", wrong))
         if len(roof["hanging"]) > HANGING_MAX:
@@ -232,7 +315,7 @@ def report(paths: Sequence[Path], strict_props: bool = True) -> int:
             faults.append(("roof-holes", roof["holed"]))
         print(f"  {'OK   ' if not faults else 'FAULT'} {p.name:26s} "
               f"props={len(wrong)} hanging={len(roof['hanging'])} "
-              f"holes={len(roof['holed'])}   "
+              f"holes={len(roof['holed'])} slab_riders={len(riders)} cantilever={len(floaters)}   "
               f"(info: rails-to-nothing={len(stumps)}, "
               f"open-to-sky={len(roof['sky'])})")
         for label, items in faults:

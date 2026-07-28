@@ -18,7 +18,9 @@ The devices, in the order they matter:
   corbels      the wall head projecting outward on upside-down stairs, which is
                what gives a parapet its weight.
   string       a projecting slab course marking a floor level.
-  merlons      crenellations capped with a slab rather than left as bare cubes.
+  merlons      crenellations of full blocks: one course everywhere as the
+               embrasure, two at the merlon. Never a `*_wall`, never a slab cap
+               (base + riser + merlon + cap reached four courses and blinded it).
 
 Everything operates on an explicit rectangular shell and y-range, so the same
 pass works on a composed tower, a wall segment, or a stretched author donor.
@@ -83,9 +85,10 @@ class FacadeStyle:
             slab_bottom=state("cobblestone_slab", type="bottom",
                               waterlogged="false"),
             slab_top=state("cobblestone_slab", type="top", waterlogged="false"),
-            crenel=state("cobblestone_wall", up="true", north="none",
-                         south="none", west="none", east="none",
-                         waterlogged="false"),
+            # A merlon is a full block. `cobblestone_wall` is a garden coping;
+            # the user has ruled it out of our builds and it was still 207 blocks
+            # of the shipped output.
+            crenel=state("cobblestone"),
         )
 
     @staticmethod
@@ -196,6 +199,23 @@ def _column_ratio(key: int, style: FacadeStyle, seed: int) -> float:
     return lo + (hi - lo) * r.random()
 
 
+# A shaped block was put there to do a job — a step to climb, a landing, a way
+# in. Restyling passes may swap one plain stone for another; they may never turn
+# a stair back into a cube. The foot-spill in `_ragged_base` did exactly that to
+# the watchtower's doorstep, so the threshold became a full block again and the
+# tower measured as unenterable on three of its seven levels — a decoration pass
+# silently undoing a fix made 160 lines earlier.
+FUNCTIONAL_SUFFIX = ("_stairs", "_slab", "_door", "_trapdoor", "_fence",
+                     "_fence_gate", "_gate", "_wall", "ladder", "jigsaw",
+                     "_torch", "_sign", "lantern", "_plate", "_button")
+
+
+def _restylable(vox: Voxels, p: Coord) -> bool:
+    """Occupied by a plain block that a facade pass may repaint."""
+    b = vox.get(p)
+    return b is not None and not b.short.endswith(FUNCTIONAL_SUFFIX)
+
+
 def _ragged_base(vox: Voxels, side: str, piers: set, cells: Sequence[Coord2],
                  y_lo: int, style: FacadeStyle, rng: random.Random,
                  inside) -> None:
@@ -210,12 +230,12 @@ def _ragged_base(vox: Voxels, side: str, piers: set, cells: Sequence[Coord2],
         depth = rng.choice((0, 1, 1, 2)) if (cx, cz) in piers else rng.choice((0, 0, 1))
         for d in range(1, depth + 1):
             p = (cx, y_lo - d, cz)
-            if inside(p) and vox.occupied(p):
+            if inside(p) and _restylable(vox, p):
                 vox.set(p, style.pier if (cx, cz) in piers else style.infill)
         # A little spill of loose stone at the foot, on one side only.
         if rng.random() < 0.22:
             q = (cx + dx, y_lo - 1, cz + dz)
-            if inside(q) and vox.occupied(q):
+            if inside(q) and _restylable(vox, q):
                 vox.set(q, style.infill)
 
 
@@ -318,5 +338,14 @@ def capped_merlons(vox: Voxels, shell: Shell, y: int, style: FacadeStyle,
                 continue
             if (x, z) not in corners and rng.random() > rate:
                 continue
-            vox.set((x, y, z), style.crenel)
-            vox.set((x, y + 1, z), style.slab_bottom)
+            # Full blocks, and never a stone `*_wall`. The user has ruled that
+            # one out repeatedly and it was still 207 blocks of our output: a
+            # `cobblestone_wall` is a garden fence, not a battlement, and in
+            # quantity it reads as one. The profile is the one measured for
+            # `wall.py`: the parapet is one course everywhere — the embrasure a
+            # player sees over — and a merlon is that plus ONE more. The slab cap
+            # that used to sit on top made it four courses and you could see
+            # nothing.
+            vox.set((x, y, z), style.infill)
+            if (x + z) % 2 == 0:
+                vox.set((x, y + 1, z), style.infill)

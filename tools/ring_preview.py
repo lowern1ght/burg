@@ -128,6 +128,56 @@ def to_voxels(world, name):
     return Voxels(size, grid, name)
 
 
+def circuit(vox):
+    """Is the assembled wall walk one connected surface, or several?
+
+    This is the check the tool was documented as doing and did not: it assembled
+    the ring, rendered it and reported block counts, so a perimeter with a step at
+    every joint printed exactly the same output as a sound one.
+
+    Flooding with `traverse.reachable` would not answer the question, because from
+    the wall walk you can always drop to the ground and go round the outside — the
+    ring would pass while being unwalkable. So this is pure geometry on the walk
+    surface itself: take the elevation carrying the most standable cells above the
+    apron, and count 4-connected components among them. A sound circuit is ONE
+    component. A step at a joint splits it in two, which is precisely the fault
+    that hid in the corner's handedness for a whole session.
+    """
+    from collections import Counter, deque
+
+    from structures.traverse import walkable
+
+    cells = walkable(vox)
+    hist = Counter(p[1] for p in cells if p[1] >= 3)
+    if not hist:
+        return None
+    # The LOWEST elevation carrying real area, not the busiest one. At the top
+    # tier the hoarding gallery's roof has 155 standable cells against the walk's
+    # 121, so "most cells" picked the roof — and a gable roof of stairs is 18
+    # disconnected pieces, so a sound ring reported itself broken. `wall.py` made
+    # the identical mistake scanning for the walk from the top of the box.
+    peak = max(hist.values())
+    y = min(k for k, n in hist.items() if n >= peak * 0.4)
+    walk = {p for p in cells if p[1] == y}
+    seen, comps = set(), []
+    for start in sorted(walk):
+        if start in seen:
+            continue
+        comp, q = {start}, deque([start])
+        seen.add(start)
+        while q:
+            x, yy, z = q.popleft()
+            for nx, nz in ((x + 1, z), (x - 1, z), (x, z + 1), (x, z - 1)):
+                n = (nx, yy, nz)
+                if n in walk and n not in seen:
+                    seen.add(n)
+                    comp.add(n)
+                    q.append(n)
+        comps.append(comp)
+    comps.sort(key=len, reverse=True)
+    return y, len(comps), len(comps[0]), len(walk), sorted(hist.items())
+
+
 def main():
     S, C, G, T = "wall_segment", "wall_corner", "gatehouse", "wall_tower"
     plans = {
@@ -136,9 +186,14 @@ def main():
         "ring": [(S, 3), (S, 3), (C, 3), (S, 3), (S, 3), (C, 3),
                  (S, 3), (S, 3), (C, 3), (S, 3), (S, 3), (C, 3)],
         "mixed": [(S, 4), (T, 4), (S, 4), (C, 4), (G, 4), (S, 4), (C, 4)],
+        # Level 0 is deliberately half height, so its walk sits at 4 and not 7.
+        # Its own pieces must agree with each other, which is what broke when the
+        # rampart was halved and the gate and tower were left on the constant.
+        "rampart": [(S, 0), (T, 0), (S, 0), (C, 0), (G, 0), (S, 0), (C, 0)],
     }
     out = Path("structures/out/walls")
     out.mkdir(parents=True, exist_ok=True)
+    broken = 0
     for label, plan in plans.items():
         world, log = build_ring(plan)
         vox = to_voxels(world, label)
@@ -146,9 +201,18 @@ def main():
               f"{vox.solid_count} blocks")
         for nm, origin, times in log:
             print(f"     {nm:22s} origin={origin} rot={times}")
+        c = circuit(vox)
+        if c is None:
+            print("     walk: none found")
+        else:
+            y, n, big, total, hist = c
+            verdict = "one surface" if n == 1 else f"BROKEN into {n}"
+            broken += 0 if n == 1 else 1
+            print(f"     walk y={y}: {verdict}, largest {big}/{total} cells; "
+                  f"standable per elevation {hist}")
         render_png.render_ortho(vox, "top", px=6).save(out / f"ring_{label}_top.png")
         render_png.render_iso(vox, tile=6).save(out / f"ring_{label}_iso.png")
-    print("\nwrote plans to", out)
+    print(f"\n{broken} broken circuit(s); plans in {out}")
 
 
 if __name__ == "__main__":

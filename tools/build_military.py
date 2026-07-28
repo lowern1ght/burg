@@ -83,6 +83,7 @@ class Recipe:
     rich: bool = False           # a top-tier build: gets the stair post cap
     fittings: bool = False       # spear rack / shields / armourer's corner
     kind: str = ""               # fortification kind, for the traversal check
+    level: int = 0               # rung of its own ladder, drives the work kit
 
 
 def usable(vox: Voxels, kind: str) -> List[str]:
@@ -105,15 +106,20 @@ def usable(vox: Voxels, kind: str) -> List[str]:
         c = check_route(vox, cs, cg, "climb")
         if not c.ok:
             problems.append(c.reason)
-    if kind == "gatehouse" and not wall.TIERS[0].rampart is None:
+    if kind == "gatehouse":
         # The gate carries the stepped flight from the courtyard, and it is the
         # only way onto the wall that is not a tower. It was built correctly and
         # unclimbable once already — its bottom tread sat on the box edge, where
         # nothing can step onto it — so the route is checked, not assumed.
+        #
+        # The goal is the piece's OWN walk elevation. Naming `wall.WALK` here put
+        # the goal cells in open sky above the halved rampart and reported the
+        # level 0 gate unclimbable when the flight was sound.
         sz = vox.size[2]
+        w = wall.walk_level(vox)
         up = check_route(vox, [(wall.A_IN + 1, 1, sz - 1)],
-                         [(wall.A_MID, wall.WALK, 0),
-                          (wall.A_MID, wall.WALK, sz - 1)], "courtyard climb")
+                         [(wall.A_MID, w, 0),
+                          (wall.A_MID, w, sz - 1)], "courtyard climb")
         if not up.ok and vox.size[0] > wall.A_IN + 1:
             problems.append(up.reason)
     return problems
@@ -127,40 +133,38 @@ def tower_recipes(v: Vocabulary) -> List[Recipe]:
     an even span has no centre column to be symmetric about and lands near 0.58.
     """
     steps = [
-        # Squat and wide, reached from outside — the shape of the garrison
-        # tower in reference `40fe`, not the thin internal-ladder shaft the
-        # first version built.
+        # Squat and wide — the shape of the garrison tower in reference `40fe`,
+        # not the thin shaft the first version built. Entered by a door at ground
+        # level with a stone step at the threshold, climbed by a ladder inside.
+        # The external flight that used to wrap the shaft is gone: it walked its
+        # ring in raster order, so it was never connected.
         ("watchtower", TowerPlan(shell=5, shell_z=4, storeys=1,
-                                 stone_courses=1, open_deck=True,
-                                 external_stair=True, beams=False),
+                                 stone_courses=1, open_deck=True, beams=False),
          "cobble base, open lookout deck"),
         ("watchtower_lvl1", TowerPlan(shell=5, shell_z=4, storeys=2,
-                                      stone_courses=1, open_deck=True,
-                                      external_stair=True),
+                                      stone_courses=1, open_deck=True),
          "second storey under the deck"),
         ("watchtower_lvl2", TowerPlan(shell=5, shell_z=4, storeys=2,
-                                      stone_courses=2, open_deck=True,
-                                      external_stair=True, banner=True),
+                                      stone_courses=2, open_deck=True, banner=True),
          "stone up to the deck, banner"),
         ("watchtower_lvl3", TowerPlan(shell=5, shell_z=4, storeys=3,
-                                      stone_courses=2, battlements=True,
-                                      external_stair=True),
+                                      stone_courses=2, battlements=True),
          "deck closed off, battlements"),
         ("watchtower_lvl4", TowerPlan(shell=5, shell_z=4, storeys=3,
-                                      stone_courses=3, battlements=True,
-                                      external_stair=True, banner=True),
+                                      stone_courses=3, battlements=True, banner=True),
          "all-stone shaft"),
         ("watchtower_lvl5", TowerPlan(shell=5, shell_z=5, storeys=4,
-                                      stone_courses=3, pitched_roof=True,
-                                      external_stair=True),
+                                      stone_courses=3, pitched_roof=True),
          "keep with a stair-pitched roof"),
         ("watchtower_lvl6", TowerPlan(shell=7, shell_z=5, storeys=4,
-                                      stone_courses=4, pitched_roof=True,
-                                      external_stair=True, banner=True),
+                                      stone_courses=4, pitched_roof=True, banner=True),
          "full keep"),
     ]
-    return [Recipe(n, (lambda p=p: lambda s: compose_tower(v, p, seed=s))(), d)
-            for n, p, d in steps]
+    for i, (_n, plan, _d) in enumerate(steps):
+        plan.level = i
+    return [Recipe(n, (lambda p=p: lambda s: compose_tower(v, p, seed=s))(), d,
+                   level=i)
+            for i, (n, p, d) in enumerate(steps)]
 
 
 def fortification_recipes() -> List[Recipe]:
@@ -223,7 +227,7 @@ def stretched_recipes(prefix: str, donors: Sequence[str], along: int,
         out.append(Recipe(name, make, f"{note} (from {Path(rel).stem})",
                           palisade=palisade,
                           banners=banners and i >= 4,
-                          rich=i >= 4, fittings=fittings))
+                          rich=i >= 4, fittings=fittings, level=i))
     return out
 
 
@@ -275,7 +279,7 @@ def build_one(r: Recipe) -> Result:
         # village decoration stripped, banners and stores added.
         if r.militarise:
             vox = militarize(vox, seed=seed, palisade=r.palisade,
-                             banners=r.banners)
+                             banners=r.banners, level=r.level)
             vox.name = r.name
         # Richer levels finish their posts with a stair cap, as house_2_lvl6
         # does. Low levels keep the author's rough half-slab cap: that
@@ -286,7 +290,7 @@ def build_one(r: Recipe) -> Result:
             # Shields are the showiest of the three, so they wait for a rich
             # level; the rack and the forge kit read as working equipment and
             # belong from the start.
-            military_fittings(vox, seed=seed, shields=r.rich)
+            military_fittings(vox, seed=seed, shields=r.rich, level=r.level)
         # Foliage last: bushes, donor planting and decor jitter all contribute
         # leaves, so the no-lone-no-floating rule is enforced in one pass.
         tidy_leaves(vox)

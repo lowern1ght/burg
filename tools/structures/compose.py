@@ -35,6 +35,22 @@ from .facade import FacadeStyle, articulate, capped_merlons, string_course
 from .nbtio import BlockState, Coord, Voxels, state
 
 SIDES = ("north", "south", "west", "east")
+Coord2 = Tuple[int, int]
+
+# Blocks that are themselves an object: nothing gets stood on top of one.
+NOT_A_PEDESTAL = ("chest", "barrel", "anvil", "stonecutter", "cauldron",
+                  "furnace", "smoker", "blast_furnace", "crafting_table",
+                  "composter", "lectern", "loom", "bed", "campfire", "beehive",
+                  "bee_nest", "hay_block", "bell", "decorated_pot")
+
+# Not a floor: anything you cannot stand on the top of, and anything attached.
+NOT_A_FLOOR = ("_slab", "_stairs", "_wall", "_fence", "_fence_gate", "_gate",
+               "_pane", "_bars", "_door", "_trapdoor", "_leaves", "_torch",
+               "_sign", "_button", "_plate", "_pot", "_carpet", "_rail",
+               "_banner", "_head", "_candle", "_sapling", "_bush", "_grass",
+               "_flower", "_mushroom", "_crop", "_stem", "lantern", "ladder",
+               "vine", "jigsaw", "chain", "_bed", "glass", "water", "lava",
+               "snow", "campfire", "cauldron", "lever", "tripwire")
 
 # Orientation for a jigsaw sitting on the given outward-facing edge, matching
 # the author's own convention (west_up at x=0, north_up at z=0, and so on).
@@ -81,6 +97,8 @@ class Vocabulary:
     window: List[BlockState] = field(default_factory=list)
     fence: Optional[BlockState] = None
     crenel: Optional[BlockState] = None
+    # A harvested `*_wall`. Recorded, never used as a battlement.
+    coping: Optional[BlockState] = None
     roof_stairs: Dict[str, BlockState] = field(default_factory=dict)
     roof_fill: Optional[BlockState] = None
     ridge: Optional[BlockState] = None
@@ -109,7 +127,7 @@ def merge(primary: Vocabulary, *others: Vocabulary) -> Vocabulary:
     out = Vocabulary(donor=" + ".join([primary.donor] + [o.donor for o in others]))
     lists = ("apron", "floor", "stone", "timber", "window")
     singles = ("post", "slab_top", "slab_bottom", "stone_slab_top", "fence",
-               "crenel", "roof_fill", "ridge", "light", "torch_wall",
+               "crenel", "coping", "roof_fill", "ridge", "light", "torch_wall",
                "door_lower", "door_upper")
     for f in lists:
         merged: List[BlockState] = list(getattr(primary, f))
@@ -158,7 +176,10 @@ def harvest(donor: Voxels, ana: Optional[Anatomy] = None,
         if y <= ana.ground_top and n in TERRAIN:
             v.apron.append(b)
         if n.endswith("_wall"):
-            v.crenel = v.crenel or b
+            # Harvested but NOT used as a battlement — see `v.crenel`. Kept only
+            # so the id is recorded for anything that genuinely wants a low
+            # garden coping.
+            v.coping = v.coping or b
         if n.endswith("_door"):
             if b.get("half") == "lower":
                 v.door_lower = v.door_lower or b
@@ -179,8 +200,16 @@ def harvest(donor: Voxels, ana: Optional[Anatomy] = None,
                if ("cobblestone" in b.short or b.short in ("stone", "smooth_stone"))
                and not b.short.endswith(("_slab", "_stairs", "_wall"))]
     v.timber = [b for _, b in wall_cells if b.short.endswith("_planks")]
+    # A floor has to be a FULL block. Taking the donor's lowest wall course and
+    # only dropping slabs and stairs let everything else he stood at floor level
+    # into the palette: the composed towers laid their storey floors out of
+    # `oak_fence`, `cobblestone_wall` and `oak_leaves` at roughly one cell in
+    # three. Standing on a fence is standing on nothing, so the ladder ran up
+    # past four storeys with no landing beside it — `watchtower_lvl5` measured
+    # 17 of 43 upper cells reachable and the cause read as a ladder bug for two
+    # rounds of looking at the ladder.
     v.floor = [b for p, b in wall_cells if p[1] == ana.wall_lo
-               and not b.short.endswith(("_slab", "_stairs"))]
+               and not b.short.endswith(NOT_A_FLOOR)]
     v.window = [b for _, b in wall_cells
                 if b.short.endswith(("_pane", "_bars")) or b.short == "glass"]
     v.post = _most_common([b for _, b in wall_cells
@@ -228,9 +257,10 @@ def harvest(donor: Voxels, ana: Optional[Anatomy] = None,
     v.post = v.post or state("oak_log", axis="y")
     v.fence = v.fence or state("oak_fence", east="false", north="true",
                                south="true", west="false", waterlogged="false")
-    v.crenel = v.crenel or state("cobblestone_wall", up="true", north="false",
-                                 south="false", west="false", east="false",
-                                 waterlogged="false")
+    # A merlon is a FULL BLOCK. A `cobblestone_wall` is a garden coping and the
+    # user has ruled it out of our builds; harvested walls go to `v.coping` and
+    # are not used as battlements.
+    v.crenel = v.crenel or (v.stone[0] if v.stone else state("cobblestone"))
     v.slab_top = v.slab_top or state("oak_slab", type="top", waterlogged="false")
     v.slab_bottom = v.slab_bottom or state("oak_slab", type="bottom",
                                            waterlogged="false")
@@ -263,11 +293,14 @@ class TowerPlan:
     banner: bool = False
     front: str = "south"
     buttress: bool = True        # lean-to against one face, breaks symmetry
+    level: int = 0               # rung of the ladder: drives the yard stores
     beams: bool = True           # horizontal logs at storey breaks
     rail: bool = False           # fence railing round a flat lookout platform
     facade: bool = True          # apply pier/two-tone/arch/corbel articulation
     open_deck: bool = False      # roofed platform on posts, not a closed top
-    external_stair: bool = False # stone stair wrapping the outside
+    # No `external_stair`: the one that existed walked `_ring` in raster order,
+    # so it was 44 disconnected treads rather than a flight. The climb is the
+    # internal ladder; see the note where it used to be built.
 
 
 
@@ -395,6 +428,23 @@ def compose_tower(v: Vocabulary, plan: TowerPlan, seed: int = 0) -> Voxels:
         dx, dz = front_cells[len(front_cells) // 2]
         vox.set((dx, 2, dz), v.door_lower.with_props(facing=plan.front))
         vox.set((dx, 3, dz), v.door_upper.with_props(facing=plan.front))
+        # A doorstep. The floor inside sits one course above the apron, so the
+        # threshold was a full block and entering the tower meant jumping. A stair
+        # is the one thing you can climb a whole block onto, which is exactly what
+        # a step is for.
+        outward = {"north": (0, -1), "south": (0, 1),
+                   "west": (-1, 0), "east": (1, 0)}[plan.front]
+        sx_, sz_ = dx + outward[0], dz + outward[1]
+        if 0 <= sx_ < span_x and 0 <= sz_ < span_z:
+            # `facing` names the TALL half, so a step you climb inward has its
+            # tall half toward the door — the opposite of `front`. Measured on
+            # `house_lvl6`: the ridge stands at x=4, the west slope carries
+            # facing=east and the east slope facing=west, both pointing at the
+            # high side. Facing it outward put the full-block half where you put
+            # your foot, which is the jump the step exists to remove.
+            vox.set((sx_, 1, sz_), state(
+                "cobblestone_stairs", facing=OPPOSITE_SIDE[plan.front],
+                half="bottom", shape="straight", waterlogged="false"))
 
     # --- interior: floor plates and a ladder up the back wall ---
     lad_side = {"south": "north", "north": "south",
@@ -519,49 +569,33 @@ def compose_tower(v: Vocabulary, plan: TowerPlan, seed: int = 0) -> Voxels:
                 if rng.random() < 0.85:
                     vox.set((x, top_y + 1, z), v.fence)
 
-    # --- external stair, wrapping the shaft ---
-    # The reference garrison tower is reached from outside: the flight climbs
-    # around the base instead of a ladder threading the interior. It also breaks
-    # the silhouette, which a plain shaft badly needs.
-    if plan.external_stair:
-        ring_out = _ring(x0 - 1, x1 + 1, z0 - 1, z1 + 1)
-        start = 0
-        for i, (px, pz) in enumerate(ring_out):
-            if _side_of(px, pz, x0 - 1, x1 + 1, z0 - 1, z1 + 1) == plan.front:
-                start = i
-                break
-        # From the ground up, one step per cell, and it must not skip: a flight
-        # with a hole in it is a flight nobody climbs. The first step sits at
-        # y=1 so it can be stepped onto from the apron — starting at y=2 put the
-        # bottom of the run a full block above the ground, which is a jump.
-        step_y = 1
-        for k in range(2 * len(ring_out)):
-            px, pz = ring_out[(start + k) % len(ring_out)]
-            if step_y > top_y:
-                break
-            if not (0 <= px < span_x and 0 <= pz < span_z):
-                continue
-            facing = _side_of(px, pz, x0 - 1, x1 + 1, z0 - 1, z1 + 1)
-            vox.set((px, step_y, pz), state(
-                "cobblestone_stairs", facing=facing, half="bottom",
-                shape="straight", waterlogged="false"))
-            for fill_y in range(1, step_y):
-                if not vox.occupied((px, fill_y, pz)):
-                    vox.set((px, fill_y, pz),
-                            v.stone[rng.randrange(len(v.stone))])
-            # Two cells of headroom over each tread, or the flight is walled in
-            # by whatever the shaft above it happens to be.
-            for clear_y in (step_y + 1, step_y + 2):
-                q = (px, clear_y, pz)
-                cur = vox.get(q)
-                if cur is not None and not cur.short.endswith("_stairs") \
-                        and clear_y > step_y:
-                    vox.set(q, None)
-            step_y += 1
+    # --- the climb is the internal ladder; there is no external flight ---
+    #
+    # There was one, and it was never a flight. `_ring` returns its cells in
+    # RASTER order — every z for x0, then every z for x1 — so consecutive
+    # "treads" were not adjacent: the run jumped clear across the tower between
+    # steps, and one tread landed inside the wall at (4, 4, 5). Measured, it
+    # placed 44 stairs whose tall half pointed the wrong way and reached nothing:
+    # `check_usable` reported NO-STAIR on watchtower levels 1-6, and the ring of
+    # loose stone it left round the base is the litter visible on the contact
+    # sheet at the foot of every level.
+    #
+    # A wrapping flight was also the wrong device here. **Ladder inside, stepped
+    # stone outside** — and outside, a step is what gets you over a threshold. A
+    # masonry ramp wrapping the shaft to the roof would add ~130 blocks of stone,
+    # make the ladder pointless, and read as a spiral bunker rather than a
+    # village lookout. The medieval pattern the reference shows is a flight up to
+    # a RAISED door; this tower's door is at ground level, so it needs a step and
+    # not a ramp. `ensure_climbable` guarantees the ladder from that floor to the
+    # deck.
 
     # --- a lean-to against one face: the strongest asymmetry available ---
     if plan.buttress and m >= 2:
-        side = rng.choice(SIDES)
+        # Never against the front. The lean-to is placed after the door, so on
+        # the front face it overwrote the doorstep with its stone course and the
+        # doorway itself with its timber one: the tower's only entrance opened
+        # into a wall, and every level measured as unenterable.
+        side = rng.choice([s for s in SIDES if s != plan.front])
         if side == "north":
             cells = [(x, z0 - 1) for x in range(x0, x1 + 1)]
         elif side == "south":
@@ -637,7 +671,7 @@ def compose_tower(v: Vocabulary, plan: TowerPlan, seed: int = 0) -> Voxels:
                        arches=False, corbels=False)
 
     _add_connectors(vox, x0, x1, z0, z1, plan.front, "onceuponatown:military")
-    _scatter_props(vox, x0, x1, z0, z1, rng)
+    _scatter_props(vox, x0, x1, z0, z1, rng, level=plan.level)
     _scatter_vegetation(vox, x0, x1, z0, z1, rng)
     ensure_climbable(vox, lx, lz, lad, x0, x1, z0, z1)
     return vox
@@ -663,42 +697,34 @@ def ensure_climbable(vox: Voxels, lx: int, lz: int, lad: BlockState,
     if not (0 <= lx < sx and 0 <= lz < sz):
         return
 
-    # A ladder hangs on the block behind it, so it can only run as high as the
-    # wall it is fixed to. Extending it past that put rungs in the roof void
-    # with nothing behind them — four unsupported blocks per tower, which the
-    # style gate caught immediately and was right to.
+    # A ladder hangs on the block behind it. Rather than hope that wall is solid
+    # for the whole run — it is not, once windows and a timber storey arrive, and
+    # the run then stopped a couple of courses off the floor — the support column
+    # is MADE solid. Guaranteeing it beats detecting it: every level of this tower
+    # measured as having no way up while the ladder itself was present.
     behind = {"north": (0, 1), "south": (0, -1),
               "west": (1, 0), "east": (-1, 0)}[lad.get("facing", "north")]
     bx, bz = lx + behind[0], lz + behind[1]
+    if not (0 <= bx < sx and 0 <= bz < sz):
+        return
 
-    def supported(y: int) -> bool:
-        return vox.occupied((bx, y, bz))
-
-    # The highest cell inside the shaft that something could stand on, capped by
-    # how far the ladder's own wall reaches.
+    # The highest cell inside the shaft that something could stand on.
     top_floor = 0
     for y in range(1, sy - 1):
-        if not supported(y):
-            continue
         for x in range(x0 + 1, x1):
             for z in range(z0 + 1, z1):
                 if (x, z) == (lx, lz):
                     continue
-                if vox.occupied((x, y, z)) and not vox.occupied((x, y + 1, z)) \
-                        and not vox.occupied((x, y + 2, z)):
+                if vox.occupied((x, y, z)) and not vox.occupied((x, y + 1, z))                         and not vox.occupied((x, y + 2, z)):
                     top_floor = max(top_floor, y)
     if top_floor <= 0:
         return
 
-    # Ladder from the floor to one cell above the top floor, so you arrive level
-    # with it rather than below it, and nothing stray left in the column.
+    filler = state("cobblestone")
     for y in range(1, top_floor + 2):
-        if supported(y):
-            vox.set((lx, y, lz), lad)
-    for y in range(1, sy):
-        cur = vox.get((lx, y, lz))
-        if cur is not None and cur.short == "ladder" and not supported(y):
-            vox.set((lx, y, lz), None)
+        if not vox.occupied((bx, y, bz)):
+            vox.set((bx, y, bz), filler)
+        vox.set((lx, y, lz), lad)
 
     # Somewhere to step off. The cell beside the ladder at the top floor must be
     # standable: solid under it, two cells clear above.
@@ -1011,7 +1037,8 @@ BANNERS = ("red_wall_banner", "white_wall_banner", "brown_wall_banner")
 
 def militarize(vox: Voxels, seed: int = 0, ana: Optional[Anatomy] = None,
                ground: float = 0.8, thin_green: float = 0.75,
-               palisade: bool = False, banners: bool = False) -> Voxels:
+               palisade: bool = False, banners: bool = False,
+               level: int = 0) -> Voxels:
     """Turn a village-looking build into a garrison one.
 
     Applied to every military structure, composed or stretched. It deliberately
@@ -1076,11 +1103,26 @@ def militarize(vox: Voxels, seed: int = 0, ana: Optional[Anatomy] = None,
             out.set(pos, state(BANNERS[rng.randrange(len(BANNERS))], facing=side))
 
     # 4. A brazier: campfire on a cobble pedestal, out in the yard.
+    # Ground a prop may stand on. The old rule demanded a cell fully outside the
+    # shell plus a one-cell margin, and on the taller barracks rungs there was no
+    # such cell left — so the yard's barrel and chest existed at levels 1-3 and
+    # were simply absent from 4 upward. Stores lean on the wall of the building
+    # they belong to, so the ring against the wall counts too, minus the strip in
+    # front of a door: nobody stacks barrels across their own threshold.
+    doors = [q for q, b in out.solid_items() if b.short.endswith("_door")]
+
+    def clear_of_doors(x: int, z: int) -> bool:
+        return all(abs(x - q[0]) + abs(z - q[2]) >= 3 for q in doors)
+
     open_ground = [(x, z) for x in range(sx) for z in range(sz)
                    if not out.occupied((x, ana.ground_top + 1, z))
                    and out.occupied((x, ana.ground_top, z))
-                   and not (x0 - 1 <= x <= x1 + 1 and z0 - 1 <= z <= z1 + 1)]
-    rng.shuffle(open_ground)
+                   and not (x0 <= x <= x1 and z0 <= z <= z1)
+                   and clear_of_doors(x, z)]
+    # Sorted, then shuffled with a level-independent key, so the yard stays on the
+    # same side of the building as it is upgraded instead of jumping about.
+    open_ground.sort()
+    random.Random(ana.shell[0] * 31 + ana.shell[2]).shuffle(open_ground)
     gy = ana.ground_top
     if open_ground:
         # A campfire sits on the ground. It used to be raised on a cobblestone
@@ -1088,15 +1130,23 @@ def militarize(vox: Voxels, seed: int = 0, ana: Optional[Anatomy] = None,
         bx, bz = open_ground.pop()
         out.set((bx, gy + 1, bz), state("campfire", facing="north", lit="true",
                                        signal_fire="false", waterlogged="false"))
-    # 5. Stores, not produce.
+    # 5. Stores, not produce — and stores only.
+    #
+    # The anvil used to be in this list, scattered on open ground with a per-level
+    # rng. So `barracks_lvl1` and `lvl3` had an anvil and `lvl4..6` did not: a tool
+    # that appears, moves and then vanishes as the building is upgraded. The
+    # author never does that — nothing that appears in one of his rungs is missing
+    # from a higher one, and a workstation of his stands in a niche indoors, not
+    # on the grass. Tools are the work ladder's job (`military_fittings`); this
+    # pass puts out barrels and a chest and nothing that anybody works at.
     stores = [state("barrel", facing="up", open="false"),
-              state("chest", facing="north", type="single"),
-              state("anvil", facing="north")]
-    for _ in range(rng.choice((1, 2))):
+              state("chest", facing="north", type="single")]
+    # The count grows with the rung and never shrinks, for the same reason.
+    for k in range(1 + level // 2):
         if not open_ground:
             break
         sxp, szp = open_ground.pop()
-        out.set((sxp, gy + 1, szp), stores[rng.randrange(len(stores))])
+        out.set((sxp, gy + 1, szp), stores[k % len(stores)])
 
     # A palisade used to be added here: a line of upright logs at the plot
     # edge, placed with a 70% chance per cell and random height. It read as
@@ -1107,7 +1157,7 @@ def militarize(vox: Voxels, seed: int = 0, ana: Optional[Anatomy] = None,
 
 
 def _scatter_props(vox: Voxels, x0: int, x1: int, z0: int, z1: int,
-                   rng: random.Random) -> None:
+                   rng: random.Random, level: int = 0) -> None:
     """A small yard of stores clustered on one side of the build.
 
     This is the most effective asymmetry available to a square tower: the shaft
@@ -1117,22 +1167,32 @@ def _scatter_props(vox: Voxels, x0: int, x1: int, z0: int, z1: int,
     sx, sy, sz = vox.size
     # Garrison stores only. Hay bales and decorated pots were what made the
     # first pass read as a farmstead.
+    # Stores, not tools. An anvil or a bench standing in the grass beside a tower
+    # is a workstation nobody works at, and being scattered it moved and then
+    # disappeared as the tower was upgraded.
     props = [state("barrel", facing="up", open="false"),
              state("barrel", facing="up", open="false"),
-             state("chest", facing="north", type="single"),
-             state("anvil", facing="north"),
-             state("crafting_table")]
-    # Pick one quadrant and keep the clutter inside it.
-    qx = rng.choice((0, 1))
-    qz = rng.choice((0, 1))
+             state("chest", facing="north", type="single")]
+    # Pick one quadrant and keep the clutter inside it — the SAME quadrant at
+    # every rung, and one more crate as the rungs go up. Chosen per level, the
+    # tower's yard jumped from corner to corner and its barrel count went
+    # 5, 2, 3, 2, 3, 3, 5: stores appearing, moving and disappearing as the
+    # garrison grew. Keyed off the footprint instead, which does not change.
+    key = random.Random(x0 * 131 + z0 * 17 + x1)
+    qx, qz = key.choice((0, 1)), key.choice((0, 1))
     xs = range(0, x0) if qx == 0 else range(x1 + 1, sx)
     zs = range(0, z0) if qz == 0 else range(z1 + 1, sz)
     spots = [(x, z) for x in xs for z in zs]
-    rng.shuffle(spots)
-    for (x, z) in spots[: rng.choice((1, 2, 2, 3))]:
+    spots.sort()
+    key.shuffle(spots)
+    for k, (x, z) in enumerate(spots[: 1 + level // 2]):
         if vox.occupied((x, 1, z)) or not vox.occupied((x, 0, z)):
             continue
-        vox.set((x, 1, z), props[rng.randrange(len(props))])
+        # Which crate, by position in the run rather than by dice. Rolling for it
+        # kept the TOTAL monotonic while the barrel/chest split wobbled — the
+        # tower's chest count went 0,0,3,2,3,2,3, so a chest still disappeared
+        # between two rungs even though nothing had been removed.
+        vox.set((x, 1, z), props[k % len(props)])
     # A patch of trodden ground on the same side.
     for (x, z) in spots[:4]:
         if rng.random() < 0.6 and vox.occupied((x, 0, z)):
@@ -1271,25 +1331,229 @@ def cap_pillars(vox: Voxels, stairs: Optional[BlockState] = None) -> int:
         capped += 1
     return capped
 
+# ── the work ladder ─────────────────────────────────────────────────
+#
+# Read off the author's own 196 workstations in `plains/jobs/**`. Three rules he
+# does not break:
+#
+#   1. **The tool that names the building is there at level 0 and never leaves.**
+#      `kitchen` has its smoker at l0, `leather_workshop` its cauldron, `oven` and
+#      `workshop` their bench. Nothing that ever appears is later removed.
+#   2. **Counts only grow, and slowly.** beehive 1,1,1,3,5,5,5,5. kitchen smoker
+#      1,1,1,2,2,2,3. wheat_farm composter 1,1,2,3,3,3. One or two more per rung.
+#   3. **A new KIND unlocks at one specific rung**, and always in the same order:
+#      heat in the middle, the specialist tool at the top. `workshop` gets its
+#      furnace at l3 and its stonecutter at l4 of 4; `leather_workshop` its
+#      furnace at l2 and its water cauldron at l5 of 6; `beekeeper` its furnace at
+#      l2 and its bee nest at l3.
+#
+# So a rung is not "the same room with more props in it". It is one more thing the
+# trade can now DO, and the previous rung's equipment standing exactly where it
+# stood. That last part matters mechanically as well: `UpgradeAction` spawns the
+# delta between levels, so a bench that moves between rungs is a bench the upgrade
+# builds twice.
+# What the trade can AFFORD, rung by rung. Two limits, and both are hard.
+#
+# **Vocabulary.** Measured over the author's 121 files: `anvil` appears in ZERO of
+# them, `grindstone` in zero, `smithing_table` in zero, `stonecutter` in one.
+# `crafting_table` is in 67, `furnace` in 41, `smoker` in 17, `cauldron` in 7. My
+# first ladder opened with an anvil at level 0 — an id he never places, in the rung
+# that has least earned it.
+#
+# **Cost.** An anvil is three iron blocks and four ingots: 31 iron. A cauldron is
+# 7. A stonecutter is 1 iron and three stone. A bench, a furnace, a barrel and a
+# chest are planks and cobble — free to a village with neither mine nor smith. So
+# the order is not a matter of taste: a settlement that has just thrown up an earth
+# bank cannot own the most expensive workstation in the game, and the rung a tool
+# arrives at is the rung its iron becomes plausible.
+#
+#     free      crafting_table, furnace, smoker, barrel, chest
+#     1 iron    stonecutter        (and it needs stone-working, so not before)
+#     7 iron    cauldron
+#     31 iron   anvil              — the top rung, and nothing earlier
+#
+# Counts are TOTALS, not additions: whatever the donor already carries counts
+# toward them, so the ladder describes the finished building and the monotonicity
+# sweep measures the same number the ladder promises.
+ARMOURY_LADDER: Tuple[Dict[str, int], ...] = (
+    {"crafting_table": 1},                                   # 0  a bench
+    {"crafting_table": 1},                                   # 1  stone arrives
+    {"crafting_table": 1},                                   # 2  heat arrives
+    {"crafting_table": 1, "stonecutter": 1},                 # 3  first iron
+    {"crafting_table": 1, "stonecutter": 1, "cauldron": 1},   # 4  quench trough
+    {"crafting_table": 1, "stonecutter": 1, "cauldron": 1,
+     "anvil": 1},                                            # 5  31 iron
+)
+
+# No spear rack. It was two `oak_fence` posts stacked in a cell and called a rack
+# of polearms, and that is not what it reads as — it reads as a fence left standing
+# in the middle of a room, and one of them ended up on top of a chest. Stacking
+# blocks and naming the stack an object is not a device. The author does stack
+# fences, 573 times over 121 files, but always as a railing or a window screen,
+# where the stack IS the thing it looks like. The military reading comes from the
+# forge, the stores and the walls.
+SHIELDS_FROM = 4
+
+WORK_ITEM = {
+    "crafting_table": lambda side: state("crafting_table"),
+    "anvil": lambda side: state("anvil", facing=OPPOSITE_SIDE[side]),
+    "stonecutter": lambda side: state("stonecutter", facing=OPPOSITE_SIDE[side]),
+    # EMPTY, not `water_cauldron`: a quench trough that is full of water is a
+    # water source block, and it spreads.
+    "cauldron": lambda side: state("cauldron"),
+}
+
+
+def work_spots(vox: Voxels, floor: int) -> List[Tuple[Coord2, str, int]]:
+    """Floor cells a workstation may stand in, best first.
+
+    The ranking is measured, not guessed, and it is the opposite of what I assumed
+    twice. Over the author's 196 workstations:
+
+        free orthogonal neighbours:  0 → 11%   1 → 54%   2 → 21%   3 → 10%
+        distance to the nearest door: 0-1 → 4%, 2+ → 96%, 4+ → 60%
+        touching another workstation: 19%
+
+    So his workstation lives in a NICHE — walled on three sides, one way in — well
+    away from the door, standing alone. My first instinct was the reverse ("only
+    put furniture in open floor with three ways out"), which would have rejected
+    two thirds of his own placements.
+
+    A niche is also the safe choice functionally, which is why the two agree: a
+    dead-end cell cannot be the link between two halves of a room. The dangerous
+    cell is the one with exactly two free neighbours facing each other — a
+    corridor — and that is tested for directly rather than by counting.
+    """
+    sx, sy, sz = vox.size
+    doors = [p for p, b in vox.solid_items() if b.short.endswith("_door")]
+
+    def free(x: int, z: int) -> bool:
+        return (0 <= x < sx and 0 <= z < sz
+                and not vox.occupied((x, floor + 1, z)))
+
+    def full_support(x: int, z: int) -> bool:
+        """A whole block underfoot, not a slab or a stair.
+
+        A slab and a stair are how a route changes height, so anything standing
+        on one is standing in a stairway. This is not a detail: the spear rack
+        landed on the bottom slab of the armoury's own interior flight at
+        (3, 2, 3) and (3, 3, 3), and `armory_lvl3` and `lvl4` lost their upper
+        floor completely. To the 2D floor test that cell looked like the best
+        niche in the building — walled on both sides, one way in — because the
+        rest of the flight is at other heights and a plan view cannot see it.
+        """
+        b = vox.get((x, floor, z))
+        if b is None or b.short.endswith(NOT_A_FLOOR):
+            return False
+        # Nor on top of something that is itself a thing. A fence post ended up
+        # standing on a chest in `armory_lvl4`: legal Minecraft, nonsense to look
+        # at, and it makes the chest unopenable from above.
+        return not b.short.endswith(NOT_A_PEDESTAL)
+
+    # The floor graph: cells you could stand in, at this storey.
+    space = {(x, z) for x in range(sx) for z in range(sz)
+             if free(x, z) and full_support(x, z)}
+
+    def neighbours(c: Coord2) -> List[Coord2]:
+        x, z = c
+        return [n for n in ((x + 1, z), (x - 1, z), (x, z + 1), (x, z - 1))
+                if n in space]
+
+    def a_chokepoint(c: Coord2) -> bool:
+        """Would filling this cell cut the floor in two?"""
+        ns = neighbours(c)
+        if len(ns) <= 1:
+            return False                     # a dead end: safe by construction
+        rest = space - {c}
+        seen, stack = {ns[0]}, [ns[0]]
+        while stack:
+            x, z = stack.pop()
+            for n in ((x + 1, z), (x - 1, z), (x, z + 1), (x, z - 1)):
+                if n in rest and n not in seen:
+                    seen.add(n)
+                    stack.append(n)
+        return not all(n in seen for n in ns)
+
+    def wall_side(x: int, z: int) -> Optional[str]:
+        """A solid neighbour to back onto, if there is one."""
+        for side, (dx, dz) in (("north", (0, -1)), ("south", (0, 1)),
+                               ("west", (-1, 0)), ("east", (1, 0))):
+            nb = vox.get((x + dx, floor + 1, z + dz))
+            if nb is not None and not nb.short.endswith(
+                    ("_slab", "_stairs", "_fence", "_pane", "_door", "_torch")):
+                return side
+        return None
+
+    out: List[Tuple[Coord2, str, int]] = []
+    for (x, z) in sorted(space):
+        side = wall_side(x, z)
+        door_d = min((abs(x - q[0]) + abs(z - q[2]) for q in doors), default=99)
+        # Preferences are DEMOTED, never dropped. Rejecting outright left the
+        # level 0 armoury with no legal cell at all and therefore no anvil — the
+        # very thing this was written to prevent — and cost `armory_lvl4` its
+        # cauldron once the stonecutter had taken the last good niche. A ranked
+        # list that always has a tail means the caller can keep looking, and
+        # `try_put` is what actually guarantees the building still works.
+        #
+        # The order of the ranks is the author's own distribution: one free side
+        # (54% of his workstations), then walled in (11%), then two sides (21%),
+        # then open floor. Ties break on distance from the door and then on
+        # coordinate, so the SAME niche wins at every rung of a ladder and the
+        # bench does not move when the building is upgraded.
+        openness = len(neighbours((x, z)))
+        rank = {1: 0, 0: 1, 2: 2}.get(openness, 3)
+        if side is None:
+            rank += 5                        # nothing to back onto
+            side = "north"
+        if door_d < 2:
+            rank += 10                       # his 96%: not in the doorway
+        if a_chokepoint((x, z)):
+            rank += 20                       # a plan view says this is the way through
+        if vox.occupied((x, floor + 2, z)):
+            # Something directly overhead. A workstation is one block tall so this
+            # is legal, and his own are in rooms with ceilings — but a cell with
+            # air above it reads better, so prefer one. Rejecting these outright
+            # left `armory_lvl5` with two candidate cells in the whole building
+            # and cost it its cauldron and its bench.
+            rank += 2
+        out.append(((x, z), side, rank * 100 - min(door_d, 9)))
+    out.sort(key=lambda t: (t[2], t[0]))
+    return out
+
+
+def _place_one(vox, spots, used, floor, name, free, try_put, claim,
+               spaced: bool) -> bool:
+    """Put one workstation in the best remaining niche. True if it landed."""
+    for (xz, side, _k) in spots:
+        if spaced and xz in used:
+            continue
+        p = (xz[0], floor + 1, xz[1])
+        if not free(p):
+            continue
+        if try_put([(p, WORK_ITEM[name](side))]):
+            claim(xz)
+            return True
+    return False
+
+
 def military_fittings(vox: Voxels, seed: int = 0, ana: Optional[Anatomy] = None,
-                      spears: bool = True, shields: bool = False,
-                      armoury: bool = True) -> int:
+                      shields: bool = False,
+                      armoury: bool = True, level: int = 0) -> int:
     """Fit out a building so it reads as military without any heraldry.
 
     The user rejected banners as the signal. These three carry the meaning
     through function instead:
 
-      spears   a run of fence posts standing against an inner wall — racked
-               polearms
       shields  trapdoors mounted flat on an inner wall at head height. The
                author uses horizontal trapdoor runs himself (pen railing in
                `pig_farm_lvl6..8`), so this stays in vocabulary
       armoury  an anvil, a stonecutter as a grindstone, and an EMPTY cauldron as
-               a quench trough, clustered by the forge
+               a quench trough — one per niche, NOT clustered: 81% of his
+               workstations touch no other workstation
 
-    Every id occurs in the author's corpus. Returns the number of blocks placed.
+    `level` drives `ARMOURY_LADDER`. Every id occurs in the
+    author's corpus. Returns the number of blocks placed.
     """
-    rng = random.Random(seed + 4231)
     ana = ana or analyse(vox)
     sx, sy, sz = vox.size
     floor = ana.wall_lo
@@ -1299,85 +1563,98 @@ def military_fittings(vox: Voxels, seed: int = 0, ana: Optional[Anatomy] = None,
         return (0 <= p[0] < sx and 0 <= p[1] < sy and 0 <= p[2] < sz
                 and not vox.occupied(p))
 
-    def wall_side(x: int, y: int, z: int) -> Optional[str]:
-        """The direction of an adjacent solid wall, if there is exactly one."""
-        hits = []
-        for side, (dx, dz) in (("north", (0, -1)), ("south", (0, 1)),
-                               ("west", (-1, 0)), ("east", (1, 0))):
-            nb = vox.get((x + dx, y, z + dz))
-            if nb is not None and not nb.short.endswith(
-                    ("_slab", "_stairs", "_fence", "_pane", "_door")):
-                hits.append(side)
-        return hits[0] if len(hits) == 1 else None
+    spots = work_spots(vox, floor)
+    used: set = set()
 
-    # Interior floor cells that stand against a wall.
-    spots = []
-    for x in range(sx):
-        for z in range(sz):
-            p = (x, floor + 1, z)
-            if not free(p) or not vox.occupied((x, floor, z)):
-                continue
-            side = wall_side(x, floor + 1, z)
-            if side:
-                spots.append(((x, z), side))
-    rng.shuffle(spots)
+    def claim(spot: Coord2) -> None:
+        """A workstation stands alone: block its neighbours too."""
+        x, z = spot
+        used.update({(x, z), (x + 1, z), (x - 1, z), (x, z + 1), (x, z - 1)})
 
-    # 1. Spear rack: two or three fence posts in a row along one wall.
-    if spears and spots:
-        (ax, az), side = spots[0]
-        run = (0, 1) if side in ("north", "south") else (1, 0)
-        for k in range(rng.choice((2, 3))):
-            px, pz = ax + run[0] * k, az + run[1] * k
-            if not free((px, floor + 1, pz)) or not vox.occupied((px, floor, pz)):
-                break
-            for dy in (1, 2):
-                if free((px, floor + dy, pz)):
-                    vox.set((px, floor + dy, pz),
-                            state("oak_fence", north="false", south="false",
-                                  west="false", east="false",
-                                  waterlogged="false"))
-                    placed += 1
+    # The 2D ranking in `work_spots` orders candidates well but cannot see a
+    # staircase: its treads are at other heights, so a cell in the middle of a
+    # flight looks like a walled-in niche. It picked one twice — first the bottom
+    # slab of the armoury's own interior flight, then, once slabs were excluded,
+    # the cell one step along it — and `armory_lvl3`/`lvl4` lost their upper floor
+    # both times. So a placement is TRIED against the real walk graph, which
+    # already models stairs and slabs, and a spot that costs the building its
+    # connectivity is passed over for the next candidate.
+    #
+    # This is not the rollback that used to delete the anvil. Nothing is dropped:
+    # the item keeps looking until it finds a niche it may legally stand in.
+    from .assemble import _interior_reach
+    reach = _interior_reach(vox)
 
-    # 2. Shields: trapdoors flat on a wall at head height, facing off the wall.
-    if shields:
+    def try_put(group: List[Tuple[Coord, BlockState]]) -> bool:
+        nonlocal reach, placed
+        undo = [(q, vox.get(q)) for q, _b in group]
+        for q, b in group:
+            vox.set(q, b)
+        after = _interior_reach(vox)
+        if after < reach - 1e-9:
+            for q, was in undo:
+                vox.set(q, was)
+            return False
+        reach = after
+        placed += len(group)
+        return True
+
+    # 1. The armourer's benches. Placed FIRST, because they are the building's
+    #    reason to exist and must get the best niches; the rack can go anywhere.
+    if armoury:
+        kit = ARMOURY_LADDER[min(level, len(ARMOURY_LADDER) - 1)]
+        # The ladder states TOTALS. A donor that already has a bench does not get
+        # a second one bolted to the wall beside it — his own is the building's,
+        # and two crafting tables in one room is the sort of detail that says
+        # nobody looked.
+        have = {}
+        for _p, b in vox.solid_items():
+            have[b.short] = have.get(b.short, 0) + 1
+        for name in ("anvil", "stonecutter", "cauldron", "crafting_table"):
+            for _n in range(max(0, kit.get(name, 0) - have.get(name, 0))):
+                # Two passes. The first keeps a clear cell around each bench,
+                # which is his 81%; the second allows them to touch, which is his
+                # other 19%. Insisting on the gap outright meant the top rung of
+                # the armoury ran out of niches and lost its cauldron and its
+                # bench — the "spread out" preference silently outranking "the
+                # building has the equipment it is supposed to have".
+                for spaced in (True, False):
+                    if _place_one(vox, spots, used, floor, name, free,
+                                  try_put, claim, spaced):
+                        break
+
+    # 3. Shields: trapdoors flat on a wall at head height, facing off the wall.
+    #    Decoration, so it arrives late — the author puts wool, carpet and banners
+    #    on the top rung only.
+    if shields and level >= SHIELDS_FROM:
         hung = 0
-        for (hx, hz), side in spots[1:]:
-            if hung >= rng.choice((2, 3)):
+        for (xz, side, _k) in spots:
+            if hung >= 3:
                 break
+            if xz in used:
+                continue        # a shield does not hang over the anvil
+            hx, hz = xz
             y = floor + 2
+            # Nor over anything else. The loop ignored `used` and hung trapdoors
+            # directly above the cauldron, the bench and the stonecutter — the
+            # same "one functional block stacked on another" that the rack was.
+            under = vox.get((hx, floor + 1, hz))
+            if under is not None:
+                continue
             off = {"north": (0, -1), "south": (0, 1),
                    "west": (-1, 0), "east": (1, 0)}[side]
             wall = (hx + off[0], y, hz + off[1])
             if not free((hx, y, hz)) or not vox.occupied(wall):
                 continue
             # `facing` must point at the wall's opposite so the support is the
-            # wall itself.
-            vox.set((hx, y, hz), state(
-                "oak_trapdoor", facing=OPPOSITE_SIDE[side], half="top",
-                open="false", powered="false", waterlogged="false"))
-            placed += 1
-            hung += 1
-
-    # 3. Armourer's corner, next to the forge.
-    if armoury:
-        forge = [p for p, b in vox.solid_items()
-                 if b.short in ("furnace", "smoker", "blast_furnace")]
-        if forge:
-            fx, fy, fz = forge[0]
-            kit = [state("anvil", facing="north"),
-                   state("stonecutter", facing="north"),
-                   state("cauldron")]
-            near = [(fx + dx, fy, fz + dz)
-                    for dx in (-2, -1, 0, 1, 2) for dz in (-2, -1, 0, 1, 2)
-                    if (dx or dz)]
-            rng.shuffle(near)
-            for item in kit:
-                for p in near:
-                    if free(p) and vox.occupied((p[0], p[1] - 1, p[2])):
-                        vox.set(p, item)
-                        placed += 1
-                        near.remove(p)
-                        break
+            # wall itself. Through `try_put` like everything else: a shield hung
+            # at head height over the armoury's interior flight is exactly as
+            # impassable as a bench standing on it, and that is how `armory_lvl4`
+            # kept losing its upper floor after the benches had been fixed.
+            if try_put([((hx, y, hz), state(
+                    "oak_trapdoor", facing=OPPOSITE_SIDE[side], half="top",
+                    open="false", powered="false", waterlogged="false"))]):
+                hung += 1
     return placed
 
 

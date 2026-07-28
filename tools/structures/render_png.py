@@ -308,6 +308,85 @@ def compare(mine: Voxels, reference: Voxels, tile: int = 14,
                   (reference, f"{labels[1]}  ({reference.name})")], tile=tile)
 
 
+def section(vox: Voxels, at: Coord, px: int = 22,
+            span: int = 6) -> Image.Image:
+    """Three annotated slices through `at` — the y layer, and both vertical cuts.
+
+    A checker can say "rider at (4, 3, 5)" all day and it still takes a human, or a
+    model, several minutes to work out what is actually there. This draws the place:
+    the horizontal layer, the x-cut and the z-cut, each with the offending cell
+    ringed, and each block's **real sub-cell shape** so a slab reads as a slab.
+    """
+    ax, ay, az = at
+    sx, sy, sz = vox.size
+
+    def cut(kind: str) -> Image.Image:
+        if kind == "layer":
+            us = range(max(0, ax - span), min(sx, ax + span + 1))
+            vs = range(max(0, az - span), min(sz, az + span + 1))
+            cell = lambda u, v: (u, ay, v)
+            mark = (ax, az)
+            title = f"layer y={ay}"
+        elif kind == "x":
+            us = range(max(0, az - span), min(sz, az + span + 1))
+            vs = range(max(0, ay - span), min(sy, ay + span + 1))
+            cell = lambda u, v: (ax, v, u)
+            mark = (az, ay)
+            title = f"cut x={ax}  (z across, y up)"
+        else:
+            us = range(max(0, ax - span), min(sx, ax + span + 1))
+            vs = range(max(0, ay - span), min(sy, ay + span + 1))
+            cell = lambda u, v: (u, v, az)
+            mark = (ax, ay)
+            title = f"cut z={az}  (x across, y up)"
+        us, vs = list(us), list(vs)
+        w, h = len(us) * px, len(vs) * px
+        img = Image.new("RGB", (w, h + 18), BG)
+        dr = ImageDraw.Draw(img)
+        dr.text((2, 2), title, fill=(190, 195, 205), font=_font(11))
+        for j, v in enumerate(vs if kind == "layer" else list(reversed(vs))):
+            for i, u in enumerate(us):
+                b = vox.get(cell(u, v))
+                x0, y0 = i * px, 18 + j * px
+                dr.rectangle([x0, y0, x0 + px - 1, y0 + px - 1],
+                             outline=(44, 48, 56))
+                if b is None:
+                    continue
+                col = _rgb(colour_of(b))
+                for (bx0, bx1, by0, by1, bz0, bz1) in boxes_for(b, 0, 0, 0):
+                    if kind == "layer":
+                        rx0, rx1, ry0, ry1 = bx0, bx1, bz0, bz1
+                    elif kind == "x":
+                        rx0, rx1, ry0, ry1 = bz0, bz1, 1 - by1, 1 - by0
+                    else:
+                        rx0, rx1, ry0, ry1 = bx0, bx1, 1 - by1, 1 - by0
+                    dr.rectangle([x0 + rx0 * px, y0 + ry0 * px,
+                                  x0 + rx1 * px - 1, y0 + ry1 * px - 1], fill=col)
+                if (u, v) == mark or (kind != "layer" and (u, v) == mark):
+                    pass
+        # ring the offending cell
+        if kind == "layer":
+            mi, mj = us.index(ax), vs.index(az)
+        elif kind == "x":
+            mi, mj = us.index(az), list(reversed(vs)).index(ay)
+        else:
+            mi, mj = us.index(ax), list(reversed(vs)).index(ay)
+        dr.rectangle([mi * px - 1, 18 + mj * px - 1,
+                      mi * px + px, 18 + mj * px + px],
+                     outline=(255, 92, 92), width=2)
+        return img
+
+    parts = [cut("layer"), cut("z"), cut("x")]
+    w = sum(p.width for p in parts) + 12 * (len(parts) - 1)
+    h = max(p.height for p in parts)
+    out = Image.new("RGB", (w, h), BG)
+    x = 0
+    for p in parts:
+        out.paste(p, (x, 0))
+        x += p.width + 12
+    return out
+
+
 # ── CLI ─────────────────────────────────────────────────────────────
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
