@@ -8,6 +8,7 @@ import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.item.Item;
@@ -137,16 +138,17 @@ public final class DebugCommand {
             case "data" -> data(out);
             case "town" -> towns(out, level, at);
             case "citizens" -> citizens(out, level, at);
-            default -> out.add("unknown section " + section);
+            default -> out.add(Component.translatable(
+                "onceuponatown.message.debug.unknown_section", section).getString());
         }
 
         LOGGER.info("[OUAT debug/{}] ----------------------------------------", section);
         for (String line : out) {
             LOGGER.info("[OUAT debug/{}] {}", section, line);
         }
-        src.sendSuccess(() -> Component.literal(
-            "[OUAT] debug/" + section + ": " + out.size() + " lines written to logs/latest.log"),
-            false);
+        final int n = out.size();
+        src.sendSuccess(() -> Component.translatable(
+            "onceuponatown.message.debug.section_done", section, n), false);
         return 1;
     }
 
@@ -172,9 +174,8 @@ public final class DebugCommand {
         }
         LevelTowns.get(src.getLevel()).markDirty();
         final int n = touched;
-        src.sendSuccess(() -> Component.literal(
-            "[OUAT] set " + n + " building(s) to level " + level
-            + " (numbers only — the structure on the ground is unchanged)"), true);
+        src.sendSuccess(() -> Component.translatable(
+            "onceuponatown.message.debug.upgrade", n, level), true);
         return 1;
     }
 
@@ -208,9 +209,14 @@ public final class DebugCommand {
         }
         final int n = spawned;
         final int was = have;
-        src.sendSuccess(() -> Component.literal(
-            "[OUAT] citizens " + was + " -> " + (was + n)
-            + (n == 0 ? " (already at or above " + count + ")" : "")), true);
+        final int now = was + n;
+        src.sendSuccess(() -> {
+            MutableComponent msg = Component.translatable(
+                "onceuponatown.message.debug.population", was, now);
+            if (n == 0) msg = msg.append(Component.translatable(
+                "onceuponatown.message.debug.population_already", count));
+            return msg;
+        }, true);
         return 1;
     }
 
@@ -230,7 +236,8 @@ public final class DebugCommand {
             .map(e -> BlockPos.of(e.getKey()))
             .min(java.util.Comparator.comparingDouble(a -> a.distSqr(at))).orElse(null);
         if (anchor == null) {
-            src.sendFailure(Component.literal("[OUAT] No town in this level to enlist them into"));
+            src.sendFailure(Component.translatable(
+                "onceuponatown.message.debug.enlist.no_town"));
             return 0;
         }
 
@@ -241,9 +248,14 @@ public final class DebugCommand {
             taken++;
         }
         final int n = taken;
-        src.sendSuccess(() -> Component.literal(
-            "[OUAT] enlisted " + n + " villager(s) into the town at " + anchor
-            + (n == 0 ? " (none were unaffiliated)" : "")), true);
+        final BlockPos a = anchor;
+        src.sendSuccess(() -> {
+            MutableComponent msg = Component.translatable(
+                "onceuponatown.message.debug.enlist.done", n, a.toShortString());
+            if (n == 0) msg = msg.append(Component.translatable(
+                "onceuponatown.message.debug.enlist.none"));
+            return msg;
+        }, true);
         return 1;
     }
 
@@ -254,9 +266,10 @@ public final class DebugCommand {
         // Only ours. Sweeping every Villager in range would delete the village the town was
         // built next to, which is not what "clear the citizens I spawned" means.
         List<Villager> found = Citizens.in(src.getLevel(), new AABB(at).inflate(RANGE));
+        final int n = found.size();
         found.forEach(Villager::discard);
-        src.sendSuccess(() -> Component.literal(
-            "[OUAT] removed " + found.size() + " citizen(s)"), true);
+        src.sendSuccess(() -> Component.translatable(
+            "onceuponatown.message.debug.clear", n), true);
         return 1;
     }
 

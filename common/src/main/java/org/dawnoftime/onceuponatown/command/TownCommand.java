@@ -17,6 +17,7 @@ import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.VillagerProfession;
 import org.dawnoftime.onceuponatown.entity.citizen.Citizens;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
@@ -51,8 +52,8 @@ public class TownCommand {
             .getOptional(ResourceLocation.withDefaultNamespace(professionPath))
             .orElse(null);
         if (profession == null) {
-            src.sendFailure(Component.literal(
-                "[OUAT] No such villager profession: " + professionPath));
+            src.sendFailure(Component.translatable(
+                "onceuponatown.message.command.citizen.no_profession", professionPath));
             return 0;
         }
 
@@ -62,7 +63,8 @@ public class TownCommand {
         // nothing has to be substituted.
         Villager citizen = EntityType.VILLAGER.create(level);
         if (citizen == null) {
-            src.sendFailure(Component.literal("[OUAT] Could not create the villager entity"));
+            src.sendFailure(Component.translatable(
+                "onceuponatown.message.command.citizen.create_fail"));
             return 0;
         }
         citizen.moveTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5,
@@ -81,12 +83,12 @@ public class TownCommand {
         if (anchor != null) Citizens.enlist(citizen, anchor);
         level.addFreshEntity(citizen);
 
-        src.sendSuccess(() -> Component.literal(
-            "[OUAT] " + (anchor == null ? "Villager" : Citizens.nameOf(citizen))
-            + " spawned as " + professionPath
-            + (anchor == null
-                ? " (no town nearby — spawned as an ordinary villager, not a citizen)"
-                : " for the town at " + anchor)), true);
+        final String citizenName = (anchor == null ? "Villager" : Citizens.nameOf(citizen));
+        final String anchorTag = (anchor == null
+            ? Component.translatable("onceuponatown.message.command.citizen.spawned_no_anchor").getString()
+            : Component.translatable("onceuponatown.message.command.citizen.spawned_for_town", anchor.toShortString()).getString());
+        src.sendSuccess(() -> Component.translatable(
+            "onceuponatown.message.command.citizen.spawned", citizenName, professionPath, anchorTag), true);
         return 1;
     }
 
@@ -158,13 +160,14 @@ public class TownCommand {
         String defId = starters[level.getRandom().nextInt(starters.length)];
         BuildingDef def = BuildingDataHandler.get(defId).orElse(null);
         if (def == null) {
-            src.sendFailure(Component.literal(
-                "[OUAT] No building definition '" + defId + "' — is the datapack loaded?"));
+            src.sendFailure(Component.translatable(
+                "onceuponatown.message.command.spawn.no_def", defId));
             return 0;
         }
         StructureTemplate template = level.getStructureManager().get(def.nbt).orElse(null);
         if (template == null) {
-            src.sendFailure(Component.literal("[OUAT] NBT not found: " + def.nbt));
+            src.sendFailure(Component.translatable(
+                "onceuponatown.message.command.spawn.nbt_missing", def.nbt));
             return 0;
         }
 
@@ -181,8 +184,8 @@ public class TownCommand {
             }
         }
         if (groundLevels.isEmpty()) {
-            src.sendFailure(Component.literal(
-                "[OUAT] No ground under the footprint here — stand somewhere solid."));
+            src.sendFailure(Component.translatable(
+                "onceuponatown.message.command.spawn.no_ground"));
             return 0;
         }
         Collections.sort(groundLevels);
@@ -196,7 +199,8 @@ public class TownCommand {
         TerrainCarver.postPlace(level, pos, template, Rotation.NONE);
 
         if (!BuildSchematic.place(level, pos, def.nbt, Rotation.NONE)) {
-            src.sendFailure(Component.literal("[OUAT] Could not place " + def.nbt));
+            src.sendFailure(Component.translatable(
+                "onceuponatown.message.command.spawn.place_fail", def.nbt));
             return 0;
         }
 
@@ -247,9 +251,8 @@ public class TownCommand {
             }
         }
         if (anchorPos == null) {
-            src.sendFailure(Component.literal(
-                "[OUAT] '" + defId + "' placed but carries no town anchor — the town cannot be"
-                + " registered. That NBT is broken, not the command."));
+            src.sendFailure(Component.translatable(
+                "onceuponatown.message.command.spawn.no_anchor", defId));
             return 0;
         }
 
@@ -260,16 +263,18 @@ public class TownCommand {
         final BlockPos at = anchorPos;
         final int stock = granted;
         final int spread = relief;
-        src.sendSuccess(() -> Component.literal(
-            "[OUAT] Town spawned with starter '" + defId + "', anchor at " + at + ", "
-            + free + " free connection point(s), " + stock + " items of starting stock"
-            + " — right-click the campfire!"
-            // Reported, not refused. The carver handles a slope; past three or four blocks it
-            // does so by building a visible dirt plinth, and you should hear that from the
-            // command rather than discover it on the contact sheet.
-            + (spread > 3 ? "\n[OUAT] Site relief is " + spread + " blocks — the terrain under it"
-                + " had to be levelled, so expect a plinth. Flatter ground reads better." : "")),
-            true);
+        src.sendSuccess(() -> {
+            MutableComponent msg = Component.translatable(
+                "onceuponatown.message.command.spawn.done", defId, at.toShortString(), free, stock);
+            if (spread > 3) {
+                // Reported, not refused. The carver handles a slope; past three or four blocks it
+                // does so by building a visible dirt plinth, and you should hear that from the
+                // command rather than discover it on the contact sheet.
+                msg = msg.append(Component.translatable(
+                    "onceuponatown.message.command.spawn.relief", spread));
+            }
+            return msg;
+        }, true);
         return 1;
     }
 
@@ -278,7 +283,8 @@ public class TownCommand {
         BlockPos pos = BlockPos.containing(ctx.getSource().getPosition());
         Town town = LevelTowns.get(level).getNearestTown(pos, 128).orElse(null);
         if (town == null) {
-            ctx.getSource().sendFailure(Component.literal("[OUAT] No town within 128 blocks"));
+            ctx.getSource().sendFailure(Component.translatable(
+                "onceuponatown.message.command.status.none"));
             return 0;
         }
 
@@ -291,18 +297,39 @@ public class TownCommand {
             else if (pool.contains("streets"))  streets++;
         }
 
-        String slot = " free slot";
-        StringBuilder sb = new StringBuilder("[Village status]\n");
-        sb.append("Houses  : ").append(houses).append(houses == 1 ? slot : slot + "s").append("\n");
-        sb.append("Jobs    : ").append(jobs).append(jobs == 1 ? slot : slot + "s").append("\n");
-        sb.append("Gardens : ").append(gardens).append(gardens == 1 ? slot : slot + "s").append("\n");
-        sb.append("Streets : ").append(streets).append(streets == 1 ? slot : slot + "s");
+        MutableComponent sb = Component.translatable(
+            "onceuponatown.message.command.status.title").append("\n");
+        MutableComponent line1 = Component.translatable("onceuponatown.message.command.status.houses")
+            .append("  : ").append(String.valueOf(houses))
+            .append(houses == 1
+                ? Component.translatable("onceuponatown.message.command.status.slots")
+                : Component.translatable("onceuponatown.message.command.status.slots_plural"))
+            .append("\n");
+        MutableComponent line2 = Component.translatable("onceuponatown.message.command.status.jobs")
+            .append("    : ").append(String.valueOf(jobs))
+            .append(jobs == 1
+                ? Component.translatable("onceuponatown.message.command.status.slots")
+                : Component.translatable("onceuponatown.message.command.status.slots_plural"))
+            .append("\n");
+        MutableComponent line3 = Component.translatable("onceuponatown.message.command.status.gardens")
+            .append(" : ").append(String.valueOf(gardens))
+            .append(gardens == 1
+                ? Component.translatable("onceuponatown.message.command.status.slots")
+                : Component.translatable("onceuponatown.message.command.status.slots_plural"))
+            .append("\n");
+        MutableComponent line4 = Component.translatable("onceuponatown.message.command.status.streets")
+            .append(" : ").append(String.valueOf(streets))
+            .append(streets == 1
+                ? Component.translatable("onceuponatown.message.command.status.slots")
+                : Component.translatable("onceuponatown.message.command.status.slots_plural"));
+        MutableComponent body = sb.append(line1).append(line2).append(line3).append(line4);
         if (houses == 0 && jobs == 0 && gardens == 0 && streets == 0) {
-            sb.append("\nNo connection points available -- the village cannot expand.");
+            body = body.append("\n").append(Component.translatable(
+                "onceuponatown.message.command.status.no_slots"));
         }
 
-        String result = sb.toString();
-        ctx.getSource().sendSuccess(() -> Component.literal(result), false);
+        final Component out = body;
+        ctx.getSource().sendSuccess(() -> out, false);
         return 1;
     }
 }
