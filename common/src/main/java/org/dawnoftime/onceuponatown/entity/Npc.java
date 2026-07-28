@@ -13,7 +13,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.AgeableMob;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
@@ -38,7 +38,25 @@ import org.dawnoftime.onceuponatown.town.Town;
 
 import java.util.List;
 
-public class Npc extends PathfinderMob implements TownNpc {
+public class Npc extends AgeableMob implements TownNpc {
+
+    /**
+     * What this person is for. Persisted, because it decides whether they get the build brain.
+     *
+     * <p>There was no role before, and the absence was load-bearing in a way that would have
+     * looked like a spawn bug: {@link #tick} discards any {@code Npc} whose UUID is not in
+     * {@code town.getBuilderNpcIds()}, so the first ordinary resident ever spawned would have
+     * deleted itself on its first tick, silently. And {@link SimpleStateMachine} was built for
+     * every Npc unconditionally, so had it survived it would have started scanning the
+     * construction queue and trying to build the town.
+     */
+    public enum Role {
+        /** Builds the town. One per builder slot, immortal, self-validates against the slot list. */
+        BUILDER,
+        /** Lives in the town. Works if there is work, otherwise idles — and can die. */
+        SETTLER
+    }
+
     private static final EntityDataAccessor<Boolean> DATA_IS_READING =
         SynchedEntityData.defineId(Npc.class, EntityDataSerializers.BOOLEAN);
     // Incremented on each block placement; client reads changes to trigger the swing animation.
@@ -50,6 +68,9 @@ public class Npc extends PathfinderMob implements TownNpc {
     public float clientBuildPlacedAtAge = -1000f;
 
     private SimpleStateMachine stateMachine;
+    // What this person is for. Defaults to BUILDER so that every Npc already saved in a world
+    // keeps behaving exactly as it did before this field existed.
+    private Role role = Role.BUILDER;
     // Server-side countdown -- cleared to 0 when the reading animation ends.
     private int readingTicksRemaining = 0;
     // Anchor position of the town this builder belongs to; saved so the builder can self-validate on load.
@@ -101,13 +122,23 @@ public class Npc extends PathfinderMob implements TownNpc {
             if (!anchorValidated && townAnchorPos != null && level() instanceof ServerLevel sl) {
                 anchorValidated = true;
                 Town town = LevelTowns.get(sl).getTownAt(townAnchorPos).orElse(null);
-                if (town == null || !town.getBuilderNpcIds().contains(getUUID())) {
+                // Validated against the list for its own role. A builder that has lost its slot
+                // is a leak and goes; a settler is checked against the resident roll instead,
+                // because before this it was checked against the builder slots and so every
+                // settler deleted itself on its first tick without a word.
+                List<java.util.UUID> roll = town == null ? null
+                    : (role == Role.BUILDER ? town.getBuilderNpcIds() : town.getResidentNpcIds());
+                if (roll == null || !roll.contains(getUUID())) {
                     discard();
                     return;
                 }
             }
-            if (stateMachine == null) stateMachine = new SimpleStateMachine(this);
-            stateMachine.tick();
+            // The build brain belongs to builders. A settler running it would scan the
+            // construction queue and start putting the town up by itself.
+            if (role == Role.BUILDER) {
+                if (stateMachine == null) stateMachine = new SimpleStateMachine(this);
+                stateMachine.tick();
+            }
             if (readingTicksRemaining > 0 && --readingTicksRemaining == 0) {
                 entityData.set(DATA_IS_READING, false);
                 setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
@@ -119,12 +150,50 @@ public class Npc extends PathfinderMob implements TownNpc {
     public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
         if (townAnchorPos != null) tag.put("TownAnchorPos", Constants.writeBlockPos(townAnchorPos));
+        tag.putString("Role", role.name());
+    }
+
+    /** What this person is for. Never null. */
+    public Role getRole() { return role; }
+
+    /**
+     * Set before the entity enters the world, and not changed afterwards.
+     *
+     * <p>A role switch mid-life would leave a builder's queue claims held by somebody who is no
+     * longer looking at the queue, so the entry would never be built and never be released.
+     */
+    public void setRole(Role role) { this.role = role; }
+
+    /**
+     * A child, born to two settlers.
+     *
+     * <p>Required by {@code AgeableMob}, which is why this entity extends it: children that grow
+     * up need vanilla's age ticking, its {@code isBaby} and the model scaling that comes with
+     * them. Returns a SETTLER with no town yet — the caller enrols it, because a baby that
+     * enrols itself would be counted before anyone decided there was room for it.
+     */
+    @Override
+    public AgeableMob getBreedOffspring(ServerLevel level, AgeableMob otherParent) {
+        Npc child = org.dawnoftime.onceuponatown.registry.EntityRegistry.NPC.create(level);
+        if (child != null) {
+            child.setRole(Role.SETTLER);
+            child.setBaby(true);
+        }
+        return child;
     }
 
     @Override
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
         if (tag.contains("TownAnchorPos")) townAnchorPos = Constants.readBlockPos(tag, "TownAnchorPos");
+        // Absent means BUILDER: every Npc saved before the role existed was one.
+        if (tag.contains("Role")) {
+            try {
+                role = Role.valueOf(tag.getString("Role"));
+            } catch (IllegalArgumentException ignored) {
+                role = Role.BUILDER;
+            }
+        }
     }
 
     public void setTownAnchorPos(BlockPos pos) { this.townAnchorPos = pos; }
@@ -179,7 +248,7 @@ public class Npc extends PathfinderMob implements TownNpc {
     }
 
     public static AttributeSupplier.Builder createAttributes() {
-        return PathfinderMob.createMobAttributes()
+        return AgeableMob.createMobAttributes()
             .add(Attributes.MAX_HEALTH, 20.0)
             .add(Attributes.MOVEMENT_SPEED, 0.5)
             .add(Attributes.FOLLOW_RANGE, 48.0);

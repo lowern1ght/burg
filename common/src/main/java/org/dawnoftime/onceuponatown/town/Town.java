@@ -48,6 +48,8 @@ public class Town {
     private final Set<BlockPos> underUpgrade = new HashSet<>();
     // Ordered list of builder NPC UUIDs. Slot 0 is the primary builder (handles street expansion).
     private final List<UUID> builderNpcIds = new ArrayList<>();
+    // Who lives here. Unordered; see getResidentNpcIds for why this is a roll and not a count.
+    private final List<UUID> residentNpcIds = new ArrayList<>();
     // How many builders should be active. Starts at 1, incremented by era transitions with unlock_new_builder.
     private int targetBuilderCount = 1;
     // Runtime-only claim map: queue index -> builder UUID. Prevents two builders from picking the same entry.
@@ -644,6 +646,40 @@ public class Town {
     public List<UUID> getBuilderNpcIds() { return builderNpcIds; }
     public int getTargetBuilderCount() { return targetBuilderCount; }
 
+    /**
+     * Who actually lives here, by UUID. The roll a settler validates itself against on load.
+     *
+     * <p>A list and not a count, and the distinction is the whole point. {@link
+     * #getTotalResidents} is the town's <b>capacity</b> — beds summed over its buildings — and
+     * before this the population WAS that number and nothing else, so nobody could be born,
+     * nobody could leave and nobody could die. This is the roll of real people; capacity is only
+     * the ceiling it may grow to.
+     *
+     * <p>Unordered, unlike {@link #builderNpcIds}, where the index is the builder's slot and a
+     * null hole must be kept. Nobody has a resident slot.
+     */
+    public List<UUID> getResidentNpcIds() { return residentNpcIds; }
+
+    /** @return true if this person was not already on the roll. */
+    public boolean addResident(UUID id) {
+        if (id == null || residentNpcIds.contains(id)) return false;
+        return residentNpcIds.add(id);
+    }
+
+    /** Struck off — dead, or moved away. Nothing refills the place; that is what capacity is for. */
+    public boolean removeResident(UUID id) { return residentNpcIds.remove(id); }
+
+    /**
+     * Beds standing empty: how many more people this town could hold.
+     *
+     * <p>What immigration is gated on, together with food. Can go negative if a house is
+     * destroyed while its occupants live, and is clamped so that a lost roof does not turn into
+     * an eviction notice.
+     */
+    public int getVacancies() {
+        return Math.max(0, getTotalResidents() - residentNpcIds.size());
+    }
+
     // Replaces the UUID at the given slot index (used by TickScheduler on respawn).
     public void setBuilderNpcIdAtSlot(int slot, UUID id) {
         while (builderNpcIds.size() <= slot) builderNpcIds.add(null);
@@ -713,6 +749,14 @@ public class Town {
             builderIdsTag.add(idTag);
         }
         tag.put("BuilderNpcIds", builderIdsTag);
+        ListTag residentIdsTag = new ListTag();
+        for (UUID id : residentNpcIds) {
+            if (id == null) continue;   // no slots here, so a hole carries no meaning
+            CompoundTag idTag = new CompoundTag();
+            idTag.putUUID("Id", id);
+            residentIdsTag.add(idTag);
+        }
+        tag.put("ResidentNpcIds", residentIdsTag);
         tag.putInt("TargetBuilderCount", targetBuilderCount);
         ListTag buildingsTag = new ListTag();
         buildings.forEach(b -> buildingsTag.add(b.toNbt()));
@@ -787,6 +831,12 @@ public class Town {
         // Backward compat: old saves stored a single BuilderNpcId UUID.
         if (tag.hasUUID("BuilderNpcId")) {
             town.builderNpcIds.add(tag.getUUID("BuilderNpcId"));
+        }
+        if (tag.contains("ResidentNpcIds")) {
+            tag.getList("ResidentNpcIds", Tag.TAG_COMPOUND).forEach(t -> {
+                CompoundTag idTag = (CompoundTag) t;
+                if (idTag.hasUUID("Id")) town.residentNpcIds.add(idTag.getUUID("Id"));
+            });
         }
         if (tag.contains("BuilderNpcIds")) {
             tag.getList("BuilderNpcIds", Tag.TAG_COMPOUND).forEach(t -> {
