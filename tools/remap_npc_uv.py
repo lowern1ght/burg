@@ -91,7 +91,43 @@ MIRROR_SWAP = {"right": "left", "left": "right",
                "front": "front", "back": "back",
                "top": "top", "bottom": "bottom"}
 
-# The regions the new human mesh actually samples, for the report.
+# The new mesh, box by box, read off `NpcModel.createBodyLayer()`: texOffs and size, base cube
+# then second layer. THE single owner of this table — `make_female_skins` and
+# `make_npc_textures` both import it, because for one afternoon two copies of the old villager
+# table disagreed and a checker reported 126 phantom "invisible pixels" on every file in the mod.
+PLAYER_BOXES = {
+    "head":        (0, 0, 8, 8, 8),
+    "hat":         (32, 0, 8, 8, 8),
+    "body":        (16, 16, 8, 12, 4),
+    "body_outer":  (16, 32, 8, 12, 4),
+    "r_arm":       (40, 16, 4, 12, 4),
+    "r_arm_outer": (40, 32, 4, 12, 4),
+    "l_arm":       (32, 48, 4, 12, 4),
+    "l_arm_outer": (48, 48, 4, 12, 4),
+    "r_leg":       (0, 16, 4, 12, 4),
+    "r_leg_outer": (0, 32, 4, 12, 4),
+    "l_leg":       (16, 48, 4, 12, 4),
+    "l_leg_outer": (0, 48, 4, 12, 4),
+}
+
+
+def player_sampled():
+    """Every texel any face of any box on the player mesh actually reads.
+
+    Anything opaque outside this set is paint nobody will ever see. Note that it is NOT the
+    union of `NEW_REGIONS`: a region is the bounding rectangle of a net and a net has four empty
+    corners, so the rectangle over-counts by 128 texels on the head alone.
+    """
+    used = set()
+    for dims in PLAYER_BOXES.values():
+        for _, (x, y, w, h) in faces(*dims).items():
+            for yy in range(y, y + h):
+                for xx in range(x, x + w):
+                    used.add((xx, yy))
+    return used
+
+
+# The bounding rectangles of those nets, for the per-region report.
 NEW_REGIONS = {
     "head": (0, 0, 32, 16),        "hat": (32, 0, 64, 16),
     "body": (16, 16, 40, 32),      "body_outer": (16, 32, 40, 48),

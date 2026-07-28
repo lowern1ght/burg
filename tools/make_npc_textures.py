@@ -1,28 +1,25 @@
-"""Clothing overlays for the town NPCs, on the model's own measured UV layout.
+"""Clothing overlays for the town NPCs.
 
-**The layout is measured, not assumed.** `NpcModel.createBodyLayer()` builds a
-villager-shaped mesh — nose, hat, robe, crossed arms — on a HumanoidModel base, so
-its `texOffs` are the VANILLA VILLAGER offsets and not the player skin's:
+**The mesh has moved to the player UV, and `--check` moved with it.** `NpcModel` used to build
+a villager — head 8x10x8, a nose, a 20-tall robe — and the tables below were that mesh's. It now
+builds a person on the player's own layout, `remap_npc_uv.py` relayed every texture onto it, and
+for a while this file went on measuring the old one: it reported 126 stray "invisible pixels" on
+every garment and 304 on every skin, including `default_skin.png`, none of which exist. A check
+that always fails is worse than no check, because it teaches people to ignore the output.
 
-    hat        texOffs(32, 0)   8x10x8      head    texOffs(0, 0)  8x10x8
-    nose       texOffs(24, 0)   2x4x2       body    texOffs(16,20) 8x12x6
-    jacket     texOffs(0, 38)   8x20x6      arms    texOffs(44,22) 4x12x4
-    legs       texOffs(0, 22)   4x12x4      crossed texOffs(40,38) 8x4x4
+So the analysis half of this file — `--check`, the front view, the labelled guide, the mirror —
+now reads `remap_npc_uv.PLAYER_BOXES`, which is the single owner of the mesh table. The
+GENERATION half never depended on a layout at all: `recolour` and `skin_variant` walk every
+pixel and only move the palette, which is why the shipped output was correct throughout.
 
-Reading the file against the PLAYER layout is what misled me: measured that way,
-`builder_clothes.png` looks like it paints jacket/sleeve/trouser regions the model
-never samples. It does not — `--check` reports 0 stray pixels, because those same
-coordinates fall inside the villager `body`, `jacket`, `arm` and `leg` nets. The
-file is simply unfinished: 521 opaque pixels of 4096, all of them legal, most of
-them on one leg. Believe the checker, not the first read.
-
-`NpcClothesLayer` calls `renderColoredCutoutModel(getParentModel(), ...)`, i.e. it
-re-renders the SAME mesh with this texture, so anything opaque here is drawn over
-the skin and anything transparent lets the skin through. A garment is therefore
-just the body/arm/leg/jacket regions painted, with the head left clear.
+`NpcClothesLayer` calls `renderColoredCutoutModel(getParentModel(), ...)`, i.e. it re-renders
+the SAME mesh with this texture, so anything opaque here is drawn over the skin and anything
+transparent lets the skin through. A garment therefore paints the OUTER layer only — `body_outer`
+(16,32), `r_arm_outer` (40,32), `l_arm_outer` (48,48) — because a pixel on a base region is
+drawn in exactly the same place as the skin beneath it and z-fights with it.
 
     python make_npc_textures.py            # write the set + a labelled guide
-    python make_npc_textures.py --check    # report which regions each file paints
+    python make_npc_textures.py --check    # which regions each file paints, and what is wrong
 
 Every variant is a RECOLOUR of the hand-drawn `builder_clothes.png`, not a synthesis:
 its alpha mask is the garment's shape and its luminance is the folds, and only the
@@ -40,6 +37,10 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 from PIL import Image, ImageDraw
+
+# The mesh table lives in one place. Two copies of the old villager one disagreed for an
+# afternoon, and this file kept the losing copy.
+from remap_npc_uv import PLAYER_BOXES, faces as _net, player_sampled
 
 OUT = Path(__file__).resolve().parent.parent / (
     "common/src/main/resources/assets/onceuponatown/textures/entity/npc")
@@ -65,37 +66,54 @@ def net(u: int, v: int, w: int, h: int, d: int) -> Dict[str, Box]:
     }
 
 
-# The mesh, straight out of NpcModel.createBodyLayer().
+# The mesh, from its single owner. `net()` above is kept because the docstring explains the
+# unwrap; it is the same function.
 PARTS: Dict[str, Dict[str, Box]] = {
-    "head":    net(0, 0, 8, 10, 8),
-    "hat":     net(32, 0, 8, 10, 8),
-    "nose":    net(24, 0, 2, 4, 2),
-    "body":    net(16, 20, 8, 12, 6),
-    "jacket":  net(0, 38, 8, 20, 6),
-    "arm":     net(44, 22, 4, 12, 4),
-    "leg":     net(0, 22, 4, 12, 4),
-    "crossed": net(40, 38, 8, 4, 4),
+    name: _net(*dims) for name, dims in PLAYER_BOXES.items()
 }
-HAT_RIM: Box = (31, 47, 16, 16)          # texOffs(30,47) 16x16x1, the flat brim
+
+# What a garment may paint, and what it may not. Measured over all nine shipped garments: each
+# occupies body_outer=202 and 25 on each arm outer, and zero anywhere else.
+GARMENT_REGIONS = ("body_outer", "r_arm_outer", "l_arm_outer")
+BASE_REGIONS = ("head", "body", "r_arm", "l_arm", "r_leg", "l_leg")
+BASE_AREA = {"head": 384, "body": 352, "r_arm": 224, "l_arm": 224,
+             "r_leg": 224, "l_leg": 224}
 
 
 SOURCE = "builder_clothes.png"      # the hand-drawn garment every variant is cut from
 
 
-# Regions to flip when `--mirror` is passed. The hand-drawn garment is asymmetric —
-# jacket.front differs from its own mirror in 24 of 121 opaque pixels — and which
-# shoulder the strap belongs on is a drawing decision, not something the geometry
-# settles. Flipping is offered rather than assumed because I cannot check it in game.
-MIRRORABLE = ("jacket", "body", "crossed", "arm", "leg")
+# Regions to flip when `--mirror` is passed. The hand-drawn garment is asymmetric — its front
+# differs from its own mirror — and which shoulder the strap belongs on is a drawing decision,
+# not something the geometry settles. Flipping is offered rather than assumed because I cannot
+# check it in game.
+MIRRORABLE = GARMENT_REGIONS
+
+
+MIRROR_SWAP = {"right": "left", "left": "right", "front": "front",
+               "back": "back", "top": "top", "bottom": "bottom"}
 
 
 def mirror_garment(src: Image.Image) -> Image.Image:
-    """Flip each part's faces left-right in place, so the garment swaps shoulders."""
+    """Mirror the garment about X, so the strap swaps shoulders.
+
+    A real mirror on the player layout, not the old in-place flip. The torso mirrors within
+    itself — every face flips and the two side faces swap — but the ARMS have their own regions
+    now, (40,32) and (48,48), so mirroring means the two of them trade places. Flipping each
+    region where it lay, which is what this did on the villager mesh, would have left both
+    sleeves on the shoulder they started on.
+    """
     out = src.copy()
-    for part in MIRRORABLE:
-        for face, (x, y, w, h) in PARTS[part].items():
-            piece = src.crop((x, y, x + w, y + h)).transpose(Image.FLIP_LEFT_RIGHT)
-            out.paste(piece, (x, y))
+
+    def put(dst_box, src_box, swap):
+        for face, (dx, dy, w, h) in PARTS[dst_box].items():
+            sx, sy, _, _ = PARTS[src_box][MIRROR_SWAP[face] if swap else face]
+            piece = src.crop((sx, sy, sx + w, sy + h)).transpose(Image.FLIP_LEFT_RIGHT)
+            out.paste(piece, (dx, dy))
+
+    put("body_outer", "body_outer", True)
+    put("r_arm_outer", "l_arm_outer", True)
+    put("l_arm_outer", "r_arm_outer", True)
     return out
 
 
@@ -234,55 +252,26 @@ def src_skin() -> Image.Image:
 def front_view(items: List[Tuple[str, Image.Image]], skin: Image.Image) -> Image.Image:
     """The garment ON a figure, front elevation, at the mesh's own proportions.
 
-    The check that matters, and the one I skipped. A flat view of the 64x64 net says
-    nothing about whether a garment reads: the first set looked like plausible cloth as a
-    net and like a coloured slab on a body, and two of them had an opaque hat cube walling
-    up the face — 80 of 80 pixels on its front, invisible in the net, unmissable here.
+    The check that matters, and the one I skipped once. A flat view of the 64x64 net says
+    nothing about whether a garment reads: the first set looked like plausible cloth as a net
+    and like a coloured slab on a body, and two of them had an opaque hat cube walling up the
+    face — 80 of 80 pixels on its front, invisible in the net, unmissable here.
 
-    Composited in the model's own order: skin first, then robe, body, arms, legs, hat, so
-    anything that covers the face covers it here too. A proxy for the game, not a
-    substitute — the robe is inflated half a pixel in world and the arms swing — but it
-    answers "is this a dressed villager or a painted box" without launching anything.
+    The composition comes from `make_female_skins.elevation`, which is the player-UV one and
+    got the base/outer ordering right. Keeping a second copy here is how the villager tables
+    survived the mesh change in the first place.
     """
-    def figure(tex: Image.Image) -> Image.Image:
-        im = Image.new("RGBA", (24, 34), (30, 30, 34, 255))
+    from make_female_skins import elevation
 
-        def blit(src: Image.Image, box: Box, at: Tuple[int, int],
-                 mirrored: bool = False) -> None:
-            x, y, w, h = box
-            piece = src.crop((x, y, x + w, y + h))
-            if mirrored:
-                piece = piece.transpose(Image.FLIP_LEFT_RIGHT)
-            im.alpha_composite(piece, at)
-
-        # `left_arm` and `left_leg` are declared `.mirror()` in NpcModel, so the same
-        # texture region is sampled flipped on that side. The first version of this
-        # preview ignored that and hung one unmirrored copy on both arms — and since
-        # `arm.front` is asymmetric (mirror-diff 16 of 9 opaque pixels), one of the two
-        # arms it drew was simply wrong. A preview that lies about which side a detail
-        # falls on is worse than no preview.
-        #
-        # Viewer's left is the entity's RIGHT: a front face in the PNG reads as the
-        # observer sees it, the same way a player skin's face does.
-        for part, at, mir in (("leg", (8, 22), False), ("leg", (12, 22), True),
-                              ("arm", (4, 10), False), ("arm", (16, 10), True),
-                              ("body", (8, 10), False), ("head", (8, 0), False)):
-            blit(skin, PARTS[part]["front"], at, mir)
-        for part, at, mir in (("jacket", (8, 10), False), ("body", (8, 10), False),
-                              ("arm", (4, 10), False), ("arm", (16, 10), True),
-                              ("leg", (8, 22), False), ("leg", (12, 22), True),
-                              ("hat", (8, 0), False)):
-            blit(tex, PARTS[part]["front"], at, mir)
-        return im
-
-    scale, pad = 10, 6
-    im = Image.new("RGBA", ((24 * scale + pad) * len(items) + pad,
-                            34 * scale + pad * 2 + 14), (18, 18, 20, 255))
+    scale, pad = 14, 6
+    im = Image.new("RGBA", ((16 * scale + pad) * len(items) + pad,
+                            32 * scale + pad * 2 + 14), (18, 18, 20, 255))
     d = ImageDraw.Draw(im)
     for i, (name, tex) in enumerate(items):
-        x = pad + i * (24 * scale + pad)
-        im.paste(figure(tex).resize((24 * scale, 34 * scale), Image.NEAREST), (x, pad))
-        d.text((x + 2, 34 * scale + pad + 2), name.replace("_clothes", ""),
+        x = pad + i * (16 * scale + pad)
+        fig = elevation(skin, "front", tex)
+        im.paste(fig.resize((16 * scale, 32 * scale), Image.NEAREST), (x, pad))
+        d.text((x + 2, 32 * scale + pad + 2), name.replace("_clothes", ""),
                fill=(220, 220, 220, 255))
     return im
 
@@ -307,22 +296,17 @@ def guide() -> Image.Image:
     scale = 8
     im = Image.new("RGBA", (64 * scale, 64 * scale), (18, 18, 20, 255))
     d = ImageDraw.Draw(im)
-    colours = {
-        "head": (90, 140, 200), "hat": (140, 110, 200), "nose": (200, 200, 90),
-        "body": (200, 120, 80), "jacket": (90, 180, 120), "arm": (200, 90, 140),
-        "leg": (110, 170, 200), "crossed": (170, 170, 170),
-    }
     for part, faces in PARTS.items():
+        # Base layer cool, second layer warm, so which is which is visible at a glance —
+        # a garment belongs on the warm squares and a skin on the cool ones.
+        colour = ((200, 120, 80) if part.endswith("_outer") or part == "hat"
+                  else (90, 140, 200))
         for face, (x, y, w, h) in faces.items():
             d.rectangle([x * scale, y * scale,
                          (x + w) * scale - 1, (y + h) * scale - 1],
-                        fill=colours[part] + (110,), outline=(20, 20, 20, 255))
+                        fill=colour + (110,), outline=(20, 20, 20, 255))
             d.text((x * scale + 2, y * scale + 2), f"{part}\n{face}",
                    fill=(255, 255, 255, 230))
-    x, y, w, h = HAT_RIM
-    d.rectangle([x * scale, y * scale, (x + w) * scale - 1, (y + h) * scale - 1],
-                fill=(140, 110, 200, 110), outline=(20, 20, 20, 255))
-    d.text((x * scale + 2, y * scale + 2), "hat_rim", fill=(255, 255, 255, 230))
     for i in range(0, 65, 8):
         d.line([i * scale, 0, i * scale, 64 * scale], fill=(60, 60, 66, 255))
         d.line([0, i * scale, 64 * scale, i * scale], fill=(60, 60, 66, 255))
@@ -343,24 +327,57 @@ def sheet(items: List[Tuple[str, Image.Image]]) -> Image.Image:
 
 
 def check() -> int:
-    """Which regions does each shipped overlay actually paint?"""
-    regions = {f"{p}.{f}": box for p, faces in PARTS.items()
-               for f, box in faces.items()}
-    regions["hat_rim"] = HAT_RIM
-    used = set()
-    for name, box in regions.items():
-        x, y, w, h = box
-        for yy in range(y, y + h):
-            for xx in range(x, x + w):
-                used.add((xx, yy))
+    """What every texture in the directory paints, and what is wrong with it.
+
+    On the PLAYER UV, which is what the mesh reads. This used to measure the retired villager
+    layout and reported 126 stray pixels on every garment and 304 on every skin — including
+    `default_skin.png`, which is in git HEAD and correct. None of them existed. A gate that
+    always fails is worse than no gate, so it now reports faults that are real:
+
+      * a garment pixel on a base region      — z-fights the skin drawn underneath it
+      * a base region a skin leaves unpainted — a hole in a person
+      * a pixel outside every net             — paint nobody will ever see
+
+    Two kinds of file live here and they are judged differently. `*_clothes.png` is a garment
+    and is MEANT to be sparse. `*skin*.png` is a body and has to be whole.
+    """
+    used = player_sampled()
+    faults = 0
+    print(f"  {'file':30s} {'painted':>7} {'stray':>6}  {'regions'}")
     for path in sorted(OUT.glob("*.png")):
         im = Image.open(path).convert("RGBA")
         px = im.load()
-        opaque = {(x, y) for y in range(64) for x in range(64) if px[x, y][3] > 0}
+        opaque = {(x, y) for y in range(64) for x in range(64) if px[x, y][3] > 8}
         stray = opaque - used
-        print(f"  {path.name:30s} painted={len(opaque):4d}  "
-              f"outside any region={len(stray):4d}"
-              f"{'   <-- invisible pixels' if stray else ''}")
+        counts = {}
+        for part, faces in PARTS.items():
+            counts[part] = sum(1 for _, (x, y, w, h) in faces.items()
+                               for yy in range(y, y + h) for xx in range(x, x + w)
+                               if px[xx, yy][3] > 8)
+        is_skin = "skin" in path.name
+        bad = []
+        if stray:
+            bad.append(f"{len(stray)}px outside every net")
+        if is_skin:
+            for part in BASE_REGIONS:
+                if counts[part] != BASE_AREA[part]:
+                    bad.append(f"{part} {counts[part]}/{BASE_AREA[part]}")
+        else:
+            for part in BASE_REGIONS:
+                if counts[part]:
+                    bad.append(f"{counts[part]}px of garment on {part}")
+        painted = ", ".join(f"{k}={v}" for k, v in counts.items() if v)
+        print(f"  {path.name:30s} {len(opaque):7d} {len(stray):6d}  {painted}")
+        if bad:
+            faults += 1
+            print(f"  {'':30s} FAIL: {'; '.join(bad)}")
+    print()
+    if faults:
+        print(f"{faults} file(s) with real faults.")
+        return 1
+    n = len(list(OUT.glob('*.png')))
+    print(f"OK — {n} file(s): no garment on a base layer, no skin with a hole in it, "
+          f"no invisible paint.")
     return 0
 
 
