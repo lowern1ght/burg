@@ -19,7 +19,7 @@ public class BlockEntityRegistry {
         BiFunction<BlockPos, BlockState, TownAnchorBlockEntity> factory = TownAnchorBlockEntity::new;
         TOWN_ANCHOR = Registry.register(
             BuiltInRegistries.BLOCK_ENTITY_TYPE,
-            new ResourceLocation(Ouat.MOD_ID, "town_anchor"),
+            ResourceLocation.fromNamespaceAndPath(Ouat.MOD_ID, "town_anchor"),
             BlockEntityType.Builder.of(factory::apply, BlockRegistry.TOWN_ANCHOR).build(null)
         );
     }

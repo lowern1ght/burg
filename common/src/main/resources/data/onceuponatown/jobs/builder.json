@@ -11,6 +11,8 @@
   "plan_read_min_ticks": 15,
   "plan_read_max_ticks": 35,
 
+  "core_radius": 32,
+
   "secondary_activities": [
     {
       "requiredBuilding": "wild_stone",

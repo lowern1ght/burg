@@ -12,6 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import org.dawnoftime.onceuponatown.Constants;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
 import org.dawnoftime.onceuponatown.datapack.EraDef;
 import org.dawnoftime.onceuponatown.datapack.EraTransitionDataHandler;
@@ -802,7 +803,7 @@ public class Town {
         if (tag.contains("ReserveStock")) {
             CompoundTag reserveTag = tag.getCompound("ReserveStock");
             for (String key : reserveTag.getAllKeys()) {
-                Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(key));
+                Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(key));
                 town.reserveStock.put(item, reserveTag.getInt(key));
             }
         }
@@ -845,7 +846,7 @@ public class Town {
         if (tag.contains("QueueReservedStock")) {
             CompoundTag qrTag = tag.getCompound("QueueReservedStock");
             for (String key : qrTag.getAllKeys()) {
-                Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(key));
+                Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(key));
                 town.queueReservedStock.put(item, qrTag.getInt(key));
             }
         }
@@ -909,7 +910,7 @@ public class Town {
     }
 
     private static ConnectionPoint connectionFromNbt(CompoundTag tag) {
-        BlockPos pos = NbtUtils.readBlockPos(tag.getCompound("Pos"));
+        BlockPos pos = Constants.readBlockPos(tag, "Pos");
         net.minecraft.core.Direction dir = net.minecraft.core.Direction.byName(tag.getString("Dir"));
         String pool = tag.getString("Pool");
         long order = tag.getLong("Order");
@@ -941,15 +942,15 @@ public class Town {
     private static ActiveBuildState activeBuildStateFromNbt(CompoundTag tag) {
         String defId = tag.getString("DefId");
         if (defId.isEmpty()) return null;
-        BlockPos placementPos = NbtUtils.readBlockPos(tag.getCompound("PlacementPos"));
+        BlockPos placementPos = Constants.readBlockPos(tag, "PlacementPos");
         Rotation rotation;
         try { rotation = Rotation.valueOf(tag.getString("Rotation")); }
         catch (IllegalArgumentException e) { rotation = Rotation.NONE; }
-        BlockPos connectionPos = NbtUtils.readBlockPos(tag.getCompound("ConnectionPos"));
+        BlockPos connectionPos = Constants.readBlockPos(tag, "ConnectionPos");
         Direction connectionDir = Direction.byName(tag.getString("ConnectionDir"));
         if (connectionDir == null) connectionDir = Direction.NORTH;
         String connectionTarget = tag.getString("ConnectionTarget");
-        BlockPos entryConnectorPos = NbtUtils.readBlockPos(tag.getCompound("EntryConnectorPos"));
+        BlockPos entryConnectorPos = Constants.readBlockPos(tag, "EntryConnectorPos");
         ListTag costList = tag.getList("Cost", Tag.TAG_COMPOUND);
         java.util.List<ItemCost> cost = new ArrayList<>();
         for (int i = 0; i < costList.size(); i++) {

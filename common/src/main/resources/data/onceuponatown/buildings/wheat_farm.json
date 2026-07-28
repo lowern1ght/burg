@@ -4,6 +4,7 @@
   "entry_pool": "onceuponatown:jobs",
   "icon_item": "minecraft:bread",
   "category": "jobs",
+  "zone": "outer",
   "weight": 3,
 
   "required_buildings": [

@@ -1,45 +1,66 @@
 package org.dawnoftime.onceuponatown;
 
-import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.EntityRenderersEvent;
-import net.minecraftforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import org.dawnoftime.onceuponatown.client.gui.tooltip.BuildingProductionTooltip;
 import org.dawnoftime.onceuponatown.client.gui.tooltip.ClientBuildingProductionTooltip;
 import org.dawnoftime.onceuponatown.client.gui.tooltip.ClientItemAndTitleTooltip;
 import org.dawnoftime.onceuponatown.client.gui.tooltip.ItemAndTitleTooltip;
 import org.dawnoftime.onceuponatown.client.model.NpcModel;
+import org.dawnoftime.onceuponatown.client.renderer.CitizenRenderer;
 import org.dawnoftime.onceuponatown.client.renderer.NpcRenderer;
+import org.dawnoftime.onceuponatown.client.renderer.TownVillagerRenderer;
+import org.dawnoftime.onceuponatown.entity.Citizen;
 import org.dawnoftime.onceuponatown.client.screen.TownHubScreen;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.network.C2SAdvanceEraPacket;
+import org.dawnoftime.onceuponatown.network.C2SBuyPacket;
+import org.dawnoftime.onceuponatown.network.C2SContributeQuestPacket;
 import org.dawnoftime.onceuponatown.network.C2SDepositPacket;
 import org.dawnoftime.onceuponatown.network.C2SQueueBuildingPacket;
 import org.dawnoftime.onceuponatown.network.C2SRemoveQueuedBuildingPacket;
+import org.dawnoftime.onceuponatown.network.C2SRequestStockPacket;
+import org.dawnoftime.onceuponatown.network.C2SToggleChatBroadcastPacket;
 import org.dawnoftime.onceuponatown.network.C2SUpgradeBuildingPacket;
 import org.dawnoftime.onceuponatown.network.NetworkHelper;
-import org.dawnoftime.onceuponatown.registry.MenuRegistry;
+import org.dawnoftime.onceuponatown.screen.TownHubMenu;
+import net.neoforged.neoforge.network.PacketDistributor;
 
-@Mod.EventBusSubscriber(modid = Constants.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+@EventBusSubscriber(modid = Constants.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public class OuatForgeClient {
 
     // EntityRenderersEvent fires during the initial resource reload, before FMLCommonSetupEvent sets
-    // the common static fields -- use ForgeRegistries directly (populated by DeferredRegister)
+    // the common static fields -- use BuiltInRegistries directly.
     @SubscribeEvent
     @SuppressWarnings("unchecked")
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
-        EntityType<Npc> npc = (EntityType<Npc>) ForgeRegistries.ENTITY_TYPES
-            .getValue(new ResourceLocation(Constants.MOD_ID, "npc"));
-        event.registerEntityRenderer(npc, NpcRenderer::new);
+        EntityType<Npc> npc = (EntityType<Npc>) BuiltInRegistries.ENTITY_TYPE
+            .get(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "npc"));
+        if (npc != null) {
+            event.registerEntityRenderer(npc, NpcRenderer::new);
+        }
+        EntityType<Citizen> citizen = (EntityType<Citizen>) BuiltInRegistries.ENTITY_TYPE
+            .get(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "citizen"));
+        if (citizen != null) {
+            event.registerEntityRenderer(citizen, CitizenRenderer::new);
+        }
+        // Overrides vanilla's own renderer for EVERY villager in the world. Supported by the
+        // event, and deliberately not a mixin. TownVillagerRenderer hands anything that is not
+        // a citizen to a real VillagerRenderer, so a village the player found looks untouched.
+        event.registerEntityRenderer(EntityType.VILLAGER, TownVillagerRenderer::new);
     }
 
     @SubscribeEvent
@@ -47,28 +68,37 @@ public class OuatForgeClient {
         event.registerLayerDefinition(NpcModel.LAYER_LOCATION, NpcModel::createBodyLayer);
     }
 
+    @SubscribeEvent
+    @SuppressWarnings("unchecked")
+    public static void onRegisterMenuScreens(RegisterMenuScreensEvent event) {
+        MenuType<TownHubMenu> hub = (MenuType<TownHubMenu>) BuiltInRegistries.MENU
+            .get(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "town_hub"));
+        if (hub != null) {
+            event.register(hub, TownHubScreen::new);
+        }
+    }
+
     // FMLClientSetupEvent fires after FMLCommonSetupEvent, so MenuRegistry.TOWN_HUB is set
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
         event.enqueueWork(() -> {
+            Block townAnchor = BuiltInRegistries.BLOCK
+                .get(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "town_anchor"));
+            if (townAnchor != null) {
+                ItemBlockRenderTypes.setRenderLayer(townAnchor, RenderType.cutout());
+            }
 
-            Block townAnchor = ForgeRegistries.BLOCKS
-                .getValue(new ResourceLocation(Constants.MOD_ID, "town_anchor"));
-            ItemBlockRenderTypes.setRenderLayer(townAnchor, RenderType.cutout());
-            MenuScreens.register(MenuRegistry.TOWN_HUB, TownHubScreen::new);
-            NetworkHelper.sendQueueBuildingPacket = (pos, defId) ->
-                OuatForge.CHANNEL.sendToServer(new C2SQueueBuildingPacket(pos, defId));
-            NetworkHelper.sendRemoveQueuedBuildingPacket = (pos, index) ->
-                OuatForge.CHANNEL.sendToServer(new C2SRemoveQueuedBuildingPacket(pos, index));
-            NetworkHelper.sendUpgradeBuildingPacket = (pos, worldPosLong) ->
-                OuatForge.CHANNEL.sendToServer(new C2SUpgradeBuildingPacket(pos, worldPosLong));
-            NetworkHelper.sendAdvanceEraPacket = (pos, pathId) ->
-                OuatForge.CHANNEL.sendToServer(new C2SAdvanceEraPacket(pos, pathId));
-            NetworkHelper.sendDepositPacket = pos ->
-                OuatForge.CHANNEL.sendToServer(new C2SDepositPacket(pos));
-            OuatForge.wireBuyPacket();
-            OuatForge.wireContributeQuestPacket();
-            OuatForge.wireToggleChatBroadcastPacket();
+            // Wire C2C packet delegates: client → server via PacketDistributor.sendToServer.
+            // Each delegate constructs the payload and sends it from the client connection.
+            NetworkHelper.sendDepositPacket              = pos              -> PacketDistributor.sendToServer(new C2SDepositPacket(pos));
+            NetworkHelper.sendQueueBuildingPacket        = (pos, defId)     -> PacketDistributor.sendToServer(new C2SQueueBuildingPacket(pos, defId));
+            NetworkHelper.sendRemoveQueuedBuildingPacket = (pos, index)     -> PacketDistributor.sendToServer(new C2SRemoveQueuedBuildingPacket(pos, index));
+            NetworkHelper.sendUpgradeBuildingPacket      = (pos, worldPos)  -> PacketDistributor.sendToServer(new C2SUpgradeBuildingPacket(pos, worldPos));
+            NetworkHelper.sendAdvanceEraPacket           = (pos, pathId)    -> PacketDistributor.sendToServer(new C2SAdvanceEraPacket(pos, pathId));
+            NetworkHelper.sendContributeQuestPacket      = (pos, questId)   -> PacketDistributor.sendToServer(new C2SContributeQuestPacket(pos, questId));
+            NetworkHelper.sendRequestStockPacket         = pos              -> PacketDistributor.sendToServer(new C2SRequestStockPacket(pos));
+            NetworkHelper.sendToggleChatBroadcastPacket  = pos              -> PacketDistributor.sendToServer(new C2SToggleChatBroadcastPacket(pos));
+            NetworkHelper.sendBuyPacket                  = (pos, items)     -> PacketDistributor.sendToServer(new C2SBuyPacket(pos, items));
         });
     }
 

@@ -4,6 +4,7 @@
   "entry_pool": "onceuponatown:houses",
   "icon_item": "minecraft:yellow_bed",
   "category": "buildings",
+  "zone": "core",
   "weight": 1,
 
   "residents": 1,

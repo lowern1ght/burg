@@ -5,8 +5,10 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
+import org.dawnoftime.onceuponatown.entity.citizen.Citizens;
 import org.dawnoftime.onceuponatown.building.schematic.BuildSchematic;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicBlock;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicEntity;
@@ -126,6 +128,17 @@ public class NewBuildAction implements BuildAction {
                         entity.load(se.nbt());
                         entity.moveTo(se.worldPos().x, se.worldPos().y, se.worldPos().z,
                                       entity.getYRot(), entity.getXRot());
+                        // A villager that ships inside one of our buildings is one of OURS.
+                        // Enlisted before it enters the world, so it is a citizen on its very
+                        // first frame and never flickers through the stranger's look.
+                        //
+                        // Without this the seven raw `minecraft:villager` in the author's own
+                        // NBTs walked the town as unaffiliated mobs: counted by nothing,
+                        // competing for our workstations, and rendered by vanilla — which is
+                        // why the town was half people and half big-nosed villagers.
+                        if (entity instanceof Villager villager && npc.getTownAnchorPos() != null) {
+                            Citizens.enlist(villager, npc.getTownAnchorPos());
+                        }
                         level.addFreshEntity(entity);
                     }
                 });

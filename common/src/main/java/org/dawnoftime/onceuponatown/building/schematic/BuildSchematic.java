@@ -51,7 +51,7 @@ public class BuildSchematic {
         s.add(Blocks.JUNGLE_LEAVES); s.add(Blocks.ACACIA_LEAVES); s.add(Blocks.DARK_OAK_LEAVES);
         s.add(Blocks.MANGROVE_LEAVES); s.add(Blocks.CHERRY_LEAVES);
         s.add(Blocks.AZALEA_LEAVES); s.add(Blocks.FLOWERING_AZALEA_LEAVES);
-        s.add(Blocks.GRASS); s.add(Blocks.TALL_GRASS); s.add(Blocks.FERN); s.add(Blocks.LARGE_FERN);
+        s.add(Blocks.GRASS_BLOCK); s.add(Blocks.TALL_GRASS); s.add(Blocks.FERN); s.add(Blocks.LARGE_FERN);
         s.add(Blocks.DEAD_BUSH); s.add(Blocks.SEAGRASS); s.add(Blocks.TALL_SEAGRASS);
         s.add(Blocks.KELP); s.add(Blocks.KELP_PLANT);
         s.add(Blocks.DANDELION); s.add(Blocks.POPPY); s.add(Blocks.BLUE_ORCHID); s.add(Blocks.ALLIUM);
@@ -85,7 +85,6 @@ public class BuildSchematic {
             return false;
         }
         StructurePlaceSettings settings = new StructurePlaceSettings()
-            .setKeepLiquids(false)
             .setIgnoreEntities(false)
             .setRotation(rotation)
             .addProcessor(SKIP_AIR);
@@ -125,18 +124,8 @@ public class BuildSchematic {
             int wx = originPos.getX() + column.get(0).localPos().getX();
             int wz = originPos.getZ() + column.get(0).localPos().getZ();
 
-            // Scan downward; skip SCAN_IGNORE_BLOCKS, stop at first solid block (Filter B).
-            int scanStart = level.getHeight(Heightmap.Types.WORLD_SURFACE, wx, wz) - 1;
-            int terrainY = Integer.MIN_VALUE;
-            for (int y = scanStart; y >= level.getMinBuildHeight(); y--) {
-                BlockState bs = level.getBlockState(new BlockPos(wx, y, wz));
-                if (!bs.isAir() && !SCAN_IGNORE_BLOCKS.contains(bs.getBlock())) {
-                    terrainY = y;
-                    break;
-                }
-            }
-
-            if (terrainY == Integer.MIN_VALUE) continue;
+            int terrainY = groundY(level, wx, wz);
+            if (terrainY == NO_GROUND) continue;
 
             int deltaY = terrainY - templateFloorY;
 
@@ -177,7 +166,7 @@ public class BuildSchematic {
         if (!level.getBlockState(pos).is(Blocks.JIGSAW)) return;
         BlockEntity be = level.getBlockEntity(pos);
         if (be == null) { level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL); return; }
-        CompoundTag tag = be.saveWithoutMetadata();
+        CompoundTag tag = be.saveWithoutMetadata(level.registryAccess());
         String finalState = tag.getString("final_state");
         if (finalState.isEmpty()) { level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL); return; }
         String blockId = finalState.contains("[") ? finalState.substring(0, finalState.indexOf('[')) : finalState;
@@ -295,6 +284,33 @@ public class BuildSchematic {
             minX, originPos.getY(), minZ,
             maxX, originPos.getY() + sY - 1, maxZ
         ));
+    }
+
+    /** Returned by {@link #groundY} for a column with no ground at all under it. */
+    public static final int NO_GROUND = Integer.MIN_VALUE;
+
+    /**
+     * The Y of the block a builder would call the ground in this column: the first real block
+     * found scanning down from the world surface, skipping vegetation, trunks and jigsaw leftovers.
+     *
+     * <p><b>No vanilla heightmap answers this.</b> {@code WORLD_SURFACE} stops at the first
+     * non-air block, so under an oak it hands back a leaf sixteen blocks up; {@code
+     * MOTION_BLOCKING} counts leaves as well. That is what {@link #SCAN_IGNORE_BLOCKS} is for,
+     * and this scan is the one {@link #placeTerrainMatched} already ran inline — lifted out so
+     * the road pass and the command that drops a whole settlement agree on where the ground is
+     * rather than keeping two copies of the rule that can drift apart.
+     *
+     * @return the Y of the topmost ground block, or {@link #NO_GROUND} if the column is air all
+     *         the way down.
+     */
+    public static int groundY(ServerLevel level, int wx, int wz) {
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+        int scanStart = level.getHeight(Heightmap.Types.WORLD_SURFACE, wx, wz) - 1;
+        for (int y = scanStart; y >= level.getMinBuildHeight(); y--) {
+            BlockState bs = level.getBlockState(cursor.set(wx, y, wz));
+            if (!bs.isAir() && !SCAN_IGNORE_BLOCKS.contains(bs.getBlock())) return y;
+        }
+        return NO_GROUND;
     }
 
     // Returns the Y where a terrain_matching structure should be placed.

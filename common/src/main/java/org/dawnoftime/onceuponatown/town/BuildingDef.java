@@ -57,6 +57,29 @@ public class BuildingDef {
     public final List<ItemCost> initialStock;
     // Weight units this building consumes from the era cap when placed or queued.
     public final int weight;
+    // Where in the settlement this building is allowed to stand. See {@link Zone}.
+    public final Zone zone;
+
+    /**
+     * Whether a building belongs inside the settlement or out past it.
+     *
+     * <p>The ordering principle is the real one: <b>people and stores inside, dirty and
+     * dangerous work outside.</b> A medieval village core held the houses, the well, the green,
+     * the alehouse and the tithe barn — you keep your grain where you can watch it. Pushed out
+     * were the things that stank, burned or needed the resource: the tannery went downstream and
+     * downwind of everybody, the sty and the byre for the same reason, the kiln and the charcoal
+     * burner because of fire, the quarry and the wood because that is where the stone and the
+     * trees are. The communal bakehouse is the exception that proves it — central on purpose,
+     * because it was the only one and it was watched.
+     *
+     * <p>Deliberately not a hard partition of {@code category}. {@code jobs} mixes both kinds:
+     * the granary, the market and the bakehouse are production by category and core by function.
+     * So this is a per-building field, not a rule derived from the group.
+     *
+     * <p>{@link #ANY} is the default and means what it says — streets, walls and natural
+     * resource sites go where the ground and the road take them.
+     */
+    public enum Zone { CORE, OUTER, ANY }
 
     // One upgrade step: cost + what it changes. All fields are additive deltas.
     public record UpgradeLevel(float cadenceMultiplier, int capacityStacksAdd, int amountAdd,
@@ -85,7 +108,7 @@ public class BuildingDef {
                        List<UpgradeLevel> upgrades, List<NbtLevel> nbtLevels,
                        int requiredResidents, List<BuildingRequirement> requiredBuildings,
                        float consumptionPerResident, List<ItemCost> initialStock,
-                       int herd, float consumptionPerHerd, int weight) {
+                       int herd, float consumptionPerHerd, int weight, Zone zone) {
         this.id = id;
         this.nbt = nbt;
         this.entryPool = entryPool;
@@ -110,6 +133,7 @@ public class BuildingDef {
         this.herd = herd;
         this.consumptionPerHerd = consumptionPerHerd;
         this.weight = weight;
+        this.zone = zone;
     }
 
     // Returns effective production, cadence, residents, consumption, herd, and herd consumption at a given upgrade level.

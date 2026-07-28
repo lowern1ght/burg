@@ -45,7 +45,7 @@ public class TradePriceDataHandler {
                         int buy      = obj.get("buy").getAsInt();
                         int sell     = obj.get("sell").getAsInt();
                         int quantity = obj.has("quantity") ? Math.max(1, obj.get("quantity").getAsInt()) : 1;
-                        Item item = BuiltInRegistries.ITEM.getOptional(new ResourceLocation(itemId)).orElse(null);
+                        Item item = BuiltInRegistries.ITEM.getOptional(ResourceLocation.parse(itemId)).orElse(null);
                         if (item == null) continue;
                         newMap.put(item, new int[]{ buy, sell, quantity });
                     }

@@ -4,6 +4,7 @@
   "entry_pool": "onceuponatown:jobs",
   "icon_item": "minecraft:wooden_pickaxe",
   "category": "jobs",
+  "zone": "outer",
   "weight": 2,
 
   "construction_cost": [

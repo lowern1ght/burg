@@ -14,6 +14,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.util.FastColor;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
+import org.dawnoftime.onceuponatown.Constants;
 import org.dawnoftime.onceuponatown.town.MapCategory;
 
 import java.util.ArrayList;
@@ -87,8 +88,8 @@ public class TownMapWidget extends AbstractWidget {
 
     private void setupMap(CompoundTag mapData) {
         mapElements.clear();
-        BlockPos nwCorner = NbtUtils.readBlockPos(mapData.getCompound("NWCorner"));
-        BlockPos seCorner = NbtUtils.readBlockPos(mapData.getCompound("SECorner"));
+        BlockPos nwCorner = Constants.readBlockPos(mapData, "NWCorner");
+        BlockPos seCorner = Constants.readBlockPos(mapData, "SECorner");
         Iterator<Tag> it = mapData.getList("Elements", 10).iterator();
         while (it.hasNext()) {
             Tag next = it.next();
@@ -114,7 +115,7 @@ public class TownMapWidget extends AbstractWidget {
         String buildType = tag.getString("BuildType");
         Component name = Component.translatable("onceuponatown.building." + buildType);
 
-        BlockPos originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
+        BlockPos originPos = Constants.readBlockPos(tag, "OriginPos");
         int sizeX = tag.getInt("SizeX");
         int sizeZ = tag.getInt("SizeZ");
         int minX = originPos.getX() - nwCorner.getX();
@@ -134,7 +135,7 @@ public class TownMapWidget extends AbstractWidget {
 
     private MapElement createUnderConstructionMapElement(CompoundTag tag, BlockPos nwCorner) {
         String buildType = tag.getString("BuildType");
-        BlockPos originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
+        BlockPos originPos = Constants.readBlockPos(tag, "OriginPos");
         int sizeX = tag.getInt("SizeX");
         int sizeZ = tag.getInt("SizeZ");
         int minX = originPos.getX() - nwCorner.getX();
@@ -158,7 +159,7 @@ public class TownMapWidget extends AbstractWidget {
         }
         String buildingCategory = tag.getString("BuildingCategory");
 
-        BlockPos originPos = NbtUtils.readBlockPos(tag.getCompound("OriginPos"));
+        BlockPos originPos = Constants.readBlockPos(tag, "OriginPos");
         int sizeX = tag.getInt("SizeX");
         int sizeZ = tag.getInt("SizeZ");
 
@@ -397,22 +398,22 @@ public class TownMapWidget extends AbstractWidget {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         if (mouseX >= getX() && mouseX <= getX() + width
             && mouseY >= getY() && mouseY <= getY() + height) {
             int windowCenterX = (mapWindowRightBound - mapWindowLeftBound) / 2;
             int windowCenterY = (mapWindowBottomBound - mapWindowTopBound) / 2;
-            if (delta > 0) {
+            if (scrollY > 0) {
                 xDrag -= ((int) (mouseX - mapWindowLeftBound) - windowCenterX);
                 yDrag -= ((int) (mouseY - mapWindowTopBound) - windowCenterY);
             } else if (mapZoom > 1) {
                 xDrag += ((int) (mouseX - mapWindowLeftBound) - windowCenterX);
                 yDrag += ((int) (mouseY - mapWindowTopBound) - windowCenterY);
             }
-            mapZoom = Math.max(1, mapZoom + (int) delta);
+            mapZoom = Math.max(1, mapZoom + (int) scrollY);
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, delta);
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
     @Override

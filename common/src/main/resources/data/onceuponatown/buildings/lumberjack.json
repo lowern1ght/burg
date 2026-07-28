@@ -4,6 +4,7 @@
   "entry_pool": "onceuponatown:jobs",
   "icon_item": "minecraft:wooden_axe",
   "category": "jobs",
+  "zone": "outer",
   "weight": 3,
 
   "required_buildings": [

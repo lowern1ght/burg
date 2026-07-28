@@ -64,7 +64,8 @@ public class SimpleStateMachine {
     // -------------------------------------------------------------------------
     private enum FailReason {
         NO_COMPATIBLE_CONNECTOR, // candidate has no jigsaw connector matching the connection point pool
-        BOUNDING_BOX_OVERLAP     // computed BB intersects an already-occupied zone
+        BOUNDING_BOX_OVERLAP,    // computed BB intersects an already-occupied zone
+        WRONG_ZONE               // right pool, right shape, wrong distance from the town centre
     }
 
     private record PlacementSuccess(BlockPos pos, Rotation rotation, BlockPos entryConnectorWorldPos, BoundingBox bb) {}
@@ -258,6 +259,7 @@ public class SimpleStateMachine {
 
             int bbOverlaps = 0;
             int noConnector = 0;
+            int wrongZone = 0;
 
             for (ConnectionPoint point : matchingCps) {
                 PlacementOutcome outcome = attemptPlacement(serverLevel, point, occupied, def);
@@ -286,11 +288,26 @@ public class SimpleStateMachine {
                     NetworkHelper.pushBuildingListToWatchers(serverLevel, town, npc.getTownAnchorPos());
                     return QueueScanResult.STARTED_BUILD;
                 }
-                if (outcome.failure() == FailReason.BOUNDING_BOX_OVERLAP)        bbOverlaps++;
+                if (outcome.failure() == FailReason.BOUNDING_BOX_OVERLAP)         bbOverlaps++;
                 else if (outcome.failure() == FailReason.NO_COMPATIBLE_CONNECTOR) noConnector++;
+                else if (outcome.failure() == FailReason.WRONG_ZONE)              wrongZone++;
             }
 
-            if (noConnector > 0 && bbOverlaps == 0) {
+            // Zoning is reported as itself, once, and NOT folded into the connector warning.
+            // "Waiting for a road to reach far enough out" and "this building has no connector
+            // that fits" look identical from the queue and want opposite responses: the first
+            // resolves on its own once tickStreetsOnly has run a few times, the second never
+            // does. Logged before warnedDefIds swallows the defId so it is said exactly once.
+            if (wrongZone > 0 && wrongZone == matchingCps.size()) {
+                if (!warnedDefIds.contains(defId)) {
+                    LOGGER.info("[OUAT-ZONE] '{}' is zone={} and every one of the {} free"
+                        + " connection point(s) is on the wrong side of the {}-block core radius"
+                        + " -- extending the road instead. This is expected, not a fault.",
+                        defId, def.zone, matchingCps.size(),
+                        BuilderConfigDataHandler.get().coreRadius);
+                }
+                warnedDefIds.add(defId);
+            } else if (noConnector > 0 && bbOverlaps == 0) {
                 warnedDefIds.add(defId);
             }
             anyBlocked = true;
@@ -372,9 +389,40 @@ public class SimpleStateMachine {
 
     // Attempts to find a valid placement for a building at a given connection point.
     // Returns a PlacementOutcome carrying either a valid result or the specific failure reason.
+    /**
+     * Whether this building may stand at this connection point, given how far out it is.
+     *
+     * <p>Checked <b>first</b>, before the connector and bounding-box work, because it is a
+     * cheap integer test and because rejecting here is what makes the town lay a road: a
+     * candidate that fails every point leaves the queue BLOCKED, and {@code tickStreetsOnly}
+     * runs on exactly that signal. So a farm that is not allowed in the square does not stall
+     * the village — it makes the village build the lane out to the field first. The mechanism
+     * was already there; zoning just gives it a reason to fire.
+     *
+     * <p>Measured against the <b>anchor</b> in XZ only. Height is irrelevant to whether
+     * something is in the village or past it, and squared distance keeps it to integers.
+     */
+    private boolean zoneAllows(BuildingDef def, ConnectionPoint point) {
+        if (def.zone == BuildingDef.Zone.ANY) return true;
+        BlockPos anchor = npc.getTownAnchorPos();
+        if (anchor == null) return true;   // no centre known yet: refuse nothing
+
+        int radius = BuilderConfigDataHandler.get().coreRadius;
+        if (radius <= 0) return true;      // zoning switched off in the config
+
+        long dx = point.pos().getX() - anchor.getX();
+        long dz = point.pos().getZ() - anchor.getZ();
+        long distSq = dx * dx + dz * dz;
+        long radiusSq = (long) radius * radius;
+
+        return def.zone == BuildingDef.Zone.CORE ? distSq <= radiusSq : distSq > radiusSq;
+    }
+
     private PlacementOutcome attemptPlacement(ServerLevel serverLevel, ConnectionPoint point,
                                                List<BoundingBox> occupied,
                                                BuildingDef def) {
+        if (!zoneAllows(def, point)) return PlacementOutcome.fail(FailReason.WRONG_ZONE);
+
         List<JigsawConnector> connectors = BuildSchematic.readConnectors(serverLevel, def.nbt);
         List<JigsawConnector> compatible = connectors.stream()
             .filter(c -> point.targetName().isEmpty() || c.name().equals(point.targetName()))
@@ -460,7 +508,7 @@ public class SimpleStateMachine {
         currentActivity = new ActivityInstance(def, building, ActivityInstance.Phase.TRAVELING, gtp);
 
         if (!def.heldItem().equals("minecraft:air")) {
-            BuiltInRegistries.ITEM.getOptional(new ResourceLocation(def.heldItem()))
+            BuiltInRegistries.ITEM.getOptional(ResourceLocation.parse(def.heldItem()))
                 .ifPresent(item -> npc.holdInMainHand(new ItemStack(item)));
         }
         activityTravelTicks = 0;
@@ -543,7 +591,7 @@ public class SimpleStateMachine {
         LOGGER.info("[OUAT-ACTIVITY] TRAVELING -> scanning for block={}", targetBlockId);
 
         // Scan the building's bounding box for the closest matching block.
-        Block block = BuiltInRegistries.BLOCK.getOptional(new ResourceLocation(targetBlockId)).orElse(null);
+        Block block = BuiltInRegistries.BLOCK.getOptional(ResourceLocation.parse(targetBlockId)).orElse(null);
         if (block == null) {
             cancelActivity();
             current = State.IDLE;

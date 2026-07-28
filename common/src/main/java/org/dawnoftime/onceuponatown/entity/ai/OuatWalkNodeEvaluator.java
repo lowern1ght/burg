@@ -1,11 +1,11 @@
 package org.dawnoftime.onceuponatown.entity.ai;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.FenceBlock;
 import net.minecraft.world.level.block.FenceGateBlock;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.pathfinder.BlockPathTypes;
+import net.minecraft.world.level.pathfinder.PathType;
+import net.minecraft.world.level.pathfinder.PathfindingContext;
 import net.minecraft.world.level.pathfinder.WalkNodeEvaluator;
 
 public class OuatWalkNodeEvaluator extends WalkNodeEvaluator {
@@ -21,18 +21,18 @@ public class OuatWalkNodeEvaluator extends WalkNodeEvaluator {
     // generating a jump-over path: vanilla scores the air node at Y+1 as reachable because
     // it uses grid height (1 block) not collision height (1.5) for the jump check.
     @Override
-    public BlockPathTypes getBlockPathType(BlockGetter level, int x, int y, int z) {
-        BlockState state = level.getBlockState(new BlockPos(x, y, z));
+    public PathType getPathType(PathfindingContext context, int x, int y, int z) {
+        BlockState state = context.getBlockState(new BlockPos(x, y, z));
         if (state.getBlock() instanceof FenceGateBlock) {
-            return BlockPathTypes.WALKABLE;
+            return PathType.WALKABLE;
         }
         if (state.getBlock() instanceof FenceBlock) {
-            return BlockPathTypes.BLOCKED;
+            return PathType.BLOCKED;
         }
-        BlockState below = level.getBlockState(new BlockPos(x, y - 1, z));
+        BlockState below = context.getBlockState(new BlockPos(x, y - 1, z));
         if (below.getBlock() instanceof FenceBlock) {
-            return BlockPathTypes.BLOCKED;
+            return PathType.BLOCKED;
         }
-        return super.getBlockPathType(level, x, y, z);
+        return super.getPathType(context, x, y, z);
     }
 }

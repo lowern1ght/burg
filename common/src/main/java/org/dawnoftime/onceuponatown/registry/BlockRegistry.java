@@ -13,7 +13,7 @@ public class BlockRegistry {
     public static void register() {
         TOWN_ANCHOR = Registry.register(
             BuiltInRegistries.BLOCK,
-            new ResourceLocation(Ouat.MOD_ID, "town_anchor"),
+            ResourceLocation.fromNamespaceAndPath(Ouat.MOD_ID, "town_anchor"),
             new TownAnchorBlock(TownAnchorBlock.defaultProperties())
         );
     }

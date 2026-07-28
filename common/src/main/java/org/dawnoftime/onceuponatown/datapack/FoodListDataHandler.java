@@ -68,7 +68,7 @@ public class FoodListDataHandler {
             JsonObject obj = el.getAsJsonObject();
             String itemId = obj.get("item").getAsString();
             int fuv = obj.get("fuv").getAsInt();
-            ResourceLocation rl = new ResourceLocation(itemId);
+            ResourceLocation rl = ResourceLocation.parse(itemId);
             Item item = BuiltInRegistries.ITEM.getOptional(rl).orElse(null);
             if (item == null) continue;
             map.put(item, fuv);

@@ -18,6 +18,7 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import org.dawnoftime.onceuponatown.Constants;
 import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.ClientBuildingDefsRegistry;
 import org.dawnoftime.onceuponatown.client.TownHubClientState;
@@ -42,11 +43,11 @@ import java.util.Map;
 public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
 
     private static final ResourceLocation TEXTURE =
-        new ResourceLocation(Ouat.MOD_ID, "textures/gui/town_hub.png");
+        ResourceLocation.fromNamespaceAndPath(Ouat.MOD_ID, "textures/gui/town_hub.png");
     private static final ResourceLocation TEXTURE_CONSTRUCTION =
-        new ResourceLocation(Ouat.MOD_ID, "textures/gui/town_construction.png");
+        ResourceLocation.fromNamespaceAndPath(Ouat.MOD_ID, "textures/gui/town_construction.png");
     private static final ResourceLocation TEXTURE_UPGRADE =
-        new ResourceLocation(Ouat.MOD_ID, "textures/gui/town_upgrade.png");
+        ResourceLocation.fromNamespaceAndPath(Ouat.MOD_ID, "textures/gui/town_upgrade.png");
 
     // Category colors matching the map widget palette
     private static final int COLOR_TOWN_CENTER = 0xFFFFAA00;
@@ -280,7 +281,7 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
     // Parses incoming hub CompoundTag into local construction tab fields.
     // Safe to call both at init and during render (live refresh from C2S responses).
     private void parseHubData(CompoundTag hub) {
-        anchorPos = NbtUtils.readBlockPos(hub.getCompound("AnchorPos"));
+        anchorPos = Constants.readBlockPos(hub, "AnchorPos");
         int prevEra = currentEra;
         currentEra      = hub.getInt("CurrentEra");
         totalResidents  = hub.getInt("TotalResidents");
@@ -406,7 +407,7 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
             applyLogEntry(data);
         }
 
-        this.renderBackground(guiGraphics);
+        this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
 
         // Remove closed layer 1 widgets, saving their last-known state
         layer1Widgets.removeIf(w -> {
@@ -553,7 +554,7 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
     }
 
     private void applyQuestUpdate(CompoundTag data) {
-        BlockPos packetAnchor = NbtUtils.readBlockPos(data.getCompound("AnchorPos"));
+        BlockPos packetAnchor = Constants.readBlockPos(data, "AnchorPos");
         if (!anchorPos.equals(packetAnchor)) return;
         if (questHubWidget != null) {
             List<CompoundTag> tags = new ArrayList<>();
@@ -678,7 +679,7 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
                     int seconds       = pt.getInt("EveryTicks") / 20;
                     int unlockAtLevel = pt.getInt("UnlockAtLevel");
                     boolean locked    = unlockAtLevel >= 0 && currentLevel < unlockAtLevel;
-                    Item item         = BuiltInRegistries.ITEM.get(new ResourceLocation(itemId));
+                    Item item         = BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId));
                     MutableComponent text = Component.literal("x" + amount + " ")
                         .append(Component.translatable(item.getDescriptionId()))
                         .append(Component.literal(" / " + seconds + "s"))
@@ -698,7 +699,7 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
                     int seconds       = tt.getInt("EveryTicks") / 20;
                     int unlockAtLevel = tt.getInt("UnlockAtLevel");
                     boolean locked    = unlockAtLevel >= 0 && currentLevel < unlockAtLevel;
-                    Item outputItem   = BuiltInRegistries.ITEM.get(new ResourceLocation(outputId));
+                    Item outputItem   = BuiltInRegistries.ITEM.get(ResourceLocation.parse(outputId));
                     MutableComponent text = Component.literal("x" + outputAmount + " ")
                         .append(Component.translatable(outputItem.getDescriptionId()))
                         .append(Component.literal(" / " + seconds + "s"))
@@ -722,7 +723,7 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
                 productionRows.add(new BuildingProductionTooltip.Row(null,
                     Component.translatable("onceuponatown.tooltip.adds")));
                 net.minecraft.world.item.Item villagerEgg = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(
-                    new ResourceLocation("minecraft:villager_spawn_egg"));
+                    ResourceLocation.parse("minecraft:villager_spawn_egg"));
                 productionRows.add(new BuildingProductionTooltip.Row(new ItemStack(villagerEgg),
                     Component.translatable("onceuponatown.tooltip.residents", residents)
                         .withStyle(ChatFormatting.GRAY)));
@@ -734,7 +735,7 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
                     productionRows.add(new BuildingProductionTooltip.Row(null,
                         Component.translatable("onceuponatown.tooltip.adds")));
                 }
-                Item pigEgg = BuiltInRegistries.ITEM.get(new ResourceLocation("minecraft:pig_spawn_egg"));
+                Item pigEgg = BuiltInRegistries.ITEM.get(ResourceLocation.parse("minecraft:pig_spawn_egg"));
                 productionRows.add(new BuildingProductionTooltip.Row(new ItemStack(pigEgg),
                     Component.translatable("onceuponatown.tooltip.herd", herd)
                         .withStyle(ChatFormatting.GRAY)));
@@ -1207,7 +1208,7 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
             int sx = rowX + i * CELL;
             String itemId = unlocks.get(i);
             try {
-                Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(itemId));
+                Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId));
                 if (item != Items.AIR) {
                     int amount = 0;
                     if (catalogEntry != null) {
@@ -1316,7 +1317,7 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
             int[] b = unlockIconBounds.get(i);
             if (mx >= b[0] && mx < b[0] + 16 && my >= b[1] && my < b[1] + 16) {
                 try {
-                    Item hovItem = BuiltInRegistries.ITEM.get(new ResourceLocation(unlockIconItemIds.get(i)));
+                    Item hovItem = BuiltInRegistries.ITEM.get(ResourceLocation.parse(unlockIconItemIds.get(i)));
                     if (hovItem != net.minecraft.world.item.Items.AIR) {
                         g.renderTooltip(font, Component.translatable(hovItem.getDescriptionId()), mx, my);
                     }
@@ -1416,7 +1417,7 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
 
     private void renderItemIcon(GuiGraphics g, String iconItemId, int x, int y) {
         try {
-            Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(iconItemId));
+            Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(iconItemId));
             if (item != net.minecraft.world.item.Items.AIR) {
                 g.renderFakeItem(new ItemStack(item), x, y);
             }
@@ -1770,30 +1771,30 @@ public class TownHubScreen extends AbstractContainerScreen<TownHubMenu> {
     }
 
     @Override
-    public boolean mouseScrolled(double mX, double mY, double delta) {
+    public boolean mouseScrolled(double mX, double mY, double scrollX, double scrollY) {
         if (expandedViewOpen && expandedWidget != null) {
-            expandedWidget.mouseScrolled(mX, mY, delta);
+            expandedWidget.mouseScrolled(mX, mY, scrollX, scrollY);
             return true;
         }
         for (int i = layer1Widgets.size() - 1; i >= 0; i--) {
-            if (layer1Widgets.get(i).mouseScrolled(mX, mY, delta)) return true;
+            if (layer1Widgets.get(i).mouseScrolled(mX, mY, scrollX, scrollY)) return true;
         }
         if (activeTab == 1) {
-            if (constructionPreview != null && constructionPreview.mouseScrolled(mX, mY, delta)) return true;
+            if (constructionPreview != null && constructionPreview.mouseScrolled(mX, mY, scrollX, scrollY)) return true;
             int totalRows = (buildingCatalog.size() + AVAIL_COLS - 1) / AVAIL_COLS;
             int maxOffset = Math.max(0, totalRows - CATALOG_ROWS);
             catalogScrollOffset = Math.max(0, Math.min(maxOffset,
-                catalogScrollOffset - (int) Math.signum(delta)));
+                catalogScrollOffset - (int) Math.signum(scrollY)));
             return true;
         }
         if (activeTab == 2) {
             int totalRows = (getUpgradeableBuildings().size() + AVAIL_COLS - 1) / AVAIL_COLS;
             int maxOffset = Math.max(0, totalRows - AVAIL_ROWS);
             upgradeGridScrollOffset = Math.max(0, Math.min(maxOffset,
-                upgradeGridScrollOffset - (int) Math.signum(delta)));
+                upgradeGridScrollOffset - (int) Math.signum(scrollY)));
             return true;
         }
-        return super.mouseScrolled(mX, mY, delta);
+        return super.mouseScrolled(mX, mY, scrollX, scrollY);
     }
 
     // -------------------------------------------------------------------------

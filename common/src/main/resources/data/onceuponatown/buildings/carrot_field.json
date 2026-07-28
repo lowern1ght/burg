@@ -4,6 +4,7 @@
   "entry_pool": "onceuponatown:jobs",
   "icon_item": "minecraft:carrot",
   "category": "jobs",
+  "zone": "outer",
   "weight": 2,
 
   "required_buildings": [

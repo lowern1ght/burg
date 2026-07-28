@@ -58,7 +58,7 @@ public class MapDraggableWidget extends DraggableWidget {
     }
 
     @Override
-    protected boolean contentMouseScrolled(double mouseX, double mouseY, double delta) {
-        return mapWidget.mouseScrolled(mouseX, mouseY, delta);
+    protected boolean contentMouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        return mapWidget.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 }

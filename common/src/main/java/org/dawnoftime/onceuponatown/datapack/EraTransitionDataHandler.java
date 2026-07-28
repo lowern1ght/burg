@@ -94,7 +94,7 @@ public class EraTransitionDataHandler {
         if (json.has("resource_cost")) {
             for (JsonElement el : json.getAsJsonArray("resource_cost")) {
                 JsonObject c = el.getAsJsonObject();
-                Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(c.get("item").getAsString()));
+                Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(c.get("item").getAsString()));
                 resourceCost.add(new ItemCost(item, c.get("amount").getAsInt()));
             }
         }

@@ -14,7 +14,7 @@ import org.dawnoftime.onceuponatown.client.model.layer.NpcClothesLayer;
 import org.dawnoftime.onceuponatown.entity.Npc;
 
 public class NpcRenderer extends HumanoidMobRenderer<Npc, NpcModel<Npc>> {
-    private static final ResourceLocation NPC_BASE_SKIN = new ResourceLocation(Ouat.MOD_ID, "textures/entity/npc/default_skin.png");
+    private static final ResourceLocation NPC_BASE_SKIN = ResourceLocation.fromNamespaceAndPath(Ouat.MOD_ID, "textures/entity/npc/default_skin.png");
 
     public NpcRenderer(EntityRendererProvider.Context context) {
         super(context, new NpcModel<>(context.bakeLayer(NpcModel.LAYER_LOCATION)), 0.5F);
@@ -46,5 +46,23 @@ public class NpcRenderer extends HumanoidMobRenderer<Npc, NpcModel<Npc>> {
     @Override
     public ResourceLocation getTextureLocation(Npc npc) {
         return NPC_BASE_SKIN;
+    }
+
+    /** Shown when the player looks at him — see TownVillagerRenderer for the reasoning. */
+    @Override
+    protected boolean shouldShowName(Npc npc) {
+        if (npc.isCustomNameVisible()) return true;
+        return npc == this.entityRenderDispatcher.crosshairPickEntity;
+    }
+
+    /** A name tag wins; the builder's own name survives underneath it. */
+    @Override
+    protected void renderNameTag(Npc npc, net.minecraft.network.chat.Component displayName,
+                                 PoseStack pose, MultiBufferSource buffer,
+                                 int packedLight, float partialTick) {
+        net.minecraft.network.chat.Component label = npc.hasCustomName()
+            ? displayName
+            : net.minecraft.network.chat.Component.literal(npc.givenName());
+        super.renderNameTag(npc, label, pose, buffer, packedLight, partialTick);
     }
 }

@@ -2,12 +2,15 @@ package org.dawnoftime.onceuponatown.network;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import org.dawnoftime.onceuponatown.Ouat;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
+import org.dawnoftime.onceuponatown.Constants;
 import org.dawnoftime.onceuponatown.blockentity.TownAnchorBlockEntity;
 import org.dawnoftime.onceuponatown.screen.TownHubMenu;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
@@ -16,20 +19,31 @@ import org.dawnoftime.onceuponatown.town.Town;
 
 // Sent when the player clicks the Contribute button on a TASK quest.
 // The server validates inventory, takes all required items, and grants the reward atomically.
-public record C2SContributeQuestPacket(BlockPos anchorPos, String questId) {
-    public static final ResourceLocation ID = Ouat.modResource("c2s_contribute_quest");
+public record C2SContributeQuestPacket(BlockPos anchorPos, String questId) implements CustomPacketPayload {
 
-    public static C2SContributeQuestPacket decode(FriendlyByteBuf buf) {
+    public static final Type<C2SContributeQuestPacket> TYPE = new Type<>(
+        ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "c2s_contribute_quest"));
+
+    public static final StreamCodec<FriendlyByteBuf, C2SContributeQuestPacket> STREAM_CODEC =
+        StreamCodec.of(C2SContributeQuestPacket::write, C2SContributeQuestPacket::read);
+
+    private static C2SContributeQuestPacket read(FriendlyByteBuf buf) {
         return new C2SContributeQuestPacket(buf.readBlockPos(), buf.readUtf(64));
     }
 
-    public void encode(FriendlyByteBuf buf) {
-        buf.writeBlockPos(anchorPos);
-        buf.writeUtf(questId, 64);
+    private static void write(FriendlyByteBuf buf, C2SContributeQuestPacket packet) {
+        buf.writeBlockPos(packet.anchorPos());
+        buf.writeUtf(packet.questId(), 64);
     }
 
-    public static class Handler {
-        public static void handle(C2SContributeQuestPacket packet, ServerPlayer player) {
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
+    }
+
+    public static void handle(C2SContributeQuestPacket packet, IPayloadContext context) {
+        ServerPlayer player = (ServerPlayer) context.player();
+        context.enqueueWork(() -> {
             ServerLevel level = (ServerLevel) player.level();
             if (!(level.getBlockEntity(packet.anchorPos()) instanceof TownAnchorBlockEntity)) return;
             if (!(player.containerMenu instanceof TownHubMenu)) return;
@@ -83,15 +97,15 @@ public record C2SContributeQuestPacket(BlockPos anchorPos, String questId) {
             LevelTowns.get(level).markDirty();
             NetworkHelper.pushQuestUpdateToWatchers(level, town, packet.anchorPos());
             if (stockUpdated) NetworkHelper.pushStockToWatchers(level, town, packet.anchorPos());
-        }
+        });
+    }
 
-        private static int countInInventory(ServerPlayer player, Item item) {
-            int count = 0;
-            for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
-                ItemStack s = player.getInventory().getItem(i);
-                if (!s.isEmpty() && s.getItem() == item) count += s.getCount();
-            }
-            return count;
+    private static int countInInventory(ServerPlayer player, Item item) {
+        int count = 0;
+        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+            ItemStack s = player.getInventory().getItem(i);
+            if (!s.isEmpty() && s.getItem() == item) count += s.getCount();
         }
+        return count;
     }
 }

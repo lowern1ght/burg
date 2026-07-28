@@ -1,7 +1,7 @@
 package org.dawnoftime.onceuponatown.block;
 
+import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -20,8 +20,14 @@ import org.dawnoftime.onceuponatown.registry.BlockEntityRegistry;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.Town;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TownAnchorBlock extends BaseEntityBlock {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(TownAnchorBlock.class);
+
+    public static final MapCodec<TownAnchorBlock> CODEC = simpleCodec(TownAnchorBlock::new);
 
     public static Properties defaultProperties() {
         return BlockBehaviour.Properties.of()
@@ -31,6 +37,11 @@ public class TownAnchorBlock extends BaseEntityBlock {
     }
 
     public TownAnchorBlock(Properties props) { super(props); }
+
+    @Override
+    protected MapCodec<? extends BaseEntityBlock> codec() {
+        return CODEC;
+    }
 
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
@@ -43,13 +54,23 @@ public class TownAnchorBlock extends BaseEntityBlock {
     }
 
     @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos,
-                                  Player player, InteractionHand hand, BlockHitResult hit) {
+    public InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos,
+                                             Player player, BlockHitResult hit) {
         if (!level.isClientSide) {
             TownAnchorBlockEntity be = (TownAnchorBlockEntity) level.getBlockEntity(pos);
             if (be != null) {
                 Town town = LevelTowns.get((net.minecraft.server.level.ServerLevel) level).getTownAt(pos).orElse(null);
-                if (town == null) return InteractionResult.FAIL;
+                if (town == null) {
+                    // A campfire with no town behind it. Used to answer with nothing at all, which
+                    // is indistinguishable from a broken screen; this is how the second anchor the
+                    // spawn command placed managed to look identical to the real one.
+                    if (player instanceof ServerPlayer sp) {
+                        sp.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                            "[OUAT] No town is registered at " + pos + " — this campfire is not"
+                            + " a town centre. `/ouat debug verify` lists the ones that are."));
+                    }
+                    return InteractionResult.FAIL;
+                }
                 net.minecraft.nbt.CompoundTag hubData = town.getHubData(pos);
                 hubData.putBoolean("ChatSubscribed", town.isChatSubscriber(player.getUUID()));
                 NetworkHelper.sendTownHubPacket.accept((ServerPlayer) player, hubData);
@@ -59,11 +80,65 @@ public class TownAnchorBlock extends BaseEntityBlock {
         return InteractionResult.SUCCESS;
     }
 
-    // Prevent survival destruction - only creative players can remove it
+    /**
+     * Tells the player why the campfire is about to come straight back. It does not stop the break.
+     *
+     * <p>Worth being exact about, because the old comment here — "only creative players can remove
+     * it" — read as if returning the state cancelled the removal. It does not. Verified in the
+     * bytecode of {@code ServerPlayerGameMode.destroyBlock}: the returned state is stored in a
+     * local and {@code level.removeBlock(pos, false)} is then called <b>unconditionally</b>; the
+     * return only feeds the drop and the effects. Survival is safe for a different reason
+     * entirely — hardness {@code -1} means the mining never finishes. Creative skips mining, so in
+     * creative the block always went.
+     *
+     * <p>The guard that actually holds is {@link #onRemove}.
+     */
     @Override
-    public void playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
-        if (!player.isCreative()) return;
-        super.playerWillDestroy(level, pos, state, player);
+    public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+        if (level instanceof net.minecraft.server.level.ServerLevel serverLevel
+                && player instanceof ServerPlayer sp) {
+            LevelTowns.get(serverLevel).getTownAt(pos).ifPresent(town ->
+                sp.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                    "[OUAT] '" + town.getName() + "' lives here (" + town.getBuildings().size()
+                    + " building(s)). The campfire is the town's door, not the town — remove it and"
+                    + " the settlement would be orphaned, so it is being put back.")));
+        }
+        if (!player.isCreative()) return state;
+        return super.playerWillDestroy(level, pos, state, player);
+    }
+
+    /**
+     * Puts the anchor back whenever it is removed while a town is registered here.
+     *
+     * <p>This is the one hook every route to a missing anchor passes through — a creative click,
+     * {@code /setblock}, {@code /fill}, a wither (blast resistance does not stop one), another mod
+     * writing blocks. Guarding the player's break alone would have covered the least likely of
+     * them, and the cost of missing one is not cosmetic: the record in {@link LevelTowns} survives
+     * with no door, so the panel is unreachable, the builders go on building for a settlement
+     * nobody can see, and {@code getNearestTown} keeps handing the ghost to every citizen that
+     * spawns nearby.
+     *
+     * <p>Deferred by a tick because we are inside the removal: writing the block here would fight
+     * the write that is already in progress. Nothing is lost by re-creating the block entity —
+     * it holds no state of its own, the town is the record in {@code LevelTowns}.
+     *
+     * <p>Which also means this is not a lock. Unregister the town and the block breaks like any
+     * other; the record is what makes the door permanent, so a deliberate removal starts there.
+     */
+    @Override
+    protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState,
+                            boolean movedByPiston) {
+        super.onRemove(state, level, pos, newState, movedByPiston);
+        if (newState.is(this)) return;   // a state change, not a removal
+        if (!(level instanceof net.minecraft.server.level.ServerLevel serverLevel)) return;
+        if (LevelTowns.get(serverLevel).getTownAt(pos).isEmpty()) return;
+
+        serverLevel.getServer().execute(() -> {
+            if (serverLevel.getBlockState(pos).is(this)) return;
+            serverLevel.setBlockAndUpdate(pos, defaultBlockState());
+            LOGGER.warn("[OUAT-INTEGRITY] Town anchor at {} was removed and has been restored"
+                + " — a registered town lives there.", pos);
+        });
     }
 
     // Register a client-side ticker so particles/sounds run every tick like vanilla CampfireBlockEntity

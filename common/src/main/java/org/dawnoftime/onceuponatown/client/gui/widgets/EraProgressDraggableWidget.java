@@ -314,7 +314,7 @@ public class EraProgressDraggableWidget extends DraggableWidget {
 
     private static void renderItemIcon(GuiGraphics g, String iconItemId, int x, int y) {
         try {
-            Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(iconItemId));
+            Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(iconItemId));
             if (item != net.minecraft.world.item.Items.AIR) {
                 g.renderFakeItem(new ItemStack(item), x, y);
             }

@@ -4,6 +4,7 @@
   "entry_pool": "onceuponatown:jobs",
   "icon_item": "minecraft:chiseled_bookshelf",
   "category": "jobs",
+  "zone": "outer",
   "weight": 3,
 
   "required_buildings": [

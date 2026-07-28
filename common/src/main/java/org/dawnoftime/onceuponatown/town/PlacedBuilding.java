@@ -138,7 +138,7 @@ public class PlacedBuilding {
         b.herdFed = !tag.contains("HerdFed") || tag.getBoolean("HerdFed");
         CompoundTag stockTag = tag.getCompound("Stock");
         for (String key : stockTag.getAllKeys()) {
-            Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(key));
+            Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(key));
             b.stock.put(item, stockTag.getInt(key));
         }
         return b;

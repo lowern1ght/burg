@@ -51,13 +51,13 @@ public class BuildingDataHandler {
 
     private static BuildingDef parseDef(JsonObject json) {
         String id = json.get("id").getAsString();
-        ResourceLocation nbt = new ResourceLocation(json.get("nbt").getAsString());
+        ResourceLocation nbt = ResourceLocation.parse(json.get("nbt").getAsString());
 
         List<ProductionEntry> production = new ArrayList<>();
         if (json.has("production")) {
             for (JsonElement el : json.getAsJsonArray("production")) {
                 JsonObject p = el.getAsJsonObject();
-                Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(p.get("item").getAsString()));
+                Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(p.get("item").getAsString()));
                 int unlockAtLevel = p.has("unlock_at_level") ? p.get("unlock_at_level").getAsInt() : -1;
                 production.add(new ProductionEntry(
                     item,
@@ -73,7 +73,7 @@ public class BuildingDataHandler {
         if (json.has("construction_cost")) {
             for (JsonElement el : json.getAsJsonArray("construction_cost")) {
                 JsonObject c = el.getAsJsonObject();
-                Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(c.get("item").getAsString()));
+                Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(c.get("item").getAsString()));
                 costs.add(new ItemCost(item, c.get("amount").getAsInt()));
             }
         }
@@ -98,10 +98,10 @@ public class BuildingDataHandler {
                 List<ItemCost> inputs = new ArrayList<>();
                 for (JsonElement inputEl : t.getAsJsonArray("inputs")) {
                     JsonObject inp = inputEl.getAsJsonObject();
-                    Item inputItem = BuiltInRegistries.ITEM.get(new ResourceLocation(inp.get("item").getAsString()));
+                    Item inputItem = BuiltInRegistries.ITEM.get(ResourceLocation.parse(inp.get("item").getAsString()));
                     inputs.add(new ItemCost(inputItem, inp.get("amount").getAsInt()));
                 }
-                Item outputItem = BuiltInRegistries.ITEM.get(new ResourceLocation(t.get("output").getAsString()));
+                Item outputItem = BuiltInRegistries.ITEM.get(ResourceLocation.parse(t.get("output").getAsString()));
                 int unlockAtLevel = t.has("unlock_at_level") ? t.get("unlock_at_level").getAsInt() : -1;
                 transformations.add(new TransformationRecipe(
                     inputs,
@@ -145,7 +145,7 @@ public class BuildingDataHandler {
                 if (u.has("upgrade_cost")) {
                     for (JsonElement ce : u.getAsJsonArray("upgrade_cost")) {
                         JsonObject c = ce.getAsJsonObject();
-                        Item costItem = BuiltInRegistries.ITEM.get(new ResourceLocation(c.get("item").getAsString()));
+                        Item costItem = BuiltInRegistries.ITEM.get(ResourceLocation.parse(c.get("item").getAsString()));
                         upgradeCost.add(new ItemCost(costItem, c.get("amount").getAsInt()));
                     }
                 }
@@ -159,11 +159,11 @@ public class BuildingDataHandler {
             for (JsonElement el : json.getAsJsonArray("nbt_levels")) {
                 if (el.isJsonObject()) {
                     JsonObject lvl = el.getAsJsonObject();
-                    ResourceLocation lvlNbt = new ResourceLocation(lvl.get("nbt").getAsString());
+                    ResourceLocation lvlNbt = ResourceLocation.parse(lvl.get("nbt").getAsString());
                     int depth = lvl.has("underground_depth") ? lvl.get("underground_depth").getAsInt() : 0;
                     nbtLevels.add(new BuildingDef.NbtLevel(lvlNbt, depth));
                 } else {
-                    nbtLevels.add(new BuildingDef.NbtLevel(new ResourceLocation(el.getAsString()), 0));
+                    nbtLevels.add(new BuildingDef.NbtLevel(ResourceLocation.parse(el.getAsString()), 0));
                 }
             }
         }
@@ -191,8 +191,22 @@ public class BuildingDataHandler {
         if (json.has("initial_stock")) {
             for (JsonElement el : json.getAsJsonArray("initial_stock")) {
                 JsonObject s = el.getAsJsonObject();
-                Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(s.get("item").getAsString()));
+                Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(s.get("item").getAsString()));
                 initialStock.add(new ItemCost(item, s.get("amount").getAsInt()));
+            }
+        }
+
+        // Unknown or absent means ANY, and it says so in the log rather than guessing at a
+        // partition from `category` — the granary and the bakehouse are `jobs` by category and
+        // core by function, so the group cannot decide this.
+        BuildingDef.Zone zone = BuildingDef.Zone.ANY;
+        if (json.has("zone")) {
+            String raw = json.get("zone").getAsString();
+            try {
+                zone = BuildingDef.Zone.valueOf(raw.toUpperCase(java.util.Locale.ROOT));
+            } catch (IllegalArgumentException e) {
+                LOGGER.warn("[OUAT] building '{}' has zone '{}', which is not one of core/outer/any"
+                    + " -- treated as ANY", id, raw);
             }
         }
 
@@ -200,7 +214,7 @@ public class BuildingDataHandler {
             transformations, transformInputRatio, transformEveryTicks,
             productionBonus, stockBonus, residents, upgrades, nbtLevels,
             requiredResidents, requiredBuildings, consumptionPerResident, initialStock,
-            herd, consumptionPerHerd, weight);
+            herd, consumptionPerHerd, weight, zone);
     }
 
     // Builds the NBT payload sent to the client on player join (upgrade info only).

@@ -1,15 +1,19 @@
 package org.dawnoftime.onceuponatown.network;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import org.dawnoftime.onceuponatown.Ouat;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
+import org.dawnoftime.onceuponatown.Constants;
 import org.dawnoftime.onceuponatown.blockentity.TownAnchorBlockEntity;
 import org.dawnoftime.onceuponatown.datapack.TradePriceDataHandler;
 import org.dawnoftime.onceuponatown.screen.TownHubMenu;
@@ -22,12 +26,20 @@ import java.util.List;
 
 // Sent by client when the player confirms a purchase in BUY mode.
 // Carries the list of (itemId, count) pairs staged in the blue zone.
-public record C2SBuyPacket(BlockPos anchorPos, List<Entry> requested) {
-    public static final ResourceLocation ID = Ouat.modResource("c2s_buy");
+public record C2SBuyPacket(BlockPos anchorPos, List<Entry> requested) implements CustomPacketPayload {
+
+    private static final org.slf4j.Logger LOGGER =
+        org.slf4j.LoggerFactory.getLogger(C2SBuyPacket.class);
 
     public record Entry(String itemId, int count) {}
 
-    public static C2SBuyPacket decode(FriendlyByteBuf buf) {
+    public static final Type<C2SBuyPacket> TYPE = new Type<>(
+        ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "c2s_buy"));
+
+    public static final StreamCodec<FriendlyByteBuf, C2SBuyPacket> STREAM_CODEC =
+        StreamCodec.of(C2SBuyPacket::write, C2SBuyPacket::read);
+
+    private static C2SBuyPacket read(FriendlyByteBuf buf) {
         BlockPos pos = buf.readBlockPos();
         int size = buf.readVarInt();
         List<Entry> list = new ArrayList<>(size);
@@ -37,23 +49,51 @@ public record C2SBuyPacket(BlockPos anchorPos, List<Entry> requested) {
         return new C2SBuyPacket(pos, list);
     }
 
-    public void encode(FriendlyByteBuf buf) {
-        buf.writeBlockPos(anchorPos);
-        buf.writeVarInt(requested.size());
-        for (Entry e : requested) {
+    private static void write(FriendlyByteBuf buf, C2SBuyPacket packet) {
+        buf.writeBlockPos(packet.anchorPos());
+        buf.writeVarInt(packet.requested().size());
+        for (Entry e : packet.requested()) {
             buf.writeUtf(e.itemId());
             buf.writeVarInt(e.count());
         }
     }
 
-    public static class Handler {
-        public static void handle(C2SBuyPacket packet, ServerPlayer player) {
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
+    }
+
+    /**
+     * Say why a trade did nothing.
+     *
+     * <p>Every guard in this handler used to `return` in silence, so a player pressing Buy
+     * got no purchase, no message and no log line — indistinguishable from a dead button, and
+     * that is exactly how it was reported. A refusal the player can read costs three lines.
+     */
+    private static void bail(ServerPlayer player, String why) {
+        LOGGER.warn("[OUAT] buy refused: {}", why);
+        player.sendSystemMessage(Component.literal("[OUAT] Trade refused: " + why));
+    }
+
+    public static void handle(C2SBuyPacket packet, IPayloadContext context) {
+        ServerPlayer player = (ServerPlayer) context.player();
+        context.enqueueWork(() -> {
             ServerLevel level = (ServerLevel) player.level();
-            if (!(level.getBlockEntity(packet.anchorPos()) instanceof TownAnchorBlockEntity)) return;
-            if (!(player.containerMenu instanceof TownHubMenu)) return;
+            if (!(level.getBlockEntity(packet.anchorPos()) instanceof TownAnchorBlockEntity)) {
+                bail(player, "no town anchor at " + packet.anchorPos());
+                return;
+            }
+            if (!(player.containerMenu instanceof TownHubMenu)) {
+                bail(player, "the open container is "
+                    + player.containerMenu.getClass().getSimpleName() + ", not TownHubMenu");
+                return;
+            }
 
             Town town = LevelTowns.get(level).getTownAt(packet.anchorPos()).orElse(null);
-            if (town == null) return;
+            if (town == null) {
+                bail(player, "no town registered at " + packet.anchorPos());
+                return;
+            }
 
             // Build validated purchase list and compute total emerald cost
             List<ItemStack> toGive = new ArrayList<>();
@@ -107,6 +147,6 @@ public record C2SBuyPacket(BlockPos anchorPos, List<Entry> requested) {
 
             LevelTowns.get(level).markDirty();
             NetworkHelper.sendStockUpdatePacket.accept(player, town.getStockUpdateData(packet.anchorPos()));
-        }
+        });
     }
 }

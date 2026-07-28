@@ -4,11 +4,34 @@ plugins {
     id 'me.modmuss50.mod-publish-plugin'
 }
 
-// Mixin configuration block — the 1.0.x ModDev plugin does not register a `mixin {}`
-// extension at project level, so the refmap wiring (`mixin { add(...) }`,
-// `config(...)`) belongs to a separate Mixin Gradle plugin that the second pass
-// will add. For this structural pass the manifest attribute below is the only
-// wire-up the build needs.
+// The 1.0.x ModDev plugin has no `mixin {}` DSL, so the Mixin refmap is
+// wired manually.
+//
+// NeoForge 1.21.1 runs with Mojang official mappings at runtime — the same
+// names the mod compiles against. The standard Mixin 0.8.5 annotation
+// processor ships only ObfuscationServiceMCP (searge/notch) and cannot resolve
+// Mojang-mapped @Inject targets, so it is intentionally NOT added to the
+// annotation-processor path. Instead a minimal refmap is emitted directly.
+//
+// The mixin config references "onceuponatown.refmap.json". At runtime the
+// mixin loader reads it, finds no entry for "placeInChunk", and falls back to
+// the method name from the @Inject annotation — which is already the correct
+// Mojang name. The mixin fires.
+
+// Write a minimal refmap so the mixin loader does not log a "refmap can't be
+// read" WARN. The mappings are empty because the method names in the @Inject
+// annotations are already the runtime (Mojang) names.
+def generateRefmap = tasks.register('generateMixinRefmap') {
+    group = 'build'
+    description = 'Writes a minimal mixin refmap for NeoForge (Mojang-mapped runtime)'
+    def output = layout.buildDirectory.file('resources/main/onceuponatown.refmap.json')
+    outputs.file(output)
+    doLast {
+        def target = output.get().asFile
+        target.parentFile.mkdirs()
+        target.text = '{\n  "mappings": {},\n  "data": {}\n}\n'
+    }
+}
 
 neoForge {
     version = "${neoforge_version}"
@@ -24,6 +47,12 @@ neoForge {
         server {
             server()
         }
+        gameTestServer {
+            server()
+            systemProperty 'neoforge.enableGameTest', 'true'
+            systemProperty 'neoforge.gameTestServer', 'true'
+            systemProperty 'neoforge.enabledGameTestNamespaces', "${mod_id}"
+        }
     }
 
     mods {
@@ -37,8 +66,16 @@ sourceSets.main.resources.srcDir 'src/generated/resources'
 
 dependencies {
     compileOnly project(":common")
-    annotationProcessor("org.spongepowered:mixin:0.8.5-SNAPSHOT:processor")
     implementation 'org.jetbrains:annotations:26.0.2'
+}
+
+// Make the generated refmap part of the jar output.
+tasks.named('processResources').configure {
+    dependsOn generateRefmap
+}
+
+tasks.named('jar').configure {
+    dependsOn generateRefmap
 }
 
 jar {

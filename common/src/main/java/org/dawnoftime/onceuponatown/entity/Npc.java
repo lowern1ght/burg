@@ -1,6 +1,7 @@
 package org.dawnoftime.onceuponatown.entity;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -20,6 +21,7 @@ import net.minecraft.world.entity.ai.goal.OpenDoorGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
 import net.minecraft.world.level.pathfinder.PathFinder;
+import org.dawnoftime.onceuponatown.Constants;
 import org.dawnoftime.onceuponatown.entity.ai.OuatWalkNodeEvaluator;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -36,7 +38,7 @@ import org.dawnoftime.onceuponatown.town.Town;
 
 import java.util.List;
 
-public class Npc extends PathfinderMob {
+public class Npc extends PathfinderMob implements TownNpc {
     private static final EntityDataAccessor<Boolean> DATA_IS_READING =
         SynchedEntityData.defineId(Npc.class, EntityDataSerializers.BOOLEAN);
     // Incremented on each block placement; client reads changes to trigger the swing animation.
@@ -63,10 +65,10 @@ public class Npc extends PathfinderMob {
     }
 
     @Override
-    protected void defineSynchedData() {
-        super.defineSynchedData();
-        this.entityData.define(DATA_IS_READING, false);
-        this.entityData.define(DATA_BUILD_GENERATION, 0);
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        super.defineSynchedData(builder);
+        builder.define(DATA_IS_READING, false);
+        builder.define(DATA_BUILD_GENERATION, 0);
     }
 
     @Override
@@ -116,13 +118,13 @@ public class Npc extends PathfinderMob {
     @Override
     public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
-        if (townAnchorPos != null) tag.put("TownAnchorPos", NbtUtils.writeBlockPos(townAnchorPos));
+        if (townAnchorPos != null) tag.put("TownAnchorPos", Constants.writeBlockPos(townAnchorPos));
     }
 
     @Override
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
-        if (tag.contains("TownAnchorPos")) townAnchorPos = NbtUtils.readBlockPos(tag.getCompound("TownAnchorPos"));
+        if (tag.contains("TownAnchorPos")) townAnchorPos = Constants.readBlockPos(tag, "TownAnchorPos");
     }
 
     public void setTownAnchorPos(BlockPos pos) { this.townAnchorPos = pos; }
@@ -176,11 +178,6 @@ public class Npc extends PathfinderMob {
         return true;
     }
 
-    @Override
-    public boolean canBreatheUnderwater() {
-        return false;
-    }
-
     public static AttributeSupplier.Builder createAttributes() {
         return PathfinderMob.createMobAttributes()
             .add(Attributes.MAX_HEALTH, 20.0)
@@ -212,7 +209,35 @@ public class Npc extends PathfinderMob {
         entityData.set(DATA_BUILD_GENERATION, entityData.get(DATA_BUILD_GENERATION) + 1);
     }
 
-    public boolean isCrossingArms() { return false; }
-    public boolean isReading() { return entityData.get(DATA_IS_READING); }
-    public int getBuildGeneration() { return entityData.get(DATA_BUILD_GENERATION); }
+    @Override public boolean isCrossingArms() { return false; }
+    /**
+     * This builder's name.
+     *
+     * <p>A builder is as much a person as a resident — naming only the citizens left the one
+     * NPC the player watches all day anonymous, which reads as an oversight rather than a
+     * distinction. Derived from the UUID, so nothing is saved and nothing can drift.
+     *
+     * <p>Not {@code setCustomName}, which is what this used to do. A custom name IS the name
+     * tag: storing identity in it meant a player with one anvil could overwrite who somebody
+     * was, permanently. The renderer draws this instead, and a tag laid over it hides it
+     * without destroying it.
+     */
+    public String givenName() {
+        return CitizenNames.of(getUUID());
+    }
+
+    @Override public boolean isReading() { return entityData.get(DATA_IS_READING); }
+    @Override public int getBuildGeneration() { return entityData.get(DATA_BUILD_GENERATION); }
+
+    // The builder's own outfit. Held on the entity rather than in the render layer so a
+    // single layer serves every town NPC; the layer used to name one texture as a constant.
+    private static final ResourceLocation BUILDER_CLOTHES =
+        ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "textures/entity/npc/builder_clothes.png");
+
+    @Override public ResourceLocation clothesTexture() { return BUILDER_CLOTHES; }
+
+    @Override public int getClientLastBuildGeneration() { return clientLastBuildGeneration; }
+    @Override public void setClientLastBuildGeneration(int value) { clientLastBuildGeneration = value; }
+    @Override public float getClientBuildPlacedAtAge() { return clientBuildPlacedAtAge; }
+    @Override public void setClientBuildPlacedAtAge(float value) { clientBuildPlacedAtAge = value; }
 }

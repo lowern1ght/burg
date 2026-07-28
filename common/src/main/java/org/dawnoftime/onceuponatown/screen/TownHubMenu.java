@@ -61,7 +61,7 @@ public class TownHubMenu extends AbstractContainerMenu {
             Item item = BuiltInRegistries.ITEM.get(rl);
             if (item == null || item == Items.AIR) continue;
             while (count > 0 && slot < CHEST_SIZE) {
-                int stackCount = Math.min(count, item.getMaxStackSize());
+                int stackCount = Math.min(count, item.getDefaultMaxStackSize());
                 chestContainer.setItem(slot++, new ItemStack(item, stackCount));
                 count -= stackCount;
             }
@@ -124,7 +124,7 @@ public class TownHubMenu extends AbstractContainerMenu {
             int stock = inv.getStock(item);
             if (stock <= 0) continue;
             while (stock > 0 && slot < CHEST_SIZE) {
-                int count = Math.min(stock, item.getMaxStackSize());
+                int count = Math.min(stock, item.getDefaultMaxStackSize());
                 container.setItem(slot++, new ItemStack(item, count));
                 stock -= count;
             }

@@ -20,6 +20,7 @@ logoBlur = false
 credits = "${credits}" #optional
 authors = "${mod_author}" #optional
 description = '''${description}''' #mandatory (Supports multiline text)
+showAsDataPack = true # Surface the built-in mod datapack on the world creation datapack list
 
 # The mixin config entries to load; the file lives alongside this mods.toml in META-INF.
 [[mixins]]

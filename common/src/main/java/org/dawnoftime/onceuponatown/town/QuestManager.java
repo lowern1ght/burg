@@ -17,7 +17,7 @@ public class QuestManager {
         for (QuestDef.ConditionTemplate ct : def.conditions()) {
             Quest.Condition c = new Quest.Condition();
             c.type = ct.type();
-            if (ct.item() != null) c.item = BuiltInRegistries.ITEM.get(new ResourceLocation(ct.item()));
+            if (ct.item() != null) c.item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(ct.item()));
             c.required = ct.required();
             c.sendToStock = ct.sendToStock();
             q.conditions.add(c);
@@ -25,7 +25,7 @@ public class QuestManager {
         if (def.reward() != null) {
             Quest.Reward r = new Quest.Reward();
             r.type = def.reward().type();
-            if (def.reward().item() != null) r.item = BuiltInRegistries.ITEM.get(new ResourceLocation(def.reward().item()));
+            if (def.reward().item() != null) r.item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(def.reward().item()));
             r.amount = def.reward().amount();
             q.reward = r;
         }

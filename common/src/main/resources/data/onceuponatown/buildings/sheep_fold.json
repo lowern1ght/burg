@@ -1,0 +1,123 @@
+{
+  "id": "sheep_fold",
+  "nbt": "onceuponatown:livestock/sheep_fold/sheep_fold",
+  "entry_pool": "onceuponatown:jobs",
+  "icon_item": "minecraft:white_wool",
+  "category": "jobs",
+  "zone": "outer",
+  "weight": 2,
+  "herd": 2,
+  "consumption_per_herd": 1.0,
+  "required_buildings": [
+    {
+      "defId": "wheat_field",
+      "count": 1
+    }
+  ],
+  "construction_cost": [
+    {
+      "item": "minecraft:oak_log",
+      "amount": 38
+    },
+    {
+      "item": "minecraft:cobblestone",
+      "amount": 8
+    }
+  ],
+  "production": [
+    {
+      "item": "minecraft:mutton",
+      "amount": 1,
+      "every_ticks": 1600,
+      "capacity_stacks": 1
+    },
+    {
+      "item": "minecraft:white_wool",
+      "amount": 1,
+      "every_ticks": 2100,
+      "capacity_stacks": 1
+    }
+  ],
+  "upgrades": [
+    {
+      "capacity_stacks_add": 1,
+      "upgrade_cost": [
+        {
+          "item": "minecraft:oak_log",
+          "amount": 15
+        }
+      ]
+    },
+    {
+      "herd_add": 1,
+      "consumption_per_herd_add": 1.0,
+      "amount_add": 1,
+      "upgrade_cost": [
+        {
+          "item": "minecraft:oak_log",
+          "amount": 18
+        },
+        {
+          "item": "minecraft:cobblestone",
+          "amount": 28
+        }
+      ]
+    },
+    {
+      "capacity_stacks_add": 1,
+      "upgrade_cost": [
+        {
+          "item": "minecraft:oak_log",
+          "amount": 26
+        },
+        {
+          "item": "minecraft:cobblestone",
+          "amount": 14
+        }
+      ]
+    },
+    {
+      "herd_add": 1,
+      "consumption_per_herd_add": 1.0,
+      "amount_add": 1,
+      "upgrade_cost": [
+        {
+          "item": "minecraft:oak_log",
+          "amount": 34
+        },
+        {
+          "item": "minecraft:cobblestone",
+          "amount": 18
+        },
+        {
+          "item": "minecraft:white_bed",
+          "amount": 2
+        }
+      ],
+      "residents_add": 2,
+      "consumption_per_resident_add": 0.15
+    },
+    {
+      "cadence_multiplier": 0.1,
+      "capacity_stacks_add": 1,
+      "upgrade_cost": [
+        {
+          "item": "minecraft:oak_log",
+          "amount": 46
+        },
+        {
+          "item": "minecraft:hay_block",
+          "amount": 6
+        }
+      ]
+    }
+  ],
+  "nbt_levels": [
+    "onceuponatown:livestock/sheep_fold/sheep_fold_lvl1",
+    "onceuponatown:livestock/sheep_fold/sheep_fold_lvl2",
+    "onceuponatown:livestock/sheep_fold/sheep_fold_lvl3",
+    "onceuponatown:livestock/sheep_fold/sheep_fold_lvl4",
+    "onceuponatown:livestock/sheep_fold/sheep_fold_lvl5"
+  ],
+  "residents": 0
+}

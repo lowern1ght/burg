@@ -6,7 +6,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.level.block.Blocks;
+import org.dawnoftime.onceuponatown.entity.citizen.Citizens;
 import org.dawnoftime.onceuponatown.building.schematic.BuildSchematic;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicBlock;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicEntity;
@@ -34,6 +36,8 @@ public class UpgradeAction implements BuildAction {
     // Blocks deeper than the base template the target NBT level extends underground.
     // Shifts the placement origin down so underground galleries land at the correct Y.
     private final int undergroundDepth;
+    // Set when a level NBT will not load. Keeps the upgrade from "completing" with nothing built.
+    private boolean failed = false;
 
     public UpgradeAction(PlacedBuilding building, BuildingDef def, int fromLevel, Town town) {
         this.building = building;
@@ -71,6 +75,31 @@ public class UpgradeAction implements BuildAction {
 
         if (fromNbt == null || toNbt == null) return List.of();
 
+        // An unreadable NBT must fail the upgrade, not complete it empty.
+        //
+        // `computeDiff` warns and hands back two empty lists when a template will not load, and
+        // `isFailed` used to be a flat `false` — so the builder walked over, read its plan, placed
+        // nothing, and `onComplete` bumped the level anyway. The building was then recorded one
+        // rung higher than the geometry it actually had, and the rung was gone for good: nothing
+        // ever re-runs a level that is already marked done. `settlement_lvl1` is corrupt in this
+        // repo, and it is `settlement.json`'s ONLY upgrade — so the starter's one upgrade
+        // silently did nothing, and the town said it had done it.
+        if (level.getStructureManager().get(toNbt).isEmpty()) {
+            LOGGER.error("[OUAT-UPGRADE] REFUSED -- building='{}' level {}->{} target NBT cannot be"
+                + " read: '{}'. The level is NOT advanced; fix or restore that file.",
+                def.id, fromLevel, fromLevel + 1, toNbt);
+            failed = true;
+            return List.of();
+        }
+        if (level.getStructureManager().get(fromNbt).isEmpty()) {
+            LOGGER.error("[OUAT-UPGRADE] REFUSED -- building='{}' level {}->{} SOURCE NBT cannot be"
+                + " read: '{}'. Diffing against nothing would rebuild the whole level and could"
+                + " dismantle what is standing, so nothing is touched.",
+                def.id, fromLevel, fromLevel + 1, fromNbt);
+            failed = true;
+            return List.of();
+        }
+
         BuildSchematic.DiffResult diff = BuildSchematic.computeDiff(level, fromNbt, toNbt, building.rotation, undergroundDepth);
 
         List<SchematicBlock> steps = new ArrayList<>(diff.toRemove().size() + diff.toAdd().size());
@@ -85,6 +114,12 @@ public class UpgradeAction implements BuildAction {
     @Override
     public void onComplete(ServerLevel level, Npc npc) {
         town.removeUnderUpgrade(building.worldPos);
+        // A refused upgrade must not advance the level; the marker above is still cleared so the
+        // building does not stay locked under an upgrade that will never finish.
+        if (failed) {
+            npc.freeHands();
+            return;
+        }
         int newLevel = fromLevel + 1;
 
         if (building.getUpgradeLevel() != fromLevel) {
@@ -119,6 +154,11 @@ public class UpgradeAction implements BuildAction {
                             entity.load(se.nbt());
                             entity.moveTo(se.worldPos().x, se.worldPos().y, se.worldPos().z,
                                           entity.getYRot(), entity.getXRot());
+                            // Same as NewBuildAction: a villager arriving with one of our
+                            // buildings belongs to the town that built it.
+                            if (entity instanceof Villager villager && npc.getTownAnchorPos() != null) {
+                                Citizens.enlist(villager, npc.getTownAnchorPos());
+                            }
                             level.addFreshEntity(entity);
                         }
                     });
@@ -131,7 +171,7 @@ public class UpgradeAction implements BuildAction {
     }
 
     @Override
-    public boolean isFailed() { return false; }
+    public boolean isFailed() { return failed; }
 
     // Upgrades do not persist mid-progress state; the queue entry remains and the NPC
     // will redo the whole upgrade after a server restart.

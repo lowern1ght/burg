@@ -34,13 +34,28 @@ public class BuilderConfigDataHandler {
         public final float planReadChance;
         public final int planReadMinTicks;
         public final int planReadMaxTicks;
+        /**
+         * Radius in blocks from the anchor that counts as the settlement itself.
+         *
+         * <p>Buildings marked {@code core} must land inside it and buildings marked {@code
+         * outer} must land past it; anything {@code any} — streets, walls, resource sites —
+         * ignores it. Set it to 0 to switch zoning off entirely, which is also what makes this
+         * safe to ship: one number reverts the whole behaviour without touching code.
+         *
+         * <p>32 by default, which is about two street pieces out from a 15x14 starter: enough
+         * for the square, its houses, the well and the green, and not so much that the fields
+         * end up in the middle of the village. It is deliberately a flat radius for now —
+         * eventually the wall ring should BE the boundary, since {@code military} is already a
+         * category and a wall already knows where inside is.
+         */
+        public final int coreRadius;
         public final List<ActivityDef> secondaryActivities;
 
         public Config(double walkSpeed, double blockReachDistance, int blockDelayTicks,
                       int burstPauseMinTicks, int burstPauseMaxTicks, int maxBurstExtraBlocks,
                       int stuckFallbackTicks, int movingTimeoutTicks,
                       float planReadChance, int planReadMinTicks, int planReadMaxTicks,
-                      List<ActivityDef> secondaryActivities) {
+                      int coreRadius, List<ActivityDef> secondaryActivities) {
             this.walkSpeed = walkSpeed;
             this.blockReachDistance = blockReachDistance;
             this.blockDelayTicks = blockDelayTicks;
@@ -52,12 +67,13 @@ public class BuilderConfigDataHandler {
             this.planReadChance = planReadChance;
             this.planReadMinTicks = planReadMinTicks;
             this.planReadMaxTicks = planReadMaxTicks;
+            this.coreRadius = coreRadius;
             this.secondaryActivities = secondaryActivities;
         }
     }
 
     private static final Config DEFAULTS = new Config(
-        0.6, 6.0, 4, 10, 18, 2, 100, 3600, 0.05f, 15, 35, List.of()
+        0.6, 6.0, 4, 10, 18, 2, 100, 3600, 0.05f, 15, 35, 32, List.of()
     );
 
     private static Config loaded = DEFAULTS;
@@ -65,7 +81,7 @@ public class BuilderConfigDataHandler {
     public static Config get() { return loaded; }
 
     public static void reload(MinecraftServer server) {
-        ResourceLocation location = new ResourceLocation(Ouat.MOD_ID, "jobs/builder.json");
+        ResourceLocation location = ResourceLocation.fromNamespaceAndPath(Ouat.MOD_ID, "jobs/builder.json");
         Optional<Resource> resource = server.getResourceManager().getResource(location);
         if (resource.isEmpty()) {
             loaded = DEFAULTS;
@@ -97,6 +113,7 @@ public class BuilderConfigDataHandler {
                 getFlt(json, "plan_read_chance",               DEFAULTS.planReadChance),
                 getInt(json, "plan_read_min_ticks",            DEFAULTS.planReadMinTicks),
                 getInt(json, "plan_read_max_ticks",            DEFAULTS.planReadMaxTicks),
+                getInt(json, "core_radius",                    DEFAULTS.coreRadius),
                 activities
             );
         } catch (Exception e) {

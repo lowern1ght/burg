@@ -2,6 +2,7 @@ package org.dawnoftime.onceuponatown.client.model;
 
 import com.google.common.collect.ImmutableList;
 import net.minecraft.client.model.HumanoidModel;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.PartPose;
@@ -14,42 +15,102 @@ import net.minecraft.world.item.CrossbowItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.UseAnim;
 import org.dawnoftime.onceuponatown.Ouat;
-import org.dawnoftime.onceuponatown.entity.Npc;
+import org.dawnoftime.onceuponatown.client.NpcLook;
+import org.dawnoftime.onceuponatown.entity.TownNpc;
 
 import java.util.List;
 
-public class NpcModel<T extends Npc> extends HumanoidModel<T> {
-    public static final ModelLayerLocation LAYER_LOCATION = new ModelLayerLocation(new ResourceLocation(Ouat.MOD_ID, "npc"), "main_layer");
+/**
+ * A villager-shaped mesh on a HumanoidModel base: vanilla's look with vanilla's arm
+ * poses and armour layer, which VillagerModel does not have.
+ *
+ * <p>Typed on plain {@link Mob}, not on {@code Mob & TownNpc}. It has to be: the cast this rig
+ * now carries includes {@code minecraft:villager} itself, and a vanilla class cannot be made
+ * to implement our interface without a mixin. The three things the rig actually wanted off
+ * {@link TownNpc} — folded arms, the reading pose, the build swing — are asked of
+ * {@link org.dawnoftime.onceuponatown.client.NpcLook} instead, which answers for a
+ * {@code TownNpc} by delegation and for a villager by derivation. Everything else here was
+ * only ever using {@code Mob}.
+ */
+public class NpcModel<T extends Mob> extends HumanoidModel<T> {
+    public static final ModelLayerLocation LAYER_LOCATION = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(Ouat.MOD_ID, "npc"), "main_layer");
     private final List<ModelPart> parts;
-    private final ModelPart crossedArms;
+
+    /**
+     * Whether to fold the arms this frame.
+     *
+     * <p>Held as a flag instead of a mesh part. The villager has a single fused cube for its
+     * folded arms and hides the real ones behind it; a person has to actually fold the arms he
+     * has. That means it is a POSE, and a pose has to be applied after {@code super.setupAnim}
+     * or the walk cycle overwrites it — which is why this is set in {@code prepareMobModel} and
+     * used a step later.
+     */
+    private boolean crossingArms;
 
     public NpcModel(ModelPart root) {
         super(root);
-        this.crossedArms = this.body.getChild("crossed_arms");
         this.parts = root.getAllParts().filter((part) -> !part.isEmpty()).collect(ImmutableList.toImmutableList());
     }
 
+    /**
+     * A person, on the player's own mesh and the player's own UV.
+     *
+     * <p>This used to be a villager: head 8x10x8 instead of 8x8x8, a nose, a torso 6 deep
+     * instead of 4, and a 20-tall {@code jacket} robe hanging past the legs. Those four cubes
+     * were the entire villager look — the skeleton underneath was always {@code HumanoidModel},
+     * which IS the player's. So becoming human was replacing a mesh, not replacing a rig, and
+     * the arm poses, the armour layer and every animation carried over untouched.
+     *
+     * <p><b>Player UV, deliberately, and not HumanoidModel's.</b> {@code createMesh} still uses
+     * the pre-1.8 single-arm layout — it mirrors the right arm at (40,16) for the left instead
+     * of reading (32,48) — so a skin drawn for a modern player would come out with a mirrored
+     * left arm and leg. Every part is therefore authored here against the real layout: base at
+     * (0,0)/(16,16)/(40,16)/(32,48)/(0,16)/(16,48), second layer at
+     * (32,0)/(16,32)/(40,32)/(48,48)/(0,32)/(0,48). Any player skin in the world now fits.
+     *
+     * <p>The second layer is what clothing is painted on. {@code NpcClothesLayer} re-renders
+     * this same mesh with the garment texture, so a garment leaves the base regions transparent
+     * and fills only the outer ones — which is exactly how the old robe cube worked, except the
+     * regions are now the ones every skin editor already knows.
+     */
     public static LayerDefinition createBodyLayer() {
         MeshDefinition meshDefinition = HumanoidModel.createMesh(CubeDeformation.NONE, 0.0f);
         PartDefinition root = meshDefinition.getRoot();
-        // Hat
-        PartDefinition hat = root.addOrReplaceChild("hat", CubeListBuilder.create().texOffs(32, 0).addBox(-4.0F, -10.0F, -4.0F, 8.0F, 10.0F, 8.0F, new CubeDeformation(0.51F)), PartPose.ZERO);
-        hat.addOrReplaceChild("hat_rim", CubeListBuilder.create().texOffs(30, 47).addBox(-8.0F, -8.0F, -6.0F, 16.0F, 16.0F, 1.0F), PartPose.rotation((-(float) Math.PI / 2F), 0.0F, 0.0F));
-        // Head
-        PartDefinition head = root.addOrReplaceChild("head", CubeListBuilder.create().texOffs(0, 0).addBox(-4.0F, -10.0F, -4.0F, 8.0F, 10.0F, 8.0F), PartPose.ZERO);
-        head.addOrReplaceChild("nose", CubeListBuilder.create().texOffs(24, 0).addBox(-1.0F, -1.0F, -6.0F, 2.0F, 4.0F, 2.0F), PartPose.offset(0.0F, -2.0F, 0.0F));
-        // Body and crossed arms
-        PartDefinition body = root.addOrReplaceChild("body", CubeListBuilder.create().texOffs(16, 20).addBox(-4.0F, 0.0F, -3.0F, 8.0F, 12.0F, 6.0F), PartPose.ZERO);
-        body.addOrReplaceChild("jacket", CubeListBuilder.create().texOffs(0, 38).addBox(-4.0F, 0.0F, -3.0F, 8.0F, 20.0F, 6.0F, new CubeDeformation(0.5F)), PartPose.ZERO);
-        body.addOrReplaceChild("crossed_arms", CubeListBuilder.create().texOffs(40, 38).addBox(-4.0F, 2.0F, -2.0F, 8.0F, 4.0F, 4.0F, new CubeDeformation(0.0F)).texOffs(44, 22).addBox(-8.0F, -2.0F, -2.0F, 4.0F, 8.0F, 4.0F, new CubeDeformation(0.0F)).texOffs(44, 22).mirror().addBox(4.0F, -2.0F, -2.0F, 4.0F, 8.0F, 4.0F, new CubeDeformation(0.0F)).mirror(false), PartPose.offsetAndRotation(0.0F, 3.0F, -1.0F, -0.75F, 0.0F, 0.0F));
-        // Arms -- pivot at shoulder position matching vanilla HumanoidModel convention.
-        // (0,0,0) placed the pivot at the model center, hiding the arm inside the body mesh
-        // and making all rotation animations invisible. Correct positions: (-5,2,0) / (5,2,0).
-        root.addOrReplaceChild("right_arm", CubeListBuilder.create().texOffs(44, 22).addBox(-3.0F, -2.0F, -2.0F, 4.0F, 12.0F, 4.0F, new CubeDeformation(0.0F)), PartPose.offset(-5.0F, 2.0F, 0.0F));
-        root.addOrReplaceChild("left_arm", CubeListBuilder.create().texOffs(44, 22).mirror().addBox(-1.0F, -2.0F, -2.0F, 4.0F, 12.0F, 4.0F, new CubeDeformation(0.0F)).mirror(false), PartPose.offset(5.0F, 2.0F, 0.0F));
-        // Legs
-        root.addOrReplaceChild("right_leg", CubeListBuilder.create().texOffs(0, 22).addBox(-2.0F, 0.0F, -2.0F, 4.0F, 12.0F, 4.0F), PartPose.offset(-2.0F, 12.0F, 0.0F));
-        root.addOrReplaceChild("left_leg", CubeListBuilder.create().texOffs(0, 22).mirror().addBox(-2.0F, 0.0F, -2.0F, 4.0F, 12.0F, 4.0F), PartPose.offset(2.0F, 12.0F, 0.0F));
+        // 0.25 for the body and limbs, 0.5 for the head, matching a vanilla player exactly.
+        CubeDeformation outer = new CubeDeformation(0.25F);
+        CubeDeformation hatLayer = new CubeDeformation(0.5F);
+
+        root.addOrReplaceChild("head", CubeListBuilder.create()
+            .texOffs(0, 0).addBox(-4.0F, -8.0F, -4.0F, 8.0F, 8.0F, 8.0F), PartPose.ZERO);
+        // A sibling of head, not a child of it — HumanoidModel reads `hat` off the root and
+        // copies the head's rotation onto it every frame in setupAnim.
+        root.addOrReplaceChild("hat", CubeListBuilder.create()
+            .texOffs(32, 0).addBox(-4.0F, -8.0F, -4.0F, 8.0F, 8.0F, 8.0F, hatLayer), PartPose.ZERO);
+
+        root.addOrReplaceChild("body", CubeListBuilder.create()
+            .texOffs(16, 16).addBox(-4.0F, 0.0F, -2.0F, 8.0F, 12.0F, 4.0F)
+            .texOffs(16, 32).addBox(-4.0F, 0.0F, -2.0F, 8.0F, 12.0F, 4.0F, outer), PartPose.ZERO);
+
+        // Pivots at the shoulder, not the model centre: (0,0,0) buried the arm inside the body
+        // mesh and made every rotation animation invisible.
+        root.addOrReplaceChild("right_arm", CubeListBuilder.create()
+            .texOffs(40, 16).addBox(-3.0F, -2.0F, -2.0F, 4.0F, 12.0F, 4.0F)
+            .texOffs(40, 32).addBox(-3.0F, -2.0F, -2.0F, 4.0F, 12.0F, 4.0F, outer),
+            PartPose.offset(-5.0F, 2.0F, 0.0F));
+        root.addOrReplaceChild("left_arm", CubeListBuilder.create()
+            .texOffs(32, 48).addBox(-1.0F, -2.0F, -2.0F, 4.0F, 12.0F, 4.0F)
+            .texOffs(48, 48).addBox(-1.0F, -2.0F, -2.0F, 4.0F, 12.0F, 4.0F, outer),
+            PartPose.offset(5.0F, 2.0F, 0.0F));
+
+        root.addOrReplaceChild("right_leg", CubeListBuilder.create()
+            .texOffs(0, 16).addBox(-2.0F, 0.0F, -2.0F, 4.0F, 12.0F, 4.0F)
+            .texOffs(0, 32).addBox(-2.0F, 0.0F, -2.0F, 4.0F, 12.0F, 4.0F, outer),
+            PartPose.offset(-1.9F, 12.0F, 0.0F));
+        root.addOrReplaceChild("left_leg", CubeListBuilder.create()
+            .texOffs(16, 48).addBox(-2.0F, 0.0F, -2.0F, 4.0F, 12.0F, 4.0F)
+            .texOffs(0, 48).addBox(-2.0F, 0.0F, -2.0F, 4.0F, 12.0F, 4.0F, outer),
+            PartPose.offset(1.9F, 12.0F, 0.0F));
+
         return LayerDefinition.create(meshDefinition, 64, 64);
     }
 
@@ -66,7 +127,7 @@ public class NpcModel<T extends Npc> extends HumanoidModel<T> {
             this.rightArmPose = rightArmPose;
             this.leftArmPose = leftArmPose;
         }
-        setCrossedArms(npc.isCrossingArms());
+        setCrossedArms(NpcLook.isCrossingArms(npc));
         super.prepareMobModel(npc, limbSwing, limbSwingAmount, partialTick);
     }
 
@@ -74,33 +135,53 @@ public class NpcModel<T extends Npc> extends HumanoidModel<T> {
     public void setupAnim(T npc, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch) {
         super.setupAnim(npc, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch);
         this.head.zRot = 0.0F;
-        this.hat.xRot = this.head.xRot;
 
-        // Detect a new block placement: generation counter changed since last frame.
-        int gen = npc.getBuildGeneration();
-        if (gen != npc.clientLastBuildGeneration) {
-            npc.clientLastBuildGeneration = gen;
-            npc.clientBuildPlacedAtAge = ageInTicks;
+        // The build swing needs somewhere on the entity to keep its per-frame cursor, so it
+        // stays a TownNpc-only animation. A villager does not lay blocks and never enters it.
+        if (npc instanceof TownNpc builder) {
+            // Detect a new block placement: generation counter changed since last frame.
+            int gen = builder.getBuildGeneration();
+            if (gen != builder.getClientLastBuildGeneration()) {
+                builder.setClientLastBuildGeneration(gen);
+                builder.setClientBuildPlacedAtAge(ageInTicks);
+            }
+
+            float elapsed = ageInTicks - builder.getClientBuildPlacedAtAge();
+            float duration = 7.0f; // ticks for the swing animation to complete
+            if (elapsed >= 0 && elapsed <= duration) {
+                // t = 1.0 at placement, 0.0 at end of animation.
+                float t = 1.0f - (elapsed / duration);
+                // Ease-out quadratic: fast start, decelerates to rest.
+                float swing = t * (2.0f - t);
+                // Lateral arc: peaks mid-animation to give the arm a natural curved path.
+                float arc = Mth.sin((float) Math.PI * (1.0f - t));
+                this.rightArm.xRot -= swing * 1.2F;
+                this.rightArm.zRot -= arc * 0.18F;
+            }
         }
 
-        float elapsed = ageInTicks - npc.clientBuildPlacedAtAge;
-        float duration = 7.0f; // ticks for the swing animation to complete
-        if (elapsed >= 0 && elapsed <= duration) {
-            // t = 1.0 at placement, 0.0 at end of animation.
-            float t = 1.0f - (elapsed / duration);
-            // Ease-out quadratic: fast start, decelerates to rest.
-            float swing = t * (2.0f - t);
-            // Lateral arc: peaks mid-animation to give the arm a natural curved path.
-            float arc = Mth.sin((float) Math.PI * (1.0f - t));
-            this.rightArm.xRot -= swing * 1.2F;
-            this.rightArm.zRot -= arc * 0.18F;
-        }
-
+        // Both of these are poses that override the walk cycle, so they run last. Reading wins
+        // over folded arms: someone holding a plan open is plainly not standing idle.
+        if (this.crossingArms) animateCrossedArms();
         animateReadingPose(npc);
+
+        /*
+         * The head cloth is on `hat`, so `hat` has to follow the head — and `copyFrom` is the
+         * only thing that does it in all three axes, which is exactly why vanilla ends
+         * HumanoidModel.setupAnim with this same call.
+         *
+         * It has to be LAST. Vanilla's copy happens inside super, and everything above this line
+         * moves the head afterwards: `head.zRot = 0` and, when a builder is reading a plan,
+         * `head.xRot = 0.38`. What used to stand here was `hat.xRot = head.xRot` in two places —
+         * one axis, hand-synced, so a tilted head left its zRot behind on the hat. That was
+         * invisible while the cube was empty and would have been a head cloth sliding off a
+         * woman's head the moment she looked up.
+         */
+        this.hat.copyFrom(this.head);
     }
 
     private void animateReadingPose(T npc) {
-        if (npc.isReading()) {
+        if (NpcLook.isReading(npc)) {
             if (!npc.isLeftHanded()) {
                 this.rightArm.xRot = -1.65F;
                 this.rightArm.yRot = -0.36F;
@@ -121,7 +202,6 @@ public class NpcModel<T extends Npc> extends HumanoidModel<T> {
                 this.rightArm.zRot = -0.1F;
             }
             this.head.xRot = 0.38F;
-            this.hat.xRot = this.head.xRot;
         }
     }
 
@@ -146,9 +226,17 @@ public class NpcModel<T extends Npc> extends HumanoidModel<T> {
     }
 
     public void setCrossedArms(boolean crossedArms) {
-        this.crossedArms.visible = crossedArms;
-        this.rightArm.visible = !crossedArms;
-        this.leftArm.visible = !crossedArms;
+        this.crossingArms = crossedArms;
+    }
+
+    /** Both arms in across the chest, one forearm resting over the other. */
+    private void animateCrossedArms() {
+        this.rightArm.xRot = -0.80F;
+        this.rightArm.yRot = 0.45F;
+        this.rightArm.zRot = 0.35F;
+        this.leftArm.xRot = -0.95F;
+        this.leftArm.yRot = -0.45F;
+        this.leftArm.zRot = -0.35F;
     }
 
 }

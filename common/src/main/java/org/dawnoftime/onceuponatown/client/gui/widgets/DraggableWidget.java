@@ -100,8 +100,8 @@ public abstract class DraggableWidget implements Renderable, GuiEventListener {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        return contentMouseScrolled(mouseX, mouseY, delta);
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        return contentMouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
     protected void onClose() { closed = true; }
@@ -148,5 +148,5 @@ public abstract class DraggableWidget implements Renderable, GuiEventListener {
     protected boolean contentMouseClicked(double mouseX, double mouseY, int button) { return false; }
     protected boolean contentMouseDragged(double mX, double mY, int button, double dX, double dY) { return false; }
     protected boolean contentMouseReleased(double mouseX, double mouseY, int button) { return false; }
-    protected boolean contentMouseScrolled(double mouseX, double mouseY, double delta) { return false; }
+    protected boolean contentMouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) { return false; }
 }

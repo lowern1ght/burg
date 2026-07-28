@@ -2,25 +2,36 @@ package org.dawnoftime.onceuponatown.network;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import org.dawnoftime.onceuponatown.Ouat;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
+import org.dawnoftime.onceuponatown.Constants;
 import org.dawnoftime.onceuponatown.client.TownHubClientState;
 
-public record S2CQuestUpdatePacket(CompoundTag data) {
-    public static final ResourceLocation ID = Ouat.modResource("s2c_quest_update");
+public record S2CQuestUpdatePacket(CompoundTag data) implements CustomPacketPayload {
 
-    public static S2CQuestUpdatePacket decode(FriendlyByteBuf buf) {
+    public static final Type<S2CQuestUpdatePacket> TYPE = new Type<>(
+        ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "s2c_quest_update"));
+
+    public static final StreamCodec<FriendlyByteBuf, S2CQuestUpdatePacket> STREAM_CODEC =
+        StreamCodec.of(S2CQuestUpdatePacket::write, S2CQuestUpdatePacket::read);
+
+    private static S2CQuestUpdatePacket read(FriendlyByteBuf buf) {
         return new S2CQuestUpdatePacket(buf.readNbt());
     }
 
-    public void encode(FriendlyByteBuf buf) {
-        buf.writeNbt(data);
+    private static void write(FriendlyByteBuf buf, S2CQuestUpdatePacket packet) {
+        buf.writeNbt(packet.data());
     }
 
-    public static class Handler {
-        public static void handle(S2CQuestUpdatePacket packet) {
-            net.minecraft.client.Minecraft.getInstance().execute(() ->
-                TownHubClientState.pendingQuestUpdate = packet.data());
-        }
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
+    }
+
+    public static void handle(S2CQuestUpdatePacket packet, IPayloadContext context) {
+        context.enqueueWork(() ->
+            TownHubClientState.pendingQuestUpdate = packet.data());
     }
 }

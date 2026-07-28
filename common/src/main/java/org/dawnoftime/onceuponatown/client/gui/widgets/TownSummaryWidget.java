@@ -266,7 +266,7 @@ public class TownSummaryWidget extends DraggableWidget {
             int resColor = activeResidents >= totalResidents ? 0xFF55FF55
                          : activeResidents * 2 >= totalResidents ? 0xFFFFAA00
                          : 0xFFFF5555;
-            Item egg = BuiltInRegistries.ITEM.get(new ResourceLocation("minecraft:villager_spawn_egg"));
+            Item egg = BuiltInRegistries.ITEM.get(ResourceLocation.parse("minecraft:villager_spawn_egg"));
             MutableComponent txt = Component.literal("Residents: ")
                 .withStyle(s -> s.withColor(0xFFCCCCCC))
                 .append(Component.literal(String.valueOf(activeResidents)).withStyle(s -> s.withColor(resColor)))
@@ -278,7 +278,7 @@ public class TownSummaryWidget extends DraggableWidget {
             int herdColor = activeHerd >= totalHerd ? 0xFF55FF55
                           : activeHerd * 2 >= totalHerd ? 0xFFFFAA00
                           : 0xFFFF5555;
-            Item pig = BuiltInRegistries.ITEM.get(new ResourceLocation("minecraft:pig_spawn_egg"));
+            Item pig = BuiltInRegistries.ITEM.get(ResourceLocation.parse("minecraft:pig_spawn_egg"));
             MutableComponent txt = Component.literal("Herd: ")
                 .withStyle(s -> s.withColor(0xFFCCCCCC))
                 .append(Component.literal(String.valueOf(activeHerd)).withStyle(s -> s.withColor(herdColor)))
@@ -337,13 +337,13 @@ public class TownSummaryWidget extends DraggableWidget {
             rows.add(new Row(null, Component.literal("Produces / min").withStyle(s -> s.withColor(COLOR_SECTION_TEXT)), RowType.SECTION_HEADER));
             rows.add(new Row(null, null, RowType.PROD_GRID));
             for (Map.Entry<String, int[]> e : prodData.entrySet()) {
-                Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(e.getKey()));
+                Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(e.getKey()));
                 int displayCount = perMinCount(e.getValue()[0], e.getValue()[1]);
                 productionCells.add(new GridCell(new ItemStack(item, displayCount), false));
             }
             for (Map.Entry<String, int[]> e : lockedProdData.entrySet()) {
                 if (prodData.containsKey(e.getKey())) continue;
-                Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(e.getKey()));
+                Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(e.getKey()));
                 int displayCount = perMinCount(e.getValue()[0], e.getValue()[1]);
                 productionCells.add(new GridCell(new ItemStack(item, displayCount), true));
             }
@@ -353,13 +353,13 @@ public class TownSummaryWidget extends DraggableWidget {
             rows.add(new Row(null, Component.literal("Transforms / min").withStyle(s -> s.withColor(COLOR_SECTION_TEXT)), RowType.SECTION_HEADER));
             rows.add(new Row(null, null, RowType.TRANSFORM_GRID));
             for (Map.Entry<String, int[]> e : transforms.entrySet()) {
-                Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(e.getKey()));
+                Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(e.getKey()));
                 int displayCount = perMinCount(e.getValue()[0], e.getValue()[1]);
                 transformCells.add(new GridCell(new ItemStack(item, displayCount), false));
             }
             for (Map.Entry<String, int[]> e : lockedTransforms.entrySet()) {
                 if (transforms.containsKey(e.getKey())) continue;
-                Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(e.getKey()));
+                Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(e.getKey()));
                 int displayCount = perMinCount(e.getValue()[0], e.getValue()[1]);
                 transformCells.add(new GridCell(new ItemStack(item, displayCount), true));
             }
@@ -523,10 +523,10 @@ public class TownSummaryWidget extends DraggableWidget {
     }
 
     @Override
-    protected boolean contentMouseScrolled(double mx, double my, double delta) {
+    protected boolean contentMouseScrolled(double mx, double my, double scrollX, double scrollY) {
         if (!isMouseOver(mx, my)) return false;
         int maxScroll = Math.max(0, totalH - VISIBLE_H);
-        scrollPx = Math.max(0, Math.min(maxScroll, scrollPx - (int)(delta * 10)));
+        scrollPx = Math.max(0, Math.min(maxScroll, scrollPx - (int)(scrollY * 10)));
         return true;
     }
 

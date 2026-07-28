@@ -52,7 +52,7 @@ public class ChunkGeneratorMixin {
             .getKey(self.getStructure());
 
         if (structureKey == null) return;
-        if (!structureKey.equals(new ResourceLocation(Ouat.MOD_ID, "plains_town"))) return;
+        if (!structureKey.equals(ResourceLocation.fromNamespaceAndPath(Ouat.MOD_ID, "plains_town"))) return;
 
         // Use the starter piece (first in list) as anchor reference.
         // The full structure BB shifts with random growth; the starter piece is always the settlement.

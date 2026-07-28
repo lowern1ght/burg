@@ -179,7 +179,7 @@ public class BuildGoal implements BuildTask {
 
         if (b.nbt() != null) {
             BlockEntity be = sl.getBlockEntity(worldPos);
-            if (be != null) be.load(b.nbt().copy());
+            if (be != null) be.loadWithComponents(b.nbt().copy(), sl.registryAccess());
         }
 
         buildProgress++;

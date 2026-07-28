@@ -28,6 +28,28 @@ public class NetworkHelper {
     public static BiConsumer<ServerPlayer, CompoundTag> sendCitizenUpdatePacket = (player, data) -> {};
     public static BiConsumer<ServerPlayer, CompoundTag> sendLogEntryPacket     = (player, data) -> {};
 
+    /**
+     * Publishes "this villager is ours" to everyone who can see it.
+     *
+     * <p>Takes the entity rather than a UUID because the loader resolves the audience from
+     * it — {@code PacketDistributor.sendToPlayersTrackingEntity}. Called whenever membership
+     * changes, which is the only time the client's copy can go stale.
+     */
+    public static BiConsumer<net.minecraft.world.entity.Entity, Boolean> broadcastVillagerIdentity =
+        (villager, member) -> {};
+
+    /**
+     * Same fact, to one player who has just started tracking the villager.
+     *
+     * <p>Needed as well as the broadcast: a player walking into a town that was enlisted long
+     * ago missed the broadcast entirely, and would see its citizens as strangers.
+     */
+    public static VillagerIdentitySender sendVillagerIdentity = (to, villager, member) -> {};
+
+    public interface VillagerIdentitySender {
+        void send(ServerPlayer to, UUID villager, boolean member);
+    }
+
     // C2S delegates (set by each platform client-side init)
     public static Consumer<BlockPos>            sendToggleChatBroadcastPacket  = pos              -> {};
     public static BiConsumer<BlockPos, String>  sendQueueBuildingPacket        = (pos, defId)     -> {};

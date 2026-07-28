@@ -4,6 +4,7 @@
   "entry_pool": "onceuponatown:jobs",
   "icon_item": "minecraft:porkchop",
   "category": "jobs",
+  "zone": "outer",
   "weight": 2,
 
   "herd": 2,

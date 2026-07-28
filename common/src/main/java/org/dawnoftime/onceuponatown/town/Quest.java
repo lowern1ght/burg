@@ -30,7 +30,7 @@ public class Quest {
         public static Condition fromNbt(CompoundTag tag) {
             Condition c = new Condition();
             c.type = tag.getString("Type");
-            if (tag.contains("Item")) c.item = BuiltInRegistries.ITEM.get(new ResourceLocation(tag.getString("Item")));
+            if (tag.contains("Item")) c.item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(tag.getString("Item")));
             c.required = tag.getInt("Required");
             c.sendToStock = tag.contains("SendToStock") && tag.getBoolean("SendToStock");
             return c;
@@ -53,7 +53,7 @@ public class Quest {
         public static Reward fromNbt(CompoundTag tag) {
             Reward r = new Reward();
             r.type = tag.getString("Type");
-            if (tag.contains("Item")) r.item = BuiltInRegistries.ITEM.get(new ResourceLocation(tag.getString("Item")));
+            if (tag.contains("Item")) r.item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(tag.getString("Item")));
             r.amount = tag.getInt("Amount");
             return r;
         }

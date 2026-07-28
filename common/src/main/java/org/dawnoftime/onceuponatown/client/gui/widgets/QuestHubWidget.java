@@ -402,10 +402,10 @@ public class QuestHubWidget extends DraggableWidget {
     }
 
     @Override
-    protected boolean contentMouseScrolled(double mx, double my, double delta) {
+    protected boolean contentMouseScrolled(double mx, double my, double scrollX, double scrollY) {
         if (!isMouseOver(mx, my)) return false;
         int maxScroll = Math.max(0, totalH - VISIBLE_H);
-        scrollPx = Math.max(0, Math.min(maxScroll, scrollPx - (int)(delta * 10)));
+        scrollPx = Math.max(0, Math.min(maxScroll, scrollPx - (int)(scrollY * 10)));
         return true;
     }
 

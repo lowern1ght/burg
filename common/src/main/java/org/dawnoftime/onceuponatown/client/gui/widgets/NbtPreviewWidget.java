@@ -14,6 +14,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
@@ -92,12 +93,12 @@ public class NbtPreviewWidget {
         blocks = null;
         loadFailed = false;
         try {
-            ResourceLocation defLoc = new ResourceLocation(nbtPath);
+            ResourceLocation defLoc = ResourceLocation.parse(nbtPath);
             String classLoaderPath = "/data/" + defLoc.getNamespace()
-                + "/structures/" + defLoc.getPath() + ".nbt";
+                + "/structure/" + defLoc.getPath() + ".nbt";
             InputStream stream = NbtPreviewWidget.class.getResourceAsStream(classLoaderPath);
             if (stream == null) throw new java.io.IOException("NBT not found: " + classLoaderPath);
-            CompoundTag nbt = NbtIo.readCompressed(stream);
+            CompoundTag nbt = NbtIo.readCompressed(stream, NbtAccounter.unlimitedHeap());
             stream.close();
 
             ListTag paletteTag = nbt.getList("palette", Tag.TAG_COMPOUND);
@@ -265,9 +266,9 @@ public class NbtPreviewWidget {
         g.fill(bx + 3, by + 7, bx + 5, by + 9, k);
     }
 
-    public boolean mouseScrolled(double mx, double my, double delta) {
+    public boolean mouseScrolled(double mx, double my, double scrollX, double scrollY) {
         if (!isOver(mx, my)) return false;
-        scale = (float) Math.max(2.0, Math.min(24.0, scale + delta * 0.5));
+        scale = (float) Math.max(2.0, Math.min(24.0, scale + scrollY * 0.5));
         return true;
     }
 

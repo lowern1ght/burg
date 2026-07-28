@@ -145,7 +145,7 @@ public class TickScheduler {
             if (!found) return false;
         }
         for (QuestDef.StockCondition sc : prereqs.stockConditions()) {
-            var item = BuiltInRegistries.ITEM.get(new ResourceLocation(sc.item()));
+            var item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(sc.item()));
             int stock = inventory.getStock(item);
             if (stock < sc.min() || stock > sc.max()) return false;
         }

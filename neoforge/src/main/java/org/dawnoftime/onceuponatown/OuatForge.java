@@ -1,50 +1,47 @@
 package org.dawnoftime.onceuponatown;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.extensions.IForgeMenuType;
-import net.minecraftforge.event.RegisterCommandsEvent;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.server.ServerStartingEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.network.NetworkDirection;
-import net.minecraftforge.network.NetworkRegistry;
-import net.minecraftforge.network.PacketDistributor;
-import net.minecraftforge.network.simple.SimpleChannel;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
-import net.minecraftforge.server.ServerLifecycleHooks;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModLoadingContext;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.neoforge.attachment.AttachmentType;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.registries.NeoForgeRegistries;
+import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.level.ChunkEvent;
+import net.neoforged.neoforge.event.server.ServerStartingEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+import net.neoforged.neoforge.registries.DeferredBlock;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredItem;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import org.dawnoftime.onceuponatown.block.TownAnchorBlock;
-import org.dawnoftime.onceuponatown.blockentity.TownAnchorBlockEntity;
-import org.dawnoftime.onceuponatown.command.TownCommand;
-import org.dawnoftime.onceuponatown.datapack.BuilderConfigDataHandler;
-import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
-import org.dawnoftime.onceuponatown.datapack.BuildingListDataHandler;
-import org.dawnoftime.onceuponatown.datapack.EraTransitionDataHandler;
-import org.dawnoftime.onceuponatown.datapack.FoodListDataHandler;
-import org.dawnoftime.onceuponatown.datapack.QuestDataHandler;
-import org.dawnoftime.onceuponatown.datapack.TradePriceDataHandler;
-import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.network.C2SAdvanceEraPacket;
 import org.dawnoftime.onceuponatown.network.C2SBuyPacket;
-import org.dawnoftime.onceuponatown.network.C2SDepositPacket;
 import org.dawnoftime.onceuponatown.network.C2SContributeQuestPacket;
+import org.dawnoftime.onceuponatown.network.C2SDepositPacket;
 import org.dawnoftime.onceuponatown.network.C2SQueueBuildingPacket;
 import org.dawnoftime.onceuponatown.network.C2SRemoveQueuedBuildingPacket;
 import org.dawnoftime.onceuponatown.network.C2SRequestStockPacket;
@@ -54,11 +51,26 @@ import org.dawnoftime.onceuponatown.network.NetworkHelper;
 import org.dawnoftime.onceuponatown.network.S2CBuildingDefsPacket;
 import org.dawnoftime.onceuponatown.network.S2CBuildingListPacket;
 import org.dawnoftime.onceuponatown.network.S2CCitizenUpdatePacket;
-import org.dawnoftime.onceuponatown.network.S2CLogEntryPacket;
 import org.dawnoftime.onceuponatown.network.S2CEraUpdatePacket;
+import org.dawnoftime.onceuponatown.network.S2CLogEntryPacket;
 import org.dawnoftime.onceuponatown.network.S2CQuestUpdatePacket;
 import org.dawnoftime.onceuponatown.network.S2CStockUpdatePacket;
 import org.dawnoftime.onceuponatown.network.S2CTownHubPacket;
+import org.dawnoftime.onceuponatown.network.S2CVillagerIdentityPacket;
+import org.dawnoftime.onceuponatown.blockentity.TownAnchorBlockEntity;
+import org.dawnoftime.onceuponatown.command.TownCommand;
+import org.dawnoftime.onceuponatown.datapack.BuilderConfigDataHandler;
+import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
+import org.dawnoftime.onceuponatown.datapack.BuildingListDataHandler;
+import org.dawnoftime.onceuponatown.datapack.EraTransitionDataHandler;
+import org.dawnoftime.onceuponatown.datapack.FoodListDataHandler;
+import org.dawnoftime.onceuponatown.datapack.QuestDataHandler;
+import org.dawnoftime.onceuponatown.datapack.TradePriceDataHandler;
+import org.dawnoftime.onceuponatown.entity.Citizen;
+import org.dawnoftime.onceuponatown.entity.Npc;
+import org.dawnoftime.onceuponatown.entity.citizen.CitizenData;
+import org.dawnoftime.onceuponatown.entity.citizen.Citizens;
+import org.dawnoftime.onceuponatown.registry.AttachmentRegistry;
 import org.dawnoftime.onceuponatown.registry.BlockEntityRegistry;
 import org.dawnoftime.onceuponatown.registry.BlockRegistry;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
@@ -66,76 +78,90 @@ import org.dawnoftime.onceuponatown.registry.ItemRegistry;
 import org.dawnoftime.onceuponatown.registry.MenuRegistry;
 import org.dawnoftime.onceuponatown.screen.TownHubMenu;
 import org.dawnoftime.onceuponatown.tick.TickScheduler;
+import org.dawnoftime.onceuponatown.town.TownIntegrity;
 
-import java.util.Optional;
 import java.util.function.BiFunction;
 
 @Mod(Constants.MOD_ID)
 public class OuatForge {
 
-    private static final String NET_PROTOCOL = "1";
-    static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
-        new ResourceLocation(Constants.MOD_ID, "main"),
-        () -> NET_PROTOCOL,
-        NET_PROTOCOL::equals,
-        NET_PROTOCOL::equals
-    );
-
-    // DeferredRegister is the only valid registration path in Forge - direct Registry.register() is blocked
-    private static final DeferredRegister<Block> BLOCKS =
-        DeferredRegister.create(ForgeRegistries.BLOCKS, Constants.MOD_ID);
+    // DeferredRegister-based registration. The common module's Ouat.init() also registers
+    // the same blocks/items via direct Registry.register() for use by code that runs
+    // before the mod-bus fires (e.g. data-pack reload). Both paths produce equivalent
+    // values because the registry is a single identity map.
+    private static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(Constants.MOD_ID);
     private static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES =
-        DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, Constants.MOD_ID);
+        DeferredRegister.create(BuiltInRegistries.BLOCK_ENTITY_TYPE, Constants.MOD_ID);
     private static final DeferredRegister<EntityType<?>> ENTITY_TYPES =
-        DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, Constants.MOD_ID);
+        DeferredRegister.create(BuiltInRegistries.ENTITY_TYPE, Constants.MOD_ID);
     private static final DeferredRegister<MenuType<?>> MENU_TYPES =
-        DeferredRegister.create(ForgeRegistries.MENU_TYPES, Constants.MOD_ID);
-    private static final DeferredRegister<Item> ITEMS =
-        DeferredRegister.create(ForgeRegistries.ITEMS, Constants.MOD_ID);
+        DeferredRegister.create(BuiltInRegistries.MENU, Constants.MOD_ID);
+    private static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(Constants.MOD_ID);
+    private static final DeferredRegister<AttachmentType<?>> ATTACHMENT_TYPES =
+        DeferredRegister.create(NeoForgeRegistries.Keys.ATTACHMENT_TYPES, Constants.MOD_ID);
 
-    private static final RegistryObject<Block> TOWN_ANCHOR_OBJ =
+    // Town membership on a vanilla villager. `serializable` rather than a Codec because
+    // CitizenData already round-trips itself through CompoundTag and the codec form buys
+    // nothing here. NOT `copyOnDeath` — a villager that dies is not replaced by a copy.
+    private static final DeferredHolder<AttachmentType<?>, AttachmentType<CitizenData>> CITIZEN_DATA_OBJ =
+        ATTACHMENT_TYPES.register("citizen", () ->
+            AttachmentType.<CompoundTag, CitizenData>serializable(CitizenData::new).build());
+
+    private static final DeferredBlock<Block> TOWN_ANCHOR_OBJ =
         BLOCKS.register("town_anchor",
             () -> new TownAnchorBlock(TownAnchorBlock.defaultProperties()));
 
     // Block registry fires before block entity registry, so TOWN_ANCHOR_OBJ.get() is safe here
-    private static final RegistryObject<BlockEntityType<?>> TOWN_ANCHOR_BE_OBJ =
+    private static final DeferredHolder<BlockEntityType<?>, ?> TOWN_ANCHOR_BE_OBJ =
         BLOCK_ENTITY_TYPES.register("town_anchor", () -> {
             BiFunction<BlockPos, BlockState, TownAnchorBlockEntity> factory = TownAnchorBlockEntity::new;
             return BlockEntityType.Builder.of(factory::apply, TOWN_ANCHOR_OBJ.get()).build(null);
         });
 
-    private static final RegistryObject<EntityType<?>> NPC_OBJ =
+    private static final DeferredHolder<EntityType<?>, ?> NPC_OBJ =
         ENTITY_TYPES.register("npc", () ->
             EntityType.Builder.<Npc>of(Npc::new, MobCategory.MISC)
                 .sized(0.6f, 1.95f)
                 .clientTrackingRange(10)
-                .build(new ResourceLocation(Constants.MOD_ID, "npc").toString())
+                .build(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "npc").toString())
         );
 
-    private static final RegistryObject<MenuType<?>> TOWN_HUB_OBJ =
-        MENU_TYPES.register("town_hub",
-            () -> IForgeMenuType.create((syncId, inv, buf) -> new TownHubMenu(syncId, inv)));
+    private static final DeferredHolder<EntityType<?>, ?> CITIZEN_OBJ =
+        ENTITY_TYPES.register("citizen", () ->
+            EntityType.Builder.<Citizen>of(Citizen::new, MobCategory.MISC)
+                .sized(0.6f, 1.95f)
+                .clientTrackingRange(10)
+                .build(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "citizen").toString())
+        );
 
-    private static final RegistryObject<Item> TOWN_ANCHOR_ITEM_OBJ =
+    private static final DeferredHolder<MenuType<?>, ?> TOWN_HUB_OBJ =
+        MENU_TYPES.register("town_hub",
+            () -> IMenuTypeExtension.create((syncId, inv, buf) -> new TownHubMenu(syncId, inv)));
+
+    private static final DeferredItem<Item> TOWN_ANCHOR_ITEM_OBJ =
         ITEMS.register("town_anchor",
             () -> new BlockItem(TOWN_ANCHOR_OBJ.get(), new Item.Properties()));
 
     public OuatForge() {
-        IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
+        IEventBus modBus = ModLoadingContext.get().getActiveContainer().getEventBus();
 
         BLOCKS.register(modBus);
         BLOCK_ENTITY_TYPES.register(modBus);
         ENTITY_TYPES.register(modBus);
         MENU_TYPES.register(modBus);
         ITEMS.register(modBus);
+        ATTACHMENT_TYPES.register(modBus);
 
         modBus.addListener(this::onCommonSetup);
         modBus.addListener(this::onEntityAttributes);
+        modBus.addListener(this::onRegisterPayloadHandlers);
 
-        MinecraftForge.EVENT_BUS.addListener(this::onRegisterCommands);
-        MinecraftForge.EVENT_BUS.addListener(this::onServerStarting);
-        MinecraftForge.EVENT_BUS.addListener(this::onServerTick);
-        MinecraftForge.EVENT_BUS.addListener(this::onPlayerLoggedIn);
+        NeoForge.EVENT_BUS.addListener(this::onRegisterCommands);
+        NeoForge.EVENT_BUS.addListener(this::onServerStarting);
+        NeoForge.EVENT_BUS.addListener(this::onServerTick);
+        NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedIn);
+        NeoForge.EVENT_BUS.addListener(this::onStartTracking);
+        NeoForge.EVENT_BUS.addListener(this::onChunkLoad);
     }
 
     // Populate the common static fields after all DeferredRegister suppliers have run
@@ -144,253 +170,83 @@ public class OuatForge {
         BlockRegistry.TOWN_ANCHOR = TOWN_ANCHOR_OBJ.get();
         BlockEntityRegistry.TOWN_ANCHOR = (BlockEntityType<TownAnchorBlockEntity>) TOWN_ANCHOR_BE_OBJ.get();
         EntityRegistry.NPC = (EntityType<Npc>) NPC_OBJ.get();
+        EntityRegistry.CITIZEN = (EntityType<Citizen>) CITIZEN_OBJ.get();
+        AttachmentRegistry.CITIZEN = CITIZEN_DATA_OBJ.get();
         MenuRegistry.TOWN_HUB = (MenuType<TownHubMenu>) TOWN_HUB_OBJ.get();
         ItemRegistry.TOWN_ANCHOR = TOWN_ANCHOR_ITEM_OBJ.get();
 
-        CHANNEL.registerMessage(1,
-            S2CTownHubPacket.class,
-            S2CTownHubPacket::encode,
-            S2CTownHubPacket::decode,
-            (msg, ctx) -> {
-                ctx.get().enqueueWork(() -> S2CTownHubPacket.Handler.handle(msg));
-                ctx.get().setPacketHandled(true);
-            },
-            Optional.of(NetworkDirection.PLAY_TO_CLIENT)
-        );
+        // Wire S2C packet delegates: server → client via PacketDistributor.sendToPlayer.
+        // Each delegate constructs the payload and sends it to the specific player.
+        NetworkHelper.sendTownHubPacket       = (player, data) -> PacketDistributor.sendToPlayer(player, new S2CTownHubPacket(data));
+        NetworkHelper.sendBuildingDefsPacket  = (player, data) -> PacketDistributor.sendToPlayer(player, new S2CBuildingDefsPacket(data));
+        NetworkHelper.sendStockUpdatePacket   = (player, data) -> PacketDistributor.sendToPlayer(player, new S2CStockUpdatePacket(data));
+        NetworkHelper.sendBuildingListPacket  = (player, data) -> PacketDistributor.sendToPlayer(player, new S2CBuildingListPacket(data));
+        NetworkHelper.sendQuestUpdatePacket   = (player, data) -> PacketDistributor.sendToPlayer(player, new S2CQuestUpdatePacket(data));
+        NetworkHelper.sendEraUpdatePacket     = (player, data) -> PacketDistributor.sendToPlayer(player, new S2CEraUpdatePacket(data));
+        NetworkHelper.sendCitizenUpdatePacket = (player, data) -> PacketDistributor.sendToPlayer(player, new S2CCitizenUpdatePacket(data));
+        NetworkHelper.sendLogEntryPacket      = (player, data) -> PacketDistributor.sendToPlayer(player, new S2CLogEntryPacket(data));
 
-        CHANNEL.registerMessage(2,
-            C2SQueueBuildingPacket.class,
-            C2SQueueBuildingPacket::encode,
-            C2SQueueBuildingPacket::decode,
-            (msg, ctx) -> {
-                ctx.get().enqueueWork(() -> C2SQueueBuildingPacket.Handler.handle(msg, ctx.get().getSender()));
-                ctx.get().setPacketHandled(true);
-            },
-            Optional.of(NetworkDirection.PLAY_TO_SERVER)
-        );
-
-        CHANNEL.registerMessage(3,
-            C2SRemoveQueuedBuildingPacket.class,
-            C2SRemoveQueuedBuildingPacket::encode,
-            C2SRemoveQueuedBuildingPacket::decode,
-            (msg, ctx) -> {
-                ctx.get().enqueueWork(() ->
-                    C2SRemoveQueuedBuildingPacket.Handler.handle(msg, ctx.get().getSender()));
-                ctx.get().setPacketHandled(true);
-            },
-            Optional.of(NetworkDirection.PLAY_TO_SERVER)
-        );
-
-        CHANNEL.registerMessage(4,
-            C2SUpgradeBuildingPacket.class,
-            C2SUpgradeBuildingPacket::encode,
-            C2SUpgradeBuildingPacket::decode,
-            (msg, ctx) -> {
-                ctx.get().enqueueWork(() ->
-                    C2SUpgradeBuildingPacket.Handler.handle(msg, ctx.get().getSender()));
-                ctx.get().setPacketHandled(true);
-            },
-            Optional.of(NetworkDirection.PLAY_TO_SERVER)
-        );
-
-        CHANNEL.registerMessage(5,
-            S2CBuildingDefsPacket.class,
-            S2CBuildingDefsPacket::encode,
-            S2CBuildingDefsPacket::decode,
-            (msg, ctx) -> {
-                ctx.get().enqueueWork(() -> S2CBuildingDefsPacket.Handler.handle(msg));
-                ctx.get().setPacketHandled(true);
-            },
-            Optional.of(NetworkDirection.PLAY_TO_CLIENT)
-        );
-
-        CHANNEL.registerMessage(6,
-            C2SAdvanceEraPacket.class,
-            C2SAdvanceEraPacket::encode,
-            C2SAdvanceEraPacket::decode,
-            (msg, ctx) -> {
-                ctx.get().enqueueWork(() ->
-                    C2SAdvanceEraPacket.Handler.handle(msg, ctx.get().getSender()));
-                ctx.get().setPacketHandled(true);
-            },
-            Optional.of(NetworkDirection.PLAY_TO_SERVER)
-        );
-
-        CHANNEL.registerMessage(7,
-            C2SDepositPacket.class,
-            C2SDepositPacket::encode,
-            C2SDepositPacket::decode,
-            (msg, ctx) -> {
-                ctx.get().enqueueWork(() ->
-                    C2SDepositPacket.Handler.handle(msg, ctx.get().getSender()));
-                ctx.get().setPacketHandled(true);
-            },
-            Optional.of(NetworkDirection.PLAY_TO_SERVER)
-        );
-
-        CHANNEL.registerMessage(9,
-            S2CStockUpdatePacket.class,
-            S2CStockUpdatePacket::encode,
-            S2CStockUpdatePacket::decode,
-            (msg, ctx) -> {
-                ctx.get().enqueueWork(() -> S2CStockUpdatePacket.Handler.handle(msg));
-                ctx.get().setPacketHandled(true);
-            },
-            Optional.of(NetworkDirection.PLAY_TO_CLIENT)
-        );
-
-        CHANNEL.registerMessage(10,
-            S2CBuildingListPacket.class,
-            S2CBuildingListPacket::encode,
-            S2CBuildingListPacket::decode,
-            (msg, ctx) -> {
-                ctx.get().enqueueWork(() -> S2CBuildingListPacket.Handler.handle(msg));
-                ctx.get().setPacketHandled(true);
-            },
-            Optional.of(NetworkDirection.PLAY_TO_CLIENT)
-        );
-
-        CHANNEL.registerMessage(11,
-            S2CQuestUpdatePacket.class,
-            S2CQuestUpdatePacket::encode,
-            S2CQuestUpdatePacket::decode,
-            (msg, ctx) -> {
-                ctx.get().enqueueWork(() -> S2CQuestUpdatePacket.Handler.handle(msg));
-                ctx.get().setPacketHandled(true);
-            },
-            Optional.of(NetworkDirection.PLAY_TO_CLIENT)
-        );
-
-        CHANNEL.registerMessage(12,
-            S2CEraUpdatePacket.class,
-            S2CEraUpdatePacket::encode,
-            S2CEraUpdatePacket::decode,
-            (msg, ctx) -> {
-                ctx.get().enqueueWork(() -> S2CEraUpdatePacket.Handler.handle(msg));
-                ctx.get().setPacketHandled(true);
-            },
-            Optional.of(NetworkDirection.PLAY_TO_CLIENT)
-        );
-
-        CHANNEL.registerMessage(13,
-            S2CCitizenUpdatePacket.class,
-            S2CCitizenUpdatePacket::encode,
-            S2CCitizenUpdatePacket::decode,
-            (msg, ctx) -> {
-                ctx.get().enqueueWork(() -> S2CCitizenUpdatePacket.Handler.handle(msg));
-                ctx.get().setPacketHandled(true);
-            },
-            Optional.of(NetworkDirection.PLAY_TO_CLIENT)
-        );
-
-        CHANNEL.registerMessage(14,
-            C2SRequestStockPacket.class,
-            C2SRequestStockPacket::encode,
-            C2SRequestStockPacket::decode,
-            (msg, ctx) -> {
-                ctx.get().enqueueWork(() ->
-                    C2SRequestStockPacket.Handler.handle(msg, ctx.get().getSender()));
-                ctx.get().setPacketHandled(true);
-            },
-            Optional.of(NetworkDirection.PLAY_TO_SERVER)
-        );
-
-        CHANNEL.registerMessage(15,
-            C2SBuyPacket.class,
-            C2SBuyPacket::encode,
-            C2SBuyPacket::decode,
-            (msg, ctx) -> {
-                ctx.get().enqueueWork(() ->
-                    C2SBuyPacket.Handler.handle(msg, ctx.get().getSender()));
-                ctx.get().setPacketHandled(true);
-            },
-            Optional.of(NetworkDirection.PLAY_TO_SERVER)
-        );
-
-        CHANNEL.registerMessage(16,
-            C2SContributeQuestPacket.class,
-            C2SContributeQuestPacket::encode,
-            C2SContributeQuestPacket::decode,
-            (msg, ctx) -> {
-                ctx.get().enqueueWork(() ->
-                    C2SContributeQuestPacket.Handler.handle(msg, ctx.get().getSender()));
-                ctx.get().setPacketHandled(true);
-            },
-            Optional.of(NetworkDirection.PLAY_TO_SERVER)
-        );
-
-        CHANNEL.registerMessage(17,
-            S2CLogEntryPacket.class,
-            S2CLogEntryPacket::encode,
-            S2CLogEntryPacket::decode,
-            (msg, ctx) -> {
-                ctx.get().enqueueWork(() -> S2CLogEntryPacket.Handler.handle(msg));
-                ctx.get().setPacketHandled(true);
-            },
-            Optional.of(NetworkDirection.PLAY_TO_CLIENT)
-        );
-
-        NetworkHelper.sendTownHubPacket = (player, data) ->
-            CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CTownHubPacket(data));
-
-        NetworkHelper.sendBuildingDefsPacket = (player, data) ->
-            CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CBuildingDefsPacket(data));
-
-        NetworkHelper.sendStockUpdatePacket = (player, data) ->
-            CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CStockUpdatePacket(data));
-
-        NetworkHelper.sendBuildingListPacket = (player, data) ->
-            CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CBuildingListPacket(data));
-
-        NetworkHelper.sendQuestUpdatePacket = (player, data) ->
-            CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CQuestUpdatePacket(data));
-
-        NetworkHelper.sendEraUpdatePacket = (player, data) ->
-            CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CEraUpdatePacket(data));
-
-        NetworkHelper.sendCitizenUpdatePacket = (player, data) ->
-            CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CCitizenUpdatePacket(data));
-
-        NetworkHelper.sendLogEntryPacket = (player, data) ->
-            CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2CLogEntryPacket(data));
-
-        NetworkHelper.sendRequestStockPacket = pos ->
-            CHANNEL.sendToServer(new C2SRequestStockPacket(pos));
-
-        CHANNEL.registerMessage(18,
-            C2SToggleChatBroadcastPacket.class,
-            C2SToggleChatBroadcastPacket::encode,
-            C2SToggleChatBroadcastPacket::decode,
-            (msg, ctx) -> {
-                ctx.get().enqueueWork(() ->
-                    C2SToggleChatBroadcastPacket.Handler.handle(msg, ctx.get().getSender()));
-                ctx.get().setPacketHandled(true);
-            },
-            Optional.of(NetworkDirection.PLAY_TO_SERVER)
-        );
+        // Membership, the one fact about a citizen the client cannot derive from its UUID.
+        NetworkHelper.broadcastVillagerIdentity = (villager, member) ->
+            PacketDistributor.sendToPlayersTrackingEntity(villager,
+                new S2CVillagerIdentityPacket(villager.getUUID(), member));
+        NetworkHelper.sendVillagerIdentity = (to, villager, member) ->
+            PacketDistributor.sendToPlayer(to, new S2CVillagerIdentityPacket(villager, member));
     }
 
-    // Called from OuatForgeClient to wire the toggle chat broadcast packet sender
-    static void wireToggleChatBroadcastPacket() {
-        NetworkHelper.sendToggleChatBroadcastPacket = pos ->
-            CHANNEL.sendToServer(new C2SToggleChatBroadcastPacket(pos));
+    /**
+     * A player has come within range of an entity: if it is one of ours, say so.
+     *
+     * <p>Also where a citizen's town is re-checked, rather than on every tick. This is the
+     * moment membership starts to matter — it is about to be rendered — it fires rarely, and
+     * it costs nothing for the hundreds of ordinary villagers a world holds. The old
+     * {@code Citizen} subclass did the same check in {@code tick()} and killed itself when the
+     * town was gone; a plain villager is instead released, because deleting somebody else's
+     * mob over our own stale bookkeeping is not ours to do.
+     */
+    private void onStartTracking(PlayerEvent.StartTracking event) {
+        if (!(event.getTarget() instanceof Villager villager)) return;
+        if (!(event.getEntity() instanceof ServerPlayer player)) return;
+        if (!(villager.level() instanceof ServerLevel serverLevel)) return;
+        // Only members are announced. A non-member is the client's default, so an ordinary
+        // village generates no traffic at all.
+        if (Citizens.validate(serverLevel, villager)) {
+            NetworkHelper.sendVillagerIdentity.send(player, villager.getUUID(), true);
+        }
     }
 
-    // Called from OuatForgeClient to wire the buy packet sender
-    static void wireBuyPacket() {
-        NetworkHelper.sendBuyPacket = (pos, items) ->
-            CHANNEL.sendToServer(new C2SBuyPacket(pos, items));
-    }
+    // Registers all 17 CustomPacketPayload types with their StreamCodecs and handlers.
+    // S2C packets use playToClient (server → client); C2S packets use playToServer (client → server).
+    private void onRegisterPayloadHandlers(RegisterPayloadHandlersEvent event) {
+        PayloadRegistrar registrar = event.registrar(Constants.MOD_ID);
 
-    // Called from OuatForgeClient to wire the contribute quest packet sender
-    static void wireContributeQuestPacket() {
-        NetworkHelper.sendContributeQuestPacket = (pos, questId) ->
-            CHANNEL.sendToServer(new C2SContributeQuestPacket(pos, questId));
+        // S2C (server → client) — 8 payloads carrying CompoundTag snapshots/deltas
+        registrar.playToClient(S2CTownHubPacket.TYPE,        S2CTownHubPacket.STREAM_CODEC,        S2CTownHubPacket::handle);
+        registrar.playToClient(S2CBuildingDefsPacket.TYPE,   S2CBuildingDefsPacket.STREAM_CODEC,   S2CBuildingDefsPacket::handle);
+        registrar.playToClient(S2CStockUpdatePacket.TYPE,    S2CStockUpdatePacket.STREAM_CODEC,    S2CStockUpdatePacket::handle);
+        registrar.playToClient(S2CBuildingListPacket.TYPE,   S2CBuildingListPacket.STREAM_CODEC,   S2CBuildingListPacket::handle);
+        registrar.playToClient(S2CQuestUpdatePacket.TYPE,    S2CQuestUpdatePacket.STREAM_CODEC,    S2CQuestUpdatePacket::handle);
+        registrar.playToClient(S2CEraUpdatePacket.TYPE,      S2CEraUpdatePacket.STREAM_CODEC,      S2CEraUpdatePacket::handle);
+        registrar.playToClient(S2CCitizenUpdatePacket.TYPE,  S2CCitizenUpdatePacket.STREAM_CODEC,  S2CCitizenUpdatePacket::handle);
+        registrar.playToClient(S2CLogEntryPacket.TYPE,       S2CLogEntryPacket.STREAM_CODEC,       S2CLogEntryPacket::handle);
+        registrar.playToClient(S2CVillagerIdentityPacket.TYPE, S2CVillagerIdentityPacket.STREAM_CODEC, S2CVillagerIdentityPacket::handle);
+
+        // C2S (client → server) — 9 payloads for player actions
+        registrar.playToServer(C2SDepositPacket.TYPE,             C2SDepositPacket.STREAM_CODEC,             C2SDepositPacket::handle);
+        registrar.playToServer(C2SQueueBuildingPacket.TYPE,       C2SQueueBuildingPacket.STREAM_CODEC,       C2SQueueBuildingPacket::handle);
+        registrar.playToServer(C2SRemoveQueuedBuildingPacket.TYPE, C2SRemoveQueuedBuildingPacket.STREAM_CODEC, C2SRemoveQueuedBuildingPacket::handle);
+        registrar.playToServer(C2SUpgradeBuildingPacket.TYPE,     C2SUpgradeBuildingPacket.STREAM_CODEC,     C2SUpgradeBuildingPacket::handle);
+        registrar.playToServer(C2SAdvanceEraPacket.TYPE,          C2SAdvanceEraPacket.STREAM_CODEC,          C2SAdvanceEraPacket::handle);
+        registrar.playToServer(C2SContributeQuestPacket.TYPE,     C2SContributeQuestPacket.STREAM_CODEC,     C2SContributeQuestPacket::handle);
+        registrar.playToServer(C2SRequestStockPacket.TYPE,        C2SRequestStockPacket.STREAM_CODEC,        C2SRequestStockPacket::handle);
+        registrar.playToServer(C2SToggleChatBroadcastPacket.TYPE, C2SToggleChatBroadcastPacket.STREAM_CODEC, C2SToggleChatBroadcastPacket::handle);
+        registrar.playToServer(C2SBuyPacket.TYPE,                 C2SBuyPacket.STREAM_CODEC,                 C2SBuyPacket::handle);
     }
 
     @SuppressWarnings("unchecked")
     private void onEntityAttributes(EntityAttributeCreationEvent event) {
         event.put((EntityType<Npc>) NPC_OBJ.get(), Npc.createAttributes().build());
+        event.put((EntityType<Citizen>) CITIZEN_OBJ.get(), Citizen.createAttributes().build());
     }
 
     private void onRegisterCommands(RegisterCommandsEvent event) {
@@ -407,15 +263,30 @@ public class OuatForge {
         TradePriceDataHandler.reload(event.getServer());
     }
 
-    private void onServerTick(TickEvent.ServerTickEvent event) {
-        if (event.phase == TickEvent.Phase.END) {
-            TickScheduler.tick(ServerLifecycleHooks.getCurrentServer());
-        }
+    /**
+     * Puts a town's anchor block back if it is missing from a chunk that just loaded.
+     *
+     * <p>Chunk load, and not server start, because it is the one moment the anchor is both
+     * reachable and free to check — a startup sweep would have to force-load a chunk per town for
+     * settlements nobody is near. It also catches damage done while the chunk was unloaded, which
+     * is most of the ways an anchor can actually go: a {@code /fill} from across the map, a wither,
+     * another mod's world edit.
+     */
+    private void onChunkLoad(ChunkEvent.Load event) {
+        if (!(event.getLevel() instanceof ServerLevel level)) return;
+        TownIntegrity.healAnchors(level, event.getChunk());
+    }
+
+    private void onServerTick(ServerTickEvent.Post event) {
+        TickScheduler.tick(ServerLifecycleHooks.getCurrentServer());
     }
 
     private void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
-        if (event.getEntity() instanceof net.minecraft.server.level.ServerPlayer player) {
-            NetworkHelper.sendBuildingDefsPacket.accept(player, BuildingDataHandler.buildDefsPacketData());
+        if (event.getEntity() instanceof ServerPlayer player) {
+            // Sync building upgrade definitions to the client once on login. The client
+            // uses this data to render upgrade UI (costs, cadence, capacity deltas).
+            CompoundTag defsData = BuildingDataHandler.buildDefsPacketData();
+            NetworkHelper.sendBuildingDefsPacket.accept(player, defsData);
         }
     }
 }
