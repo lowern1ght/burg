@@ -3,9 +3,11 @@ package org.dawnoftime.onceuponatown.client.gui.widgets;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import org.dawnoftime.onceuponatown.datapack.EraTransitionDataHandler;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +39,10 @@ public class EraProgressDraggableWidget extends DraggableWidget {
         List<SimpleCost> cost, int requiredResidents,
         List<SimpleReq> requiredBuildings, boolean hasProduction
     ) {
-        public String buildingName() { return formatBuildingId(defId); }
+        public Component buildingName() {
+            return Component.translatable("onceuponatown.building." + defId)
+                .withStyle(s -> s.withColor(net.minecraft.ChatFormatting.GOLD).withItalic(true));
+        }
     }
 
     public record EraPathOption(
@@ -110,13 +115,18 @@ public class EraProgressDraggableWidget extends DraggableWidget {
 
     private static int maxCondTextW(EraPathOption opt) {
         var font = Minecraft.getInstance().font;
-        int max = font.width(opt.currentWeight() + "/" + opt.maxWeight() + " weight");
+        int max = font.width(opt.currentWeight() + "/" + opt.maxWeight() + " "
+            + Component.translatable("onceuponatown.era.weight_unit").getString());
         for (CostRow cr : opt.resourceCost())
-            max = Math.max(max, font.width(cr.have() + "/" + cr.amount() + " " + formatItemId(cr.itemId())));
+            max = Math.max(max, font.width(cr.have() + "/" + cr.amount() + " "
+                + Component.translatable(
+                    BuiltInRegistries.ITEM.get(ResourceLocation.parse(cr.itemId())).getDescriptionId()).getString()));
         if (opt.requiredResidents() > 0)
-            max = Math.max(max, font.width(opt.activeResidents() + "/" + opt.requiredResidents() + " residents"));
+            max = Math.max(max, font.width(opt.activeResidents() + "/" + opt.requiredResidents() + " "
+                + Component.translatable("onceuponatown.era.residents_unit").getString()));
         for (ReqBuildRow rb : opt.requiredBuildings())
-            max = Math.max(max, font.width(rb.have() + "/" + rb.count() + " " + formatBuildingId(rb.defId())));
+            max = Math.max(max, font.width(rb.have() + "/" + rb.count() + " "
+                + Component.translatable("onceuponatown.building." + rb.defId()).getString()));
         return max;
     }
 
@@ -249,11 +259,14 @@ public class EraProgressDraggableWidget extends DraggableWidget {
 
         int rowY = cy + CARD_PADDING;
 
-        // Icon + label, centered as a unit
-        int iconNameW = 18 + font.width(opt.orientationLabel());
+        // Icon + label, centered as a unit. The orientation label is auto-detected
+        // as a translation key by EraTransitionDataHandler.resolveLabel — see
+        // .agents/docs/lang-keys.md for the convention.
+        String orientationText = EraTransitionDataHandler.resolveLabel(opt.orientationLabel()).getString();
+        int iconNameW = 18 + font.width(orientationText);
         int iconX = cx + (cw - iconNameW) / 2;
         renderItemIcon(g, opt.iconItem(), iconX, rowY);
-        g.drawString(font, opt.orientationLabel(), iconX + 18, rowY + 3, 0xFFEEEEEE, false);
+        g.drawString(font, orientationText, iconX + 18, rowY + 3, 0xFFEEEEEE, false);
         rowY += 10 + 8;
 
         // Condition block: all squares share the same x axis, block centered in the card
@@ -261,24 +274,29 @@ public class EraProgressDraggableWidget extends DraggableWidget {
         int blockW = 4 + 3 + maxTW;
         int blockX = cx + (cw - blockW) / 2;
 
-        String weightText = opt.currentWeight() + "/" + opt.maxWeight() + " weight";
+        String weightText = opt.currentWeight() + "/" + opt.maxWeight() + " "
+            + Component.translatable("onceuponatown.era.weight_unit").getString();
         renderCondRow(g, font, blockX, rowY, weightText, opt.weightMet());
         rowY += 11;
 
         for (CostRow cr : opt.resourceCost()) {
-            String text = cr.have() + "/" + cr.amount() + " " + formatItemId(cr.itemId());
+            String itemName = Component.translatable(
+                BuiltInRegistries.ITEM.get(ResourceLocation.parse(cr.itemId())).getDescriptionId()).getString();
+            String text = cr.have() + "/" + cr.amount() + " " + itemName;
             renderCondRow(g, font, blockX, rowY, text, cr.have() >= cr.amount());
             rowY += 11;
         }
 
         if (opt.requiredResidents() > 0) {
-            String text = opt.activeResidents() + "/" + opt.requiredResidents() + " residents";
+            String text = opt.activeResidents() + "/" + opt.requiredResidents() + " "
+                + Component.translatable("onceuponatown.era.residents_unit").getString();
             renderCondRow(g, font, blockX, rowY, text, opt.residentsMet());
             rowY += 11;
         }
 
         for (ReqBuildRow rb : opt.requiredBuildings()) {
-            String text = rb.have() + "/" + rb.count() + " " + formatBuildingId(rb.defId());
+            String text = rb.have() + "/" + rb.count() + " "
+                + Component.translatable("onceuponatown.building." + rb.defId()).getString();
             renderCondRow(g, font, blockX, rowY, text, rb.have() >= rb.count());
             rowY += 11;
         }
@@ -296,7 +314,9 @@ public class EraProgressDraggableWidget extends DraggableWidget {
         else                   btnColor = btnHover ? 0xFF555555 : 0xFF333333;
 
         g.fill(btnX, btnY, btnX + btnW, btnY + BTN_H, btnColor);
-        String btnText      = (!selectable || isSelected) ? "Selected" : "Select";
+        String btnText      = (!selectable || isSelected)
+            ? Component.translatable("onceuponatown.era.selected").getString()
+            : Component.translatable("onceuponatown.era.select").getString();
         int    btnTextColor = !selectable ? 0xFF444444 : (isSelected ? 0xFF88FF88 : 0xFFCCCCCC);
         g.drawString(font, btnText, btnX + (btnW - font.width(btnText)) / 2, btnY + 2, btnTextColor, false);
         selectBtnBounds.add(new int[]{ btnX, btnY, btnW, BTN_H, cardIdx });

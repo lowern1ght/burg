@@ -1,24 +1,35 @@
 {
   "from_era": 1,
   "from_orientation": "agricultural",
-  "orientation_label": "Urban",
-  "structure_label": "Village",
+  "orientation_label": "onceuponatown.orientation.urban",
+  "structure_label": "onceuponatown.structure.village",
   "icon_item": "minecraft:emerald",
-
   "min_weight_percent": 90,
   "weight_cap_increase": 10,
-
   "resource_cost": [
-    { "item": "minecraft:oak_log", "amount": 42 },
-    { "item": "minecraft:cobblestone", "amount": 10 }
+    {
+      "item": "minecraft:oak_log",
+      "amount": 42
+    },
+    {
+      "item": "minecraft:cobblestone",
+      "amount": 10
+    }
   ],
-
   "required_residents": 7,
   "required_buildings": [
-    { "defId": "wild_spot", "count": 1 }
+    {
+      "defId": "wild_spot",
+      "count": 1
+    }
   ],
-  "unlocked_building_ids": ["merchant_shop", "lone_place", "carpenter", "lone_garden", "fountain_place"],
+  "unlocked_building_ids": [
+    "merchant_shop",
+    "lone_place",
+    "carpenter",
+    "lone_garden",
+    "fountain_place"
+  ],
   "unlock_new_builder": true,
-
   "next_orientation": "urban"
 }

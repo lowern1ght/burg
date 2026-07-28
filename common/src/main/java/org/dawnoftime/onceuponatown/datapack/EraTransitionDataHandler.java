@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -34,6 +35,24 @@ public class EraTransitionDataHandler {
     private static final Map<String, EraDef> ERA_DEF_BY_STARTER = new HashMap<>();
     // EraDef keyed by orientation (e.g. "industrial", "pastoral", "agricultural")
     private static final Map<String, EraDef> ERA_DEF_BY_ORIENTATION = new HashMap<>();
+
+    /**
+     * Resolves an era label string into a translatable Component.
+     *
+     * <p>Era JSONs carry {@code orientation_label} and {@code structure_label} as
+     * raw strings. With localisation, those should be translation keys (e.g.
+     * {@code "onceuponatown.orientation.agricultural"}). To keep older datapacks
+     * working without forcing an immediate rewrite, the format is auto-detected:
+     * a string containing a dot and no whitespace is treated as a key; plain prose
+     * (the historical English fallback) stays a {@code Component.literal}.
+     *
+     * <p>See {@code .agents/docs/lang-keys.md} for the convention.
+     */
+    public static Component resolveLabel(String value) {
+        if (value == null || value.isEmpty()) return Component.empty();
+        boolean looksLikeKey = value.indexOf(' ') < 0 && value.indexOf('.') > 0;
+        return looksLikeKey ? Component.translatable(value) : Component.literal(value);
+    }
 
     public static void reload(MinecraftServer server) {
         REGISTRY.clear();

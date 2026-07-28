@@ -175,5 +175,10 @@
   "onceuponatown.bar.tip.food": "+%.2f food/res  (max +%.2f)",
   "onceuponatown.bar.tip.stock": "+%d%% village stock  (max +%d%%)",
   "onceuponatown.bar.tip.herd": "+%d animals  (max +%d)",
-  "onceuponatown.bar.tip.herd_food": "+%.2f food/animal  (max +%.2f)"
+  "onceuponatown.bar.tip.herd_food": "+%.2f food/animal  (max +%.2f)",
+
+  "onceuponatown.era.weight_unit": "weight",
+  "onceuponatown.era.residents_unit": "residents",
+  "onceuponatown.era.select": "Select",
+  "onceuponatown.era.selected": "Selected"
 }
