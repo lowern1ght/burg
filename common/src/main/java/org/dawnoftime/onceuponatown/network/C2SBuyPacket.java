@@ -72,7 +72,8 @@ public record C2SBuyPacket(BlockPos anchorPos, List<Entry> requested) implements
      */
     private static void bail(ServerPlayer player, String why) {
         LOGGER.warn("[OUAT] buy refused: {}", why);
-        player.sendSystemMessage(Component.literal("[OUAT] Trade refused: " + why));
+        player.sendSystemMessage(Component.translatable(
+            "onceuponatown.message.trade.refused", why));
     }
 
     public static void handle(C2SBuyPacket packet, IPayloadContext context) {

@@ -134,15 +134,21 @@ public class NetworkHelper {
     }
 
     private static Component formatLogEntryForChat(TownLogEntry entry) {
-        MutableComponent prefix = Component.literal("[Village] ").withStyle(s -> s.withColor(0xFFAA00));
+        MutableComponent prefix = Component.translatable("onceuponatown.message.village.prefix")
+            .withStyle(s -> s.withColor(0xFFAA00));
         String param = entry.param();
+        int amount = parseIntSafe(param);
         MutableComponent body = switch (entry.type()) {
-            case BUILD_START   -> Component.literal("Builder: starting ").append(Component.translatable("onceuponatown.building." + param));
-            case BUILD_DONE    -> Component.literal("Builder: ").append(Component.translatable("onceuponatown.building." + param)).append(" built");
-            case UPGRADE_START -> Component.literal("Builder: upgrading ").append(Component.translatable("onceuponatown.building." + param));
-            case UPGRADE_DONE  -> Component.literal("Builder: ").append(Component.translatable("onceuponatown.building." + param)).append(" upgraded");
-            case FOOD_CONSUMED -> Component.literal("Village consumed " + param + " food units");
-            case VILLAGE_FULL  -> Component.literal("No space left to expand");
+            case BUILD_START   -> Component.translatable("onceuponatown.message.village.build_start",
+                Component.translatable("onceuponatown.building." + param));
+            case BUILD_DONE    -> Component.translatable("onceuponatown.message.village.build_done",
+                Component.translatable("onceuponatown.building." + param));
+            case UPGRADE_START -> Component.translatable("onceuponatown.message.village.upgrade_start",
+                Component.translatable("onceuponatown.building." + param));
+            case UPGRADE_DONE  -> Component.translatable("onceuponatown.message.village.upgrade_done",
+                Component.translatable("onceuponatown.building." + param));
+            case FOOD_CONSUMED -> Component.translatable("onceuponatown.message.village.food_consumed", amount);
+            case VILLAGE_FULL  -> Component.translatable("onceuponatown.message.village.full");
         };
         int color = switch (entry.type()) {
             case BUILD_START, UPGRADE_START -> 0xAAAAFF;
@@ -151,6 +157,10 @@ public class NetworkHelper {
             case VILLAGE_FULL               -> 0xFF5555;
         };
         return prefix.append(body.withStyle(s -> s.withColor(color)));
+    }
+
+    private static int parseIntSafe(String s) {
+        try { return Integer.parseInt(s); } catch (NumberFormatException e) { return 0; }
     }
 
     private static List<ServerPlayer> getWatchers(ServerLevel level, BlockPos anchorPos) {
