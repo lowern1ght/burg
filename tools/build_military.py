@@ -105,6 +105,17 @@ def usable(vox: Voxels, kind: str) -> List[str]:
         c = check_route(vox, cs, cg, "climb")
         if not c.ok:
             problems.append(c.reason)
+    if kind == "gatehouse" and not wall.TIERS[0].rampart is None:
+        # The gate carries the stepped flight from the courtyard, and it is the
+        # only way onto the wall that is not a tower. It was built correctly and
+        # unclimbable once already — its bottom tread sat on the box edge, where
+        # nothing can step onto it — so the route is checked, not assumed.
+        sz = vox.size[2]
+        up = check_route(vox, [(wall.A_IN + 1, 1, sz - 1)],
+                         [(wall.A_MID, wall.WALK, 0),
+                          (wall.A_MID, wall.WALK, sz - 1)], "courtyard climb")
+        if not up.ok and vox.size[0] > wall.A_IN + 1:
+            problems.append(up.reason)
     return problems
 
 

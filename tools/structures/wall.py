@@ -247,6 +247,60 @@ class Palette:
         return _st("wall_torch", facing=facing)
 
 
+# ── gradient ramps ──────────────────────────────────────────────────
+#
+# A gradient is an ORDERED chain of stones whose textures blend into their
+# neighbours, and at any one height only the TWO adjacent steps are mixed. The
+# references state the chains outright (`61287e8a`, `e738d707`) and show them
+# built (`c57b33be`, `9d7fa607`).
+#
+# Two details stop it coming out too clean, which was the verdict on the first
+# attempt where whole courses measured 100% one block:
+#   * a step is a GROUP of stones that look alike, not one block;
+#   * the ramp position is JITTERED per cell, so a band never resolves to a
+#     single stone however far it is from a transition.
+#
+# Water soaks up from the ground, so the damp end is the BOTTOM and the chain
+# climbs to the cleanest stone at the head. Three stones per level; moss is
+# weathering and does not consume a slot.
+RAMPS: Dict[str, Tuple[Tuple[str, ...], ...]] = {
+    "cobble": (("mossy_cobblestone",),
+               ("cobblestone", "mossy_cobblestone"),
+               ("cobblestone", "stone"),
+               ("stone", "andesite", "cobblestone")),
+    "tuff": (("mossy_cobblestone",),
+             ("cobblestone", "mossy_cobblestone"),
+             ("cobblestone", "stone"),
+             ("stone", "tuff", "cobblestone")),
+    # The top level is where the villagers gain stone-WORKING, so its clean end
+    # is worked stone — a minority accent over the rough field, never the field.
+    "hoarding": (("mossy_cobblestone",),
+                 ("cobblestone", "mossy_cobblestone"),
+                 ("cobblestone", "stone", "stone_bricks"),
+                 ("stone", "stone_bricks", "cobblestone")),
+}
+RAMP_JITTER = 0.42
+
+
+def ramp_block(tier: Tier, y: int, rng: random.Random,
+               bias: float = 0.0) -> Optional[BlockState]:
+    """Dither between the two ramp steps straddling this height.
+
+    `bias` nudges the position toward the clean end — used by piers, so they read
+    stronger than the field without stepping off the chain.
+    """
+    steps = RAMPS.get(tier.key)
+    if not steps:
+        return None
+    top = len(steps) - 1
+    t = (y - 1) / max(1, BODY_TOP - 1) * top + bias
+    t = max(0.0, min(float(top), t + rng.uniform(-RAMP_JITTER, RAMP_JITTER)))
+    i = int(t)
+    group = steps[top] if i >= top else (
+        steps[i + 1] if rng.random() < (t - i) else steps[i])
+    return _st(group[rng.randrange(len(group))])
+
+
 # ── tiers ───────────────────────────────────────────────────────────
 
 @dataclass
@@ -409,13 +463,12 @@ def build_body(vox: Voxels, pal: Palette, tier: Tier,
         cs = styles[st.i]
         for y in range(1, BODY_TOP + 1):
             vox.set((st.outer[0], y, st.outer[1]),
-                    _face_block(m, cs, y, rng))
+                    _face_block(m, cs, y, rng, tier))
             # The core is never seen; spending the contrast tone here would
             # only dilute the two-tone on the faces.
             vox.set((st.mid[0], y, st.mid[1]), m.block("main"))
             vox.set((st.inner[0], y, st.inner[1]),
-                    m.block("weathered") if rng.random() < 0.18
-                    else _base(m, rng))
+                    ramp_block(tier, y, rng) or _base(m, rng))
 
     if tier.frame:
         _timber_frame(vox, pal, tier, stations, rng)
@@ -431,15 +484,26 @@ def _base(m: Masonry, rng: random.Random, stone_share: float = 0.30) -> BlockSta
 
 
 def _face_block(m: Masonry, cs: ColumnStyle, y: int,
-                rng: random.Random) -> BlockState:
-    """The outer face: the column's tone, with weathering climbing the foot."""
-    if y <= cs.skirt_to and not cs.is_pier:
-        return m.block("weathered")
+                rng: random.Random, tier: Optional[Tier] = None) -> BlockState:
+    """The outer face, painted off the tier's gradient ramp.
+
+    Replaces choosing a dominant per column out of the whole palette. That put
+    mossy cobblestone next to andesite — two steps apart on the ramp — which is
+    exactly the harsh pairing a ramp exists to prevent, and it read as grey mush.
+    """
+    if tier is not None:
+        # A pier follows the ramp too, shifted a little toward the clean end so
+        # it reads as the stronger column without leaving the chain. Giving it
+        # the gradient stone at every height put andesite — and worked stone at
+        # the top level — down in the damp foot, next to moss, which is the
+        # two-steps-apart pairing the ramp exists to prevent.
+        blk = ramp_block(tier, y, rng, bias=0.7 if cs.is_pier else 0.0)
+        if blk is not None:
+            return blk
     if cs.is_pier:
         return m.block("grad")
-    if cs.dominant == "grad":
-        # A streak, not a bar: a little base tone inside the gradient column.
-        return m.block("grad") if rng.random() < 0.80 else _base(m, rng)
+    if y <= cs.skirt_to:
+        return m.block("weathered")
     return _base(m, rng)
 
 
@@ -535,7 +599,7 @@ def base_planting(vox: Voxels, pal: Palette, stations: Sequence[Station],
     for st in stations:
         cell = st.face(1)
         p = (cell[0], 1, cell[1])
-        if in_box(vox, p) and not vox.occupied(p) and rng.random() < 0.30:
+        if in_box(vox, p) and not vox.occupied(p) and rng.random() < 0.20:
             vox.set(p, pal.tuft())
 
 
@@ -548,7 +612,9 @@ def climbing_leaves(vox: Voxels, pal: Palette, stations: Sequence[Station],
     """
     k = 1
     while k < len(stations) - 1:
-        if rng.random() < 0.66:
+        # Sparser than it was. Leaves hide the stonework the gradient exists
+        # to show, and too many of them read as noise rather than as planting.
+        if rng.random() < 0.82:
             k += 1
             continue
         cell = stations[k].face(1)
@@ -838,7 +904,7 @@ def _roof_planting(vox: Voxels, pal: Palette, stations: Sequence[Station],
     """Leaves lying on the roof, in clumps (`0fee`, `81de`)."""
     k = 1
     while k < len(stations) - 1:
-        if rng.random() < 0.62:
+        if rng.random() < 0.78:
             k += 1
             continue
         for j in range(rng.choice((2, 3))):
@@ -885,6 +951,12 @@ RUN_LEN = 8            # stations in a straight segment
 CORNER_ARM = 4         # stations per arm beyond the elbow
 TOWER_SIDE = 5
 TOWER_RISE = WALK + 3  # highest tower block: its deck is walked at WALK + 4
+# The column the tower ladder occupies, and the wall it hangs on at LADDER_Z - 1.
+# It is a constant because two passes have to agree about it: the arrow slits are
+# cut before the ladder is hung, so they cannot look for a ladder that is not
+# there yet — they have to know the coordinate instead. Cutting one here left a
+# rung with nothing behind it and a gap in the climb.
+LADDER_Z = 2
 
 
 def _devices(vox: Voxels, pal: Palette, tier: Tier,
@@ -1066,11 +1138,57 @@ def compose_gate(tier: Tier, seed: int = 0,
     z0 = 3 if seed % 2 == 0 else 4
     _pierce_gate(vox, pal, tier, z0, z0 + 1, rng)
 
+    _courtyard_steps(vox, pal, tier)
+
     connector(vox, (A_MID, 0, 0), "north", entry=True)
     connector(vox, (A_MID, 0, RUN_LEN - 1), "south", entry=False)
     connector(vox, (0, 0, z0), "west", entry=False,
               target=STREET_TARGET, pool=STREET_POOL)
     return vox
+
+
+def _courtyard_steps(vox: Voxels, pal: Palette, tier: Tier) -> None:
+    """A stepped stone flight on the courtyard side, ground to wall walk.
+
+    **Ladder inside, stepped stone outside.** The tower is climbed by a ladder in
+    a shaft; a wall is reached by steps against its inner face, which is what the
+    references show and what a mason would build. It also means the walk has a way
+    up that is not through a tower.
+
+    The flight lands level with the walk, and the inner railing is opened where it
+    arrives — a rail across the top of a stair is a wall.
+    """
+    # Level 0 gets a timber flight, not a stone one: earth has no stair block, and
+    # wood is what that level is made of. Without it the rampart had no way up at
+    # all — the bank is vertical, and you cannot walk up a vertical bank.
+    m = tier.stone
+    w = pal.wood
+    timber = tier.rampart or tier.frame
+    x = A_IN + 1
+    if x >= vox.size[0]:
+        return
+    # Start one cell in from the edge. Put the bottom tread on the box edge and
+    # there is nowhere to step onto it from — the next piece begins there — so the
+    # flight was unclimbable despite being built correctly.
+    for k in range(BODY_TOP):
+        z = (RUN_LEN - 2) - k
+        y = 1 + k
+        if z <= 0:
+            break
+        # Solid under every tread, or the flight is a staircase of floating steps.
+        for fill in range(1, y):
+            if not vox.occupied((x, fill, z)):
+                vox.set((x, fill, z),
+                        pal.trodden(random.Random(z * 31 + fill)) if timber
+                        else m.block("main"))
+        # `facing` names the low side of a stair, so it points back down the run.
+        vox.set((x, y, z), w.stairs(facing="south") if timber
+                else m.stairs(facing="south", half="bottom"))
+        if y == BODY_TOP:
+            # Open the rail where it arrives, and keep the landing clear.
+            for dy in range(WALK, WALK + HEAD_CLEAR):
+                vox.set((A_IN, dy, z), None)
+                vox.set((x, dy, z), None)
 
 
 HEAD = 3           # passage clearance: a player plus room to spare
@@ -1255,42 +1373,64 @@ def _tower_body(vox: Voxels, pal: Palette, tier: Tier,
             vox.set((x, BODY_TOP, z), deck)
             vox.set((x, rise, z), deck)
 
-    _spiral(vox, pal, tier, rise)
+    # Order matters. The top rung hangs on the parapet, so the parapet has to be
+    # standing before the ladder is hung — running the ladder first meant its
+    # support did not exist yet and the run stopped one course below the deck.
     _tower_openings(vox, pal, tier, z0, z1, rise)
     _tower_top(vox, pal, tier, x0, x1, z0, z1, rise, rng)
+    _spiral(vox, pal, tier, rise)
 
 
 def _spiral(vox: Voxels, pal: Palette, tier: Tier, rise: int) -> None:
-    """A spiral stair from the ground floor to the roof deck.
+    """A ladder from the ground floor to the roof deck.
 
-    Each step is one stair block rising one, which is walkable without jumping
-    because you cross its lower half on the way up. The two cells above every
-    step are cleared afterwards, which is also what punches the stairwell
-    through the floors — deriving those holes by hand is how you end up with a
-    staircase that runs into a ceiling.
+    **A ladder, not a stair run.** A staircase eats the floor of a small room,
+    and at village scale a ladder is what people actually build. It also frees
+    the whole chamber, which the spiral did not.
+
+    A ladder hangs on the block behind it, so it goes against the outer tower
+    wall and `facing` points away from that wall — into the room. The floors it
+    passes through are punched open here rather than by arithmetic elsewhere:
+    working it out by hand is how the earlier version ran a staircase into a
+    ceiling.
     """
+    # Off the centre line on purpose. The arrow slits are punched at the middle
+    # z, and putting the ladder there had them cut away the very wall it hangs
+    # on: the run stopped one course short of the deck and the top rungs were
+    # left with nothing behind them.
+    lx, lz = 1, LADDER_Z                # against the outer wall at x = 0
+    lad = state("ladder", facing="east", waterlogged="false")
+    # All the way to the deck. Standing on the deck puts your feet at rise + 1,
+    # and stepping sideways off a ladder needs the two cells level — so the run
+    # has to reach rise + 1, not rise. Stopping at rise left a one-block rise
+    # onto the deck, which is a jump, so the climb failed at the last move.
     m = tier.stone
-    steps: List[Tuple[Coord2, str]] = []
-    for k in range(1, rise + 1):
-        cell = SPIRAL[(k - 1) % len(SPIRAL)]
-        nxt = SPIRAL[k % len(SPIRAL)]
-        # `facing` names the low side of a stair, so it points back the way you
-        # came: the direction from this cell towards the previous one.
-        prev = SPIRAL[(k - 2) % len(SPIRAL)]
-        dx, dz = cell[0] - prev[0], cell[1] - prev[1]
-        facing = {(1, 0): "west", (-1, 0): "east",
-                  (0, 1): "north", (0, -1): "south"}.get((dx, dz), "west")
-        steps.append((cell, facing))
-        vox.set((cell[0], k, cell[1]),
-                m.stairs(facing=facing, half="bottom"))
-    # Headroom over every step, which doubles as the stairwell opening.
-    for k in range(1, rise + 1):
-        cell = SPIRAL[(k - 1) % len(SPIRAL)]
+    # The parapet is crenellated, so the cell behind the top rung is there only
+    # by chance. Make it certain: a ladder needs a solid face behind every rung.
+    top_support = (lx - 1, rise + 1, lz)
+    if in_box(vox, top_support) and not vox.occupied(top_support):
+        vox.set(top_support, m.block("main"))
+    for y in range(1, rise + 2):
+        if not vox.occupied((lx - 1, y, lz)):
+            continue                    # no wall behind it: nothing to hang on
+        vox.set((lx, y, lz), lad)
+    # Somewhere to step off at the deck, level with the top rung.
+    for dy in (0, 1):
+        q = (lx + 1, rise + 1 + dy, lz)
+        cur = vox.get(q)
+        if cur is not None and cur.short != "ladder":
+            vox.set(q, None)
+
+    # The ladder already replaces the floor in its own cell, which IS the
+    # stairwell opening. An earlier version then "punched the floors" at the same
+    # coordinates and deleted the ladder at both floor levels — the run came out
+    # with two gaps in it. Only the landing beside it needs clearing.
+    for floor_y in (BODY_TOP, rise):
         for dy in (1, 2):
-            p = (cell[0], k + dy, cell[1])
-            if in_box(vox, p) and vox.get(p) is not None \
-                    and not vox.get(p).short.endswith("_stairs"):
-                vox.set(p, None)
+            q = (lx + 1, floor_y + dy, lz)
+            cur = vox.get(q)
+            if cur is not None and cur.short != "ladder":
+                vox.set(q, None)
 
 
 def _tower_openings(vox: Voxels, pal: Palette, tier: Tier,
@@ -1314,7 +1454,12 @@ def _tower_openings(vox: Voxels, pal: Palette, tier: Tier,
         for x in range(1, A_IN):
             for y in (1, 2):
                 cur = vox.get((x, y, z))
-                if cur is not None and cur.short.endswith("_stairs"):
+                # Never clear the way up. This loop deleted the bottom two rungs
+                # of the ladder — and before that the first two steps of the
+                # spiral — leaving the ground floor sealed off from its own
+                # staircase with nothing to board it from.
+                if cur is not None and (cur.short.endswith("_stairs")
+                                        or cur.short == "ladder"):
                     continue
                 vox.set((x, y, z), None)
     zc = (z0 + z1) // 2
@@ -1327,12 +1472,19 @@ def _tower_openings(vox: Voxels, pal: Palette, tier: Tier,
     # A torch inside the ground floor, on the wall by the door.
     vox.set((A_MID, 2, zc + 1 if zc + 1 < z1 else zc - 1), pal.torch("west"))
 
-    # Arrow slits on the outward face, at two heights.
+    # Arrow slits on the outward face, at two heights — but never through the
+    # wall the ladder hangs on. Cutting one there left rungs with nothing behind
+    # them, which is both unsupported and a hole in the climb.
+    def slit(y: int, z: int) -> None:
+        if z == LADDER_Z:
+            return                      # the ladder hangs on this wall
+        vox.set((0, y, z), None)
+
     if tier.loops:
         for z in (z0 + 1, z1 - 1):
-            vox.set((0, BODY_TOP - 3, z), None)
-        vox.set((0, BODY_TOP - 1, zc), None)
-        vox.set((0, rise - 1, zc), None)
+            slit(BODY_TOP - 3, z)
+        slit(BODY_TOP - 1, zc)
+        slit(rise - 1, zc)
 
 
 def _tower_top(vox: Voxels, pal: Palette, tier: Tier, x0: int, x1: int,

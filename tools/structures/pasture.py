@@ -185,12 +185,33 @@ VEC = {"north": (0, -1), "south": (0, 1), "west": (-1, 0), "east": (1, 0)}
 # block and to each other, and to nothing else — a slab or a stair neighbour
 # leaves the rail unconnected, which is why the props have to be derived from
 # the finished grid rather than guessed while placing.
-FULL_BLOCKS = {
+# Which neighbours a rail connects to. **Measured off the author's 121 files**
+# rather than guessed from the vanilla source: for every fence, pane and wall in
+# the corpus, which neighbour ids had the connection flag set.
+#
+#   connects:  oak_planks 716/12   oak_log 192/8   cobblestone 148/5
+#              mossy_cobblestone 43/0   hay_block 41/0   stripped_oak_log 38/0
+#              stone 33/6   white_terracotta 56/0   crafting_table 5/0
+#   does not:  oak_slab 1/115   oak_stairs 17/52   oak_trapdoor 2/38
+#              stone_slab 5/38   white_bed 0/13   leaves 0/516   plants, pots,
+#              lanterns, chains, torches, pressure plates
+#
+# The finding that mattered: **a fence does not connect to a `*_wall` block**
+# (0 of 8 in his files) and a wall does not connect to a fence (0 of 8, the same
+# pairs seen from the other side). The first version of this module had them
+# connecting, which is a wrong property on every rail beside the sheep fold's
+# dry-stone infill.
+STURDY = {
     "oak_planks", "oak_log", "stripped_oak_log", "cobblestone",
-    "mossy_cobblestone", "stone", "hay_block", "white_wool", "brown_wool",
+    "mossy_cobblestone", "andesite", "stone", "smooth_stone", "hay_block",
+    "white_wool", "brown_wool", "crafting_table", "white_terracotta", "barrel",
     "packed_mud", "mud", "dirt", "coarse_dirt", "grass_block", "rooted_dirt",
-    "crafting_table", "barrel", "composter", "dirt_path",
 }
+# Kept as a separate name because other modules import it: everything a *fence*
+# may be asked about. `dirt_path` is deliberately absent — its side face is
+# 15/16 tall, so nothing connects to it.
+FULL_BLOCKS = STURDY
+
 RAILS = {"oak_fence", "cobblestone_wall", "glass_pane", "iron_bars"}
 
 
@@ -226,8 +247,29 @@ FOLD = ("grass_block", "grass_block", "coarse_dirt", "coarse_dirt", "dirt")
 
 HOUSES = Path(__file__).resolve().parents[2] / (
     "common/src/main/resources/data/onceuponatown/structure/plains/houses")
-HOUSE_DOOR = (3, 8)                 # x, z of the door inside the donor box
-HOUSE_SIZE = (9, 11)
+
+# **A family per breed, not one house for all three.** Measured: with the same
+# donor everywhere, the three farmsteads came out 0.93 cosine-similar by block
+# content and the six levels of one breed 0.97 — against 0.78 across the author's
+# own house ladder and 0.81 across his three animal fields. They were the same
+# build three times over, which is exactly what the user said.
+#
+# The author has three house families and they are genuinely different buildings:
+#
+#   house      9x11, one storey, plainest — the compact sty
+#   house_2   12x12, **two storeys**, dormer stairs, 11 stair states at lvl4
+#   house_3   14x12, stone-heavy base with a timber upper — the biggest farmstead
+#
+# `house_3_lvl6` is one of the four permanently corrupt files, so that ladder
+# stops at lvl5; `house_2_lvl2` is skipped to keep six rungs that step visibly.
+HOUSE_LADDERS = {
+    "house": ("house", "house_lvl1", "house_lvl2", "house_lvl3", "house_lvl4",
+              "house_lvl6"),
+    "house_2": ("house_2", "house_2_lvl1", "house_2_lvl3", "house_2_lvl4",
+                "house_2_lvl5", "house_2_lvl6"),
+    "house_3": ("house_3", "house_3_lvl1", "house_3_lvl2", "house_3_lvl3",
+                "house_3_lvl4", "house_3_lvl5"),
+}
 
 _house_cache: Dict[str, Voxels] = {}
 
@@ -246,18 +288,40 @@ def donor_house(name: str) -> Voxels:
     return _house_cache[name]
 
 
-def house_east_wall(donor: Voxels) -> int:
-    """The x of the donor's own east wall, measured rather than assumed.
+def house_door(donor: Voxels) -> Coord2:
+    """Where the donor's front door is, measured.
 
-    `house.nbt` is **eight** cells wide inside a nine-wide box; `house_lvl3` and
-    above are nine. Assuming the wall sits at the box edge left a one-cell
-    corridor between the house and the yard on the poorer levels, open to the
-    plot edge — and the animals walked down it. Nothing in the boundary was
-    missing; the boundary simply was not where the code thought the wall was.
+    Hard-coding (3, 8) worked only for the `house` family; `house_2` and
+    `house_3` put theirs elsewhere, and the plot's street connector goes in front
+    of it.
     """
-    wall = [p[0] for p, b in donor.solid_items()
-            if p[1] in (1, 2) and b.short not in TERRAIN_LIKE]
-    return max(wall) if wall else donor.size[0] - 1
+    for (x, y, z), b in sorted(donor.solid_items()):
+        if b.short.endswith("_door") and b.get("half") == "lower":
+            return (x, z)
+    return (donor.size[0] // 2, donor.size[2] - 1)
+
+
+def house_bounds(donor: Voxels) -> Tuple[int, int, int, int]:
+    """The donor's actual **wall** footprint at y=1..2, as (x0, x1, z0, z1).
+
+    Measured, because the building does not fill its box and the box is what
+    every earlier version of this module assumed. `house.nbt` is eight cells wide
+    in a nine-wide box and every level starts one cell in from the north edge, so
+    aligning the yard to the box left a **one-cell dead corridor** between the
+    yard fence and the real wall — which reads as the fence being built twice,
+    and is exactly what it was.
+
+    Terrain, vegetation and the donor's own garden fence are excluded: a fence is
+    not a wall, and the yard has to butt onto something solid.
+    """
+    cells = [(p[0], p[2]) for p, b in donor.solid_items()
+             if p[1] in (1, 2) and b.short not in TERRAIN_LIKE
+             and not b.short.endswith(("_fence", "_fence_gate"))]
+    if not cells:
+        return (0, donor.size[0] - 1, 0, donor.size[2] - 1)
+    xs = [c[0] for c in cells]
+    zs = [c[1] for c in cells]
+    return (min(xs), max(xs), min(zs), max(zs))
 
 
 TERRAIN_LIKE = {"grass_block", "dirt", "coarse_dirt", "dirt_path", "podzol",
@@ -299,8 +363,10 @@ class Breed:
 
     key: str                    # output name, also the folder name
     entity: str                 # entity id shipped in the NBT
+    family: str = "house"       # which of the author's house ladders to graft
     yard: Coord2                # the flank arm of the yard, w x d
-    strip: int                  # depth of the working arm behind the house
+    strip: int                  # depth of the working arm behind the house;
+                                # 0 for a compact yard with no arm at all
     clip: int                   # how far the outer corners are cut back
     byre: int                   # depth along the house wall of the lean-to
     ground: Sequence[str] = GRAZED
@@ -321,17 +387,20 @@ class Breed:
 # graze. So: the same house, three different yards — 11x11, 9x10 and 7x8 for a
 # top-tier herd of four.
 COW = Breed(
-    key="cow_pasture", entity="minecraft:cow", yard=(11, 11), strip=4,
+    key="cow_pasture", entity="minecraft:cow", family="house_3",
+    yard=(11, 11), strip=5,
     clip=2, byre=5,
     ground=GRAZED, graze=True, milking=True,
     note="the widest yard, kept in grass, big trough and a milking corner")
 PIG = Breed(
-    key="pig_sty", entity="minecraft:pig", yard=(7, 8), strip=3, clip=1,
+    key="pig_sty", entity="minecraft:pig", family="house",
+    yard=(8, 10), strip=0, clip=1,
     byre=4,
     ground=MIRE, graze=False, wallow=True,
     note="compact and churned to mud, a wallow, fed at the house door")
 SHEEP = Breed(
-    key="sheep_fold", entity="minecraft:sheep", yard=(9, 10), strip=4,
+    key="sheep_fold", entity="minecraft:sheep", family="house_2",
+    yard=(9, 10), strip=5,
     clip=2, byre=4,
     ground=FOLD, graze=True, dry_stone=True, wool=True, holding_pen=True,
     note="dry-stone fold with a holding pen for shearing, wool store")
@@ -347,7 +416,6 @@ class Tier:
 
     key: str
     note: str
-    house: str = "house"        # which of the author's seven house levels
     crooked: bool = False       # the boundary is out of true: the poorest look
     piers: bool = False         # stone-pier fence instead of plain oak
     shelter: int = 0            # 0 none, 1 lean-to, 2 open shed, 3 walled,
@@ -360,20 +428,14 @@ class Tier:
 
 
 LADDER: Tuple[Tier, ...] = (
-    Tier("base", "the author's plainest house, a crooked yard fence, a puddle",
-         house="house", crooked=True, herd=2),
-    Tier("lvl1", "house_lvl1, fence put straight, open byre off the house wall",
-         house="house_lvl1", shelter=1, herd=2),
-    Tier("lvl2", "house_lvl2, stone-pier fence, kerbed trough, byre with a rack",
-         house="house_lvl2", piers=True, shelter=2, kerb=True, herd=3),
-    Tier("lvl3", "house_lvl3, byre gabled and shuttered, muck heap, worn paths",
-         house="house_lvl3", piers=True, shelter=3, kerb=True, herd=3),
+    Tier("base", "the author's plainest house, a crooked yard fence, a puddle", crooked=True, herd=2),
+    Tier("lvl1", "house_lvl1, fence put straight, open byre off the house wall", shelter=1, herd=2),
+    Tier("lvl2", "house_lvl2, stone-pier fence, kerbed trough, byre with a rack", piers=True, shelter=2, kerb=True, herd=3),
+    Tier("lvl3", "house_lvl3, byre gabled and shuttered, muck heap, worn paths", piers=True, shelter=3, kerb=True, herd=3),
     # Beds arrive in the donor at lvl4, which is where the JSON grants residents.
-    Tier("lvl4", "house_lvl4 (beds), byre on a stone plinth, a lantern",
-         house="house_lvl4", piers=True, shelter=4, kerb=True, lantern=True,
+    Tier("lvl4", "house_lvl4 (beds), byre on a stone plinth, a lantern", piers=True, shelter=4, kerb=True, lantern=True,
          rich=True, herd=4),
-    Tier("lvl5", "house_lvl6, the byre run out to full length, deep eave",
-         house="house_lvl6", piers=True, shelter=5, kerb=True, annex=True,
+    Tier("lvl5", "house_lvl6, the byre run out to full length, deep eave", piers=True, shelter=5, kerb=True, annex=True,
          lantern=True, rich=True, herd=4),
 )
 
@@ -577,18 +639,12 @@ def enclosed(vox: Voxels, inner: Sequence[Coord2], y: int = 1) -> List[Coord2]:
     in a world, hours later, as cows in the town square.
     """
     sx, _sy, sz = vox.size
-    barrier = set()
-    for (px, py, pz), b in vox.solid_items():
-        if py != y:
-            continue
-        n = b.short
-        # What actually stops a cow: a full block, a rail, a closed gate, a
-        # door, a trapdoor standing shut. Slabs and stairs do not — they are
-        # a step up, which is how the animal gets out.
-        if (n in FULL_BLOCKS or n in RAILS or n.endswith("_fence")
-                or n.endswith("_fence_gate") or n.endswith("_door")
-                or n.endswith("_wall") or n == "campfire"):
-            barrier.add((px, pz))
+    # Whatever an animal cannot walk through, decided by the movement model
+    # rather than by a list of ids. A hand list is how an `andesite` pier came to
+    # be treated as thin air: the pier was a perfectly good barrier in the game
+    # and the check walked the herd straight through it.
+    barrier = {(px, pz) for (px, py, pz), b in vox.solid_items()
+               if py == y and not _mob_passable(b)}
     seen = set(c for c in inner if c not in barrier)
     stack = list(seen)
     leaks: List[Coord2] = []
@@ -622,29 +678,36 @@ def reconnect(vox: Voxels) -> int:
     def at(p: Coord) -> Optional[BlockState]:
         return snapshot.get(p)
 
-    def links(p: Coord, direction: str) -> bool:
+    def links(p: Coord, direction: str, family: str) -> bool:
+        """Would this rail connect that way in the game?
+
+        `family` is "rail" for fences, panes and bars, or "wall" for `*_wall`
+        blocks — they do **not** connect to each other, which the corpus is
+        unambiguous about.
+        """
         dx, dz = VEC[direction]
         nb = at((p[0] + dx, p[1], p[2] + dz))
         if nb is None:
             return False
         n = nb.short
-        if n in FULL_BLOCKS:
-            return True
-        if n in RAILS or n.endswith(("_fence", "_wall", "_pane", "_bars")):
+        if n in STURDY:
             return True
         if n.endswith("_fence_gate"):
             # A gate joins the run it stands in: its facing is across the run.
             return AXIS_OF[nb.get("facing", "north")] != AXIS_OF[direction]
-        return False
+        if family == "rail":
+            return n.endswith(("_fence", "_pane", "_bars"))
+        return n.endswith("_wall")
 
     for pos, b in list(vox.solid_items()):
         n = b.short
         if n.endswith(("_fence", "_pane", "_bars")):
-            props = {d: ("true" if links(pos, d) else "false")
+            props = {d: ("true" if links(pos, d, "rail") else "false")
                      for d in ("north", "south", "east", "west")}
             new = b.with_props(**props)
         elif n.endswith("_wall"):
-            sides = {d: links(pos, d) for d in ("north", "south", "east", "west")}
+            sides = {d: links(pos, d, "wall")
+                     for d in ("north", "south", "east", "west")}
             above = vox.occupied((pos[0], pos[1] + 1, pos[2]))
             straight = (sides["north"] and sides["south"]
                         and not sides["east"] and not sides["west"]) or \
@@ -857,6 +920,56 @@ def _capped_post(vox: Voxels, cell: Coord2, pal: Palette) -> None:
     # stone piers are finished, and still defeats the jump: its top is at +1.5,
     # so it cannot be reached from the ground either.
     vox.set((x, 2, z), pal.wood.slab("bottom"))
+
+
+def close_diagonals(vox: Voxels, mask: Set[Coord2], pal: Palette) -> int:
+    """Fill the corner cell where two rails meet only diagonally.
+
+    A fence connects to nothing diagonally, so two rails touching at a corner
+    read as a gap in the run — and the escape model never complains, because
+    nothing can walk through a corner either. That is why this needs its own
+    check: measured over the author, his worst build has 4 such steps and the
+    median is 0, while the clipped corners here produced 12.
+
+    The filling cell is always chosen **inside** the yard, so closing the line
+    never eats into the apron.
+    """
+    fixed = 0
+    for _ in range(3):                  # closing one step can create another
+        rails = {(p[0], p[2]) for p, b in vox.solid_items()
+                 if p[1] == 1 and b.short.endswith(("_fence", "_fence_gate",
+                                                    "_wall"))}
+        barrier = {(p[0], p[2]) for p, b in vox.solid_items()
+                   if p[1] == 1 and (b.short in FULL_BLOCKS
+                                     or b.short.endswith(("_fence", "_wall",
+                                                          "_fence_gate",
+                                                          "_door")))}
+        gaps = []
+        for (x, z) in sorted(rails):
+            for dx, dz in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
+                q = (x + dx, z + dz)
+                if q not in rails:
+                    continue
+                if (x + dx, z) in barrier or (x, z + dz) in barrier:
+                    continue
+                # Prefer a cell inside the yard; fall back to the apron. At a
+                # clipped corner the closing cell is the corner that was cut
+                # away, so an inside-only rule left those steps open — which is
+                # where the remaining gaps in the run were.
+                inside = [c for c in ((x + dx, z), (x, z + dz))
+                          if c in mask and not vox.occupied((c[0], 1, c[1]))]
+                outside = [c for c in ((x + dx, z), (x, z + dz))
+                           if c not in mask and not vox.occupied((c[0], 1, c[1]))
+                           and vox.occupied((c[0], 0, c[1]))]
+                if inside or outside:
+                    gaps.append((inside or outside)[0])
+                    break
+        if not gaps:
+            break
+        for cell in gaps:
+            vox.set((cell[0], 1, cell[1]), pal.wood.fence())
+            fixed += 1
+    return fixed
 
 
 def gate_run(ring: Sequence[Coord2], z_front: int) -> List[Coord2]:
@@ -1399,29 +1512,32 @@ class Pen:
         return self.vox.name
 
 
-def yard_region(hx0: int, wall_x: int, hz0: int, yw: int, yd: int,
-                strip: int, clip: int) -> Set[Coord2]:
+def yard_region(wall_x: int, wall_north: int, yw: int, yd: int,
+                hx0: int, clip: int, plot_z: int) -> Set[Coord2]:
     """The yard, wrapping the house on two sides — behind it and beside it.
 
-    A rectangle parked alongside the house read as *a house with a fenced strip
-    next to it*, which is not a farmstead. An L wrapping the back and the flank
-    puts the building inside its own yard: two of the house's walls become
-    boundary, the front stays clear for the street and the door, and the two arms
-    of the L do different jobs — the narrow one behind the house is the working
-    yard where the byre, the rack and the muck heap go, the wide one is pasture.
+    Both arms are derived from **where the house's walls actually are**:
+    `wall_x` is its east wall column and `wall_north` its north wall row, both
+    measured off the donor rather than taken from its box. Deriving the strip
+    from the box origin instead put the mask at negative z — outside the plot
+    entirely — and left the donor's own garden fence running parallel to the
+    yard's, one cell apart, which is what "the fence is duplicated" was.
 
     The two **outer** corners of the flank are cut back. The corners that meet
     the house stay square, or the fence never meets the wall.
     """
-    flank_z0, flank_z1 = hz0 - strip, hz0 - strip + strip + yd - 1
     out: Set[Coord2] = set()
+    flank_z0, flank_z1 = MARGIN, min(wall_north + yd - 1, plot_z - MARGIN - 1)
     for x in range(wall_x + 1, wall_x + yw + 1):
         for z in range(flank_z0, flank_z1 + 1):
             if (wall_x + yw - x) + min(z - flank_z0, flank_z1 - z) >= clip:
                 out.add((x, z))
-    for x in range(hx0, wall_x + 1):          # the strip behind the house
-        for z in range(flank_z0, hz0):
+    for x in range(hx0, wall_x + 1):          # the working strip behind the house
+        for z in range(MARGIN, wall_north):
             out.add((x, z))
+    # A strip one usable cell wide is not a yard, it is a corridor between two
+    # fences — which is exactly how a doubled fence reads. `Breed.strip` is sized
+    # so that never happens, and the compact sty asks for no strip at all.
     return out
 
 
@@ -1556,12 +1672,116 @@ def dung_heap(vox: Voxels, cells: Sequence[Coord2],
             vox.set((q[0], 0, q[1]), state("coarse_dirt"))
 
 
+def clear_mounts(vox: Voxels, mask: Set[Coord2],
+                 keep: Set[Coord2]) -> List[Coord2]:
+    """Remove any full block left standing beside a rail. The last word on it.
+
+    The clear lane is applied when props are placed, but `close_diagonals` runs
+    after them and adds rails — so a muck heap that was two cells from the
+    boundary can end up against a brand new one, and the animals were leaving
+    over exactly that. Filtering at placement time cannot see rails that do not
+    exist yet; this invariant can.
+
+    Structure is safe by construction: a post, a plinth or a wall carries
+    something in the cell above it, and only blocks with air above are a step.
+    `keep` excludes the byre, whose hay rack is meant to sit against its own
+    gable.
+    """
+    rails = {(p[0], p[2]) for p, b in vox.solid_items()
+             if p[1] == 1 and b.short.endswith(("_fence", "_fence_gate", "_wall"))}
+    gone: List[Coord2] = []
+    for (x, z) in sorted(mask):
+        if (x, z) in keep:
+            continue
+        b = vox.get((x, 1, z))
+        if b is None or b.short not in STURDY:
+            continue
+        if vox.occupied((x, 2, z)):
+            continue
+        if not any((x + dx, z + dz) in rails for dx, dz in NEIGH4):
+            continue
+        vox.set((x, 1, z), None)
+        vox.set((x, 0, z), state("coarse_dirt"))   # a scuff where it stood
+        gone.append((x, z))
+    return gone
+
+
+def breed_donors(breed: "Breed") -> Tuple[str, ...]:
+    return HOUSE_LADDERS[breed.family]
+
+
+def house_box(breed: "Breed") -> Coord2:
+    """Wall footprint of the breed's family, as the widest and deepest rung.
+
+    `house_2` is 13 wide at its base and 12 at every level above it, so the box
+    has to be the maximum: the plot must be identical at every rung because
+    `UpgradeAction` replaces the NBT at the same origin.
+    """
+    w = d = 0
+    for name in breed_donors(breed):
+        bx0, bx1, bz0, bz1 = house_bounds(donor_house(name))
+        w = max(w, bx1 - bx0 + 1)
+        d = max(d, donor_house(name).size[2])
+    return (w, d)
+
+
+def plot_depth(breed: "Breed") -> int:
+    """Plot depth for a breed, taken over the **whole ladder**.
+
+    Each donor level puts its walls in a slightly different row, so sizing the
+    box from one level made the footprint change between levels — and
+    `UpgradeAction` replaces the NBT at the same origin, so the footprint has to
+    be identical at every rung. The author holds to that in all 98 of his
+    buildings; here it takes a max over the ladder.
+    """
+    hd = house_box(breed)[1]
+    worst = 0
+    for name in breed_donors(breed):
+        donor = donor_house(name)
+        _bx0, _bx1, bz0, _bz1 = house_bounds(donor)
+        house_z = max(MARGIN, MARGIN + breed.strip - bz0)
+        wall_north = house_z + bz0
+        worst = max(worst, max(house_z + hd, wall_north + breed.yard[1]) + MARGIN)
+    return worst
+
+
+def absorb_pockets(vox: Voxels, mask: Set[Coord2]) -> Set[Coord2]:
+    """Add cells that are walled off from the apron into the yard.
+
+    The donor's walls are not straight lines — its north face is a cell short in
+    places — so a yard sized to the wall's *bounding* row leaves a pocket between
+    the fence and the wall. Fencing that pocket produces two parallel runs a cell
+    apart with a dead cell between them, which is what "the fence is duplicated"
+    looked like on the shallow pig strip: six of them in one file.
+
+    Nothing needs fencing if it cannot be reached from outside. So: flood the
+    plot from its border over open ground, and whatever open cell the flood never
+    reaches is inside the farmstead already. The yard takes it, the boundary stays
+    a single line, and the yard follows the building's real silhouette.
+    """
+    sx, _sy, sz = vox.size
+    open_cell = {(x, z) for x in range(sx) for z in range(sz)
+                 if _mob_passable(vox.get((x, 1, z))) and (x, z) not in mask}
+    border = [(x, z) for (x, z) in open_cell
+              if x in (0, sx - 1) or z in (0, sz - 1)]
+    seen = set(border)
+    stack = list(border)
+    while stack:
+        x, z = stack.pop()
+        for dx, dz in NEIGH4:
+            q = (x + dx, z + dz)
+            if q in open_cell and q not in seen:
+                seen.add(q)
+                stack.append(q)
+    return mask | (open_cell - seen)
+
+
 def compose_farmstead(breed: Breed, tier: Tier, seed: int = 0) -> Pen:
     """One farmstead: the author's house, with this animal's yard beside it."""
     rng = random.Random(seed * 7919 + 13)
     pal = Palette(stone=Stone(), wood=Timber())
-    house = donor_house(tier.house)
-    hw, hd = HOUSE_SIZE
+    house = donor_house(breed_donors(breed)[LADDER.index(tier)])
+    hw, hd = house_box(breed)
     yw, yd = breed.yard
 
     # The plot is the same size at every level, which the author does in all 98
@@ -1573,19 +1793,36 @@ def compose_farmstead(breed: Breed, tier: Tier, seed: int = 0) -> Pen:
     wall_x = MARGIN + hw - 1          # where the house's east wall always sits
     strip = breed.strip
     # The house stands at the front, on the street, with its door on the south
-    # edge as the donor built it. The yard wraps behind and beside it.
-    house_at = (wall_x - house_east_wall(house), MARGIN + strip)
-
+    # edge as the donor built it, and the yard wraps behind and beside it —
+    # **flush against its real walls**, measured rather than taken from the box.
+    bx0, bx1, bz0, bz1 = house_bounds(house)
+    # Clamped: a donor whose walls start further in than the strip is deep would
+    # otherwise be grafted above the top of the plot and lose its northern rows.
+    house_at = (wall_x - bx1, max(MARGIN, MARGIN + strip - bz0))
+    wall_north = house_at[1] + bz0     # the row the yard's strip butts onto
     sx = MARGIN + hw + yw + MARGIN
-    sz = MARGIN + strip + hd + MARGIN
+    # Deep enough for **both** the house box and the yard the breed asks for. It
+    # was sized from the house alone, so the flank ran past the south edge of the
+    # plot: the row that should have been the boundary had yard on both sides of
+    # it, was never fenced, and the animals walked straight out.
+    sz = plot_depth(breed)
     height = max(box_height(tier), house.top_y() + 2)
     vox = Voxels((sx, height, sz), {}, f"{breed.key}_{tier.key}")
 
-    mask = yard_region(house_at[0], wall_x, house_at[1], yw, yd, strip,
-                       breed.clip)
+    mask = yard_region(wall_x, wall_north, yw, yd, house_at[0] + bx0,
+                       breed.clip, sz)
     yx0, yx1 = wall_x + 1, wall_x + yw
     yz0 = MARGIN
-    yz1 = max(c[1] for c in mask if c[0] == yx1)
+    # The flank's own front row, over the whole arm rather than over its outer
+    # column: the corner clip shortens that column, so measuring there put the
+    # front two rows too far north and left no run to hang a gate in at all.
+    yz1 = max(c[1] for c in mask if c[0] > wall_x)
+    rim = set(boundary(mask))
+
+    # The house goes in before anything reads the plot: `absorb_pockets` and
+    # `open_ring` both need to know where its walls actually are.
+    graft(vox, house, house_at)
+    mask = absorb_pockets(vox, mask)
     rim = set(boundary(mask))
 
     byre: Optional[Shed] = None
@@ -1596,7 +1833,7 @@ def compose_farmstead(breed: Breed, tier: Tier, seed: int = 0) -> Pen:
         # Against the house's east wall, starting level with the working arm, so
         # the byre and the muck heap share the trodden end of the yard and the
         # far end stays open ground.
-        bz0 = house_at[1] + 1
+        bz0 = wall_north + 1
         byre = Shed(yx0, yx0 + depth - 1, bz0, bz0 + blen - 1)
     byre_cells = set(byre.cells) if byre else set()
 
@@ -1610,13 +1847,19 @@ def compose_farmstead(breed: Breed, tier: Tier, seed: int = 0) -> Pen:
     # instead put the gate inside the yard on the L-shaped plan, so the fence had
     # no opening at all and nothing could walk in; `check_pen` caught it.
     def in_house(c: Coord2) -> bool:
-        return (house_at[0] <= c[0] <= house_at[0] + HOUSE_SIZE[0] - 1
-                and house_at[1] <= c[1] <= house_at[1] + HOUSE_SIZE[1] - 1)
+        return (house_at[0] + bx0 <= c[0] <= house_at[0] + bx1
+                and house_at[1] + bz0 <= c[1] <= house_at[1] + bz1)
 
+    # Only the flank's street-facing run. The strip behind the house also has a
+    # south boundary — wherever the donor's north wall has a gap — but a gate
+    # there opens into the dead pocket between fence and wall, and `check_pen`
+    # said so plainly: 84 standable yard cells, none of them reachable.
     front = sorted(c for c in mask
-                   if (c[0], c[1] + 1) not in mask and not in_house((c[0], c[1] + 1)))
+                   if c[1] == yz1 and c[0] > wall_x
+                   and (c[0], c[1] + 1) not in mask
+                   and not in_house((c[0], c[1] + 1)))
     if len(front) < 3:
-        raise ValueError("yard has no front run to hang a gate in")
+        raise ValueError("yard has no street-facing run to hang a gate in")
     # Nearest the house end of the run, so the walk from the street door to the
     # yard is short — but never dead centre.
     off = rng.choice((0, 1, 2))
@@ -1630,15 +1873,12 @@ def compose_farmstead(breed: Breed, tier: Tier, seed: int = 0) -> Pen:
         if q in open_cells and len(hollow) < (3 if tier.kerb else 2):
             hollow.append(q)
 
-    door = (house_at[0] + HOUSE_DOOR[0], house_at[1] + HOUSE_DOOR[1])
+    dx, dz = house_door(house)
+    door = (house_at[0] + dx, house_at[1] + dz)
     wear = [gate, door] + hollow
     if byre:
         wear += [(byre.x1 + 1, z) for z in range(byre.z0, byre.z1 + 1)]
     lay_ground(vox, breed, mask, rim, wear, rng)
-
-    # The house goes in before the fence, so `open_ring` can see which runs its
-    # wall already closes.
-    graft(vox, house, house_at)
 
     # The donor plants bushes round its plot. A leaf block is standable at
     # +1.0, so one growing against the yard fence is a mounting block and one
@@ -1649,6 +1889,13 @@ def compose_farmstead(breed: Breed, tier: Tier, seed: int = 0) -> Pen:
     for (x, y, z), b in list(vox.solid_items()):
         if y >= 1 and (x, z) in yard_zone and b.short in ("oak_leaves",
                                                           "oak_sapling"):
+            vox.set((x, y, z), None)
+        # The donor fences its own garden. Inside the farmstead's yard — or one
+        # cell from it — that line runs parallel to the yard's own boundary with
+        # a dead cell between the two, which is the fence looking like it was
+        # built twice. His street-side garden fence is further out and stays.
+        if y >= 1 and (x, z) in yard_zone and b.short.endswith(("_fence",
+                                                                "_fence_gate")):
             vox.set((x, y, z), None)
 
     ring = open_ring(vox, mask)
@@ -1706,6 +1953,10 @@ def compose_farmstead(breed: Breed, tier: Tier, seed: int = 0) -> Pen:
             state("jigsaw", orientation=JIGSAW_ORIENTATION["south"]),
             jigsaw(JOBS_TARGET))
 
+    # Last, so that rails added by the byre, the holding pen and the props are
+      # all part of the run being checked.
+    close_diagonals(vox, mask, pal)
+    clear_mounts(vox, mask, byre_cells)
     reconnect(vox)
     stock(vox, breed, tier, [c for c in free
                              if not vox.occupied((c[0], 1, c[1]))], rng)

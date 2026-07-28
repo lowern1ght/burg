@@ -60,7 +60,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from structures.nbtio import BlockState, Coord, Voxels, load
-from structures.pasture import FULL_BLOCKS, NEIGH4, VEC, AXIS_OF
+from structures.pasture import FULL_BLOCKS, NEIGH4, STURDY, VEC, AXIS_OF
 
 LIVESTOCK = Path("../common/src/main/resources/data/onceuponatown/structure/livestock")
 CORPUS = Path("../common/src/main/resources/data/onceuponatown/structure")
@@ -71,20 +71,25 @@ RAIL_SUFFIX = ("_fence", "_pane", "_bars")
 
 # ── fences ──────────────────────────────────────────────────────────
 
-def _links(vox: Voxels, p: Coord, direction: str) -> bool:
-    """Would a rail at `p` connect toward `direction` in the actual game?"""
+def _links(vox: Voxels, p: Coord, direction: str, family: str) -> bool:
+    """Would a rail at `p` connect toward `direction` in the actual game?
+
+    The same rule `pasture.reconnect` derives from, and it is measured off the
+    author's corpus rather than guessed — including the part that says a fence
+    and a `*_wall` block do not connect to each other.
+    """
     dx, dz = VEC[direction]
     nb = vox.get((p[0] + dx, p[1], p[2] + dz))
     if nb is None:
         return False
     n = nb.short
-    if n in FULL_BLOCKS:
-        return True
-    if n.endswith(("_fence", "_wall", "_pane", "_bars")):
+    if n in STURDY:
         return True
     if n.endswith("_fence_gate"):
         return AXIS_OF[nb.get("facing", "north")] != AXIS_OF[direction]
-    return False
+    if family == "rail":
+        return n.endswith(("_fence", "_pane", "_bars"))
+    return n.endswith("_wall")
 
 
 def fence_faults(vox: Voxels) -> Tuple[List[str], List[str]]:
@@ -95,7 +100,9 @@ def fence_faults(vox: Voxels) -> Tuple[List[str], List[str]]:
         n = b.short
         if not n.endswith(RAIL_SUFFIX + ("_wall",)):
             continue
-        want = {d: _links(vox, p, d) for d in ("north", "south", "east", "west")}
+        family = "wall" if n.endswith("_wall") else "rail"
+        want = {d: _links(vox, p, d, family)
+                for d in ("north", "south", "east", "west")}
         if n.endswith("_wall"):
             have = {d: b.get(d, "none") != "none" for d in want}
         else:
