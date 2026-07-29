@@ -50,9 +50,26 @@ public class NpcRenderer extends HumanoidMobRenderer<Npc, NpcModel<Npc>> {
             context.getModelManager()));
     }
 
+    /**
+     * Drops a seated body so it sits ON the ground rather than in it.
+     *
+     * <p>{@code HumanoidModel}'s sitting rotations fold the legs forward from the hip, and the hip
+     * stays where a standing figure's is — vanilla only ever uses that pose while riding, and gets
+     * the height from the vehicle's passenger offset. There is no vehicle here, so the drop is
+     * ours. Two thirds of a block, which is where the folded thigh lands.
+     */
+    private static final float SEATED_DROP = 0.62F;
+
     @Override
     public void render(Npc npc, float entityYaw, float partialTicks, PoseStack matrixStack,
                         MultiBufferSource buffer, int packedLight) {
+        if (npc.getNpcPose().isSeated()) {
+            matrixStack.pushPose();
+            matrixStack.translate(0.0F, SEATED_DROP, 0.0F);
+            super.render(npc, entityYaw, partialTicks, matrixStack, buffer, packedLight);
+            matrixStack.popPose();
+            return;
+        }
         super.render(npc, entityYaw, partialTicks, matrixStack, buffer, packedLight);
     }
 

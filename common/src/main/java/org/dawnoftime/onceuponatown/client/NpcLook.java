@@ -197,6 +197,18 @@ public final class NpcLook {
         return DEFAULT_WEALTH;
     }
 
+    /**
+     * What this body is doing, for the model.
+     *
+     * <p>Anything that is not ours stands: a vanilla villager has no pose of ours to report, and
+     * guessing one from its brain would be a second, worse copy of a decision the server already
+     * makes for our own people.
+     */
+    public static org.dawnoftime.onceuponatown.entity.NpcPose poseOf(Mob mob) {
+        if (mob instanceof org.dawnoftime.onceuponatown.entity.Npc npc) return npc.getNpcPose();
+        return org.dawnoftime.onceuponatown.entity.NpcPose.STANDING;
+    }
+
     /** Reading the town plan: both hands occupied, head tilted down. Builders only. */
     public static boolean isReading(Mob mob) {
         return mob instanceof TownNpc npc && npc.isReading();

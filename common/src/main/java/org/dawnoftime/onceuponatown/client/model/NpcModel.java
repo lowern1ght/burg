@@ -46,6 +46,9 @@ public class NpcModel<T extends Mob> extends HumanoidModel<T> {
      * used a step later.
      */
     private boolean crossingArms;
+    /** Set from the entity each frame; see NpcPose. */
+    private org.dawnoftime.onceuponatown.entity.NpcPose pose =
+        org.dawnoftime.onceuponatown.entity.NpcPose.STANDING;
 
     public NpcModel(ModelPart root) {
         super(root);
@@ -135,6 +138,9 @@ public class NpcModel<T extends Mob> extends HumanoidModel<T> {
     public void setupAnim(T npc, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch) {
         super.setupAnim(npc, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch);
         this.head.zRot = 0.0F;
+        // Read here rather than in a setter, because this is the one method that is handed the
+        // entity. A field set from somewhere else would be a frame behind at best.
+        this.pose = org.dawnoftime.onceuponatown.client.NpcLook.poseOf(npc);
 
         // The build swing needs somewhere on the entity to keep its per-frame cursor, so it
         // stays a TownNpc-only animation. A villager does not lay blocks and never enters it.
@@ -163,6 +169,14 @@ public class NpcModel<T extends Mob> extends HumanoidModel<T> {
         // Both of these are poses that override the walk cycle, so they run last. Reading wins
         // over folded arms: someone holding a plan open is plainly not standing idle.
         if (this.crossingArms) animateCrossedArms();
+        // One switch, after super.setupAnim, because a pose OVERRIDES the walk cycle rather
+        // than blending with it -- the same reason the reading pose has to run last.
+        switch (this.pose) {
+            case SITTING -> animateSitting();
+            case DOZING -> animateDozing();
+            case TALKING -> animateTalking(ageInTicks);
+            default -> { }
+        }
         animateReadingPose(npc);
 
         /*
@@ -249,6 +263,56 @@ public class NpcModel<T extends Mob> extends HumanoidModel<T> {
      * forward, and the exact rotations cannot be settled from the source — only by looking at them
      * in game. Restoring the merged cube the way vanilla does it is the other option.
      */
+
+    /**
+     * Sitting on the ground.
+     *
+     * <p>Every number below is <b>vanilla's own</b>, read out of {@code HumanoidModel.setupAnim}'s
+     * riding branch by decompiling it. Borrowed deliberately and safely: riding is a humanoid pose
+     * on this exact skeleton. The pose this mod borrowed before came from {@code VillagerModel},
+     * where folded arms are ONE pre-modelled cube, and the same numbers on two separate hanging
+     * arms raised them straight out in front. Same-skeleton is the whole difference.
+     *
+     * <p>The renderer also has to drop the whole body, or the legs fold into the ground rather
+     * than in front of it — vanilla gets that from the vehicle's passenger offset and we have no
+     * vehicle, so {@code NpcRenderer} translates instead.
+     */
+    private void animateSitting() {
+        this.rightArm.xRot += -0.62831855F;
+        this.leftArm.xRot += -0.62831855F;
+        this.rightLeg.xRot = -1.4137167F;
+        this.rightLeg.yRot = 0.31415927F;
+        this.rightLeg.zRot = 0.07853982F;
+        this.leftLeg.xRot = -1.4137167F;
+        this.leftLeg.yRot = -0.31415927F;
+        this.leftLeg.zRot = -0.07853982F;
+    }
+
+    /** Asleep where they sat: the sitting pose with the head fallen forward. */
+    private void animateDozing() {
+        animateSitting();
+        this.head.xRot = 0.55F;
+        this.head.yRot = 0.10F;
+        this.rightArm.xRot = -0.15F;
+        this.leftArm.xRot = -0.15F;
+    }
+
+    /**
+     * Talking to somebody.
+     *
+     * <p>The one pose here that is invented rather than borrowed — vanilla has no humanoid gesture
+     * to copy — so these numbers are the ones to distrust until they have been seen in game. One
+     * hand up and turned slightly in, which is the least that reads as speech rather than as a
+     * twitch.
+     */
+    private void animateTalking(float ageInTicks) {
+        float wave = net.minecraft.util.Mth.sin(ageInTicks * 0.18F) * 0.25F;
+        this.rightArm.xRot = -0.85F + wave;
+        this.rightArm.zRot = -0.35F;
+        this.leftArm.xRot = -0.15F;
+        this.head.yRot += 0.20F;
+    }
+
     private void animateCrossedArms() {
         // Intentionally empty. See the note above before filling it in.
     }

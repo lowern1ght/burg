@@ -46,6 +46,9 @@ public class WorkShift {
     /** How often an unemployed settler looks for work. Rare on purpose; idling is a state, not a bug. */
     private static final int JOB_HUNT_EVERY = 200;
 
+    /** How close two idle people have to be to notice each other. */
+    private static final double CHATTER_RANGE = 3.5;
+
     private final Npc npc;
     private ActivityInstance activity;
     private int performTicks = 0;
@@ -78,12 +81,17 @@ public class WorkShift {
             npc.stopSleeping();
             walkingHome = null;
         }
+        // Whatever they were doing last night, they are on their feet now. Clearing it here rather
+        // than in each branch means a pose can never outlive the reason for it -- which is how a
+        // town ends up with somebody sitting down all day.
+        npc.setNpcPose(org.dawnoftime.onceuponatown.entity.NpcPose.STANDING);
         if (!phase.isWorkingTime()) return;      // dawn: awake, not yet at work
 
         if (activity == null) {
             // Idling is the honest default: a settler with nowhere to work wanders, and the base
             // goals on Npc already do that. Looking for work every ten seconds rather than every
             // tick keeps a town of jobless people from scanning its own building list forever.
+            chatter(level);
             if (++idleTicks < JOB_HUNT_EVERY) return;
             idleTicks = 0;
             claim(level, town);
@@ -105,6 +113,36 @@ public class WorkShift {
     }
 
 
+
+    /**
+     * Two idle people who happen to be near each other turn and talk.
+     *
+     * <p>The cheapest liveliness available, and it costs one nearby-entity query on the idle path
+     * only — the people with work to do never run it. A settlement where the jobless stand
+     * motionless reads as a mod with the AI switched off; the same people facing each other and
+     * gesturing reads as a village, and nothing else about them has to change.
+     *
+     * <p>Deliberately one-sided: each of them independently notices the other and turns, rather
+     * than one of them "starting a conversation" that has to be tracked, agreed and ended. There is
+     * no state to get out of sync because there is no state.
+     */
+    private void chatter(ServerLevel level) {
+        Npc other = null;
+        double best = Double.MAX_VALUE;
+        for (Npc candidate : level.getEntitiesOfClass(Npc.class,
+                npc.getBoundingBox().inflate(CHATTER_RANGE),
+                n -> n != npc && n.getRole() == Npc.Role.SETTLER && !n.isSleeping())) {
+            double d = candidate.distanceToSqr(npc);
+            if (d < best) { best = d; other = candidate; }
+        }
+        if (other == null) {
+            npc.setNpcPose(org.dawnoftime.onceuponatown.entity.NpcPose.STANDING);
+            return;
+        }
+        npc.getLookControl().setLookAt(other, 30.0F, 30.0F);
+        npc.setNpcPose(org.dawnoftime.onceuponatown.entity.NpcPose.TALKING);
+    }
+
     /**
      * Stop work, walk to your own bed, and lie in it once it is dark.
      *
@@ -122,7 +160,17 @@ public class WorkShift {
         if (activity != null) release(town);
 
         org.dawnoftime.onceuponatown.people.Person person = npc.person();
-        if (person == null || !person.hasHome()) return;
+        if (person == null || !person.hasHome()) {
+            // Nowhere to sleep. They sit down where they are and doze, which is the honest picture
+            // of a town that has not built enough houses -- and far better than a person left
+            // standing bolt upright in the street until dawn, which reads as a broken schedule
+            // rather than as a consequence.
+            npc.getNavigation().stop();
+            npc.setNpcPose(phase.isSleepingTime()
+                ? org.dawnoftime.onceuponatown.entity.NpcPose.DOZING
+                : org.dawnoftime.onceuponatown.entity.NpcPose.SITTING);
+            return;
+        }
 
         BlockPos bed = BlockPos.of(person.homeKey());
         if (!org.dawnoftime.onceuponatown.tick.Homes.stillABed(level, bed)) {

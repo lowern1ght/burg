@@ -83,6 +83,13 @@ public class Npc extends AgeableMob implements TownNpc,
      */
     private static final EntityDataAccessor<Integer> DATA_WEALTH =
         SynchedEntityData.defineId(Npc.class, EntityDataSerializers.INT);
+    /**
+     * What the body is doing, as one value. See {@link NpcPose} for why it is not a flag per
+     * pose: four independent booleans can say reading AND sitting AND talking at once, and by
+     * the third pose the model is asking questions that contradict each other.
+     */
+    private static final EntityDataAccessor<Integer> DATA_POSE =
+        SynchedEntityData.defineId(Npc.class, EntityDataSerializers.INT);
 
     // Client-side animation state: written by NpcModel.setupAnim(), never synced or saved.
     public int clientLastBuildGeneration = -1;
@@ -123,6 +130,7 @@ public class Npc extends AgeableMob implements TownNpc,
         builder.define(DATA_BUILD_GENERATION, 0);
         builder.define(DATA_PERSON, java.util.Optional.empty());
         builder.define(DATA_WEALTH, 0);
+        builder.define(DATA_POSE, NpcPose.STANDING.index());
     }
 
     @Override
@@ -395,6 +403,13 @@ public class Npc extends AgeableMob implements TownNpc,
 
     public void setPersonId(java.util.UUID personId) {
         entityData.set(DATA_PERSON, java.util.Optional.ofNullable(personId));
+    }
+
+    /** What this body is doing. Server-decided; the client only draws it. */
+    public NpcPose getNpcPose() { return NpcPose.byIndex(entityData.get(DATA_POSE)); }
+
+    public void setNpcPose(NpcPose pose) {
+        if (getNpcPose() != pose) entityData.set(DATA_POSE, pose.index());
     }
 
     /** How this body's clothes should read. Pushed from the record, never rolled here. */
