@@ -230,13 +230,27 @@ public class NpcModel<T extends Mob> extends HumanoidModel<T> {
     }
 
     /** Both arms in across the chest, one forearm resting over the other. */
+    /**
+     * DISABLED, and the reason is worth keeping.
+     *
+     * <p>These numbers came from {@code VillagerModel}, where folded arms are ONE PRE-MODELLED
+     * CUBE already built in the crossed position and {@code xRot = -0.75} merely tilts it. Our rig
+     * is the player skeleton: two separate arms hanging at the shoulder. Rotating each of those
+     * forward by 0.8 radians does not fold them across the chest — it raises them straight out in
+     * front, which in game read as a zombie with its arms up. A pose borrowed from a model whose
+     * geometry it depended on.
+     *
+     * <p>It only ever fired for a vanilla {@code Villager} with no profession — {@code
+     * NpcLook.isCrossingArms} — since our own {@code Npc.isCrossingArms} is always false. Vanilla
+     * villagers are being phased out anyway, so nothing of ours loses a pose, and arms that hang
+     * are correct where arms that stick out are a visible fault.
+     *
+     * <p>To bring it back properly the arms have to roll INWARD across the chest rather than swing
+     * forward, and the exact rotations cannot be settled from the source — only by looking at them
+     * in game. Restoring the merged cube the way vanilla does it is the other option.
+     */
     private void animateCrossedArms() {
-        this.rightArm.xRot = -0.80F;
-        this.rightArm.yRot = 0.45F;
-        this.rightArm.zRot = 0.35F;
-        this.leftArm.xRot = -0.95F;
-        this.leftArm.yRot = -0.45F;
-        this.leftArm.zRot = -0.35F;
+        // Intentionally empty. See the note above before filling it in.
     }
 
 }

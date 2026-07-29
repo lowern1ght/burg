@@ -101,7 +101,11 @@ def manifest():
     return {
         "textureDir": "../../common/src/main/resources/assets/onceuponatown/textures/entity/npc",
         "slots": {
-            "base":    bodies + sorted_names("citizen_skin_*.png") + ["default_skin.png"],
+            # Drawn bodies only. `default_skin.png` and the twelve relayed `citizen_skin_*`
+            # are RETIRED -- nothing in the Java reads them, and listing retired art in the
+            # viewer makes a dropdown you have to know to avoid. They stay on disk; add the
+            # globs back here if you ever need to look at them again.
+            "base":    bodies,
             "garment": [""] + sorted_names("*_clothes.png"),
             # Hair, beard and covering are three separate paintings on the SAME `hat` shell,
             # so each gets its own slot rather than being one dropdown -- a person wears a

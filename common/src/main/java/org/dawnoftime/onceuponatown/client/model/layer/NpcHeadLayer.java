@@ -1,3 +1,17 @@
+/*
+ * ***** RETIRED, AND KEPT ON DISK ON PURPOSE. NOTHING REFERENCES THIS FILE. *****
+ *
+ * Replaced by `NpcHairLayer` in this same package, which does the same job in 2D on the `hat` cube
+ * the rig already carries. See the header of `NpcHeadModels` for the measurement that retired the
+ * geometry (31 of 31 reference skins use the head's second layer) and for the crash it caused.
+ *
+ * What survives from this file into its replacement: the beard takes the HAIR's colour from the
+ * same roll, because the base pass gets a hardcoded -1 and a painted-in beard could never have
+ * followed a tint. And headwear keeps its own colour per kind, because linen and straw are
+ * materials rather than dyes. Both rules are re-stated in `NpcHairLayer` and `CitizenLook`.
+ *
+ * Not deleted, by repo law: never delete before verifying, and ask first.
+ */
 package org.dawnoftime.onceuponatown.client.model.layer;
 
 import com.mojang.blaze3d.vertex.PoseStack;

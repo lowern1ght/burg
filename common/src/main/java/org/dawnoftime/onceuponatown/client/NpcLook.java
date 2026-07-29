@@ -156,10 +156,14 @@ public final class NpcLook {
      */
     private static final int[] TRIM_TINTS = {
         0xFFD8A840,   // gold, on woad
-        0xFFF0E8D0,   // undyed silk, on green
-        0xFFDCE2EA,   // silver, on deep madder
-        0xFFD8A840,   // gold again, on murrey — a documented livery pairing
+        0xFFD8B830,   // a weld silk band, on green
+        0xFF5A78C8,   // a woad silk band, on deep madder — a tablet-woven band, not metal
+        0xFFD8A840,   // gold again, on murrey
     };
+    // Three braid colours over four pairings, and the fourth candidate was dropped ON THE SHEET
+    // rather than by a number: a madder-red band on the green cloth cleared every gate and read
+    // as red-on-green. Cream, silver and pewter went the same way for the opposite reason — see
+    // the braid floor in `draw_citizens.py`.
 
     /** Where the braid is drawn. One file, because all eight garments share ONE alpha mask. */
     private static final String TRIM = "citizen_trim";

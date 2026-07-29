@@ -5,6 +5,8 @@ import net.minecraft.server.level.ServerLevel;
 import org.dawnoftime.onceuponatown.building.schematic.BuildSchematic;
 import org.dawnoftime.onceuponatown.entity.CitizenNames;
 import org.dawnoftime.onceuponatown.entity.Npc;
+import org.dawnoftime.onceuponatown.people.Person;
+import org.dawnoftime.onceuponatown.people.Sex;
 import org.dawnoftime.onceuponatown.registry.EntityRegistry;
 import org.dawnoftime.onceuponatown.town.ConnectionPoint;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
@@ -65,7 +67,7 @@ public final class Settlers {
 
     public static void tick(Town town, ServerLevel level, long gameTime, BlockPos anchor) {
         if (gameTime % CHECK_EVERY_TICKS != 0) return;
-        if (town.getVacancies() <= 0) return;
+        if (town.getTotalResidents() - town.people().livingCount() <= 0) return;
 
         long cooldown = Math.max(MIN_COOLDOWN_TICKS,
             BASE_COOLDOWN_TICKS - (long) town.getQuestDefLastCompleted().size() * 2000L);
@@ -85,21 +87,36 @@ public final class Settlers {
         int groundY = BuildSchematic.groundY(level, gate.getX(), gate.getZ());
         if (groundY == BuildSchematic.NO_GROUND) return;
 
+        // THE RECORD FIRST, and this is the link that was missing: the arrival used to create an
+        // entity and write it to the old list of entity UUIDs, and never created a Person at all.
+        // `Embodiment` hands out bodies by record, so with no records there was nobody to embody:
+        // no [OUAT-BODY] in the log, ever, and the whole population model sitting idle behind a
+        // gate nothing ever opened.
+        java.util.UUID personId = java.util.UUID.randomUUID();
+        Person person = new Person(personId,
+            CitizenNames.isFeminine(personId) ? Sex.WOMAN : Sex.MAN,
+            Person.ADULT_AT_DAYS + level.getRandom().nextInt(200));
+        town.people().add(person);
+
+        // Then a body, immediately and at the road's end, because THIS arrival is the one the
+        // player is meant to watch walk in. Everyone else gets a body from the window whenever
+        // they happen to be near, out of sight.
         Npc settler = EntityRegistry.NPC.create(level);
         if (settler == null) return;
         settler.setRole(Npc.Role.SETTLER);
         settler.setTownAnchorPos(anchor);
+        settler.setPersonId(personId);
+        settler.setWealthTier(person.wealth().tier());
         settler.moveTo(gate.getX() + 0.5, groundY + 1.0, gate.getZ() + 0.5,
             level.getRandom().nextFloat() * 360.0f, 0.0f);
 
-        // On the roll BEFORE it enters the world: Npc.tick validates itself against the roll for
-        // its role on its first tick and discards if it is not there. Add it afterwards and the
-        // settler deletes itself before anyone sees it — which is exactly the failure the role
-        // was introduced to stop, arriving from the other direction.
+        // Still on the old roll as well, while it is still what validates a body on load. The
+        // person record is the truth; this is bookkeeping being retired.
         town.addResident(settler.getUUID());
 
         if (!level.addFreshEntity(settler)) {
             town.removeResident(settler.getUUID());
+            town.people().forget(personId);
             return;
         }
 
@@ -109,9 +126,9 @@ public final class Settlers {
         // Walks in rather than standing at the town limit waiting for a job to exist.
         settler.getNavigation().moveTo(anchor.getX() + 0.5, anchor.getY(), anchor.getZ() + 0.5, 0.6);
 
-        LOGGER.info("[OUAT-SETTLER] {} arrived at '{}' from {} -- roll now {} of {} beds",
-            CitizenNames.of(settler.getUUID()), town.getName(), gate,
-            town.getResidentNpcIds().size(), town.getTotalResidents());
+        LOGGER.info("[OUAT-SETTLER] {} ({}) arrived at '{}' from {} -- {} living of {} beds",
+            CitizenNames.of(personId), person.sex(), town.getName(), gate,
+            town.people().livingCount(), town.getTotalResidents());
     }
 
     /**

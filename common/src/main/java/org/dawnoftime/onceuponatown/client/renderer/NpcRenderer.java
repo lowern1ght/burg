@@ -12,7 +12,7 @@ import org.dawnoftime.onceuponatown.Ouat;
 import org.dawnoftime.onceuponatown.client.CitizenLook;
 import org.dawnoftime.onceuponatown.client.model.NpcModel;
 import org.dawnoftime.onceuponatown.client.model.layer.NpcClothesLayer;
-import org.dawnoftime.onceuponatown.client.model.layer.NpcHeadLayer;
+import org.dawnoftime.onceuponatown.client.model.layer.NpcHairLayer;
 import org.dawnoftime.onceuponatown.entity.Npc;
 
 public class NpcRenderer extends HumanoidMobRenderer<Npc, NpcModel<Npc>> {
@@ -40,7 +40,10 @@ public class NpcRenderer extends HumanoidMobRenderer<Npc, NpcModel<Npc>> {
     public NpcRenderer(EntityRendererProvider.Context context) {
         super(context, new NpcModel<>(context.bakeLayer(NpcModel.LAYER_LOCATION)), 0.5F);
         this.addLayer(new NpcClothesLayer<>(this));
-        this.addLayer(new NpcHeadLayer<>(this, context));
+        // Hair, beard and headwear: PAINT on the `hat` cube the rig already carries, not
+        // geometry. 31 of 31 reference skins use the head's second layer; the cubes this
+        // replaces also cost a black screen. See NpcHairLayer.
+        this.addLayer(new NpcHairLayer<>(this));
         this.addLayer(new HumanoidArmorLayer<>(this,
             new HumanoidArmorModel<>(context.bakeLayer(ModelLayers.PLAYER_INNER_ARMOR)),
             new HumanoidArmorModel<>(context.bakeLayer(ModelLayers.PLAYER_OUTER_ARMOR)),

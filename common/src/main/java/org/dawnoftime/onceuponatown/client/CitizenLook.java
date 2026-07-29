@@ -13,23 +13,32 @@ import java.util.UUID;
 /**
  * Who a citizen looks like: the single owner of every appearance roll on the shared rig.
  *
- * <h2>Why the appearance is spread across a texture, a tint and three cubes</h2>
+ * <h2>Why the appearance is spread across a drawn file, a painting and a tint</h2>
  *
  * <p>The six male skins used to be one drawing multiplied by six palettes, and the complaint was
  * that the town read as one man repainted. Three measurements say why, and each one dictates
  * where a piece of the look had to go.
  *
- * <p><b>1. A texture cannot carry a silhouette on this rig.</b> Across the twelve skins the mod
- * shipped there were <b>three distinct alpha masks</b> — the six men shared ONE, the women had
- * two (veiled and bare). The outline of a citizen is the MODEL, not the skin; the only lever a
- * texture has is whether it paints the second-layer cubes at all, which is binary, and vanilla
- * uses it in just 4 of its 9 player skins. So hair, beard and headwear are <b>geometry</b>
- * ({@code NpcHeadModels}), because they are the only things that can change an outline.
+ * <p><b>1. A texture CARRIES the silhouette, and the earlier claim here that it could not was
+ * wrong.</b> This paragraph used to read "the outline of a citizen is the MODEL, not the skin", on
+ * the evidence that the twelve skins the mod shipped had only <b>three distinct alpha masks</b>
+ * between them. That measurement is real and says something narrower than it was made to say: those
+ * twelve never used the lever, not that the lever is absent. The number that settles it is the
+ * owner's own reference set — <b>31 of 31 use the head's second layer</b>, which is how every hat,
+ * hood and long hair in Minecraft is drawn, and vanilla ships no hair models at all. So hair, beard
+ * and headwear are <b>paint on the {@code hat} cube</b> ({@code NpcHairLayer}), whose alpha carves
+ * the outline. The 42 baked cubes that briefly did this job are retired on disk, unreferenced; they
+ * also cost a black screen, which paint cannot do.
+ *
+ * <p>The one thing the geometry could do and paint cannot: <b>project past the head</b>. A shell
+ * inflated half a block cannot carry a brim, so the straw hat is a brimless cap with a band.
  *
  * <p><b>2. The head cube was bald.</b> Measured on the shipped file: the head's top, back, left
  * and right faces held <b>zero</b> non-flesh texels. The relay that produced those skins carried
  * the villager's face over and lost the hair entirely in the 10&rarr;8 crop. So there was never
- * hair to preserve, and drawing the scalp as plain flesh under a cube of hair costs nothing.
+ * hair to preserve, and drawing the scalp as plain flesh under a SHELL of painted hair costs
+ * nothing — and it is still the right thing under paint, because the shell's transparent cells are
+ * exactly where a scalp should show.
  *
  * <p><b>3. The base texture cannot be tinted.</b> {@code LivingEntityRenderer.render} ends its
  * base pass with {@code model.renderToBuffer(pose, vc, light, i, flag1 ? 654311423 : -1)} — the
@@ -39,10 +48,10 @@ import java.util.UUID;
  * down — the old dark variant kept only 20 luminance points of flesh modelling against 29 as
  * drawn — while <b>hair colour is a tint</b> on a layer.
  *
- * <p>The consequence worth stating: the beard is geometry rather than paint on the face for the
- * same reason. A painted beard could not follow the hair's tint — the base pass is that
- * {@code -1} — so a grey-haired man would have had a brown beard. It shares the hair's model,
- * texture and colour instead.
+ * <p>The consequence worth stating: the beard is on the HAIR'S LAYER rather than painted into the
+ * face, for the same reason. A beard in the body texture could not follow the hair's tint — the base
+ * pass is that {@code -1} — so a grey-haired man would have had a brown beard. It is its own
+ * painting on the same cube, drawn in the same pass order and multiplied by the same colour.
  *
  * <h2>A POOL OF DRAWN BODIES, NOT A CROSS PRODUCT</h2>
  *
@@ -50,7 +59,7 @@ import java.util.UUID;
  * indexes a pool of hand-drawn ones, and the arithmetic is what changed the design: 4 x 6 is
  * <b>24 visibly distinct bodies</b>, since the two cuts are the sexes and buy no variety inside
  * either. The larger figure that justified the cross product multiplied in the hair, beard and
- * headwear from {@code NpcHeadModels} — real variation, but contributed to any body equally. So
+ * headwear, which is real variation but is contributed to any body equally. So
  * the cross product bought 24 bodies at the price of being unable to draw one of them, and it lost
  * the comparison the owner cares about: measured against 31 reference skins, a generated body
  * carried <b>17 distinct colours against their 139 median</b>, and drew no nose at all.
@@ -87,15 +96,16 @@ public final class CitizenLook {
     // mid-thigh over hose against a shift to the ankle. The slug is the filename's, so adding a
     // person is one string here and one entry in `tools/draw_citizens.py`.
     //
-    // *** THE POOL IS TWO PEOPLE. *** That is deliberate and it is not finished: the owner asked
-    // to see the register land on one or two bodies before it was multiplied, so a town currently
-    // draws from ONE man and ONE woman where the generated set gave 24. It is a large gain in how
-    // a body reads and a loss in how many there are, and it is not a state to ship to players —
-    // the roster is 12 to 20. Reverting is `git checkout` of this one file; the 48 generated
-    // bodies are still on disk and still committed.
+    // Every entry is a person drawn separately, and `tools/draw_citizens.py` proves that rather
+    // than asserting it: it compares every pair SYMBOLICALLY, palette ignored, and gates the share
+    // of cells that differ. A repaint of one drawing scores 0. These score 65% and up.
+    //
+    // Both arrays carry all four complexion families, so a town cannot come out one colour whichever
+    // way the sex flip lands — and the DARK ones are drawn rather than multiplied down, which is the
+    // measurement the whole approach rests on: 36 luminance points of flesh modelling against 20.
 
-    private static final String[] MEN_BODIES = {"00"};
-    private static final String[] WOMEN_BODIES = {"01"};
+    private static final String[] MEN_BODIES = {"00", "02", "04", "06", "08", "10", "12"};
+    private static final String[] WOMEN_BODIES = {"01", "03", "05", "07", "09", "11", "13"};
 
     /** Complexion families, kept as constants because the hair table is keyed on them. */
     private static final int LIGHT = 0, WARM = 1, OLIVE = 2, DARK = 3;
@@ -107,14 +117,19 @@ public final class CitizenLook {
      * because {@link #HAIR_BY_COMPLEXION} is keyed on it and that table is the reason a citizen
      * never comes out dark-complexioned with fair hair.
      */
-    private static final int[] MEN_COMPLEXION = {WARM};
-    private static final int[] WOMEN_COMPLEXION = {LIGHT};
+    private static final int[] MEN_COMPLEXION =
+        {WARM, DARK, OLIVE, LIGHT, WARM, OLIVE, DARK};
+    private static final int[] WOMEN_COMPLEXION =
+        {LIGHT, WARM, OLIVE, DARK, WARM, LIGHT, DARK};
 
-    /** Hair styles, as cubes. Index 0 is the closest crop and is never absent. */
+    /** Hair styles, as PAINTINGS on the {@code hat} cube. Index 0 is the crop and is never absent. */
     public static final int HAIR_STYLES = 5;
 
-    /** Beards, as cubes. Index 0 is none. Men only, and never on a child. */
+    /** Beards, as paintings. Index 0 is none and has no file. Men only, and never on a child. */
     public static final int BEARDS = 4;
+
+    /** Coverings, as paintings. Index 0 is bare and has no file. */
+    public static final int HEADWEAR_KINDS = 6;
 
     // Salts. 0 and 1 belong to Citizens (FACE_SALT, TINT_SALT); these continue the sequence and
     // must stay unique across both classes or two axes become one. 2 belonged to the retired
@@ -155,16 +170,33 @@ public final class CitizenLook {
     };
 
     /**
-     * Headwear per sex, as indices into {@code NpcHeadModels.HEADWEAR}.
+     * Headwear per sex, as indices into the painted covering pool.
      *
-     * <p>Gated rather than shared because the covering is the cut: a coif and a straw hat are a
+     * <p>Gated rather than shared because the covering is the cut: a coif and a straw cap are a
      * working man's, a veil and a wimple are a married woman's. A hood is in both, being weather
      * rather than dress. Index 0 is bare in both, and bare has to stay available — six of six
      * women veiled read as a convent rather than a village when the female set was drawn, which
      * is why two of those six went bareheaded.
      */
-    private static final int[] HEADWEAR_M = {0, 1, 2, 3, 4};   // bare, coif, straw hat, hood, cap
-    private static final int[] HEADWEAR_W = {0, 5, 6, 3};      // bare, veil, wimple, hood
+    private static final int[] HEADWEAR_M = {0, 1, 2, 3};   // bare, coif, straw cap, hood
+    private static final int[] HEADWEAR_W = {0, 4, 5, 3};   // bare, veil, wimple, hood
+
+    /**
+     * The colour of each covering, and it is per KIND rather than per person.
+     *
+     * <p>These are materials and not dyes: linen is bleached or it is not, straw is straw. They
+     * multiply a near-white painting, the same arrangement {@link NpcLook} uses for cloth, and they
+     * stay close to white for the reason that table gives — a strong tint stops reading as cloth and
+     * starts reading as a team colour. Index 0 is bare and is never drawn.
+     */
+    private static final int[] HEADWEAR_TINT = {
+        0xFFFFFFFF,   // 0 bare, unused
+        0xFFE8E2D2,   // 1 coif — unbleached linen
+        0xFFD8BE7E,   // 2 straw cap
+        0xFF9A9084,   // 3 hood — undyed grey-brown wool
+        0xFFEFEADA,   // 4 veil — bleached linen, the one thing a household bleached
+        0xFFE2DDC9,   // 5 wimple
+    };
 
     /**
      * The builder's look, chosen rather than rolled.
@@ -180,8 +212,11 @@ public final class CitizenLook {
      * {@code builder_clothes.png} goes over the top of him like any other trade. He needs no
      * special case beyond being chosen rather than rolled. {@code default_skin.png} stays on disk
      * untouched.
+     *
+     * <p>The constant used to say {@code (…, 2, 0)} — covering 2, no beard — while the sentence
+     * above claimed a coif and a short beard. It now says what it means.
      */
-    public static final Look BUILDER = new Look(false, 0, 0, MID_BROWN, 2, 0);
+    public static final Look BUILDER = new Look(false, 0, 0, MID_BROWN, 1, 2);
 
     private CitizenLook() {
     }
@@ -191,10 +226,10 @@ public final class CitizenLook {
      *
      * @param female     which pool, and which cut — a shift to mid-thigh, or one to the ankle
      * @param body       index into that sex's drawn pool
-     * @param hairStyle  index into {@code NpcHeadModels.HAIR}
+     * @param hairStyle  index into the painted hair pool; 0 is a crop and is never absent
      * @param hairColour ARGB multiplied into the hair material, shared by the beard
-     * @param headwear   index into {@code NpcHeadModels.HEADWEAR}; 0 is bare
-     * @param beard      index into {@code NpcHeadModels.BEARDS}; 0 is none
+     * @param headwear   index into the painted covering pool; 0 is bare and has no file
+     * @param beard      index into the painted beard pool; 0 is none and has no file
      */
     public record Look(boolean female, int body, int hairStyle,
                        int hairColour, int headwear, int beard) {
@@ -211,7 +246,7 @@ public final class CitizenLook {
      * <p><b>A child has no beard and no headwear.</b> {@code Npc} extends {@code AgeableMob} and
      * {@code getBreedOffspring} returns one, so babies are real and reachable, and a bearded
      * infant in a coif is exactly the sort of thing that ships. Hair is kept — children have
-     * hair — and the layer scales it, see {@code NpcHeadLayer}.
+     * hair, and a painting on the `hat` cube follows the head at any scale.
      */
     public static Look of(Mob mob) {
         boolean young = mob.isBaby();
@@ -270,5 +305,45 @@ public final class CitizenLook {
 
     public static ResourceLocation body(Mob mob) {
         return body(of(mob));
+    }
+
+    // ── the painted head: hair, beard, covering ──────────────────────
+    //
+    // Three small textures over the `hat` cube, resolved once. Index 0 of a beard or a covering is
+    // the ABSENCE of the thing and has no file at all — which is the whole difference from the
+    // geometry this replaces, where an absent variant was a null in an array that a registration
+    // loop then tried to bake, and that was the black screen.
+
+    private static final ResourceLocation[] HAIR = numbered("hair", HAIR_STYLES, 0);
+    private static final ResourceLocation[] BEARD = numbered("beard", BEARDS, 1);
+    private static final ResourceLocation[] HEADWEAR = numbered("headwear", HEADWEAR_KINDS, 1);
+
+    private static ResourceLocation[] numbered(String kind, int count, int first) {
+        ResourceLocation[] out = new ResourceLocation[count];
+        for (int i = first; i < count; i++) {
+            out[i] = ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, String.format(
+                "textures/entity/npc/citizen_%s_%02d.png", kind, i));
+        }
+        return out;
+    }
+
+    /** Hair. Never {@code null} — index 0 is a crop, not baldness. */
+    public static ResourceLocation hair(Look look) {
+        return HAIR[Math.floorMod(look.hairStyle(), HAIR.length)];
+    }
+
+    /** The beard, or {@code null} for a clean chin. Takes the HAIR's colour, not its own. */
+    public static ResourceLocation beard(Look look) {
+        return BEARD[Math.floorMod(look.beard(), BEARD.length)];
+    }
+
+    /** The covering, or {@code null} for a bare head. */
+    public static ResourceLocation headwear(Look look) {
+        return HEADWEAR[Math.floorMod(look.headwear(), HEADWEAR.length)];
+    }
+
+    /** ARGB multiplied into the covering. Per kind, because linen and straw are materials. */
+    public static int headwearTint(Look look) {
+        return HEADWEAR_TINT[Math.floorMod(look.headwear(), HEADWEAR_TINT.length)];
     }
 }

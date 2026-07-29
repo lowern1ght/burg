@@ -356,6 +356,15 @@ def check() -> int:
         if im.size != (64, 64):
             skipped.append(f"{path.name} ({im.size[0]}x{im.size[1]})")
             continue
+        # AND NOR IS EVERY 64x64 FILE A BODY. `citizen_hair_*`, `citizen_beard_*`,
+        # `citizen_headwear_*` are paintings on the `hat` cube alone and `citizen_trim` edges the
+        # garment's own mask, so all of them are deliberately empty on every base region — which
+        # this checker reads as a body with no head, no torso and no limbs. Fourteen false FAILs,
+        # and the note above is exactly right about what that teaches people to do with a checker.
+        if path.name.startswith(("citizen_hair_", "citizen_beard_",
+                                 "citizen_headwear_", "citizen_trim")):
+            skipped.append(f"{path.name} (an overlay, not a body — see draw_citizens.py)")
+            continue
         px = im.load()
         opaque = {(x, y) for y in range(64) for x in range(64) if px[x, y][3] > 8}
         stray = opaque - used

@@ -1,3 +1,25 @@
+/*
+ * ***** RETIRED, AND KEPT ON DISK ON PURPOSE. NOTHING REFERENCES THIS FILE. *****
+ *
+ * Replaced by `NpcHairLayer`, which paints hair, beards and headwear on the head's own
+ * second-layer cube instead of baking geometry for them.
+ *
+ * WHY, IN ONE NUMBER. The whole argument below — "a texture cannot change an outline, so the
+ * silhouette has to be the model" — is contradicted by a measurement that already existed when
+ * this file was written: of the owner's 31 reference skins, **31 use the head's second layer**.
+ * That is how every long hair, hat, hood and coif in Minecraft is drawn, for players and villagers
+ * alike: an inflated shell whose texture's ALPHA carves the outline. Vanilla ships no hair models
+ * at all. The three-alpha-mask measurement quoted below is real but says something else — it says
+ * the twelve skins the mod SHIPPED never used the lever, not that the lever does not exist.
+ *
+ * IT ALSO COST A BLACK SCREEN: `No model for layer onceuponatown:npc_beard#v0`, fixed in a6ada7f.
+ * A registration loop over an array whose absent variants are nulls is a failure mode paint does
+ * not have — a missing texture is a missing texture, not a crash.
+ *
+ * Not deleted, by repo law: never delete before verifying, and ask first. The 42 cube definitions
+ * are here if the decision is ever revisited, and `NpcHeadLayer` beside it is the renderer that
+ * drove them.
+ */
 package org.dawnoftime.onceuponatown.client.model;
 
 import net.minecraft.client.model.geom.ModelLayerLocation;

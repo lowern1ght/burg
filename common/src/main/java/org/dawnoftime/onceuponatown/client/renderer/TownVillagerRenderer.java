@@ -15,7 +15,7 @@ import org.dawnoftime.onceuponatown.Constants;
 import org.dawnoftime.onceuponatown.client.CitizenLook;
 import org.dawnoftime.onceuponatown.client.model.NpcModel;
 import org.dawnoftime.onceuponatown.client.model.layer.NpcClothesLayer;
-import org.dawnoftime.onceuponatown.client.model.layer.NpcHeadLayer;
+import org.dawnoftime.onceuponatown.client.model.layer.NpcHairLayer;
 import org.dawnoftime.onceuponatown.entity.citizen.Citizens;
 
 /**
@@ -84,7 +84,10 @@ public class TownVillagerRenderer extends HumanoidMobRenderer<Villager, NpcModel
         this.vanilla = new VillagerRenderer(context);
         this.addLayer(new NpcClothesLayer<>(this));
         // Hair, beard and headwear: the only part of the look that can change a silhouette.
-        this.addLayer(new NpcHeadLayer<>(this, context));
+        // Hair, beard and headwear: PAINT on the `hat` cube the rig already carries, not
+        // geometry. 31 of 31 reference skins use the head's second layer; the cubes this
+        // replaces also cost a black screen. See NpcHairLayer.
+        this.addLayer(new NpcHairLayer<>(this));
         // Registered even though a citizen wears none yet: it is the same layer the builder
         // already had, it costs nothing while the slots are empty, and it is the whole reason
         // a garrison will be readable by equipment instead of by seven bespoke textures.
@@ -113,9 +116,9 @@ public class TownVillagerRenderer extends HumanoidMobRenderer<Villager, NpcModel
      * {@code CitizenNames.isFeminine}, the FIRST draw of the name generator's sequence, which is
      * why a Hedda can never come out a man.
      *
-     * <p>Hair, beard and headwear are NOT here. They are geometry on {@code NpcHeadLayer},
-     * because the twelve skins this replaces had three distinct alpha masks between them and the
-     * six men shared one: a texture cannot change an outline on this rig.
+     * <p>Hair, beard and headwear are NOT here. They are paint on the {@code hat} cube, drawn by
+     * {@code NpcHairLayer}: 31 of 31 reference skins use the head's second layer, which is how every
+     * hat and hood in Minecraft is done, and a texture's ALPHA is what carries the outline.
      *
      * <p>Only reached for a citizen: {@link #render} hands anything that is not one to a real
      * {@code VillagerRenderer}, which resolves its own texture.
