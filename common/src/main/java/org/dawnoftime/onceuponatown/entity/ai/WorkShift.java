@@ -50,6 +50,8 @@ public class WorkShift {
     private ActivityInstance activity;
     private int performTicks = 0;
     private int idleTicks = 0;
+    /** Where they were sent to sleep, so the walk is not restarted every tick. */
+    private GoToPosition walkingHome;
 
     public WorkShift(Npc npc) {
         this.npc = npc;
@@ -61,6 +63,22 @@ public class WorkShift {
         if (anchor == null) return;
         Town town = LevelTowns.get(level).getTownAt(anchor).orElse(null);
         if (town == null) return;
+
+        // THE DAY DECIDES FIRST. A trade is what somebody does between getting up and going to
+        // bed, not a thing they do around the clock -- and the owner asked for this before any of
+        // the rest of it: "если закат то идти спать".
+        org.dawnoftime.onceuponatown.people.DayPhase phase =
+            org.dawnoftime.onceuponatown.people.DayPhase.of(level.getDayTime());
+        if (phase.isRestingTime()) {
+            goHome(level, town, phase);
+            return;
+        }
+        if (npc.isSleeping()) {
+            // Dawn. Out of bed before anything else, or the walk to work starts from a lie-down.
+            npc.stopSleeping();
+            walkingHome = null;
+        }
+        if (!phase.isWorkingTime()) return;      // dawn: awake, not yet at work
 
         if (activity == null) {
             // Idling is the honest default: a settler with nowhere to work wanders, and the base
@@ -84,6 +102,53 @@ public class WorkShift {
             case APPROACHING -> tickApproaching();
             case PERFORMING -> tickPerforming(level, town);
         }
+    }
+
+
+    /**
+     * Stop work, walk to your own bed, and lie in it once it is dark.
+     *
+     * <p>The bed is a POSITION on the person's record, assigned by {@link
+     * org.dawnoftime.onceuponatown.tick.Homes}, so this is a walk to somewhere real rather than to
+     * a building somebody is notionally a resident of. Somebody with no bed simply stops working
+     * and stays out — which is the visible consequence of a town that has not built enough houses,
+     * and it should be visible.
+     *
+     * <p>The trade is released on the way, not kept overnight: a claim held by somebody asleep is
+     * a workplace nobody else can take, and the assignment pass runs every ten seconds.
+     */
+    private void goHome(ServerLevel level, Town town,
+                        org.dawnoftime.onceuponatown.people.DayPhase phase) {
+        if (activity != null) release(town);
+
+        org.dawnoftime.onceuponatown.people.Person person = npc.person();
+        if (person == null || !person.hasHome()) return;
+
+        BlockPos bed = BlockPos.of(person.homeKey());
+        if (!org.dawnoftime.onceuponatown.tick.Homes.stillABed(level, bed)) {
+            // The bed has gone -- upgraded away, or broken. Give it up and let the next
+            // assignment pass find another, rather than walking to a coordinate for ever.
+            person.setHomeKey(0L);
+            LevelTowns.get(level).markDirty();
+            walkingHome = null;
+            return;
+        }
+
+        if (npc.isSleeping()) return;
+
+        if (npc.blockPosition().closerThan(bed, 2.0)) {
+            if (phase.isSleepingTime()) {
+                npc.getNavigation().stop();
+                npc.startSleeping(bed);
+            }
+            return;
+        }
+
+        if (walkingHome == null) {
+            walkingHome = new GoToPosition(
+                npc, bed, BuilderConfigDataHandler.get().walkSpeed, 1.5);
+        }
+        if (walkingHome.tick()) walkingHome = null;   // arrived; next tick lies down
     }
 
     /**

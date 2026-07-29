@@ -133,6 +133,26 @@ public final class Population {
         return bins;
     }
 
+    /**
+     * Living people with nowhere to sleep.
+     *
+     * <p>Distinct from being homeless in the crowding sense: a town can have spare beds and still
+     * have somebody unassigned, because assignment happens on a tick and arrivals do not wait for
+     * it. This is the list that tick works through.
+     */
+    public List<Person> needingHomes() {
+        List<Person> out = new ArrayList<>();
+        for (Person p : people.values()) if (p.alive() && !p.hasHome()) out.add(p);
+        return out;
+    }
+
+    /** How many living people are assigned to this home. */
+    public int occupants(long homeKey) {
+        int n = 0;
+        for (Person p : people.values()) if (p.alive() && p.homeKey() == homeKey) n++;
+        return n;
+    }
+
     /** Living women old enough to bear a child. Births need one; that is the whole reason. */
     public List<Person> mothersAvailable() {
         List<Person> out = new ArrayList<>();

@@ -40,6 +40,7 @@ public final class PopulationNbt {
             t.putInt("sx", p.sex().index());
             t.putInt("ag", p.ageDays());
             if (p.trade() != null) t.putString("tr", p.trade());
+            if (p.hasHome()) t.putLong("hm", p.homeKey());
             if (p.skill() > 0) t.putInt("sk", p.skill());
             if (p.purse() > 0) t.putInt("pu", p.purse());
             if (p.discontent() > 0) t.putInt("dc", p.discontent());
@@ -66,6 +67,7 @@ public final class PopulationNbt {
             try {
                 Person p = new Person(t.getUUID("id"), Sex.byIndex(t.getInt("sx")), t.getInt("ag"));
                 if (t.contains("tr")) p.setTrade(t.getString("tr"));
+                p.setHomeKey(t.getLong("hm"));
                 p.setSkill(t.getInt("sk"));
                 p.setPurse(t.getInt("pu"));
                 p.setDiscontent(t.getInt("dc"));

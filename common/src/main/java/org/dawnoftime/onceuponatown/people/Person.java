@@ -47,6 +47,16 @@ public final class Person {
     /** Trade id, or {@code null} for the unemployed — who are people too, and idle on purpose. */
     private String trade;
 
+    /**
+     * Where they sleep, as a packed block position, or 0 for nobody's tenant yet.
+     *
+     * <p>A {@code long} and not a {@code BlockPos}, and that is not squeamishness: this package
+     * has no Minecraft import in it, which is the only reason a thousand simulated days can be a
+     * unit test. The Minecraft side packs and unpacks with {@code BlockPos.asLong}; here it is
+     * an opaque handle the simulation only ever compares for equality.
+     */
+    private long homeKey;
+
     /** 0 up to the trade config's cap. Earned by working, never by waiting. */
     private int skill;
 
@@ -148,6 +158,12 @@ public final class Person {
     public int miserableDays() { return miserableDays; }
 
     public void setMiserableDays(int days) { this.miserableDays = Math.max(0, days); }
+
+    public long homeKey() { return homeKey; }
+
+    public void setHomeKey(long key) { this.homeKey = key; }
+
+    public boolean hasHome() { return homeKey != 0L; }
 
     public int hungryDays() { return hungryDays; }
 
