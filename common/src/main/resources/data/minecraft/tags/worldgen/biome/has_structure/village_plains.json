@@ -1,0 +1,9 @@
+{
+  "__comment": "In plains and meadow the only village is ours. Vanilla's plains village is not converted, demolished or built beside -- it simply never generates, which is the cheapest of the three and the only one that destroys nothing.",
+  "__why_replace": "Measured: vanilla's own has_structure/village_plains is exactly [plains, meadow] -- the same two biomes as onceuponatown:plains_town. So both generated, on independent random_spread grids with the same spacing 34 and separation 8 and different salts, which put roughly twice as many settlements in a world as vanilla has and left half of them dead vanilla villages standing next to living ones of ours, indistinguishable until you clicked a campfire.",
+  "__what_survives": "Every other village type is a separate tag and is untouched: savanna, desert, taiga and snowy villages generate exactly as before. This removes plains villages ONLY, and only because ours takes that ground.",
+  "__not_a_clearing": "Deliberately no cleared radius at world generation. Room to build is handled where it is used: TerrainCarver.prePlace/postPlace levels the ground for each building as the builder places it, so the village grows into its terrain. Flattening 64 blocks up front would leave a plateau that reads far worse than a settlement that had to fit itself to a slope.",
+
+  "replace": true,
+  "values": []
+}
