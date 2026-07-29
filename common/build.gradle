@@ -10,6 +10,22 @@ neoForge {
 dependencies {
     compileOnly group: 'org.spongepowered', name: 'mixin', version: '0.8.5'
     implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
+
+    // Plain JVM tests, no Minecraft. There is exactly one thing in this project they can
+    // reach: `org.dawnoftime.onceuponatown.people`, which is deliberately written with no
+    // Minecraft import at all so that the population model can be run a thousand simulated
+    // days in a second. Everything else in the mod needs a world and belongs in a GameTest.
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    testLogging {
+        events 'passed', 'failed', 'skipped'
+        showStandardStreams = true
+    }
 }
 
 configurations {
