@@ -38,7 +38,8 @@ import org.dawnoftime.onceuponatown.town.Town;
 
 import java.util.List;
 
-public class Npc extends AgeableMob implements TownNpc {
+public class Npc extends AgeableMob implements TownNpc,
+        net.minecraft.world.item.trading.Merchant {
 
     /**
      * What this person is for. Persisted, because it decides whether they get the build brain.
@@ -104,6 +105,9 @@ public class Npc extends AgeableMob implements TownNpc {
     private BlockPos townAnchorPos = null;
     // Whether the anchor ownership check has been performed this session.
     private boolean anchorValidated = false;
+    // --- trading. A person deals in what their trade makes; see Trading. ---------------
+    private net.minecraft.world.entity.player.Player tradingWith;
+    private net.minecraft.world.item.trading.MerchantOffers offers;
 
     public Npc(EntityType<? extends Npc> type, Level level) {
         super(type, level);
@@ -201,6 +205,169 @@ public class Npc extends AgeableMob implements TownNpc {
             }
         }
         super.remove(reason);
+    }
+
+
+    /**
+     * Right-click a person.
+     *
+     * <p>The first thing in this mod that lets the player ADDRESS anybody. Until now {@code
+     * mobInteract} was unimplemented on every entity we own, so forty walking people could not be
+     * spoken to at all — the largest hole on the road, and the cheapest to close.
+     *
+     * <p>What happens depends on whether they hold a trade, because that is the honest answer to
+     * "what is this person to me":
+     *
+     * <ul>
+     *   <li><b>A trade</b> — vanilla's own trade screen, titled with their name. {@code Merchant}
+     *       is a standalone interface, verified from the jar: twelve methods and a default {@code
+     *       openTradingScreen}. So this is the real window every player already knows rather than
+     *       an imitation of it.</li>
+     *   <li><b>No trade</b> — a line about who they are and how they are. An empty trade window
+     *       reads as a broken mod; somebody telling you they have no work reads as a person.</li>
+     *   <li><b>A builder</b> — nobody's merchant. He says what he is doing.</li>
+     * </ul>
+     *
+     * <p>Everything said comes from the PERSON record and not from this body. The body is a puppet
+     * lent while the player is near, so asking it about itself would give a different answer after
+     * a walk out of range and back.
+     */
+    @Override
+    public net.minecraft.world.InteractionResult mobInteract(
+            net.minecraft.world.entity.player.Player player, InteractionHand hand) {
+        if (level().isClientSide) {
+            return net.minecraft.world.InteractionResult.sidedSuccess(true);
+        }
+        if (!(player instanceof net.minecraft.server.level.ServerPlayer sp)) {
+            return net.minecraft.world.InteractionResult.PASS;
+        }
+
+        if (role == Role.BUILDER) {
+            sp.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                "[" + givenName() + "] " + (isReading()
+                    ? "Reading the plans. Do not stand on them."
+                    : "There is work to do.")));
+            return net.minecraft.world.InteractionResult.CONSUME;
+        }
+
+        org.dawnoftime.onceuponatown.people.Person person = person();
+        if (person == null) {
+            // A body whose record has gone. A window would open on nothing, and Embodiment takes
+            // the body back on its next pass anyway.
+            return net.minecraft.world.InteractionResult.PASS;
+        }
+
+        if (person.trade() != null && Trading.deals(person.trade(), person.skill())) {
+            getOffers();
+            openTradingScreen(player,
+                net.minecraft.network.chat.Component.literal(CitizenNames.of(person.id())), 1);
+            return net.minecraft.world.InteractionResult.CONSUME;
+        }
+
+        sp.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+            "[" + CitizenNames.of(person.id()) + "] " + describe(person)));
+        return net.minecraft.world.InteractionResult.CONSUME;
+    }
+
+    /** The record this body stands for, or null. Server-side; the record lives on the town. */
+    public org.dawnoftime.onceuponatown.people.Person person() {
+        if (level().isClientSide || townAnchorPos == null) return null;
+        if (!(level() instanceof ServerLevel sl)) return null;
+        Town town = LevelTowns.get(sl).getTownAt(townAnchorPos).orElse(null);
+        java.util.UUID pid = getPersonId().orElse(null);
+        return (town == null || pid == null) ? null : town.people().get(pid);
+    }
+
+    /**
+     * How somebody without work describes themselves.
+     *
+     * <p>In their own voice and about their own state — hunger, mood, what they own. A status
+     * readout would say the same things and mean less, and these are exactly the numbers the
+     * player can do something about.
+     */
+    private static String describe(org.dawnoftime.onceuponatown.people.Person p) {
+        if (p.isChild()) return "Still too young to work.";
+        StringBuilder sb = new StringBuilder("No trade to my name.");
+        if (p.hungryDays() > 0) {
+            sb.append(" I have not eaten for ").append(p.hungryDays())
+              .append(p.hungryDays() == 1 ? " day." : " days.");
+        }
+        if (p.discontent() >= 60) sb.append(" I am thinking of leaving.");
+        else if (p.discontent() >= 30) sb.append(" Things could be better here.");
+        sb.append(" (").append(p.wealth().name().toLowerCase(java.util.Locale.ROOT)).append(")");
+        return sb.toString();
+    }
+
+    // --- Merchant --------------------------------------------------------------------------
+    //
+    // Implemented directly rather than by extending AbstractVillager, and that is the point:
+    // Merchant is a standalone interface, so our own humanoid gets vanilla's real trade screen
+    // without inheriting a villager's brain, model, sounds or breeding.
+
+    @Override
+    public void setTradingPlayer(net.minecraft.world.entity.player.Player player) {
+        this.tradingWith = player;
+    }
+
+    @Override
+    public net.minecraft.world.entity.player.Player getTradingPlayer() {
+        return tradingWith;
+    }
+
+    @Override
+    public net.minecraft.world.item.trading.MerchantOffers getOffers() {
+        if (offers == null) {
+            org.dawnoftime.onceuponatown.people.Person p = person();
+            offers = Trading.offersFor(p == null ? null : p.trade(), p == null ? 0 : p.skill());
+        }
+        return offers;
+    }
+
+    @Override
+    public void overrideOffers(net.minecraft.world.item.trading.MerchantOffers newOffers) {
+        this.offers = newOffers;
+    }
+
+    @Override
+    public void notifyTrade(net.minecraft.world.item.trading.MerchantOffer offer) {
+        offer.increaseUses();
+        // The coin goes to the PERSON, not into the town treasury, and that is the mechanic:
+        // wealth is earned by an individual and shows on their clothes. A till would make the
+        // whole visible-wealth axis dead on arrival.
+        org.dawnoftime.onceuponatown.people.Person p = person();
+        if (p != null && level() instanceof ServerLevel sl) {
+            p.earn(offer.getCostA().getCount());
+            setWealthTier(p.wealth().tier());
+            LevelTowns.get(sl).markDirty();
+        }
+    }
+
+    @Override
+    public void notifyTradeUpdated(ItemStack stack) {
+    }
+
+    @Override
+    public int getVillagerXp() {
+        return 0;
+    }
+
+    @Override
+    public void overrideXp(int xp) {
+    }
+
+    @Override
+    public boolean showProgressBar() {
+        return false;
+    }
+
+    @Override
+    public SoundEvent getNotifyTradeSound() {
+        return SoundEvents.NOTE_BLOCK_BELL.value();
+    }
+
+    @Override
+    public boolean isClientSide() {
+        return level().isClientSide;
     }
 
     @Override
@@ -320,14 +487,30 @@ public class Npc extends AgeableMob implements TownNpc {
             });
     }
 
+    /**
+     * Silent, and deliberately so.
+     *
+     * <p>These three returned {@code VILLAGER_AMBIENT}, {@code VILLAGER_HURT} and {@code
+     * VILLAGER_DEATH} — the "hurrr" every player in the world has learned to read as
+     * <em>villager</em>. The whole point of this entity is that its people are not villagers:
+     * the rig was rebuilt off the player skeleton, the faces were redrawn away from the
+     * monobrow, and the borrowed crossed-arms pose was cut for exactly the same reason. Leaving
+     * the noise in undoes all of that the moment one of them is nudged, because the ear is
+     * quicker than the eye and far harder to argue with.
+     *
+     * <p>{@code null} is a supported answer throughout {@code Mob} — vanilla's own silent mobs
+     * return it — so nothing has to be registered to say nothing. Human voices are their own
+     * job: a settlement's people should mutter, greet and grumble, and until those exist silence
+     * is the honest placeholder. A villager's voice is not.
+     */
     @Override
-    protected SoundEvent getAmbientSound() { return SoundEvents.VILLAGER_AMBIENT; }
+    protected SoundEvent getAmbientSound() { return null; }
 
     @Override
-    protected SoundEvent getHurtSound(DamageSource source) { return SoundEvents.VILLAGER_HURT; }
+    protected SoundEvent getHurtSound(DamageSource source) { return null; }
 
     @Override
-    protected SoundEvent getDeathSound() { return SoundEvents.VILLAGER_DEATH; }
+    protected SoundEvent getDeathSound() { return null; }
 
     @Override
     public boolean causeFallDamage(float fallDistance, float multiplier, DamageSource source) {
