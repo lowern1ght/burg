@@ -65,23 +65,32 @@ public class NpcHeadLayer<T extends Mob, M extends NpcModel<T>> extends RenderLa
 
     public NpcHeadLayer(RenderLayerParent<T, M> renderer, EntityRendererProvider.Context context) {
         super(renderer);
-        this.hair = bake(context, NpcHeadModels.HAIR_LAYERS);
-        this.beards = bake(context, NpcHeadModels.BEARD_LAYERS);
-        this.headwear = bake(context, NpcHeadModels.HEADWEAR_LAYERS);
+        this.hair = bake(context, NpcHeadModels.HAIR_LAYERS, NpcHeadModels.hair());
+        this.beards = bake(context, NpcHeadModels.BEARD_LAYERS, NpcHeadModels.beards());
+        this.headwear = bake(context, NpcHeadModels.HEADWEAR_LAYERS, NpcHeadModels.headwear());
     }
 
     /**
-     * Bake every variant once, at construction.
+     * Bake every variant that HAS a model, once, at construction.
      *
-     * <p>A null slot is a variant that has no model — beard 0 and headwear 0, which are the
-     * absence of the thing. {@code bakeLayer} would throw on an unregistered location, so the
-     * registration in {@code OuatForgeClient} and the null slots here have to agree; both read
-     * the same arrays out of {@link NpcHeadModels}.
+     * <p>A null supplier is a variant that is the absence of the thing — beard 0 and headwear 0.
+     * Those locations are never registered, and {@code bakeLayer} throws on an unregistered one.
+     *
+     * <p><b>This is where the black screen came from.</b> The first version looped over the
+     * LOCATIONS array and baked all of them, and the locations array has no nulls in it — the
+     * nulls are in the suppliers. So it called {@code bakeLayer(npc_beard#v0)}, which threw
+     * "No model for layer", which failed the whole {@code onceuponatown:npc} model, which killed
+     * the entity renderer and left the title screen black with working buttons. The javadoc above
+     * it already promised that the registration and the empty slots agree; the code did not do
+     * it. Now both sides read the same suppliers array, so they cannot disagree.
      */
     private ModelPart[] bake(EntityRendererProvider.Context context,
-                             net.minecraft.client.model.geom.ModelLayerLocation[] locations) {
+                             net.minecraft.client.model.geom.ModelLayerLocation[] locations,
+                             java.util.function.Supplier<
+                                 net.minecraft.client.model.geom.builders.LayerDefinition>[] defs) {
         ModelPart[] out = new ModelPart[locations.length];
         for (int i = 0; i < locations.length; i++) {
+            if (i >= defs.length || defs[i] == null) continue;   // the absence of the thing
             out[i] = context.getModelSet().bakeLayer(locations[i]).getChild("head");
         }
         return out;
@@ -121,8 +130,16 @@ public class NpcHeadLayer<T extends Mob, M extends NpcModel<T>> extends RenderLa
         getParentModel().getHead().translateAndRotate(pose);
 
         VertexConsumer strands = buffer.getBuffer(RenderType.entityCutoutNoCull(HAIR_MATERIAL));
-        hair[Math.floorMod(look.hairStyle(), hair.length)]
-            .render(pose, strands, packedLight, OverlayTexture.NO_OVERLAY, look.hairColour());
+        // Guarded even though every hair slot has a definition, because the cost of being wrong
+        // here is the whole title screen going black: an exception thrown while building the
+        // `onceuponatown:npc` model takes the entity renderer with it, and the game then runs
+        // with audible buttons and nothing drawn. A missing style falls back to the crop.
+        ModelPart strandsPart = hair[Math.floorMod(look.hairStyle(), hair.length)];
+        if (strandsPart == null) strandsPart = hair[0];
+        if (strandsPart != null) {
+            strandsPart.render(pose, strands, packedLight, OverlayTexture.NO_OVERLAY,
+                look.hairColour());
+        }
 
         ModelPart beard = beards[Math.floorMod(look.beard(), beards.length)];
         if (beard != null) {
