@@ -269,7 +269,21 @@ public final class Citizens {
     }
 
     public static int tintOf(Villager villager) {
-        return variant(villager, CitizenData::getTint, TINT_SALT, TINT_VARIANTS);
+        return tintOf(villager, TINT_VARIANTS);
+    }
+
+    /**
+     * The same roll over a caller-supplied number of variants, for the same reason
+     * {@link #faceOf(Villager, int)} takes one.
+     *
+     * <p>The garment tint is now stratified by wealth, and the rungs are not all the same width —
+     * the poorest row holds three tints, because a fourth will not fit between "darker than an
+     * undyed one" and "no darker than the darkest garment the mod ships". Folding a 4-way roll
+     * into a row of three would give its first entry half the town, which is the exact complaint
+     * that put a caller-supplied modulus on {@code faceOf}.
+     */
+    public static int tintOf(Villager villager, int variants) {
+        return variant(villager, CitizenData::getTint, TINT_SALT, variants);
     }
 
     // Distinct salts so face and tint are independent rolls off one UUID rather than two

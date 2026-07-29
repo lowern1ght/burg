@@ -40,12 +40,28 @@ public class NpcClothesLayer<T extends Mob, M extends NpcModel<T>>
                         float ageInTicks, float netHeadYaw, float headPitch) {
         ResourceLocation clothes = NpcLook.clothes(npc);
         if (clothes == null || npc.isInvisible()) return;
+        int wealth = NpcLook.wealthOf(npc);
         // The last argument is an ARGB COLOUR and the overlay coords are computed inside
         // renderColoredCutoutModel — read out of the 1.21.1 bytecode, because the parameter is
         // a bare int and the 1.20.1 signature this was ported from ended in three colour
         // floats instead. Passing the overlay here handed it 0x000A0000, whose alpha byte is
         // zero: every garment in the mod was drawn fully transparent.
         renderColoredCutoutModel(getParentModel(), clothes, poseStack, buffer,
-            packedLight, npc, NpcLook.clothesTint(npc));
+            packedLight, npc, NpcLook.clothesTint(npc, wealth));
+
+        // THE BRAID, at the top of the wealth ladder only. A second pass over the same geometry
+        // with a second texture and its OWN tint, which is the only way a gold edge can sit on a
+        // woad gown — one tint over both would give a lighter edge of the same colour.
+        //
+        // Not a separate RenderLayer, and not a z-fight either. Vanilla's own
+        // `VillagerProfessionLayer` draws this same geometry up to three times over (biome type,
+        // profession, level) and it resolves because Minecraft's depth function is LEQUAL, so a
+        // later co-planar pass wins. Doing it here rather than in a fourth layer class also keeps
+        // the two passes in one place and leaves the three renderers untouched.
+        ResourceLocation trim = NpcLook.trim(npc, wealth);
+        if (trim != null) {
+            renderColoredCutoutModel(getParentModel(), trim, poseStack, buffer,
+                packedLight, npc, NpcLook.trimTint(npc, wealth));
+        }
     }
 }

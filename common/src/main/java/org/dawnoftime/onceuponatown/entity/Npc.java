@@ -62,6 +62,26 @@ public class Npc extends AgeableMob implements TownNpc {
     // Incremented on each block placement; client reads changes to trigger the swing animation.
     private static final EntityDataAccessor<Integer> DATA_BUILD_GENERATION =
         SynchedEntityData.defineId(Npc.class, EntityDataSerializers.INT);
+    /**
+     * Which person this body is currently lending itself to. SYNCED, and that is the point.
+     *
+     * <p>Everything the client draws — name, face, build, hair, clothes — derives from the
+     * PERSON's id, never from this entity's UUID. A body is disposable and gets recycled as the
+     * player walks across town; key the look to the body and somebody who leaves the window and
+     * comes back returns as a different human being.
+     */
+    private static final EntityDataAccessor<java.util.Optional<java.util.UUID>> DATA_PERSON =
+        SynchedEntityData.defineId(Npc.class, EntityDataSerializers.OPTIONAL_UUID);
+    /**
+     * Wealth tier, synced.
+     *
+     * <p>The first thing about a citizen's appearance that is NOT derivable from an id, because
+     * it changes: a person who earns climbs the tiers and their clothes have to say so. Sent as
+     * the ordinal rather than the purse — the client needs to know how to draw them, not how much
+     * they have.
+     */
+    private static final EntityDataAccessor<Integer> DATA_WEALTH =
+        SynchedEntityData.defineId(Npc.class, EntityDataSerializers.INT);
 
     // Client-side animation state: written by NpcModel.setupAnim(), never synced or saved.
     public int clientLastBuildGeneration = -1;
@@ -97,6 +117,8 @@ public class Npc extends AgeableMob implements TownNpc {
         super.defineSynchedData(builder);
         builder.define(DATA_IS_READING, false);
         builder.define(DATA_BUILD_GENERATION, 0);
+        builder.define(DATA_PERSON, java.util.Optional.empty());
+        builder.define(DATA_WEALTH, 0);
     }
 
     @Override
@@ -133,11 +155,18 @@ public class Npc extends AgeableMob implements TownNpc {
                 // is a leak and goes; a settler is checked against the resident roll instead,
                 // because before this it was checked against the builder slots and so every
                 // settler deleted itself on its first tick without a word.
-                List<java.util.UUID> roll = town == null ? null
-                    : (role == Role.BUILDER ? town.getBuilderNpcIds() : town.getResidentNpcIds());
-                if (roll == null || !roll.contains(getUUID())) {
-                    discard();
-                    return;
+                if (town == null) { discard(); return; }
+                if (role == Role.BUILDER) {
+                    // A builder is nobody: it holds a slot, not a life.
+                    if (!town.getBuilderNpcIds().contains(getUUID())) { discard(); return; }
+                } else {
+                    // A body validates against the PERSON it represents, not against a list of
+                    // entities. That is the whole change: the roll of entities could only ever
+                    // describe who was loaded, and a settler whose chunk had been unloaded looked
+                    // exactly like a settler who had never existed.
+                    java.util.UUID pid = getPersonId().orElse(null);
+                    var person = pid == null ? null : town.people().get(pid);
+                    if (person == null || !person.alive()) { discard(); return; }
                 }
             }
             // The build brain belongs to builders. A settler running it would scan the
@@ -179,12 +208,32 @@ public class Npc extends AgeableMob implements TownNpc {
         super.addAdditionalSaveData(tag);
         if (townAnchorPos != null) tag.put("TownAnchorPos", Constants.writeBlockPos(townAnchorPos));
         tag.putString("Role", role.name());
+        // Persisted as well as synced: a body that saves to disk must come back attached to the
+        // same person, or a reload silently reassigns every face in the town.
+        getPersonId().ifPresent(id -> tag.putUUID("PersonId", id));
+        tag.putInt("WealthTier", getWealthTier());
         if (jobSite != null) tag.put("JobSite", Constants.writeBlockPos(jobSite));
         tag.putInt("Skill", skill);
     }
 
     /** What this person is for. Never null. */
     public Role getRole() { return role; }
+
+    /**
+     * The record this body represents, or empty for a body that is nobody — which a builder is.
+     *
+     * <p>Readable on both sides; the client uses it for the entire look.
+     */
+    public java.util.Optional<java.util.UUID> getPersonId() { return entityData.get(DATA_PERSON); }
+
+    public void setPersonId(java.util.UUID personId) {
+        entityData.set(DATA_PERSON, java.util.Optional.ofNullable(personId));
+    }
+
+    /** How this body's clothes should read. Pushed from the record, never rolled here. */
+    public int getWealthTier() { return entityData.get(DATA_WEALTH); }
+
+    public void setWealthTier(int tier) { entityData.set(DATA_WEALTH, Math.max(0, tier)); }
 
     /** The building this person works at, or null for the idle. */
     public BlockPos getJobSite() { return jobSite; }
@@ -231,6 +280,8 @@ public class Npc extends AgeableMob implements TownNpc {
         super.readAdditionalSaveData(tag);
         if (tag.contains("TownAnchorPos")) townAnchorPos = Constants.readBlockPos(tag, "TownAnchorPos");
         // Absent means BUILDER: every Npc saved before the role existed was one.
+        if (tag.hasUUID("PersonId")) setPersonId(tag.getUUID("PersonId"));
+        setWealthTier(tag.getInt("WealthTier"));
         if (tag.contains("JobSite")) jobSite = Constants.readBlockPos(tag, "JobSite");
         skill = tag.getInt("Skill");
         if (tag.contains("Role")) {

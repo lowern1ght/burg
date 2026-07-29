@@ -49,7 +49,17 @@ public class Town {
     // Ordered list of builder NPC UUIDs. Slot 0 is the primary builder (handles street expansion).
     private final List<UUID> builderNpcIds = new ArrayList<>();
     // Who lives here. Unordered; see getResidentNpcIds for why this is a roll and not a count.
+    //
+    // SUPERSEDED by `people` below, and kept only while the body window is being proved in game.
+    // It was a list of loaded ENTITIES, so anybody in an unloaded chunk was invisible to every
+    // rule that needed to look at them, and the population could never exceed what a server can
+    // pathfind. Retire it once a settler has been seen embodied and re-embodied in the world.
     private final List<UUID> residentNpcIds = new ArrayList<>();
+    // The town's people as records. Two thousand of these cost a few hundred kilobytes and tick
+    // whether or not anybody is watching; a body is a puppet lent to one of them while a player
+    // is near. See org.dawnoftime.onceuponatown.people.Person.
+    private org.dawnoftime.onceuponatown.people.Population people =
+        new org.dawnoftime.onceuponatown.people.Population();
     // Game time of the last arrival, so word of the town spreads at a pace rather than in a
     // burst the moment a house goes up. Persisted: without it, a reload readmits immediately.
     private long lastSettlerArrival = 0L;
@@ -668,6 +678,9 @@ public class Town {
      */
     public List<UUID> getResidentNpcIds() { return residentNpcIds; }
 
+    /** The town's people, records and all, living and dead. Never null. */
+    public org.dawnoftime.onceuponatown.people.Population people() { return people; }
+
     public long getLastSettlerArrival() { return lastSettlerArrival; }
 
     public void setLastSettlerArrival(long gameTime) { this.lastSettlerArrival = gameTime; }
@@ -793,6 +806,7 @@ public class Town {
             jobClaimsTag.add(c);
         });
         tag.put("JobClaims", jobClaimsTag);
+        tag.put("People", PopulationNbt.save(people));
         tag.putInt("TargetBuilderCount", targetBuilderCount);
         ListTag buildingsTag = new ListTag();
         buildings.forEach(b -> buildingsTag.add(b.toNbt()));
@@ -869,6 +883,7 @@ public class Town {
             town.builderNpcIds.add(tag.getUUID("BuilderNpcId"));
         }
         town.lastSettlerArrival = tag.getLong("LastSettlerArrival");
+        if (tag.contains("People")) town.people = PopulationNbt.load(tag.getCompound("People"));
         if (tag.contains("JobClaims")) {
             tag.getList("JobClaims", Tag.TAG_COMPOUND).forEach(t -> {
                 CompoundTag c = (CompoundTag) t;
