@@ -4049,10 +4049,51 @@ HEAD_GRAZE_TOP = 4.0
 HEAD_SWING = 24.0
 
 # THE CROWN, on the two lids only. The top of a head is its highest point and takes the most light;
-# the lid rolls away from it in every direction. Ten points, radial, and radial is deliberate — a lid
-# shaded front-to-back alone was 64 texels of eight tones, which is a quarter of the cube and where a
+# the lid rolls away from it in every direction. Radial, and radial is deliberate — a lid shaded
+# front-to-back alone was 64 texels of eight tones, which is a quarter of the cube and where a
 # covering's flatness was most visible on the contact sheet.
+#
+# CLOTH GETS MORE OF IT, because cloth is where the whole of its lid's modelling now lives: the lock
+# comes off a cloth lid entirely (see `CLOTH_LID`) so the radial is all that is left, and a bigger
+# radial is a rounder dome as well as the tones the lock no longer supplies.
 HEAD_CROWN = 10.0
+HEAD_CROWN_CLOTH = 16.0
+
+# A CLOTH LID HAS NO STRANDS, AND THIS IS THE FAULT THAT SAYS SO — measured by the coordinator on the
+# shipped set, the two columns either side of a lid's midline against the two midline columns:
+#
+#     hair_00 +19.4  hair_01 +30.9  hair_02 +26.8  hair_03 -11.0  hair_04 +30.9
+#     headwear_01 +18.2  _02 +13.0  _03 +4.3  _04 +19.5  _05 +19.5/+4.8
+#     beard bottoms -38.0, -37.0, -27.8
+#
+# ON HAIR A GROOVE IS A CENTRE PARTING and the set does not agree about it — `hair_03` has a ridge
+# where the others have a groove, and the beards' undersides are ridges at 28..38 points. That is a
+# hairstyle, and all eight are left exactly as they are.
+#
+# ON CLOTH IT IS A FOLD WHERE NO FOLD CAN EXIST. A coif, a straw cap and a veil are one piece stretched
+# over a skull; there is nothing at the midline for a 13-to-20-point shadow to be. Two of the five —
+# the hood and the wimple — already came out at 4.3 and 4.8, which is what proved this a leak and not a
+# limitation: both paint their `front` face down to its last course, so the front's column means are
+# even and the correction the lid borrows from it is small. The other three paint a front that is two
+# texels tall at the crown columns and eight at the temples, so the borrowed correction pushed the
+# midline down. The mechanism was already written up in `_relight_head`; this is its cost, measured.
+#
+# SO A CLOTH LID IS DONE DIFFERENTLY, in exactly two ways: no lock, and its own column correction
+# rather than the front's. Its horizontal profile is then the light's own — `shade_at` over the front's
+# angles, which has ONE crest near the middle and falls away monotonically to either side, and is
+# asymmetric because the light comes from the figure's front-left. A single crest is what the
+# coordinator asked for; a symmetric groove is what it cannot be, by construction.
+CLOTH_LID_KINDS = ("headwear",)
+
+# The gate. Positive is a GROOVE, midline darker than its flanks; negative is a ridge and allowed,
+# because a single crest is a legitimate cloth crown. 7 is this repo's measured invisibility
+# threshold, so a cloth lid has to be visibly grooved before it is a fault, and the two files that
+# already pass measure 4.3 and 4.8.
+MAX_CLOTH_LID_GROOVE = 7.0
+
+# Which columns the groove is measured over: the two either side of the midline against the two at it.
+# The coordinator's own definition, and reproduced to the decimal on all thirteen before being used.
+LID_MID_COLS, LID_FLANK_COLS = (3, 4), (2, 5)
 
 # STRAND NOISE, and it is called noise because that is what it is — ANTI-BANDING, not modelling.
 # Every field above is a smooth function of two numbers (where a column sits round the box, and which
@@ -4169,15 +4210,21 @@ def _lock_column(face: str, cx: int, w: int, h: int, gain: float) -> float:
         _lock_at(_ring_m(face, cx, w), _phase_at(cy)) for cy in range(h)) / h
 
 
+def _cloth_lid(kind: str, face: str) -> bool:
+    """Is this the lid of a CLOTH covering — a crown with no strands in it? See `CLOTH_LID_KINDS`."""
+    return kind in CLOTH_LID_KINDS and face not in CYCLE
+
+
 def _head_fields(kind: str, art: Dict[str, List[str]]) -> Dict[str, List[List[float | None]]]:
     """One painting as LUMINANCE, before the light. Five fields, all of them mirror-symmetric.
 
       * the FORM, authored, eight steps of 11 points: crown lit, nape shadowed.
       * the LOCKS, a 4-column field on the BOX rather than on a face, 28.5 points deep, its phase
-        walking one column at two courses.
+        walking one column at two courses — and NOT on a cloth lid, which has no strands.
       * the TIPS, taken off the ALPHA so they follow a ragged hem, leaning on the lock.
       * the GRAZE and the CROWN — light from above on the four upright faces; a lid rolls away from
-        its highest point in every direction.
+        its highest point in every direction, and further on cloth, where the radial is the whole of
+        the modelling.
       * STRAND NOISE, six points peak to peak, which is anti-banding and says so.
 
     Every one keys on the FOLDED ring position, so at this stage the painting is exactly its own
@@ -4210,6 +4257,7 @@ def _head_fields(kind: str, art: Dict[str, List[str]]) -> Dict[str, List[List[fl
                 ends[cx] = (on[-1], on[-2] if len(on) > 1 else None)
 
         upright = face in CYCLE
+        cloth = _cloth_lid(kind, face)
         got: List[List[float | None]] = []
         for cy in range(h):
             row: List[float | None] = []
@@ -4221,13 +4269,13 @@ def _head_fields(kind: str, art: Dict[str, List[str]]) -> Dict[str, List[List[fl
                 l = HEAD_FORM_LUM[_form_index(ch)]
 
                 m = _ring_m(face if upright else "front", cx, w)
-                a = _lock_at(m, _phase_at(cy))
+                a = 0.0 if cloth else _lock_at(m, _phase_at(cy))
                 l -= gain * LOCK_DEPTH * a
 
                 if not upright:
                     rx, ry = cx - (w - 1) / 2.0, cy - (h - 1) / 2.0
-                    l -= HEAD_CROWN * (math.hypot(rx, ry)
-                                       / math.hypot((w - 1) / 2.0, (h - 1) / 2.0))
+                    l -= (HEAD_CROWN_CLOTH if cloth else HEAD_CROWN) * (
+                        math.hypot(rx, ry) / math.hypot((w - 1) / 2.0, (h - 1) / 2.0))
 
                 if upright and cx in ends:
                     last, prev = ends[cx]
@@ -4247,6 +4295,7 @@ def _head_fields(kind: str, art: Dict[str, List[str]]) -> Dict[str, List[List[fl
 
 
 def _relight_head(vals: Dict[str, List[List[float | None]]], gain: float,
+                  cloth_lid: bool = False,
                   moved: List[str] | None = None) -> Dict[str, List[List[float | None]]]:
     """One light source round the box, spent as a shift of each COLUMN's mean.
 
@@ -4271,15 +4320,24 @@ def _relight_head(vals: Dict[str, List[List[float | None]]], gain: float,
     a whole tip as its intent. Everything else — the strands within a column, the crown, the noise —
     is deviation from its own column and never moves.
 
-    `top` and `bottom` take the FRONT face's whole correction, exactly as the body's `relight` does,
-    because a box's net unwraps them above the front and their column axis is the front's x. Giving the
-    lids their own correction instead was tried and measured worse on both counts: the crown's radial
-    falloff is itself a per-column pattern, so an independent correction flattens it into the light —
-    the lid came back darkest at its own two edges, which is the vignette again — and the thirteen
-    files lost 8 to 19 distinct colours each. Borrowing the front's leaves the crown's midline
-    columns darker than the two either side, which reads as a CENTRE PARTING rather than as the lock's
-    crest; that is the one place the lid and the four upright faces disagree, and a parting is a
-    hair feature, so it is left standing and recorded here rather than corrected away.
+    A HAIR LID TAKES THE FRONT FACE'S WHOLE CORRECTION, exactly as the body's `relight` does, because a
+    box's net unwraps it above the front and its column axis is the front's x. Giving every lid its own
+    correction instead was tried and measured worse on both counts: the crown's radial falloff is
+    itself a per-column pattern, so an independent correction flattens it into the light — the lid came
+    back darkest at its own two edges, which is the vignette again — and the thirteen files lost 8 to 19
+    distinct colours each. Borrowing the front's leaves the crown's midline columns darker than the two
+    either side, which reads as a CENTRE PARTING; on hair that is a hairstyle and the set does not agree
+    about it, so all eight are left alone.
+
+    A CLOTH LID DOES NOT, and that is the fix for the fault in `CLOTH_LID_KINDS`. The borrowed
+    correction is only as even as the face it comes from, and a head's front face is a ring round the
+    face window: on a coif it is two texels tall at the crown columns and eight at the temples, so its
+    midline column mean is a crown average, the correction pushes it down, and the lid inherits a
+    13-to-20-point groove down the middle of a piece of cloth that cannot fold there. So a cloth lid
+    gets its own correction against `shade_at` over the front's ANGLES — the light's left-to-right
+    component, which is what has to agree along the hairline — and there is no lock to hand back,
+    because a cloth lid has none. That profile has one crest and falls away monotonically either side,
+    which is exactly what the coordinator asked for and is asymmetric because the light is.
     """
     fs = net(*BOXES["hat"])
     widths = {f: fs[f][2] for f in fs}
@@ -4311,9 +4369,24 @@ def _relight_head(vals: Dict[str, List[List[float | None]]], gain: float,
         if moved is not None:
             moved.append(f"{face} " + " ".join(f"{d:+.0f}" for d in out))
 
+    # A cloth lid is corrected against its OWN means, to a single-crest profile with no lock in it.
+    for face in ("top", "bottom"):
+        if not cloth_lid or not any(v is not None for r in vals[face] for v in r):
+            continue
+        own = [v for r in vals[face] for v in r if v is not None]
+        lid_mean = sum(own) / len(own)
+        out = []
+        for cx, theta in enumerate(_col_angles("front", widths[face])):
+            now = col_mean(vals[face], cx)
+            want = lid_mean + swing * (0.5 - shade_at(theta))
+            out.append(0.0 if now is None else want - now)
+        delta[face] = out
+        if moved is not None:
+            moved.append(f"{face} (cloth) " + " ".join(f"{d:+.0f}" for d in out))
+
     got: Dict[str, List[List[float | None]]] = {}
     for face, rows in vals.items():
-        d_for = delta["front"] if face in ("top", "bottom") else delta[face]
+        d_for = delta.get(face) if face in delta else delta["front"]
         got[face] = [[None if v is None else v + d_for[cx] for cx, v in enumerate(r)]
                      for r in rows]
     return got
@@ -4329,7 +4402,8 @@ def model_head(kind: str, art: Dict[str, List[str]]) -> Dict[str, List[List[int 
     Fields, then the light, then the fraction DITHERED onto the one-point ramp rather than rounded
     away, exactly as `_shift` does for a body.
     """
-    vals = _relight_head(_head_fields(kind, art), LOCK_GAIN[kind])
+    vals = _relight_head(_head_fields(kind, art), LOCK_GAIN[kind],
+                         cloth_lid=kind in CLOTH_LID_KINDS)
     out: Dict[str, List[List[int | None]]] = {}
     for face, (_, _, w, h) in net(*BOXES["hat"]).items():
         rows = vals[face]
@@ -4590,6 +4664,29 @@ def head_name(kind: str, slug: str) -> str:
     return f"citizen_{kind}_{slug}.png"
 
 
+def lid_groove(im: Image.Image, face: str) -> float | None:
+    """The two columns either side of a lid's midline, minus the two at it, in luminance.
+
+    POSITIVE IS A GROOVE — the midline darker than its flanks — and negative is a ridge, which is a
+    single crest and legitimate on cloth. `None` where the lid is unpainted, which is most beards'
+    `top` and most coverings' `bottom`.
+
+    One definition, read by the gate and by `main`'s report, because two copies of a measurement is
+    how `npc_uv.py` came to exist. It is the coordinator's own columns and it reproduces their figures
+    on all thirteen shipped files to the decimal.
+    """
+    x0, y0, w, h = net(*BOXES["hat"])[face]
+    px = im.load()
+
+    def mean(cols) -> float | None:
+        v = [lum(px[x0 + cx, y0 + cy][:3]) for cy in range(h) for cx in cols
+             if px[x0 + cx, y0 + cy][3] > 8]
+        return sum(v) / len(v) if v else None
+
+    flank, mid = mean(LID_FLANK_COLS), mean(LID_MID_COLS)
+    return None if flank is None or mid is None else flank - mid
+
+
 def head_tones_floor(cover: int) -> int:
     """How many tones a covering of this size owes, and why it is not one number.
 
@@ -4671,6 +4768,22 @@ def verify_head(kind: str, slug: str, im: Image.Image) -> List[str]:
     if darkest < MIN_HEAD_TONE:
         bad.append(f"darkest tone {darkest:#02x}, floor {MIN_HEAD_TONE:#02x} — the tint is a "
                    f"multiply and cannot lighten, so this could never be fair hair")
+
+    # NO FOLD DOWN THE MIDDLE OF A PIECE OF CLOTH. Measured on the shipped set: a coif, a straw cap and
+    # a veil each carried a 13-to-20-point groove down the crown, which is a fold where a single piece
+    # stretched over a skull cannot have one. On HAIR the same groove is a centre parting, the set
+    # disagrees about it — `hair_03` has a ridge and the beards' undersides are ridges at 28..38 — and
+    # it is left alone. So the rule is per kind, and only in the groove direction: a ridge is a single
+    # crest and is what a cloth crown is allowed to be.
+    if kind in CLOTH_LID_KINDS:
+        for face in ("top", "bottom"):
+            g = lid_groove(im, face)
+            if g is not None and g > MAX_CLOTH_LID_GROOVE:
+                bad.append(f"{face} has a {g:+.1f}-point groove down its midline, ceiling "
+                           f"{MAX_CLOTH_LID_GROOVE:.0f} — cols {LID_FLANK_COLS} against "
+                           f"{LID_MID_COLS}. A covering is one piece of cloth over a skull and there "
+                           f"is nothing at its midline for a shadow to be; on hair the same figure is "
+                           f"a centre parting and is allowed")
 
     # NO FULL COURSES. `docs/STYLE.md`'s painted-stripe rule, and the skin skill records it catching
     # three times on cloth: a highlight or a shadow running the whole width of a face reads as plaid.
@@ -5106,6 +5219,30 @@ def dressed_row(bodies: Dict[str, Image.Image],
     return out
 
 
+def lids_row(heads: Dict[Tuple[str, str], Image.Image]) -> List[Tuple[str, Image.Image]]:
+    """THE TWO LIDS OF EVERY COVERING, which no other view on this sheet can show.
+
+    Added because a fault shipped in the one place nothing could see it. A cloth covering had a
+    13-to-20-point groove down the crown — a fold in a piece of cloth stretched over a skull — and
+    every strip here is a FRONT, BACK or PROFILE elevation, `head_only` crops the front face, and
+    `check_wrap` walks right/front/left/back only. The crown is a quarter of the cube and the sheet
+    was blind to it; the owner's 3D viewer was the only place it could be found.
+
+    `top` above `bottom`, on a checkerboard so an unpainted lid reads as unpainted, with the measured
+    midline figure in the label so the number sits beside the picture it describes.
+    """
+    out = []
+    for (kind, slug), tex in sorted(heads.items()):
+        tile = Image.new("RGBA", (8, 16), (0, 0, 0, 0))
+        for i, face in enumerate(("top", "bottom")):
+            x, y, w, h = net(*BOXES["hat"])[face]
+            tile.alpha_composite(tex.crop((x, y, x + w, y + h)), (0, i * 8))
+        g = [f"{v:+.1f}" for v in (lid_groove(tex, f) for f in ("top", "bottom")) if v is not None]
+        out.append((f"{kind} {slug}\n{'/'.join(g) if g else '--'}"
+                    f"  {'cloth' if kind in CLOTH_LID_KINDS else 'hair'}", checker(tile)))
+    return out
+
+
 def contact_sheet(bodies: Dict[str, Image.Image], braid: Image.Image,
                   head_tex: Dict[Tuple[str, str], Image.Image]) -> Image.Image:
     garment = Image.open(OUT / GARMENT_FOR_SHEET).convert("RGBA")
@@ -5145,6 +5282,14 @@ def contact_sheet(bodies: Dict[str, Image.Image], braid: Image.Image,
          "and complexion is not. NOTE THE ONE LOSS: a shell cannot project past the head, so the "
          "straw hat has a band and no brim.",
          dressed_row(bodies, head_tex), 9),
+        ("THE CROWN — every covering's two lids, `top` above `bottom`, the ONE view no elevation on "
+         "this sheet can give and the place a fault shipped because of it. The figure under each is "
+         "the two columns either side of the midline minus the two at it: POSITIVE is a groove. On "
+         "hair that is a centre parting and the set disagrees about it on purpose — hair_03 has a "
+         "ridge, the beards' undersides are ridges at 28..38. On CLOTH it would be a fold in one "
+         "piece stretched over a skull, so it is gated at 7 and all five now read as a smooth dome. "
+         "Judge whether the hair partings look deliberate; the cloth is a number.",
+         lids_row(head_tex), 14),
         ("WEALTH — one body up the whole ladder on farmer_clothes: faded, undyed, dyed, costly. "
          "Four rungs but only THREE bands of cloth tint, because a fourth does not fit in what a "
          "multiply can reach; the top rung is bought with the BRAID, which is its own texture with "
@@ -5288,7 +5433,7 @@ def main() -> int:
     print("\n  HAIR, BEARDS AND HEADWEAR — paint on the `hat` cube, not geometry. 31 of 31 "
           "references use the head's second layer.")
     print(f"    {'file':26} {'cover':>5} {'left':>5} {'tones':>6} {'floor':>5} {'ceil':>5} "
-          f"{'t/px':>6} {'dark':>5}  {'mirror':>6}")
+          f"{'t/px':>6} {'dark':>5}  {'mirror':>6}  {'lid mid':>8}")
     covers, tones_got, ratios = [], [], []
     fs = net(*BOXES["hat"])
     for (kind, slug), tex in sorted(heads.items()):
@@ -5310,9 +5455,12 @@ def main() -> int:
         covers.append(cover)
         tones_got.append(tones)
         ratios.append(tones / max(cover, 1))
+        lid = [g for g in (lid_groove(tex, f) for f in ("top", "bottom")) if g is not None]
         print(f"    {head_name(kind, slug):26} {cover:5} {left:5} {tones:6} "
               f"{head_tones_floor(cover):5} {cover:5} {tones / max(cover, 1):6.2f} "
-              f"{dark:#5x}  {worst:6.1f}")
+              f"{dark:#5x}  {worst:6.1f}  "
+              + (" ".join(f"{g:+.1f}" for g in lid) if lid else "      --")
+              + ("  cloth" if kind in CLOTH_LID_KINDS else "  hair"))
         if bad:
             faults[head_name(kind, slug)] = bad
     covers.sort()
@@ -5330,6 +5478,10 @@ def main() -> int:
     print(f"    tones per texel {ratios[0]:.2f}..{ratios[-1]:.2f}, floor "
           f"{HEAD_TONES_PER_TEXEL}; the eleven references painting 100 hat texels or more manage a "
           f"median of 0.073 and a maximum of 0.735")
+    print(f"    `lid mid` is the two columns either side of a lid's midline minus the two at it. "
+          f"POSITIVE is a groove, and it is a fault over {MAX_CLOTH_LID_GROOVE:.0f} on CLOTH only: a "
+          f"covering is one piece over a skull, while on hair the same figure is a centre parting "
+          f"and the set does not agree about it (hair_03 has a ridge, the beards +28..38 ridges)")
 
     braid = draw_braid(mask) if not args.check else (
         Image.open(OUT / TRIM_NAME).convert("RGBA") if (OUT / TRIM_NAME).exists() else None)
