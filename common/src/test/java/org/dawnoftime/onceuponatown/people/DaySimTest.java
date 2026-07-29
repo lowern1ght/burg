@@ -44,13 +44,28 @@ class DaySimTest {
     // --- food -------------------------------------------------------------------------------
 
     @Test
-    @DisplayName("a fed town loses nobody")
-    void fedTownLosesNobody() {
-        Population pop = town(10, 12);
-        TownSnapshot snap = fedTown(12);
+    @DisplayName("a fed town with room to spare grows, and buries nobody")
+    void fedTownGrowsAndBuriesNobody() {
+        // Written first as "loses nobody", which stopped being true the moment people could
+        // leave: a fed town BREEDS, so with only just enough beds it outgrows them and then
+        // sheds the surplus. That is the intended behaviour, so the test says what it means --
+        // no deaths, and growth -- and gives the town room to grow into.
+        Population pop = town(10, 40);
+        TownSnapshot snap = fedTown(40);
         Random rng = seeded();
-        for (int d = 0; d < 100; d++) DaySim.tickDay(pop, snap, rng);
-        assertEquals(0, pop.deadCount(), "nobody should die in a town with food and beds");
+        int starved = 0, aged = 0;
+        for (int d = 0; d < 200; d++) {
+            DaySim.Outcome out = DaySim.tickDay(pop, snap, rng);
+            starved += out.starved.size();
+            aged += out.diedOfAge.size();
+        }
+        final int s1 = starved, a1 = aged;
+        assertAll(
+            () -> assertEquals(0, s1, "nobody starves with a full store"),
+            () -> assertEquals(0, a1, "and nobody is old enough to die yet"),
+            () -> assertTrue(pop.livingCount() > 10,
+                "ten fed adults with thirty spare beds have to become more than ten")
+        );
     }
 
     @Test
@@ -185,15 +200,100 @@ class DaySimTest {
     }
 
     @Test
-    @DisplayName("no bed, no birth — the population cannot exceed its housing")
-    void housingCapsThePopulation() {
+    @DisplayName("crowding chokes births, so homelessness cannot run away")
+    void crowdingChokesBirths() {
+        TownSnapshot t = new TownSnapshot().housingCapacity(100).birthChancePerMille(100)
+            .crowdTolerance(1.25);
+        assertAll(
+            () -> assertEquals(100, t.effectiveBirthPerMille(50), "room to spare: full rate"),
+            () -> assertEquals(100, t.effectiveBirthPerMille(100), "exactly full: still full rate"),
+            () -> assertEquals(60, t.effectiveBirthPerMille(110), "two fifths over: three fifths rate"),
+            () -> assertEquals(20, t.effectiveBirthPerMille(120), "four fifths over: a fifth left"),
+            () -> assertEquals(0, t.effectiveBirthPerMille(125), "at tolerance: no births"),
+            () -> assertEquals(0, t.effectiveBirthPerMille(400), "and none beyond it"),
+            () -> assertEquals(0, new TownSnapshot().housingCapacity(0).effectiveBirthPerMille(0),
+                "a town with no beds at all has no children")
+        );
+    }
+
+    @Test
+    @DisplayName("HOMELESSNESS DOES NOT GROW WITHOUT BOUND — the owner's requirement, asserted")
+    void homelessnessIsSelfLimiting() {
+        // A town with far too few beds and every incentive to breed. If the controls work, it
+        // settles somewhere just over capacity instead of climbing for a thousand days.
         Population pop = new Population();
-        pop.add(new Person(new UUID(5, 1), Sex.MAN, 40));
-        pop.add(new Person(new UUID(5, 2), Sex.WOMAN, 40));
-        TownSnapshot tight = fedTown(2).birthChancePerMille(1000);
+        for (int i = 0; i < 40; i++) {
+            pop.add(new Person(new UUID(11, i), i % 2 == 0 ? Sex.MAN : Sex.WOMAN,
+                Person.ADULT_AT_DAYS + (i % 120)));
+        }
+        TownSnapshot cramped = fedTown(30).birthChancePerMille(200).crowdTolerance(1.25);
+
         Random rng = seeded();
-        for (int d = 0; d < 50; d++) DaySim.tickDay(pop, tight, rng);
-        assertEquals(2, pop.livingCount(), "two beds, two people, however long you wait");
+        int worstHomeless = 0, leftTotal = 0;
+        for (int d = 0; d < 1000; d++) {
+            DaySim.Outcome out = DaySim.tickDay(pop, cramped, rng);
+            worstHomeless = Math.max(worstHomeless, out.homeless);
+            leftTotal += out.left.size();
+        }
+
+        final int capacity = cramped.housingCapacity();
+        final int worst = worstHomeless;
+        final int leavers = leftTotal;
+        assertAll(
+            () -> assertTrue(pop.livingCount() <= Math.ceil(capacity * cramped.crowdTolerance()),
+                "living " + pop.livingCount() + " must settle at or under the crowd tolerance "
+                + "of " + Math.ceil(capacity * cramped.crowdTolerance()) + ", not climb forever"),
+            () -> assertTrue(worst <= capacity,
+                "worst homelessness was " + worst + "; it must never exceed the town's "
+                + "own size, or the control has failed"),
+            () -> assertTrue(leavers > 0,
+                "somebody has to have walked out, or the pressure never released and the cap is "
+                + "doing the work instead of the feedback")
+        );
+        System.out.println("cramped town: " + pop + ", worst homeless " + worstHomeless
+            + ", left " + leftTotal);
+    }
+
+    @Test
+    @DisplayName("a miserable person leaves, and only after being miserable a while")
+    void miseryMakesPeopleLeave() {
+        Population pop = new Population();
+        Person p = pop.add(new Person(new UUID(12, 1), Sex.MAN, 40));
+        p.setDiscontent(95);
+        TownSnapshot snap = fedTown(4).leaveAtDiscontent(80).leaveAfterDays(5)
+            .discontentFedRelief(0);
+        Random rng = seeded();
+
+        for (int d = 0; d < 4; d++) DaySim.tickDay(pop, snap, rng);
+        assertTrue(p.alive(), "four days of misery is not yet a decision");
+
+        DaySim.Outcome out = DaySim.tickDay(pop, snap, rng);
+        assertAll(
+            () -> assertFalse(p.alive()),
+            () -> assertEquals(Departure.LEFT, p.departure(),
+                "and it is recorded as leaving, not as a death"),
+            () -> assertEquals(1, out.left.size())
+        );
+    }
+
+    @Test
+    @DisplayName("cheering someone up resets their notice period")
+    void reliefResetsTheLeavingClock() {
+        Population pop = new Population();
+        Person p = pop.add(new Person(new UUID(13, 1), Sex.MAN, 40));
+        p.setDiscontent(95);
+        TownSnapshot grim = fedTown(4).leaveAtDiscontent(80).leaveAfterDays(5)
+            .discontentFedRelief(0);
+        TownSnapshot kind = fedTown(4).leaveAtDiscontent(80).leaveAfterDays(5)
+            .discontentFedRelief(40);
+        Random rng = seeded();
+
+        for (int d = 0; d < 4; d++) DaySim.tickDay(pop, grim, rng);
+        DaySim.tickDay(pop, kind, rng);            // fed properly; discontent drops below the line
+        for (int d = 0; d < 4; d++) DaySim.tickDay(pop, grim, rng);
+        assertTrue(p.alive(),
+            "four bad days, one good one, four more: the clock has to have reset, or a town can "
+            + "never recover somebody it nearly lost");
     }
 
     @Test

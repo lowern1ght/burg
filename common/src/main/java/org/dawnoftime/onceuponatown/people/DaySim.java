@@ -35,6 +35,10 @@ public final class DaySim {
         public final List<UUID> diedOfAge = new ArrayList<>();
         public final List<UUID> tookTrade = new ArrayList<>();
         public final List<UUID> lostTrade = new ArrayList<>();
+        /** Walked out because they had been miserable too long. The control on overcrowding. */
+        public final List<UUID> left = new ArrayList<>();
+        /** Living people with no bed at all. Zero in a town that keeps up with its own growth. */
+        public int homeless;
         /** Food units actually eaten. Less than demand means somebody went short. */
         public int foodEaten;
         /** Mouths that got nothing at all. */
@@ -50,8 +54,9 @@ public final class DaySim {
         @Override
         public String toString() {
             return "Outcome[born " + born.size() + ", starved " + starved.size()
-                + ", aged out " + diedOfAge.size() + ", hired " + tookTrade.size()
-                + ", hungry " + wentHungry + ", wages " + wagesPaid + "]";
+                + ", aged out " + diedOfAge.size() + ", left " + left.size()
+                + ", hired " + tookTrade.size() + ", hungry " + wentHungry
+                + ", homeless " + homeless + ", wages " + wagesPaid + "]";
         }
     }
 
@@ -118,11 +123,36 @@ public final class DaySim {
 
         // --- feel ---------------------------------------------------------------------------
         int overcrowd = Math.max(0, pop.livingCount() - town.housingCapacity());
-        for (Person p : pop.living()) {
+        out.homeless = overcrowd;
+        List<Person> here = pop.living();
+        for (int i = 0; i < here.size(); i++) {
+            Person p = here.get(i);
             if (overcrowd > 0) p.addDiscontent(town.discontentPerCrowding());
+            // The last arrivals are the ones with no bed. Worse than merely crowded, and it is
+            // the pressure that makes them leave, which is what stops homelessness growing.
+            if (i >= town.housingCapacity()) p.addDiscontent(town.discontentPerHomelessDay());
             // Idleness grates on an adult who wants work and cannot get it. A child idling is a
             // child.
             if (p.canWork() && !p.isEmployed()) p.addDiscontent(town.discontentPerIdleDay());
+        }
+
+        // --- leave --------------------------------------------------------------------------
+        // The self-limiting control, and the honest one. A hard "no bed, no child" cap means
+        // homelessness can never happen and therefore crowding is never felt; no cap at all
+        // means misery accumulates forever. So: crowding chokes the birth rate (below), and
+        // anybody miserable for long enough walks out. The player sees "people are leaving",
+        // which names its own fix, instead of births silently refusing for no visible reason.
+        for (Person p : pop.living()) {
+            if (p.isChild()) continue;         // a child does not emigrate alone
+            if (p.discontent() >= town.leaveAtDiscontent()) {
+                p.setMiserableDays(p.miserableDays() + 1);
+                if (p.miserableDays() >= town.leaveAfterDays()) {
+                    p.depart(today, Departure.LEFT);
+                    out.left.add(p.id());
+                }
+            } else {
+                p.setMiserableDays(0);
+            }
         }
 
         // --- be born ------------------------------------------------------------------------
@@ -130,19 +160,17 @@ public final class DaySim {
         // villagers: that was vanilla's rule and the owner ruled it out explicitly.
         List<Person> mothers = pop.mothersAvailable();
         List<Person> fathers = pop.fathersAvailable();
-        int spareBeds = town.housingCapacity() - pop.livingCount();
-        if (!mothers.isEmpty() && !fathers.isEmpty() && spareBeds > 0
-                && out.wentHungry == 0 && town.birthChancePerMille() > 0) {
+        int rate = town.effectiveBirthPerMille(pop.livingCount());
+        if (!mothers.isEmpty() && !fathers.isEmpty() && rate > 0 && out.wentHungry == 0) {
             // Per COUPLE per day, not per town per day. The first version rolled once for the
             // whole settlement and stopped at one birth, which is the right shape for a hamlet
             // and dimensionally wrong for a town: a city of two thousand then grew no faster
             // than a farmstead of six. The scale test caught it in 178ms — 2000 people fell to
             // 341 over a thousand days, because replacing a population that dies of age around
             // day 300 needs about SEVEN births a day and the cap allowed one.
-            int couples = Math.min(mothers.size(), fathers.size());
-            int chances = Math.min(couples, spareBeds);
+            int chances = Math.min(mothers.size(), fathers.size());
             for (int i = 0; i < chances; i++) {
-                if (rng.nextInt(1000) >= town.birthChancePerMille()) continue;
+                if (rng.nextInt(1000) >= rate) continue;
                 Person child = new Person(
                     new UUID(rng.nextLong(), rng.nextLong()),
                     rng.nextBoolean() ? Sex.WOMAN : Sex.MAN,
@@ -156,7 +184,10 @@ public final class DaySim {
         // After birth, so a mother who dies the day she bears leaves a living child.
         for (Person p : pop.living()) {
             if (p.ageDays() < Person.OLD_AT_DAYS) continue;
-            int over = p.ageDays() - Person.OLD_AT_DAYS;
+            // A fifth of a per-mille per day past old age, not a whole one. The first version
+            // added one, which reaches 10% a day by day 400 and means nobody is ever seen old:
+            // the founding cohort then dies as a WAVE and the town oscillates on it forever.
+            int over = (p.ageDays() - Person.OLD_AT_DAYS) / 5;
             if (rng.nextInt(1000) < Math.min(1000, town.ageDeathPerMille() + over)) {
                 p.die(today);
                 out.diedOfAge.add(p.id());

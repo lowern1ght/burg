@@ -80,8 +80,16 @@ public final class Person {
     /** True until they die. A dead person stays in the population so history can be read. */
     private boolean alive = true;
 
-    /** Day they died, or {@code -1}. */
+    /** Day they stopped being present, or {@code -1}. */
     private int diedOnDay = -1;
+
+    /**
+     * Why they are no longer here, or {@code null} while they still are.
+     *
+     * <p>Recorded rather than inferred so a town's history reads as a history: "twelve left in
+     * the third winter" is a sentence, "population fell by twelve" is a number.
+     */
+    private Departure departure;
 
     public Person(UUID id, Sex sex, int ageDays) {
         if (id == null) throw new IllegalArgumentException("a person needs an id");
@@ -101,6 +109,7 @@ public final class Person {
     public int discontent()      { return discontent; }
     public boolean alive()       { return alive; }
     public int diedOnDay()       { return diedOnDay; }
+    public Departure departure() { return departure; }
 
     /** How their clothes read. Derived, never stored, so it can never disagree with the purse. */
     public Wealth wealth()       { return Wealth.of(purse); }
@@ -133,6 +142,13 @@ public final class Person {
 
     public void addDiscontent(int delta) { setDiscontent(discontent + delta); }
 
+    /** Consecutive days at or over the leaving threshold. The emigration clock. */
+    private int miserableDays;
+
+    public int miserableDays() { return miserableDays; }
+
+    public void setMiserableDays(int days) { this.miserableDays = Math.max(0, days); }
+
     public int hungryDays() { return hungryDays; }
 
     public void setHungryDays(int days) { this.hungryDays = Math.max(0, days); }
@@ -145,9 +161,21 @@ public final class Person {
      * from the roll it is counting.
      */
     public void die(int onDay) {
+        depart(onDay, Departure.UNRECORDED);
+    }
+
+    /**
+     * Leaves the town, for the recorded reason. Once.
+     *
+     * <p>Idempotent on purpose: two causes landing on the same person on the same day — starved
+     * and killed — must not count twice, or the population's arithmetic drifts from the roll it
+     * is counting. The first cause is the one that happened.
+     */
+    public void depart(int onDay, Departure why) {
         if (!alive) return;
         alive = false;
         diedOnDay = onDay;
+        departure = why == null ? Departure.UNRECORDED : why;
         trade = null;
     }
 

@@ -60,6 +60,26 @@ public final class TownSnapshot {
     private int discontentPerCrowding = 4;
     private int discontentPerIdleDay = 1;
 
+    /**
+     * How far past its beds a town may swell before births stop entirely, as a multiple.
+     *
+     * <p>The control on homelessness, and deliberately soft. A hard "no bed, no child" cap means
+     * homelessness can never happen at all, which also means overcrowding is never felt and the
+     * player never has to race to build housing. Letting it swell without limit is the other
+     * failure. So crowding SUPPRESSES the birth rate, smoothly, reaching zero at this multiple —
+     * negative feedback rather than a wall.
+     */
+    private double crowdTolerance = 1.25;
+
+    /** Discontent at or above which a person begins counting the days until they walk out. */
+    private int leaveAtDiscontent = 80;
+
+    /** Consecutive days that miserable before they go. */
+    private int leaveAfterDays = 10;
+
+    /** Extra discontent a day for having no bed at all. Worse than merely crowded. */
+    private int discontentPerHomelessDay = 6;
+
     // --- reads -----------------------------------------------------------------------------
 
     public int foodUnits()              { return foodUnits; }
@@ -80,6 +100,25 @@ public final class TownSnapshot {
     public int discontentFedRelief()    { return discontentFedRelief; }
     public int discontentPerCrowding()  { return discontentPerCrowding; }
     public int discontentPerIdleDay()   { return discontentPerIdleDay; }
+    public double crowdTolerance()      { return crowdTolerance; }
+    public int leaveAtDiscontent()      { return leaveAtDiscontent; }
+    public int leaveAfterDays()         { return leaveAfterDays; }
+    public int discontentPerHomelessDay() { return discontentPerHomelessDay; }
+
+    /**
+     * The birth rate this town actually has, after crowding.
+     *
+     * <p>Full rate while there are beds to spare, falling to zero as occupancy reaches {@link
+     * #crowdTolerance} times capacity. That curve IS the control on homelessness: a town can
+     * outgrow its housing and feel it, but the crowding chokes off the growth that caused it.
+     */
+    public int effectiveBirthPerMille(int livingCount) {
+        if (housingCapacity <= 0) return 0;
+        double occupancy = (double) livingCount / housingCapacity;
+        if (occupancy <= 1.0) return birthChancePerMille;
+        double room = (crowdTolerance - occupancy) / Math.max(1e-9, crowdTolerance - 1.0);
+        return (int) Math.round(birthChancePerMille * Math.max(0.0, Math.min(1.0, room)));
+    }
 
     /**
      * A day's pay for this trade at this skill.
@@ -119,6 +158,10 @@ public final class TownSnapshot {
     public TownSnapshot discontentFedRelief(int v)    { this.discontentFedRelief = v; return this; }
     public TownSnapshot discontentPerCrowding(int v)  { this.discontentPerCrowding = v; return this; }
     public TownSnapshot discontentPerIdleDay(int v)   { this.discontentPerIdleDay = v; return this; }
+    public TownSnapshot crowdTolerance(double v)      { this.crowdTolerance = Math.max(1.0, v); return this; }
+    public TownSnapshot leaveAtDiscontent(int v)      { this.leaveAtDiscontent = v; return this; }
+    public TownSnapshot leaveAfterDays(int v)         { this.leaveAfterDays = Math.max(1, v); return this; }
+    public TownSnapshot discontentPerHomelessDay(int v) { this.discontentPerHomelessDay = v; return this; }
 
     private static int clampPercent(int v) { return Math.min(100, Math.max(0, v)); }
 
