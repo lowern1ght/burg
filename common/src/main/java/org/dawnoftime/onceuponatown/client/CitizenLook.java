@@ -35,14 +35,37 @@ import java.util.UUID;
  * base pass with {@code model.renderToBuffer(pose, vc, light, i, flag1 ? 654311423 : -1)} — the
  * model colour is the literal {@code -1}, opaque white, with no per-entity hook. Every
  * {@link net.minecraft.client.renderer.entity.layers.RenderLayer} by contrast takes an ARGB int.
- * So <b>complexion is a drawn file</b> (four of them, each drawn at its own full contrast rather
- * than multiplied down — the old dark variant kept only 20 luminance points of flesh modelling
- * against 29 as drawn) while <b>hair colour is a tint</b> on a layer.
+ * So <b>a body is a drawn file</b>, each drawn at its own full contrast rather than multiplied
+ * down — the old dark variant kept only 20 luminance points of flesh modelling against 29 as
+ * drawn — while <b>hair colour is a tint</b> on a layer.
  *
  * <p>The consequence worth stating: the beard is geometry rather than paint on the face for the
  * same reason. A painted beard could not follow the hair's tint — the base pass is that
  * {@code -1} — so a grey-haired man would have had a brown beard. It shares the hair's model,
  * texture and colour instead.
+ *
+ * <h2>A POOL OF DRAWN BODIES, NOT A CROSS PRODUCT</h2>
+ *
+ * <p>This class used to index 48 generated files as 4 complexions x 6 faces x 2 cuts. It now
+ * indexes a pool of hand-drawn ones, and the arithmetic is what changed the design: 4 x 6 is
+ * <b>24 visibly distinct bodies</b>, since the two cuts are the sexes and buy no variety inside
+ * either. The larger figure that justified the cross product multiplied in the hair, beard and
+ * headwear from {@code NpcHeadModels} — real variation, but contributed to any body equally. So
+ * the cross product bought 24 bodies at the price of being unable to draw one of them, and it lost
+ * the comparison the owner cares about: measured against 31 reference skins, a generated body
+ * carried <b>17 distinct colours against their 139 median</b>, and drew no nose at all.
+ *
+ * <p>The drawn bodies are <b>people in their underclothes</b> — shift, hose, face, hands, feet —
+ * and that is what keeps {@link org.dawnoftime.onceuponatown.client.model.layer.NpcClothesLayer}
+ * alive. One tunic file per trade over any body is what tells a farmer from a smith; draw finished
+ * characters instead and the tunic over them is a mess, the layer has to go, and the pool has to
+ * cover 7 professions x 2 sexes before any variety inside a trade. Twelve to twenty bodies is
+ * enough with the layer, because each multiplies by 7 garments and by ~100 head outlines.
+ *
+ * <p>{@code tools/draw_citizens.py} owns the drawn files and gates them: the complexion span, the
+ * luminance-weighted face separation, the garment mask coupling, a nose with a lit bridge, and a
+ * floor on distinct colours. The 48 generated files stay on disk, unreferenced, the way the 12
+ * relayed skins before them were left.
  *
  * <h2>The rolls</h2>
  *
@@ -58,19 +81,34 @@ import java.util.UUID;
  */
 public final class CitizenLook {
 
-    /** Drawn complexion files. Four, not six: see the class notes on why they are drawn. */
-    public static final int COMPLEXIONS = 4;
+    // ── the drawn pool ───────────────────────────────────────────────
+    //
+    // One entry per hand-drawn file, split by sex because the cut is the sex: a shift to
+    // mid-thigh over hose against a shift to the ankle. The slug is the filename's, so adding a
+    // person is one string here and one entry in `tools/draw_citizens.py`.
+    //
+    // *** THE POOL IS TWO PEOPLE. *** That is deliberate and it is not finished: the owner asked
+    // to see the register land on one or two bodies before it was multiplied, so a town currently
+    // draws from ONE man and ONE woman where the generated set gave 24. It is a large gain in how
+    // a body reads and a loss in how many there are, and it is not a state to ship to players —
+    // the roster is 12 to 20. Reverting is `git checkout` of this one file; the 48 generated
+    // bodies are still on disk and still committed.
+
+    private static final String[] MEN_BODIES = {"00"};
+    private static final String[] WOMEN_BODIES = {"01"};
+
+    /** Complexion families, kept as constants because the hair table is keyed on them. */
+    private static final int LIGHT = 0, WARM = 1, OLIVE = 2, DARK = 3;
 
     /**
-     * Face overlays folded into the body texture at build time.
+     * Which complexion family each drawn body belongs to, in the order of the arrays above.
      *
-     * <p>Six, and six is a measurement rather than a round number. Over vanilla's nine human
-     * skins on this same layout, a face spends a <b>median of 16 ink texels</b> of the 64 on the
-     * head front (range 4..46). Ten faces was the first proposal and 16 texels will not carry
-     * ten distinguishable ones. The generator gates the weakest pair at 80 luminance points of
-     * separation and currently measures 123.
+     * <p>A property of the person now rather than a roll, but it still has to be DECLARED,
+     * because {@link #HAIR_BY_COMPLEXION} is keyed on it and that table is the reason a citizen
+     * never comes out dark-complexioned with fair hair.
      */
-    public static final int FACES = 6;
+    private static final int[] MEN_COMPLEXION = {WARM};
+    private static final int[] WOMEN_COMPLEXION = {LIGHT};
 
     /** Hair styles, as cubes. Index 0 is the closest crop and is never absent. */
     public static final int HAIR_STYLES = 5;
@@ -79,8 +117,9 @@ public final class CitizenLook {
     public static final int BEARDS = 4;
 
     // Salts. 0 and 1 belong to Citizens (FACE_SALT, TINT_SALT); these continue the sequence and
-    // must stay unique across both classes or two axes become one.
-    private static final int COMPLEXION_SALT = 2;
+    // must stay unique across both classes or two axes become one. 2 belonged to the retired
+    // complexion axis and is left unused rather than recycled: a salt that changes meaning
+    // silently re-rolls every citizen in every existing save.
     private static final int HAIR_STYLE_SALT = 3;
     private static final int HAIR_COLOUR_SALT = 4;
     private static final int HEADWEAR_SALT = 5;
@@ -99,14 +138,14 @@ public final class CitizenLook {
     private static final int GREY = 0xFF8F8A83;
 
     /**
-     * Which hair colours each complexion may roll, and this table is the point.
+     * Which hair colours each complexion family may roll, and this table is the point.
      *
      * <p>Rolling colour freely against complexion would give one citizen in twenty the dark
      * complexion with fair hair, and a 1-in-20 combination does not read as variety — it reads as
      * a bug, once, to the one player who sees it. Grey is in every set because it is age rather
      * than colouring, and age is the one of these that is not inherited.
      *
-     * <p>Three per complexion, so the roll is uniform whichever complexion came up.
+     * <p>Three per family, so the roll is uniform whichever body came up.
      */
     private static final int[][] HAIR_BY_COMPLEXION = {
         {MID_BROWN, FAIR, GREY},          // light
@@ -137,11 +176,12 @@ public final class CitizenLook {
      * torso of thirteen desaturated greys at median luminance 98, which is the real reason he read
      * as wearing a black cloak. It was never a bug in the garment code.
      *
-     * <p>He is now deliberately a warm complexion with the {@code lined} face and a short beard —
-     * a man who has been working — and {@code builder_clothes.png} goes over the top of a torso
-     * drawn for it. {@code default_skin.png} stays on disk untouched.
+     * <p>He is the drawn man — the weathered warm complexion — with a coif and a short beard, and
+     * {@code builder_clothes.png} goes over the top of him like any other trade. He needs no
+     * special case beyond being chosen rather than rolled. {@code default_skin.png} stays on disk
+     * untouched.
      */
-    public static final Look BUILDER = new Look(false, 1, 4, 0, MID_BROWN, 2, 0);
+    public static final Look BUILDER = new Look(false, 0, 0, MID_BROWN, 2, 0);
 
     private CitizenLook() {
     }
@@ -149,16 +189,20 @@ public final class CitizenLook {
     /**
      * One citizen's whole appearance.
      *
-     * @param female     which cut — tunic to the knee, or gown to the ankle
-     * @param complexion index into the drawn complexion files
-     * @param face       index into the drawn faces
+     * @param female     which pool, and which cut — a shift to mid-thigh, or one to the ankle
+     * @param body       index into that sex's drawn pool
      * @param hairStyle  index into {@code NpcHeadModels.HAIR}
      * @param hairColour ARGB multiplied into the hair material, shared by the beard
      * @param headwear   index into {@code NpcHeadModels.HEADWEAR}; 0 is bare
      * @param beard      index into {@code NpcHeadModels.BEARDS}; 0 is none
      */
-    public record Look(boolean female, int complexion, int face, int hairStyle,
+    public record Look(boolean female, int body, int hairStyle,
                        int hairColour, int headwear, int beard) {
+    }
+
+    /** How many drawn bodies this sex has. The modulus for every index into the pool. */
+    public static int bodies(boolean female) {
+        return (female ? WOMEN_BODIES : MEN_BODIES).length;
     }
 
     /**
@@ -174,52 +218,54 @@ public final class CitizenLook {
         // The builder is authored, not rolled — see BUILDER. Rolling him would have put his hair
         // and beard on a UUID while his body stayed fixed, which is two people in one figure.
         if (mob instanceof Npc) {
-            return young ? new Look(false, BUILDER.complexion(), BUILDER.face(),
-                                    BUILDER.hairStyle(), BUILDER.hairColour(), 0, 0)
+            return young ? new Look(false, BUILDER.body(), BUILDER.hairStyle(),
+                                    BUILDER.hairColour(), 0, 0)
                          : BUILDER;
         }
         UUID id = mob.getUUID();
         boolean female = mob instanceof Villager v ? Citizens.isFemale(v)
                                                    : CitizenNames.isFeminine(id);
-        int complexion = CitizenNames.variant(id, COMPLEXION_SALT, COMPLEXIONS);
-        // Through Citizens so a server-set override on the attachment still wins.
-        int face = mob instanceof Villager v ? Citizens.faceOf(v)
-                                             : CitizenNames.variant(id, 0, FACES);
+        // WHICH DRAWN BODY, through Citizens.faceOf so a server-set override on the attachment
+        // still wins — a chief given a chosen body keeps it. That call is what the retired face
+        // axis used, and it is reused rather than replaced precisely so the override survives:
+        // the face is now part of the body it was folded into, so "which face" and "which body"
+        // have become one question and there is no reason to publish a second answer.
+        int pool = bodies(female);
+        int chosen = mob instanceof Villager v ? Citizens.faceOf(v, pool)
+                                              : CitizenNames.variant(id, 0, pool);
         int style = CitizenNames.variant(id, HAIR_STYLE_SALT, HAIR_STYLES);
 
-        int[] palette = HAIR_BY_COMPLEXION[complexion];
+        int[] families = female ? WOMEN_COMPLEXION : MEN_COMPLEXION;
+        int[] palette = HAIR_BY_COMPLEXION[families[Math.floorMod(chosen, pool)]];
         int colour = palette[CitizenNames.variant(id, HAIR_COLOUR_SALT, palette.length)];
 
-        boolean baby = young;
         int[] hats = female ? HEADWEAR_W : HEADWEAR_M;
-        int headwear = baby ? 0 : hats[CitizenNames.variant(id, HEADWEAR_SALT, hats.length)];
-        int beard = (female || baby) ? 0 : CitizenNames.variant(id, BEARD_SALT, BEARDS);
+        int headwear = young ? 0 : hats[CitizenNames.variant(id, HEADWEAR_SALT, hats.length)];
+        int beard = (female || young) ? 0 : CitizenNames.variant(id, BEARD_SALT, BEARDS);
 
-        return new Look(female, complexion, Math.floorMod(face, FACES), style, colour,
-                        headwear, beard);
+        return new Look(female, Math.floorMod(chosen, pool), style, colour, headwear, beard);
     }
 
-    // Resolved once. The base pass batches per texture, so this array's size is also the worst
-    // case for how many entity draw batches a crowd can cost: up to 48 instead of the old 12.
-    private static final ResourceLocation[][][] BODIES =
-        new ResourceLocation[2][COMPLEXIONS][FACES];
+    // Resolved once. The base pass batches per texture, so the pool's size is also the worst case
+    // for how many entity draw batches a crowd can cost — two today, twelve to twenty when the
+    // roster is drawn, against 48 for the generated set it replaces.
+    private static final ResourceLocation[][] BODIES = {
+        paths(MEN_BODIES), paths(WOMEN_BODIES),
+    };
 
-    static {
-        for (int s = 0; s < 2; s++) {
-            for (int c = 0; c < COMPLEXIONS; c++) {
-                for (int f = 0; f < FACES; f++) {
-                    BODIES[s][c][f] = ResourceLocation.fromNamespaceAndPath(
-                        Constants.MOD_ID, String.format(
-                            "textures/entity/npc/citizen_%s_c%d_f%d.png",
-                            s == 1 ? "w" : "m", c, f));
-                }
-            }
+    private static ResourceLocation[] paths(String[] slugs) {
+        ResourceLocation[] out = new ResourceLocation[slugs.length];
+        for (int i = 0; i < slugs.length; i++) {
+            out[i] = ResourceLocation.fromNamespaceAndPath(
+                Constants.MOD_ID, "textures/entity/npc/citizen_body_" + slugs[i] + ".png");
         }
+        return out;
     }
 
-    /** The body texture for a look: the build-time cross product of complexion and face. */
+    /** The drawn body for a look. */
     public static ResourceLocation body(Look look) {
-        return BODIES[look.female() ? 1 : 0][look.complexion()][look.face()];
+        ResourceLocation[] pool = BODIES[look.female() ? 1 : 0];
+        return pool[Math.floorMod(look.body(), pool.length)];
     }
 
     public static ResourceLocation body(Mob mob) {

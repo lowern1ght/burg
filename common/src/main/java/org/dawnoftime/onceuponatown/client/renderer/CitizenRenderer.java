@@ -51,7 +51,7 @@ public class CitizenRenderer extends HumanoidMobRenderer<Citizen, NpcModel<Citiz
     }
 
     /**
-     * The same 48 authored bodies every other citizen uses.
+     * The same drawn body pool every other citizen uses.
      *
      * <p>This used to index {@code citizen_skin_0..5} off the synced {@code DATA_SKIN}, which left
      * two appearance systems in the mod for one cast — the failure this repo keeps paying for, and
@@ -59,9 +59,9 @@ public class CitizenRenderer extends HumanoidMobRenderer<Citizen, NpcModel<Citiz
      * layout. {@link CitizenLook} is the single owner now.
      *
      * <p>{@code Citizen.getSkinVariant} is deliberately left alone: it is synced state that a save
-     * already holds, and a chief given a chosen face still wants it. It simply is not what picks
+     * already holds, and a chief given a chosen body still wants it. It simply is not what picks
      * the texture. Reconciling the two — feeding the synced value into
-     * {@link CitizenLook.Look#face()} — is a small follow-up, not a rendering change.
+     * {@link CitizenLook.Look#body()} — is a small follow-up, not a rendering change.
      */
     @Override
     public ResourceLocation getTextureLocation(Citizen citizen) {

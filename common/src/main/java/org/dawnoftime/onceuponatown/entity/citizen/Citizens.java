@@ -253,7 +253,19 @@ public final class Citizens {
     }
 
     public static int faceOf(Villager villager) {
-        return variant(villager, CitizenData::getFace, FACE_SALT, SKIN_VARIANTS);
+        return faceOf(villager, SKIN_VARIANTS);
+    }
+
+    /**
+     * The same roll, taken over a caller-supplied number of variants.
+     *
+     * <p>Needed because the client now picks one of a POOL OF DRAWN BODIES whose size is not 6 and
+     * grows as bodies are authored, and folding an answer in 0..5 down into a pool of 4 would give
+     * two of them twice the share of the other two. The salt and the override are the point of
+     * going through here at all, so both survive; only the modulus moves to the call site.
+     */
+    public static int faceOf(Villager villager, int variants) {
+        return variant(villager, CitizenData::getFace, FACE_SALT, variants);
     }
 
     public static int tintOf(Villager villager) {

@@ -71,9 +71,10 @@ public class TownVillagerRenderer extends HumanoidMobRenderer<Villager, NpcModel
         return out;
     }
     // ^ RETIRED, and kept only so the twelve files it names are not orphaned silently. Nothing
-    // reads MEN or WOMEN any more: getTextureLocation goes through CitizenLook, which indexes the
-    // 48 authored bodies by (sex, complexion, face). Deleting these — and the twelve PNGs — is a
-    // separate decision for whoever owns the asset list.
+    // reads MEN or WOMEN any more: getTextureLocation goes through CitizenLook, which indexes a
+    // pool of HAND-DRAWN bodies by (sex, index). The 48 generated bodies that came between these
+    // twelve and the drawn pool are retired the same way and are also still on disk. Deleting
+    // either set is a separate decision for whoever owns the asset list.
 
     /** A genuine vanilla renderer, kept for the villagers that are nobody's. */
     private final VillagerRenderer vanilla;
@@ -104,7 +105,7 @@ public class TownVillagerRenderer extends HumanoidMobRenderer<Villager, NpcModel
     }
 
     /**
-     * Which body this citizen wears: one of 48, by sex, complexion and face.
+     * Which body this citizen wears: one of the hand-drawn pool, by sex and a salted roll.
      *
      * <p>Independent rolls off the UUID, and they have to stay independent — see
      * {@link CitizenLook} for the salt and why sharing a hash between two axes puts a town out in

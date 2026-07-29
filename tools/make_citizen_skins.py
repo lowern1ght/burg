@@ -1,8 +1,46 @@
-"""Every citizen body, both sexes, on one authored path.
+"""RETIRED. Superseded by `draw_citizens.py`; kept so its 48 outputs are not orphaned silently.
+
+WHAT RETIRED IT, AND WHY THIS FILE IS STILL HERE
+------------------------------------------------
+`draw_citizens.py` draws citizen bodies one at a time by hand instead of emitting a cross product,
+and `CitizenLook` now indexes that pool. The 48 files this script wrote are still on disk and still
+committed, unreferenced, exactly the way the 12 relayed skins before them were left — nothing is
+deleted until somebody who owns the asset list says so.
+
+Two measurements did it.
+
+**The cross product bought 24 bodies, not 48.** 4 complexions x 6 faces x 2 cuts, and the two cuts
+are the SEXES: a man is never mistakable for a woman, so the cut buys no variety inside either.
+The larger figure that justified this pipeline multiplied in hair, beard and headwear, which are
+cubes in `NpcHeadModels` and would be contributed to a hand-drawn body identically.
+
+**And 24 generated bodies lost to the register the owner picked.** Measured against 31 reference
+skins he supplied (measured, never copied):
+
+    distinct colours per file   139 median (26..1076)   vs   17 (16..17) here
+    draws a nose                28 of 31                vs    0 of 48
+    brow vs cheek contrast      60.7 luminance          vs   21.3
+    nose bridge vs its flanks   57.3                    vs    0 (a nose was GATED AGAINST)
+
+The nose gate in `verify` below is the sharpest lesson in the pair of files. It refused a nose and
+cited vanilla, where row 5 of the head front is flat in 8 of 9 player skins. That was true and it
+was the wrong corpus: vanilla's nine are deliberately minimal, and 28 of 31 skins the owner
+actually likes draw one — 17 of them as a LIT BRIDGE, which is the form the old objection ("a 2px
+nose shadow over a 2px mouth is one dark blob") does not apply to.
+
+What carried over unchanged, because it was measured and it was right: the complexion spans and
+the `MIN_SPAN` gate on them, the luminance-weighted face-difference gate (a CELL COUNT passed six
+faces that read as one), the garment mask coupling, `hat` left empty because the head shells are
+concentric cubes, `texOffs(0,0)` on every model cube, and `npc_uv.py` as the single owner of the
+mesh table.
 
     python make_citizen_skins.py             # write the 48 bodies, 2 materials, contact sheet
     python make_citizen_skins.py --dry-run   # draw and verify, write nothing
     python make_citizen_skins.py --check     # verify what is already on disk
+
+ORIGINAL HEADER FOLLOWS
+-----------------------
+Every citizen body, both sexes, on one authored path.
 
 WHAT THIS REPLACES, AND WHY IT IS NOT A REPAINT
 -----------------------------------------------

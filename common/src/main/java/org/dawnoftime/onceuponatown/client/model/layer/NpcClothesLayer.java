@@ -14,6 +14,18 @@ import org.dawnoftime.onceuponatown.client.model.NpcModel;
  * texture. Which texture and which shade are the ENTITY's business, not the layer's: it once
  * named one builder outfit as a constant, so every town NPC sharing this rig would have worn
  * the builder's clothes whatever job it held.
+ *
+ * <p><b>This layer survived the move to hand-drawn bodies, and it is the reason those bodies are
+ * UNDERCLOTHES.</b> One tunic file per trade over any body is what makes a farmer distinguishable
+ * from a smith, and it multiplies: 7 garments x N bodies x the head outlines. Draw finished
+ * characters instead — a knight in mail, a lady in a green gown — and a tunic over them is a mess,
+ * this layer has to go, and the drawn pool then has to cover 7 professions x 2 sexes itself before
+ * there is any variety inside a trade. So the bodies are a shift and hose and this layer stays.
+ *
+ * <p>There is therefore <b>no drawn-character-versus-garment conflict to opt out of</b>. The
+ * coupling is a gate instead: {@code tools/draw_citizens.py} reads the mask off the shipped
+ * garment files and checks that what the sleeveless V leaves open is the shift or the skin under
+ * it, never something that belongs further down the body.
  */
 public class NpcClothesLayer<T extends Mob, M extends NpcModel<T>>
         extends RenderLayer<T, M> {
