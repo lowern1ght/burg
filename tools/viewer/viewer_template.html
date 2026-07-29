@@ -30,7 +30,11 @@
   #figure { position:absolute; left:50%; top:50%; transform-style:preserve-3d; }
   .part { position:absolute; transform-style:preserve-3d; }
   .face { position:absolute; background-repeat:no-repeat; background-size:100% 100%;
-          image-rendering:pixelated; backface-visibility:hidden; }
+          image-rendering:pixelated; backface-visibility:hidden;
+          /* CSS rotates about the CENTRE by default. Every transform below is reasoned from
+             the box's corner, so this line is load-bearing: without it each face swings out
+             of place by half its own size and the model comes apart. */
+          transform-origin: 0 0; }
   #hint { position:absolute; left:12px; bottom:10px; color:var(--dim); font-size:11px; }
   #crowd { position:absolute; inset:0; display:none; overflow:auto; padding:20px;
            grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:10px; }
@@ -85,7 +89,9 @@
  * ------------------------------------------------------------------------------------- */
 const RIG = DATA.rig, MAN = DATA.manifest, TEX = DATA.textures;
 const SCALE = 11;                       // screen px per model unit
-const FACE_ORDER = ['up','down','right','front','left','back'];
+// npc_uv.faces() names them top/bottom, not up/down. Getting this wrong silently
+// dropped two faces per cube.
+const FACE_ORDER = ['top','bottom','right','front','left','back'];
 
 const imgCache = {};
 function image(name) {
@@ -101,20 +107,16 @@ function image(name) {
 function faceUrl(texName, rect, tint) {
   const im = image(texName);
   if (!im || !im.complete || !im.naturalWidth) return null;
-  const [x0, y0, x1, y1] = rect;
-  const w = Math.abs(x1 - x0), h = Math.abs(y1 - y0);
+  // (x, y, w, h) — the convention npc_uv.faces() actually returns. Read as two corners it
+  // computes a width of zero for every square face, which is what "the UV went" looked like.
+  const [x, y, w, h] = rect;
   if (!w || !h) return null;
 
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
   const g = c.getContext('2d');
   g.imageSmoothingEnabled = false;
-  // Negative spans mean the face is mirrored on the sheet; draw it flipped.
-  g.save();
-  g.translate(x1 < x0 ? w : 0, y1 < y0 ? h : 0);
-  g.scale(x1 < x0 ? -1 : 1, y1 < y0 ? -1 : 1);
-  g.drawImage(im, Math.min(x0, x1), Math.min(y0, y1), w, h, 0, 0, w, h);
-  g.restore();
+  g.drawImage(im, x, y, w, h, 0, 0, w, h);
 
   const data = g.getImageData(0, 0, w, h);
   const px = data.data;
@@ -150,13 +152,18 @@ function buildPart(name, spec, texName, tint) {
     `translate3d(${(px + ox) * SCALE}px, ${(py + oy) * SCALE}px, ${oz * SCALE}px)`;
 
   const W = sx * SCALE, H = sy * SCALE, D = sz * SCALE;
+  // Six faces of a box whose local space runs 0..W right, 0..H DOWN, 0..D toward the viewer.
+  // Each entry is [width, height, transform], every transform reasoned from the CORNER — see
+  // the transform-origin note in the stylesheet. A face whose normal comes out inwards is
+  // hidden by backface-visibility, which makes a wrong sign visible as a missing face rather
+  // than as a subtly inside-out box.
   const geom = {
-    front: [W, H, `translate3d(0,0,${D}px)`],
-    back:  [W, H, `translate3d(${W}px,0,0) rotateY(180deg)`],
-    right: [D, H, `rotateY(-90deg) translate3d(-${D}px,0,0) translate3d(0,0,0)`],
-    left:  [D, H, `translate3d(${W}px,0,0) rotateY(90deg)`],
-    up:    [W, D, `rotateX(90deg) translate3d(0,0,${D - H}px) translate3d(0,${H}px,0)`],
-    down:  [W, D, `translate3d(0,${H}px,0) rotateX(-90deg)`],
+    front:  [W, H, `translate3d(0,0,${D}px)`],
+    back:   [W, H, `translate3d(${W}px,0,0) rotateY(180deg)`],
+    right:  [D, H, `translate3d(${W}px,0,${D}px) rotateY(90deg)`],
+    left:   [D, H, `rotateY(-90deg)`],
+    top:    [W, D, `rotateX(90deg)`],
+    bottom: [W, D, `translate3d(0,${H}px,${D}px) rotateX(-90deg)`],
   };
   let drew = 0;
   for (const f of FACE_ORDER) {
