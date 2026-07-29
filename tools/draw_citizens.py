@@ -112,6 +112,7 @@ import argparse
 import colorsys
 import hashlib
 import itertools
+import math
 import re
 import sys
 from pathlib import Path
@@ -769,6 +770,11 @@ PEOPLE = [
         },
     ),
 ]
+
+
+# By slug, because the relight needs a person's own ramps to convert a luminance correction into
+# that material's steps, and `draw` only ever had the slug.
+PERSON = {p["slug"]: p for p in PEOPLE}
 
 
 def palette(person: dict) -> Dict[str, Tuple[int, int, int]]:
@@ -1972,8 +1978,12 @@ SLEEVE_06 = {
                "S7S3S8Se", "S7S3S8Se", "S8S4S9Se", "S8S4S9Se",
                "S9S5SaSf", "SaS6SbSf",
                "F6F3F7Fe", "F9F6FaFf"],
+    # THE ELBOW IS WORN THROUGH. A shift two sizes too big bunches at the elbow and the cloth goes
+    # first there, so the outside of the sleeve carries the abraded `R` for three courses — and it
+    # is the one thing on him that uses that ramp below the shoulder. Kept off cols 0 and 3, which
+    # are the box's own wrap columns: a lighter thread there is a line down his outline.
     "right":  ["S7S4S2S4", "S6S3S1S3", "S7S4S2S4", "S6S3S1S3",
-               "S7S4S2S4", "S7S4S2S4", "S8S5S3S5", "S8S5S3S5",
+               "S7R2R0S4", "S7R3R1S4", "S8R4R2S5", "S8S5S3S5",
                "S9S6S4S6", "SaS7S5S7",
                "F7F4F1F4", "FbF8F5F8"],
     "left":   ["SdSbSaSc", "ScSaS9Sb", "SdSbSaSc", "ScSaS9Sb",
@@ -2967,14 +2977,22 @@ HOSE_13 = {
     "bottom": ["PbP9P9Pb", "P9B5B4Pa", "P9B4B5Pa", "PbPaPaPb"],
 }
 HEM_13 = {
-    "front":  ["S8S4S2S6", "S9S5S3S7", "S9S5S4S8", "SaS6S4S8", "SaS6S5S9",
-               "SbS7S5S9", "SbS7S6Sa", "ScS8S6Sa", "G1G0G2G3"] + [".." * 4] * 3,
-    "back":   ["S9S5S3S7", "SaS6S4S8", "SaS6S5S9", "SbS7S5S9", "SbS7S6Sa",
-               "ScS8S6Sa", "ScS8S7Sb", "SdS9S7Sb", "G2G1G3G4"] + [".." * 4] * 3,
+    # WASHED WHITE, and that is the `R` ramp doing its other job. `R` is "abraded linen — bleached
+    # and thinned where a tunic rubs"; on her, who has no grime, no mud and no patch, it is the
+    # BLEACHED reading — a skirt beaten on a stone comes back brightest across the panel that gets
+    # the beating. Three courses front and two behind, and never on cols 0 or 3, which are the box's
+    # wrap columns and would put a pale line down her silhouette.
+    # And TWO courses of soil at the very hem, not one. She is barefoot in a floor-length skirt, so
+    # the bottom of it is the one part of her that is dirty — which is her whole story, not an
+    # exception to it — and two courses is what puts the `G` ramp's eight steps on her at all.
+    "front":  ["S8S4S2S6", "S9S5S3S7", "S9S5S4S8", "SaR3R1S8", "SaR4R2S9",
+               "SbR5R3S9", "SbS7S6Sa", "ScG5G4Sa", "G1G0G2G3"] + [".." * 4] * 3,
+    "back":   ["S9S5S3S7", "SaS6S4S8", "SaS6S5S9", "SbS7S5S9", "SbR4R2Sa",
+               "ScR5R3Sa", "ScS8S7Sb", "SdG6G5Sb", "G2G1G3G4"] + [".." * 4] * 3,
     "right":  ["T0S3S1S3", "T1S4S2S4", "T2S4S2S4", "T3S5S3S5", "T4S5S3S5",
-               "T5S6S4S6", "S9S6S4S6", "S9S7S5S7", "SaS7S5S7"] + [".." * 4] * 3,
+               "T5S6S4S6", "S9S6S4S6", "S9G7G6S7", "SaG7G6S7"] + [".." * 4] * 3,
     "left":   ["S3S1S3T0", "S4S2S4T1", "S4S2S4T2", "S5S3S5T3", "S5S3S5T4",
-               "S6S4S6T5", "S6S4S6S9", "S7S5S7S9", "S7S5S7Sa"] + [".." * 4] * 3,
+               "S6S4S6T5", "S6S4S6S9", "S7G6G7S9", "S7G6G7Sa"] + [".." * 4] * 3,
     "top":    ["S7S4S4S7", "S4S1S1S4", "S4S1S1S4", "S8S5S5S8"],
     "bottom": [".." * 4] * 4,
 }
@@ -3013,6 +3031,373 @@ ART = {
 }
 
 
+# ── the light: ONE source round the box, never a border per face ─────
+#
+# THE FAULT THIS PASS EXISTS TO END, in the owner's words: *"какие-то рамки у рук, ног выбивает из
+# ощущения"* — visible frames round the arms and the legs. Every gate in this file passed the set
+# that had them, because no colour count and no contrast floor can see a lighting topology.
+#
+# Measured cause. Every face was drawn with a SYMMETRIC BORDER — its first and last column darker
+# than its middle — on all four sides. Four borders round one box put two dark columns AGAINST each
+# other at every seam, so the darkness doubles exactly where the eye reads an edge:
+#
+#     citizen_body_00  r_arm  front  edge 133.4  mid 153.9   delta 20.5
+#                             back   edge 131.1  mid 152.0   delta 21.0
+#     citizen_body_05  body   front  edge 106.9  mid 149.4   delta 42.5
+#                             right  edge 109.9  mid 153.2   delta 43.4
+#
+#     r_arm, walked round in net order
+#       front last 115.1 -> left first 108.2    two dark columns running together = THE FRAME
+#       left  last 114.2 -> back  first 149.9   a step of 36
+#       back  last 112.2 -> right first 152.1   a step of 40
+#
+# A CUBE IS LIT DIRECTIONALLY. One source: the lit face brightest, one side lighter than the other,
+# the back darkest, and the tone CONTINUOUS round the box — one minimum in the cycle, not four.
+#
+# CALIBRATED, and on the right corpus. The mod's own hand-drawn `default_skin.png` scores ZERO wrap
+# faults with a worst seam of 10.8, which is where `check_wrap.MAX_SEAM_STEP` of 12 comes from; its
+# torso swings 30 luminance points round the whole cycle and its limbs 6 to 8. The 31 downloaded
+# references are noisy on the same metric (median 4 step-hits over 12 boxes) and they are the WRONG
+# corpus for it: a reference's seam step is usually a design boundary — a jacket edge, a stripe, a
+# logo — where ours was pure shading. So the number to beat is the author's zero, not their median.
+#
+# HOW, and why not by hand. Fourteen people times nineteen faces is 266 blocks of ASCII, and an
+# edit that size by hand is an edit nobody can check. This pass instead moves each column of each
+# side face BODILY, by one offset in the material's own ramp, so that the column MEANS follow the
+# light while every cell keeps its own deviation from its column — the folds, the grime patches, the
+# seams, the belt, the cuff and the mended courses all survive untouched, because they are row
+# content and material content, not column lighting.
+#
+# THE HEAD FRONT IS FROZEN. The owner's verdict is that the faces are finished (row spreads
+# 53/206/48/69/58 on body 00), so cols 1..6 of `head.front` are never touched. Cols 0 and 7 are —
+# they are the seam itself, and the fix there is what the brief calls "a wrap fix at the head's own
+# corners". The flesh ramp is only 28.5 luminance points wide over its 16 steps, 1.8 a step, so the
+# whole correction at those two columns is a handful of points.
+#
+# THE TWO LIMBS STAY MIRRORS. `verify` compares `l_arm` to the mirror of `r_arm` byte for byte and
+# the mod shipped an empty left arm for a whole revision, so the light on the left limb is the
+# mirror of the light on the right. That is the author's own convention too — `default_skin.png`'s
+# two arms are exact mirrors — and it costs nothing here, because each limb is continuous in itself.
+
+# Shade round the box, 0 lightest and 1 darkest, at the CENTRE of each face. `right` spans 0..90
+# degrees, `front` 90..180, `left` 180..270, `back` 270..360 — the net's own order, which is the
+# box rolled, which is why the last column of each face is against the first column of the next.
+#
+# The lit face is the front, the figure's left is the brighter side and the back is darkest: one
+# maximum at 135 and one minimum at 315, and everything between them monotone. Interpolated
+# linearly in angle, so the value at a seam is the same from both sides BY CONSTRUCTION and no
+# arithmetic can put a step there.
+LIGHT_SHADE = ((45.0, 0.72), (135.0, 0.00), (225.0, 0.42), (315.0, 1.00))
+
+# How many luminance points the whole cycle may swing, per box. The author's own skin swings 30 on
+# the torso and 6..8 on a limb; the drawn set swings 52..61, which is what made the borders so loud.
+# These caps sit between the two: enough that the light reads at 26x, little enough that no face is
+# a frame. The head's is the tightest because its flesh ramp is only 28.5 points wide in total and a
+# larger swing would flatten the back of the head onto the ramp's last step.
+# A BOX CAN ONLY SWING AS FAR AS ITS NARROWEST RAMP, and that is measured rather than guessed. The
+# arm carries the linen sleeve (`S`, 118 luminance points wide) and the bare forearm (`F`, 28.5) on
+# the same columns, and a correction is spent in luminance, so a 34-point swing left the flesh
+# clamped at `Ff` on three columns of every body and the column mean short of its target by the seam
+# floor itself. A flat cap of 26 fixed the arm and then cost the LEG range it could well afford —
+# a barefoot woman's hose is one 125-point ramp and nothing else, and she came off the gate at 94
+# distinct colours against a floor of 100.
+#
+# So the ceiling below is an authored maximum and the real swing is the smaller of it, the range the
+# drawing already spends, and 85% of the narrowest ramp the box actually uses. `main` prints it.
+SWING_CAP = {"head": 24.0, "body": 40.0, "arm": 34.0, "leg": 34.0, "leg_outer": 34.0}
+
+# Which cells of which face may not move. `head.front` cols 1..6 carry the eyes, the nose bridge
+# and the mouth, and the owner has ruled the faces finished.
+FROZEN: Dict[str, Dict[str, Tuple[int, ...]]] = {
+    "head": {"front": (1, 2, 3, 4, 5, 6)},
+}
+
+CYCLE = ("right", "front", "left", "back")
+
+# ORDERED DITHER, and it is the repo's own gradient rule arriving on a texture. `docs/STYLE.md`:
+# "map height to a position on the chain, and dither ONLY between two adjacent steps". A correction
+# is spent in whole ramp steps, so a column that wants 1.4 steps of shadow either rounds to 1 and
+# stays too light or to 2 and goes too dark — and the rounding error was worth up to half a step,
+# which on the linen is 4.3 luminance points and on the hem was the seam floor itself.
+#
+# Dithering the fraction spends it exactly, and it is where the density lost to the correction comes
+# back: 14 bodies came off the relight at 94..113 distinct colours against 101..122 before it, and
+# the floor is 100. Two adjacent steps of one material are 1.8 points apart on the flesh and 8.6 on
+# the linen, both at or under this repo's measured invisibility threshold of 7, so what a player
+# sees is a blend and not a check. A 4x4 Bayer matrix, so no full course and no full column ever
+# takes the same side of the fraction — a course of it is the "painted stripe" `docs/STYLE.md` warns
+# about and a column of it would put the step back at the seam.
+BAYER4 = ((0, 8, 2, 10), (12, 4, 14, 6), (3, 11, 1, 9), (15, 7, 13, 5))
+
+
+def shade_at(theta: float) -> float:
+    """`LIGHT_SHADE` interpolated cyclically. Continuous, so a seam cannot carry a step."""
+    pts = sorted(LIGHT_SHADE)
+    theta %= 360.0
+    for i in range(len(pts)):
+        a_ang, a_val = pts[i]
+        b_ang, b_val = pts[(i + 1) % len(pts)]
+        span = (b_ang - a_ang) % 360.0
+        off = (theta - a_ang) % 360.0
+        if off <= span:
+            return a_val + (b_val - a_val) * (off / span if span else 0.0)
+    return pts[0][1]
+
+
+def lum_per_step(table: Dict[str, Tuple[int, int, int]], mat: str) -> float:
+    """How much luminance one step of this material's ramp is worth.
+
+    Wildly different per material, which is why the correction is computed in LUMINANCE and only
+    then converted: the flesh ramp spends 1.8 points a step and the linen 7.4.
+    """
+    n = STEPS[mat]
+    hi = lum(table[mat + "0"])
+    lo = lum(table[mat + "0123456789abcdef"[n - 1]])
+    return max(0.35, (hi - lo) / (n - 1))
+
+
+def _col_angles(face: str, n: int) -> List[float]:
+    k = CYCLE.index(face)
+    return [90.0 * k + 90.0 * (j + 0.5) / n for j in range(n)]
+
+
+# HOW FAR THE LIGHT MAY PUSH ONE MATERIAL, as a share of its own ramp. Measured: without this, a
+# 14-point graze on the arm ate the abraded `R` ramp whole — 24.3 luminance points over six steps —
+# so an elbow authored across R0..R4 arrived on disk as two tones, and the two barefoot bodies stayed
+# under the distinct-colour floor however much real content was drawn into them.
+#
+# A third is the number because a ramp is authored to model something; spend more than a third of it
+# on the light and the light IS the modelling. The wide ramps then carry the correction the narrow
+# ones could not, which is exactly what `relight`'s loop is for.
+LIGHT_BITE = 1.0 / 3.0
+
+
+def _shift(table: Dict[str, Tuple[int, int, int]], ch: str, off_lum: float, t: float) -> str:
+    """One cell moved `off_lum` luminance points, in its own ramp's steps, dither included."""
+    mat, steps, was = ch[0], STEPS[ch[0]], int(ch[1], 16)
+    room = LIGHT_BITE * (steps - 1)
+    off = max(-room, min(room, off_lum / lum_per_step(table, mat)))
+    want = math.floor(was + off + t)
+    return mat + "0123456789abcdef"[max(0, min(steps - 1, want))], want, steps
+
+
+def uncorner_seams(art: Dict[str, List[str]], dims: Tuple[int, int, int, int, int],
+                   moved: List[str] | None = None) -> Dict[str, List[str]]:
+    """Move a stitched seam off a WRAP COLUMN, one column in.
+
+    A wrap column is the figure's own silhouette edge — the last column of one face against the
+    first of the next — and `T` is deliberately the darkest thing in the wardrobe, "cooler and
+    darker than the cloth either side of it", on a six-step ramp. A vertical `T` run drawn there is
+    therefore a dark line down the outline that no lighting correction can lift: `T0` is already the
+    ramp's lightest step, so the relight clamps and the column stays 25 to 36 luminance points off
+    its neighbour. Measured: those seams were **16 of the 16** wrap faults left after the relight,
+    all of them on the hem, on nine of the fourteen bodies.
+
+    It is also the better drawing. On a four-wide leg box, `right` col 3 is the front corner and col
+    0 the back one; a skirt's gore seam runs down the OUTSIDE of the leg, which is cols 1..2. The
+    seam was at the corner because the corner is where a hand-written net's first character is, not
+    because a garment is made that way.
+
+    Only `T`, and only a run of two courses or more. A `K` girdle crosses every column of a row by
+    design and a single `T` is a stitch rather than a seam.
+    """
+    _, _, w, _, d = dims
+    widths = {"right": d, "front": w, "left": d, "back": w}
+    out = {f: list(rows) for f, rows in art.items()}
+    for face in CYCLE:
+        n = widths[face]
+        grid = [cells(r) for r in out[face]]
+        for edge, inner in ((0, 1), (n - 1, n - 2)):
+            run = [i for i, row in enumerate(grid)
+                   if row[edge] != ".." and row[edge][0] == "T"]
+            if len(run) < 2:
+                continue
+            for i in run:
+                if grid[i][inner] == "..":
+                    continue
+                grid[i][edge], grid[i][inner] = grid[i][inner], grid[i][edge]
+            if moved is not None:
+                moved.append(f"{face} col {edge} -> {inner}, {len(run)} courses")
+        out[face] = ["".join(row) for row in grid]
+    return out
+
+
+# THE OTHER HALF OF THE LIGHT. This file has always said "light comes from above AND from the
+# figure's front-left", and only the second half was ever drawn: the four side faces had no vertical
+# trend at all, so a shoulder and a hem were lit the same. From above means a side face is grazed —
+# lighter at the top course, darker at the bottom, where the ground occludes it.
+#
+# It is also where the density lost to the relight comes back. Removing four symmetric borders took
+# 14 bodies from 101..122 distinct colours to 94..113 and put four of them under the floor of 100,
+# because the borders WERE the horizontal range. A vertical trend is range that means something:
+# 12 luminance points over the height of a box, dithered, which is under two steps of linen and
+# never a band.
+#
+# Applied ONCE, before `relight`, and deliberately not inside its loop: the loop corrects column
+# MEANS, and a trend with zero mean down the column survives it untouched while anything the loop
+# has to undo would be added again every round.
+# Per box, and the SIGN is measured off the author's own skin rather than assumed. On his
+# `default_skin.png` the torso and the arms run 21..49 points lighter at the top, and the LEGS
+# run 37..48 points lighter at the BOTTOM — a thigh sits in the torso's own shadow and the shoe
+# below it catches the light. Our hose was drawn that way already; a uniform "top lighter" would
+# have fought it.
+GRAZE = {"head": 8.0, "body": 12.0, "arm": 14.0, "leg": -12.0, "leg_outer": 8.0}
+
+
+def graze(art: Dict[str, List[str]], dims: Tuple[int, int, int, int, int], person: dict,
+          box: str) -> Dict[str, List[str]]:
+    """Light from above, on the four side faces. Top course lighter, bottom course darker."""
+    table = palette(person)
+    _, _, w, h, d = dims
+    widths = {"right": d, "front": w, "left": d, "back": w}
+    frozen = FROZEN.get(box, {})
+    out = {f: list(rows) for f, rows in art.items()}
+    for face in CYCLE:
+        rows = out[face]
+        n = widths[face]
+        got_rows = []
+        for cy, r in enumerate(rows):
+            row = cells(r)
+            lift = GRAZE.get(box, 12.0) * (
+                0.5 - (cy / (len(rows) - 1) if len(rows) > 1 else 0.5))
+            got = []
+            for j, ch in enumerate(row):
+                if ch == ".." or j in frozen.get(face, ()) or j >= n:
+                    got.append(ch)
+                    continue
+                t = (BAYER4[cy % 4][j % 4] + 0.5) / 16.0
+                got.append(_shift(table, ch, -lift, t)[0])
+            got_rows.append("".join(got))
+        out[face] = got_rows
+    return out
+
+
+RAMP_SPAN_SHARE = 0.15
+
+
+def ramp_span(art: Dict[str, List[str]], table: Dict[str, Tuple[int, int, int]]) -> float:
+    """The narrowest ramp this box MAINLY uses, end to end, in luminance points.
+
+    What limits how hard a box can be lit, and it is measured twice over. Not the whole legend's
+    narrowest: a barefoot person's hose never touches the twelve-step leather ramp, and charging her
+    for it cost her the range her wool could easily carry. And not the narrowest ramp present
+    either — the same woman's bare foot is a handful of 28.5-point flesh cells on a leg box that is
+    otherwise 125 points of wool, and letting those few cells set the limit held her hose to 12 of
+    its 16 steps and the whole body to 98 distinct colours against a floor of 100.
+
+    So: the narrowest ramp covering at least 15% of the box. A material below that share clamps at
+    its own ends instead, which `relight`'s loop then absorbs into the columns around it.
+    """
+    seen: Dict[str, int] = {}
+    total = 0
+    for rows in art.values():
+        for r in rows:
+            for ch in cells(r):
+                if ch != "..":
+                    seen[ch[0]] = seen.get(ch[0], 0) + 1
+                    total += 1
+    if not total:
+        return 999.0
+    big = [m for m, n in seen.items() if n >= RAMP_SPAN_SHARE * total] or list(seen)
+    return min(lum_per_step(table, m) * (STEPS[m] - 1) for m in big)
+
+
+def _column_lum(art: Dict[str, List[str]], face: str, n: int,
+                table: Dict[str, Tuple[int, int, int]]) -> List[float | None]:
+    grid = [cells(r) for r in art[face]]
+    out: List[float | None] = []
+    for j in range(n):
+        vals = [lum(table[row[j]]) for row in grid if row[j] != ".."]
+        out.append(sum(vals) / len(vals) if vals else None)
+    return out
+
+
+def relight(art: Dict[str, List[str]], box: str, dims: Tuple[int, int, int, int, int],
+            person: dict, rounds: int = 4,
+            clamped: List[str] | None = None) -> Dict[str, List[str]]:
+    """One box's ASCII, relit by a single source instead of four borders.
+
+    Returns a new art dict; the input is left alone, because `ART` is module state and a person
+    drawn twice would otherwise be relit twice.
+
+    `top` and `bottom` take the FRONT face's own column corrections. Their column axis is the same
+    x as the front's — a box's net unwraps them above it — so anything else would put a step along
+    the shoulder or the sole.
+
+    RUN MORE THAN ONCE, and that is not a fudge. A correction is spent in whole ramp steps, and a
+    step is worth 1.8 luminance points on the flesh and 8.6 on the linen, so one pass leaves up to
+    half a step of the target unspent — which on the hem came to 12 points, the seam floor itself.
+    Re-measuring and re-correcting converges in three; the fourth is there to prove it has.
+
+    What it CANNOT correct is a column the ramp cannot reach: a stitched `T` seam is six steps of a
+    dark thread and no offset makes it linen. Those are collected in `clamped` and reported, because
+    the answer to one is to move the seam off the box's corner in the ART — a seam drawn exactly at
+    a wrap column is a dark line at the figure's edge whatever the lighting does.
+    """
+    table = palette(person)
+    _, _, w, _, d = dims
+    widths = {"right": d, "front": w, "left": d, "back": w}
+    frozen = FROZEN.get(box, {})
+    cur = {f: list(rows) for f, rows in art.items()}
+
+    live = [v for face in CYCLE for v in _column_lum(cur, face, widths[face], table)
+            if v is not None]
+    if not live:
+        return cur
+    mean_now = sum(live) / len(live)
+    swing = min(max(live) - min(live), SWING_CAP.get(box, 34.0),
+                0.85 * ramp_span(cur, table))
+
+    # where the light says each column should sit. Fixed once, off the drawing as authored, so the
+    # rounds converge on one target rather than chasing their own output.
+    target: Dict[str, List[float | None]] = {}
+    for face in CYCLE:
+        n = widths[face]
+        target[face] = [None if j in frozen.get(face, ())
+                        else mean_now + swing * (0.5 - shade_at(theta))
+                        for j, theta in enumerate(_col_angles(face, n))]
+
+    for _ in range(rounds):
+        delta: Dict[str, List[float]] = {}
+        moved = False
+        for face in CYCLE:
+            n = widths[face]
+            now = _column_lum(cur, face, n, table)
+            delta[face] = [0.0 if (now[j] is None or target[face][j] is None)
+                           else target[face][j] - now[j] for j in range(n)]
+
+        nxt: Dict[str, List[str]] = {}
+        for face, rows in cur.items():
+            d_for = delta["front"] if face in ("top", "bottom") else delta.get(face)
+            if d_for is None:
+                nxt[face] = list(rows)
+                continue
+            out_rows = []
+            for cy, r in enumerate(rows):
+                row = cells(r)
+                got = []
+                for j, ch in enumerate(row):
+                    if ch == ".." or j >= len(d_for):
+                        got.append(ch)
+                        continue
+                    # a positive delta wants the cell LIGHTER, which is a LOWER step. The
+                    # fraction of a step is DITHERED rather than rounded away — see `BAYER4`.
+                    t = (BAYER4[cy % 4][j % 4] + 0.5) / 16.0
+                    now, want, steps = _shift(table, ch, -d_for[j], t)
+                    got.append(now)
+                    if now != ch:
+                        moved = True
+                    if clamped is not None and not 0 <= want < steps:
+                        clamped.append(f"{box}.{face} col {j} {ch}: {ch[0]} ramp cannot go "
+                                       f"{'lighter' if want < 0 else 'darker'}")
+                out_rows.append("".join(got))
+            nxt[face] = out_rows
+        cur = nxt
+        if not moved:
+            break
+    return cur
+
+
 def blank() -> List[List[str | None]]:
     return [[None] * 64 for _ in range(64)]
 
@@ -3041,18 +3426,33 @@ def stamp(sym, box: str, art: Dict[str, List[str]], mirror: bool = False) -> Non
 
 
 def draw(slug: str) -> List[List[str | None]]:
-    """One person, symbolically. The palette is applied afterwards."""
+    """One person, symbolically. The palette is applied afterwards.
+
+    Every box is relit before it is stamped, and the RELIT art is what both limbs are stamped from,
+    so the left stays the exact mirror of the right and `verify`'s byte-for-byte comparison holds.
+    """
     a = ART[slug]
+    who = PERSON[slug]
     sym = blank()
-    stamp(sym, "head", a["head"])
-    # `hat` deliberately untouched: hair, headwear and the beard are concentric cubes over it.
-    stamp(sym, "body", a["body"])
-    stamp(sym, "r_arm", a["arm"])
-    stamp(sym, "l_arm", a["arm"], mirror=True)
-    stamp(sym, "r_leg", a["leg"])
-    stamp(sym, "l_leg", a["leg"], mirror=True)
-    stamp(sym, "r_leg_outer", a["leg_outer"])
-    stamp(sym, "l_leg_outer", a["leg_outer"], mirror=True)
+
+    def lit(key: str, box: str, name: str) -> Dict[str, List[str]]:
+        dims = BOXES[box]
+        art = graze(uncorner_seams(a[key], dims), dims, who, name)
+        return relight(art, name, dims, who)
+
+    stamp(sym, "head", lit("head", "head", "head"))
+    # `hat` deliberately untouched: it is hair, headwear and the beard, painted on their own layer.
+    body = lit("body", "body", "body")
+    arm = lit("arm", "r_arm", "arm")
+    leg = lit("leg", "r_leg", "leg")
+    hem = lit("leg_outer", "r_leg_outer", "leg_outer")
+    stamp(sym, "body", body)
+    stamp(sym, "r_arm", arm)
+    stamp(sym, "l_arm", arm, mirror=True)
+    stamp(sym, "r_leg", leg)
+    stamp(sym, "l_leg", leg, mirror=True)
+    stamp(sym, "r_leg_outer", hem)
+    stamp(sym, "l_leg_outer", hem, mirror=True)
     return sym
 
 
@@ -3422,11 +3822,92 @@ def verify(im: Image.Image, person: dict, mask: set) -> List[str]:
 
 # The paintings are near-white greys and the tint carries the colour, exactly as the retired
 # `npc_hair.png` was (measured: 195..228 grey). A multiply can only darken, so a painting drawn
-# dark can never be fair hair or bleached linen. Eight steps, because a cap of hair with three
-# tones is the flat register this whole file exists to leave behind.
-HEAD_TONES = ramp([(0xf4, 0xf4, 0xf4), (0xd2, 0xd2, 0xd2), (0xa6, 0xa6, 0xa6), (0x74, 0x74, 0x74)],
-                  8)
-HEAD_LEGEND = {"W" + "01234567"[i]: c for i, c in enumerate(HEAD_TONES)}
+# dark can never be fair hair or bleached linen.
+#
+# EIGHT STEPS WAS THE LIMITING FACTOR, and it measured like one: the thirteen paintings shipped at
+# 5..8 distinct tones over 60..295 texels, which is 0.03..0.05 tones a texel against the bodies'
+# 0.08 and the references' hat median of 0.07. A silhouette in eight tones has no interior at all,
+# and the owner's verdict was that the outlines are settled and the insides are not.
+#
+# A LEGEND CANNOT CARRY THE DENSITY, AND THAT IS WHY THE ART NO LONGER DECIDES THE TONE. The pass
+# before this one answered the flatness by widening the legend — sixteen `W` steps plus eight `V`,
+# twenty-four in all — and wrote the constants without ever writing the pass that would use them.
+# It could not have worked: a cell is a letter and ONE hex digit, the art only ever uses `W0..W7`,
+# and a painting whose every tone is authored by hand can hold no more tones than there are
+# characters. Twenty-four is also arithmetically short of the target. THE BODIES' OWN ARCHITECTURE
+# is the answer and it was already in this file: author the FORM in a handful of steps, then compute
+# the modelling in LUMINANCE and quantise onto a ramp fine enough that the rounding is invisible.
+# `graze` and `relight` do exactly that for a body, over 15 materials and 128 steps; `model_head`
+# below does it for a covering, over one grey ramp of 169.
+#
+# SO THE AUTHORED EIGHT ARE NOW THE FORM AND NOTHING ELSE — where on the head we are, crown lit and
+# nape shadowed. Not a painting had to be rewritten to gain the range, and the silhouettes, which
+# the owner has ruled settled, are untouched: the alpha is exactly the alpha that was authored.
+#
+# HOW FAR DOWN, and it is measured off the tints rather than guessed. `CitizenLook`'s hair colours
+# run from `0xFF231F1C` (black, dominant channel 0x23) to `0xFFA8834E` (fair, 0xA8). A multiply by
+# black turns the whole 0x54..0xFC range below into 11..34 — twenty-three luminance points, which is
+# three times this repo's invisibility threshold and no more. By fair it becomes 55..166. So the
+# floor is 0x54 rather than the braid's 0x70 because a parting has to be visible in fair hair, and
+# the arithmetic also says plainly what the ceiling on this work is: BLACK HAIR CANNOT SHOW MORE
+# THAN ABOUT THREE DISTINGUISHABLE TONES whatever is drawn, and the density below is spent for the
+# nine lighter tints and for the anti-banding.
+HEAD_HI, HEAD_LO = 0xfc, 0x54
+
+# THE FINE SCALE, one luminance point a step. 169 steps from the lit crest to the floor, which is
+# every integer grey in between and the most a monotone grey ramp can carry without `ramp` refusing
+# it for a collapsed step. One point is a seventh of this repo's measured invisibility threshold, so
+# no single step of it can be seen and the whole of it is there for the same reason the bodies keep
+# 128: a correction spent in whole steps is a correction rounded away, and the rounding is what a
+# fine ramp buys back. It is also where the distinct-colour count comes from — 8 authored tones
+# cannot be 100 tones however they are arranged.
+HEAD_FINE = ramp([(HEAD_HI,) * 3, (HEAD_LO,) * 3], HEAD_HI - HEAD_LO + 1)
+
+# THE AUTHORED ALPHABET: eight steps of FORM, 9.4 luminance points apart. Above this repo's
+# invisibility threshold of 7, so every authored step reads; and 66 points in total, which leaves
+# the rest of the ramp for the interior. `W` is the only letter the art uses and the only one it
+# may use — `materialise_head` no longer looks a cell up in a legend at all, `model_head` converts
+# it, and an unknown letter raises there.
+#
+# KEPT AS FLOATS, and that is not fussiness. Rounded to whole luminance points the eight form steps
+# land exactly on eight steps of the one-point ramp, so every other field's contribution rounds into
+# the same buckets and the tones collide: rounding these cost 8 distinct colours a file, measured, on
+# a target the paintings were already short of. A step of 11 leaves ten different fractions in play
+# and they beat against the graze's 1.14 and the light's own curve instead of agreeing with them.
+#
+# ELEVEN AND NOT MORE, and the ceiling is arithmetic. 7 steps of form + 28.5 of lock + 34.6 of tip +
+# 24 of the light's swing + 4 of the graze + 3 of noise has to land above `MIN_HEAD_TONE`; at 11 the
+# darkest texel of the thirteen paintings is 0x64, sixteen points clear of the floor, and at 12.5 it
+# is 0x5a with two points to spare and five more tones a file, which is not a trade worth making. The
+# shipped set spanned 244..116 in eight flat steps, so this is a NARROWER form than what it replaces,
+# spending the difference on the interior.
+HEAD_FORM_STEP = 11.0
+HEAD_FORM_LUM = [HEAD_HI - i * HEAD_FORM_STEP for i in range(8)]
+
+# The alphabet, as one statement. `_form_index` reads its keys rather than repeating them, because
+# two copies of a legend is the failure this repo has already paid for in `npc_uv.py` and `solids.py`.
+HEAD_LEGEND = {"W" + "01234567"[i]: tuple([int(round(l))] * 3)
+               for i, l in enumerate(HEAD_FORM_LUM)}
+
+
+def _form_index(ch: str) -> int:
+    """The authored cell as a form step 0..7. 0 is the lit crest."""
+    if ch not in HEAD_LEGEND:
+        raise SystemExit(f"a covering is authored in {'/'.join(sorted(HEAD_LEGEND))} and this cell "
+                         f"is '{ch}' — the form is eight steps and the interior is computed by "
+                         f"`model_head`, so there is no wider legend to reach for")
+    return int(ch[1])
+
+
+def _fine(l: float, t: float) -> int:
+    """A luminance as an index into `HEAD_FINE`, the fractional step DITHERED rather than rounded.
+
+    The ramp is one point a step, so the fraction is worth less than a point and no dither could
+    make it visible — but it is spent the same way `_shift` spends a body's, because a bias of half
+    a step applied to every texel of a face IS a tone shift, and because the dither pattern is
+    itself one of the things that keeps a large flat panel off a single tone.
+    """
+    return max(0, min(len(HEAD_FINE) - 1, int(math.floor((HEAD_HI - l) + t))))
 
 # THE FACE WINDOW, and it is a gate rather than a hope. Two of an earlier generated garment set had
 # an opaque `hat` cube walling up the face — 80 of 80 pixels on its front, invisible in the net and
@@ -3438,37 +3919,446 @@ HEAD_LEGEND = {"W" + "01234567"[i]: c for i, c in enumerate(HEAD_TONES)}
 FACE_WINDOW = ({(cx, cy) for cy in (3, 4, 5) for cx in range(1, 7)}
                | {(3, 6), (4, 6)})
 
-# Coverage bounds, from the references' own range. The floor is under their minimum of 10 because a
-# stubble is legitimately less than a crop; the ceiling is their maximum, past which a covering has
-# swallowed the head.
-MIN_HEAD_COVER, MAX_HEAD_COVER = 8, 316
-MIN_HEAD_TONES = 5          # a silhouette in three tones is a sticker
+# Coverage bounds. The floor is under the references' minimum of 10 because a stubble is legitimately
+# less than a crop.
+#
+# THE CEILING IS GEOMETRIC NOW AND NOT THE CORPUS'S 316, and the reason is the bug this pass fixed.
+# 316 is the references' maximum, and it was a fair ceiling right up until the `left` face was found
+# blank on all thirteen paintings: every coverage number the set had ever reported was a side short,
+# so the ceiling had been calibrated against a systematically broken measurement. A wimple that
+# covers the whole head but the face is 384 texels less the 20 the face window forbids, and that IS
+# the drawing — the references' 316 is the widest HAIR in a corpus of skins, not the widest covering
+# a head can wear. So the ceiling is what the cube physically leaves: everything but the window.
+MIN_HEAD_COVER = 8
+MAX_HEAD_COVER = 6 * 64 - 20
+
+# TONES PER TEXEL, not a flat count, because a stubble is 72 texels and a wimple is 359 and one
+# floor cannot mean the same thing to both. It was DECLARED BY THE PREVIOUS PASS AND NEVER READ —
+# `verify_head` gated on the flat count alone, which is why a 60-texel beard and a 295-texel wimple
+# were held to the same ten.
+#
+# 0.22 AND NOT THE 0.25 THAT WAS WRITTEN DOWN, and lowering a floor needs the better measurement.
+# 0.25 came off "the four hand-drawn dense references at 0.26..0.61" — and those four paint 15, 37,
+# 54 and 66 texels. A small painting has a high ratio for free: three cells cannot help being three
+# tones. Measured on the eleven references that paint a COMPARABLE area, 100 hat texels or more, the
+# median is **0.073** and the range 0.019..0.735. So 0.22 is three times the median of the corpus at
+# this size and under a third of its maximum, and the thirteen paintings clear it by 40% or better.
+HEAD_TONES_PER_TEXEL = 0.22
+MIN_HEAD_TONES = 10        # and never fewer than this, whatever the coverage
+
+# AND THE BAND THE BODIES SET, REPORTED AND NOT GATED. The brief asks for the coverings to reach what
+# the bodies reach — 101..122 distinct colours, against the references' 139 median — and four of the
+# thirteen do. The other nine cannot, and the reason is arithmetic rather than effort: a painting
+# holds no more colours than it has texels, and these paint 72..359 where a body paints 1632. The
+# 72-texel stubble's ceiling is 72. `main` prints each file's count, its ceiling and its ratio, which
+# is the only form in which the comparison is honest.
+HEAD_COLOUR_BAND = (101, 122)
+
+# The darkest a covering may be drawn. The braid's floor is 0x70 because a braid has to be able to
+# become gold; a PARTING has to be able to be seen in fair hair, which is a multiply by 0xA8, so
+# 0x54 lands it at 55 against the crest's 166.
+#
+# THIS CONSTANT WAS DEAD. `verify_head` tested `MIN_BRAID_TONE` — the braid's 0x70 — on a covering,
+# so the one number with an argument written above it was never the one enforced. Wired up here; it
+# is not what lets anything pass, because the paintings bottom out around 0x76 either way.
+MIN_HEAD_TONE = 0x54
+
+# A LOCK OF HAIR, across four columns: the lit crest, the turn, the deep between two locks, the turn
+# back. Two locks to an eight-wide face, which is the coarsest a lock can be and still be a lock at
+# this scale. Spent in LUMINANCE rather than in ramp steps, for the same reason `graze` and `relight`
+# are: 28 points is four times this repo's invisibility threshold whatever ramp carries it, and a
+# lock has to be CONTRAST and not a ramp step — law 3 of the skin skill arriving on a head.
+LOCK_DEPTH = 28.5
+
+# WHERE THE CREST SITS, and it is the whole reason this is a cosine of a folded coordinate rather
+# than a four-entry table indexed by column. A lock is a field on the box, not on a face: index it
+# per face and the four columns of the pattern restart at every corner, which puts a 14-point step
+# at each of the four seams — `check_wrap` exists to catch exactly that and would have. So the field
+# is evaluated on the distance round the box from the FRONT MIDLINE, folded, which makes it
+#
+#   * mirror-symmetric by construction, so `left` really is the mirror of `right`, and
+#   * seam-continuous, because a crest lands on the front midline, the back midline AND all four
+#     corners at once.
+#
+# Measured on the 31 references' own hat cubes before being believed: their seam steps there run
+# median 4.0, p90 15.3, and 12 of the 31 carry one over the 12-point floor. So a corner step is not
+# unheard of in the corpus — but the median says a covering normally wraps continuously, and that is
+# the standard held to here.
+LOCK_PERIOD = 4.0
+
+# THE PHASE WALKS ONE COLUMN AT TWO COURSES, and not per course: `docs/STYLE.md`, "hold the columns,
+# displace one course per panel", because per-course jitter on cloth 21 points apart is what read as
+# tartan. It also costs almost nothing at the seams and the arithmetic says why: an EVEN phase keeps
+# the crest on the corner exactly, an odd one does not, so only the 3 courses of 8 that carry phase 1
+# are discontinuous there — 3/8 of 0.71 of the depth, which is 7.6 points and under the floor.
+LOCK_PHASE_AT = (3, 6)
+
+# How hard each kind is modelled. Hair falls in locks and takes the full amplitude; a cloth cap
+# folds instead, which is softer, and a beard is short so its locks are shallower.
+LOCK_GAIN = {"hair": 1.0, "beard": 0.75, "headwear": 0.6}
+
+# A HAIR TIP IS DARKER AND THINNER THAN ITS ROOT. Two courses of it at the bottom edge of every
+# column, which is where the silhouette ends — so it is drawn off the ALPHA and cannot be authored
+# wrong, and a ragged hem therefore gets a ragged tip for free. Cloth gets it too: the bottom edge of
+# a veil is in its own shadow. In lock steps, so it scales with `LOCK_DEPTH`.
+TIP = (4, 2)
+
+# AND THE TIP LEANS ON THE LOCK: deeper between two locks than on a crest. A lock is a rope of hair
+# and its end is a tuft, not a straight cut, so the two fields are not independent — and this is also
+# the repo's silhouette rule turned inward, no two neighbouring strand ends the same depth. 0.7 to
+# 1.3 of the nominal tip.
+TIP_LOCK_LEAN = (0.7, 0.6)
+
+# LIGHT FROM ABOVE, on the four upright faces: top course lighter, bottom course darker. Eight
+# points, which is what `GRAZE` gives the head box on a body, and it is also the pass that fills the
+# fine ramp in — a trend of 8 points over 7 courses is 1.14 a course, so every course lands on its
+# own step of a one-point ramp while the whole trend stays inside the invisibility threshold as a
+# LOCAL difference and reads only as form.
+HEAD_GRAZE = 8.0
+
+# The same, front to back, on `top` and `bottom`. Four points, and `top` row 7 is the front edge.
+# `bottom`'s row order is taken to match `top`'s rather than measured, which is honest about the one
+# thing here that is a guess: four points is half the invisibility threshold, so getting the sign
+# wrong on the underside of a jaw costs nothing anyone can see, and it is there for the fine fill.
+HEAD_GRAZE_TOP = 4.0
+
+# AND THE OTHER HALF OF THE LIGHT: one source, round the box, `LIGHT_SHADE` and `shade_at` — the same
+# model the bodies are relit by, applied the same way, by correcting each column's MEAN rather than by
+# adding a field. Front brightest at 135 degrees, back darkest at 315, the figure's left a little
+# lighter than its right, and CONTINUOUS in angle, so the value at a seam is the same from both sides
+# by construction and no arithmetic can put a step there. The two lids take the FRONT's corrections,
+# exactly as `relight` gives them the front's, because their column axis is the front's x.
+#
+# A CORRECTION AND NOT A FIELD, because the paintings have a VIGNETTE BAKED INTO THEM. Every course of
+# every authored face runs `W3W2W1W1W1W1W2W3` — darker at both its own edges, on all four faces. That
+# is a photograph's border, not a light, and it is precisely what `check_wrap` was built to catch: it
+# scored the shipped coverings at 25 faults over the 13 files, mostly "TWO DARK COLUMNS together" at
+# the corners. A field added on top cannot remove it; a column-mean correction can, and it keeps every
+# cell's deviation from its own column, so the locks, the tips and the ragged edges all survive.
+#
+# THIS IS THE ONE THING THAT IS NOT MIRRORED, and it is measured rather than assumed. Of the 25
+# references that paint a side face of the head shell, **2 are the exact pixel mirror of the other
+# side and 17 differ by more than this repo's 7-point invisibility threshold** — a hand-drawn
+# covering has symmetric HAIR and asymmetric LIGHT. `check_wrap` says the same thing from the other
+# end: "one side lighter than the other... one minimum in the cycle, not four". So the strand pattern
+# folds and the illumination does not, and `verify_head` gates the ALPHA as an exact mirror and the
+# tone as within this swing.
+#
+# 24 POINTS IS `SWING_CAP["head"]`, the same number the bodies' head box is allowed, and for the same
+# reason: a wider swing flattens the back of the head onto the end of the ramp.
+HEAD_SWING = 24.0
+
+# THE CROWN, on the two lids only. The top of a head is its highest point and takes the most light;
+# the lid rolls away from it in every direction. Ten points, radial, and radial is deliberate — a lid
+# shaded front-to-back alone was 64 texels of eight tones, which is a quarter of the cube and where a
+# covering's flatness was most visible on the contact sheet.
+HEAD_CROWN = 10.0
+
+# STRAND NOISE, and it is called noise because that is what it is — ANTI-BANDING, not modelling.
+# Every field above is a smooth function of two numbers (where a column sits round the box, and which
+# course it is on), and smooth fields collide when they are quantised: four of the paintings landed
+# 60-odd tones into a range with room for 130 because two different cells kept rounding to the same
+# step. Six points peak to peak is UNDER this repo's measured invisibility threshold of 7, so it can
+# only break the ties and can never be seen as speckle — and hair is genuinely not a smooth surface,
+# which is why an artist dithers it.
+#
+# KEYED ON THE FOLDED RING INDEX, never on the column. That is what keeps the painting an exact
+# mirror of itself: `int(m - 0.5)` is the same number for `right` col 7 and `left` col 0, so the noise
+# lands identically on the two sides and `verify_head` can compare them cell for cell.
+STRAND_NOISE = 3.0
 
 
-def blank_head() -> List[List[str | None]]:
+def blank_head() -> List[List[int | None]]:
     return [[None] * 64 for _ in range(64)]
 
 
 E = ".." * 8       # an empty course of the 8-wide cube
 
 
-def stamp_head(sym, art: Dict[str, List[str]]) -> None:
-    """Write one painting's six faces into the `hat` net and NOWHERE ELSE.
+def mirror_left(art: Dict[str, List[str]]) -> Dict[str, List[str]]:
+    """`left` is the horizontal MIRROR of `right`. THE BUG, and the second time this shape of it.
 
-    The layer re-renders the whole model with this texture, so a texel outside the `hat` net would
-    appear on the torso or the leg. `verify_head` counts that as a fault rather than trusting this.
+    Every one of the thirteen paintings authored `right` and left `left` at exactly zero texels, so
+    in game a citizen's hair was missing down one side of the head. It is a repeat: `left_arm` and
+    `left_leg` were empty in every texture the mod shipped for a whole revision, because the retired
+    villager mesh mirrored its right limbs and the player mesh does not — `remap_npc_uv.py` exists
+    because of that, and `npc_uv.MIRROR_SWAP` is the transform it left behind.
+
+    MIRRORED AND NOT COPIED, and the net says why. The four upright faces unwrap right, front, left,
+    back, and that strip is the box ROLLED — so `right` col 7 is against `front` col 0 while `left`
+    col 0 is against `front` col 7. Copying `right` across would put the back edge of the head where
+    its front edge belongs and the painting would break at both seams; flipping it puts the front
+    edge at col 0, where the front edge is.
+
+    Measured on the corpus before being believed: of the 31 references, **0 paint one side face and
+    leave the other blank**, and of the 25 that paint both the two sides differ in coverage by a
+    median of 4%. Side to side, a head covering is symmetric — unlike a body, where wear differs.
+
+    An authored `left` is left alone, so a future asymmetric covering is possible; `verify_head`
+    gates on the result rather than on this.
     """
-    for face, (x0, y0, w, h) in net(*BOXES["hat"]).items():
+    if art.get("left"):
+        return art
+    if not art.get("right"):
+        return art
+    return dict(art, left=["".join(reversed(cells(r))) for r in art["right"]])
+
+
+def _ring_m(face: str, cx: int, n: int) -> float:
+    """How far round the box a column sits, from the FRONT MIDLINE, folded so both ways agree.
+
+    Half-integers, because a column is a cell and its centre is the thing being measured. `front`
+    spans -3.5..+3.5, `left` +4.5..+11.5, `right` -4.5..-11.5 and `back` +12.5..+19.5, which wraps
+    to -12.5..-19.5 from the other side and folds onto the same values. `top` and `bottom` share the
+    front's x axis — a box's net unwraps them above it — so they are asked for the front's number.
+
+    That fold is what makes the lock both mirror-symmetric and seam-continuous. See `LOCK_PERIOD`.
+    """
+    half = n / 2.0
+    if face == "front":
+        d = (cx + 0.5) - half
+    elif face == "left":
+        d = half + (cx + 0.5)
+    elif face == "right":
+        d = -(half + (n - cx - 0.5))
+    else:                                    # back, and the two lids via the front
+        d = half + n + (cx + 0.5)
+    total = 4.0 * n
+    a = abs(d) % total
+    return min(a, total - a)
+
+
+def _lock_at(m: float, phase: int) -> float:
+    """0 on a lock's lit crest, 1 in the deep between two locks."""
+    return (1.0 - math.cos(2.0 * math.pi * (m + phase) / LOCK_PERIOD)) / 2.0
+
+
+def _phase_at(cy: int) -> int:
+    return sum(1 for c in LOCK_PHASE_AT if cy >= c)
+
+
+# The six faces in a fixed order, so the noise below keys on a number and not on a dict's iteration.
+HAT_FACES = ("top", "bottom", "right", "front", "left", "back")
+
+
+def _strand(face: str, k: int, cy: int) -> float:
+    """Deterministic anti-banding, ±`STRAND_NOISE`, one value per cell and MIRROR-SYMMETRIC.
+
+    `k` is the folded ring index, so the two side faces are handed the same number at mirrored
+    columns and the painting stays its own mirror. `left` and `right` are deliberately given the SAME
+    face key for that reason; anything keyed on the column would put a six-point difference between
+    the two sides, which is under the invisibility threshold but not zero, and an invariant that can
+    be checked exactly is worth more than one that cannot.
+    """
+    key = "right" if face == "left" else face
+    n = (HAT_FACES.index(key) * 977 + k * 131 + cy * 37) * 2654435761 % 4294967291
+    return STRAND_NOISE * (2.0 * (n % 2048) / 2047.0 - 1.0)
+
+
+def _lock_column(face: str, cx: int, w: int, h: int, gain: float) -> float:
+    """The lock's own contribution to one column's mean, in luminance and ALPHA-INDEPENDENT.
+
+    Averaged over the whole height of the face rather than over the cells that happen to be painted,
+    and that is the fix for a measured fault. Taken over the painted cells instead, a column with one
+    cell in it — the corner of a beard's jaw — reported the full depth of a single tip texel as its
+    column's intent, and the relight then sat that column 27 points below the light: a 30-point step
+    at the seam, on `citizen_beard_03`, where its neighbour had five cells and reported a third of it.
+    Nominal is also mirror-symmetric by construction, which the painted subset is not.
+    """
+    return -gain * LOCK_DEPTH * sum(
+        _lock_at(_ring_m(face, cx, w), _phase_at(cy)) for cy in range(h)) / h
+
+
+def _head_fields(kind: str, art: Dict[str, List[str]]) -> Dict[str, List[List[float | None]]]:
+    """One painting as LUMINANCE, before the light. Five fields, all of them mirror-symmetric.
+
+      * the FORM, authored, eight steps of 11 points: crown lit, nape shadowed.
+      * the LOCKS, a 4-column field on the BOX rather than on a face, 28.5 points deep, its phase
+        walking one column at two courses.
+      * the TIPS, taken off the ALPHA so they follow a ragged hem, leaning on the lock.
+      * the GRAZE and the CROWN — light from above on the four upright faces; a lid rolls away from
+        its highest point in every direction.
+      * STRAND NOISE, six points peak to peak, which is anti-banding and says so.
+
+    Every one keys on the FOLDED ring position, so at this stage the painting is exactly its own
+    mirror and no corner can carry a step. `_relight_head` then puts the one asymmetric thing on it.
+
+    THE LOCK IS THE ONE FIELD THE LIGHT MUST NOT EAT. A lock is a per-COLUMN pattern, and so is the
+    vignette the paintings were authored with, so a column-mean correction cannot tell them apart: the
+    first version cancelled both and the crown came off the banded read-out with its parting INVERTED.
+    `_lock_column` therefore states the lock's own column offset, alpha-independent, and
+    `_relight_head` hands it back — see the note there for why the tip is deliberately NOT handed back
+    with it.
+    """
+    gain = LOCK_GAIN[kind]
+    fs = net(*BOXES["hat"])
+    out: Dict[str, List[List[float | None]]] = {}
+    for face, (_, _, w, h) in fs.items():
         rows = art.get(face, [E] * h)
         grid = [cells(r) for r in rows]
         if len(grid) != h or any(len(r) != w for r in grid):
             wrong = [(i, len(r)) for i, r in enumerate(grid) if len(r) != w]
             raise SystemExit(f"hat.{face}: {len(grid)} courses, the net wants {h}x{w} cells; "
                              f"wrong courses (index, cells) {wrong[:6]}")
-        for cy, row in enumerate(grid):
+
+        # where each column's paint ENDS, off the alpha. A hem that steps course by course gets a
+        # tip that steps with it, which is the whole reason this is not authored.
+        ends: Dict[int, Tuple[int, int | None]] = {}
+        for cx in range(w):
+            on = [cy for cy in range(h) if grid[cy][cx] != ".."]
+            if on:
+                ends[cx] = (on[-1], on[-2] if len(on) > 1 else None)
+
+        upright = face in CYCLE
+        got: List[List[float | None]] = []
+        for cy in range(h):
+            row: List[float | None] = []
             for cx in range(w):
-                if row[cx] != "..":
-                    sym[y0 + cy][x0 + cx] = row[cx]
+                ch = grid[cy][cx]
+                if ch == "..":
+                    row.append(None)
+                    continue
+                l = HEAD_FORM_LUM[_form_index(ch)]
+
+                m = _ring_m(face if upright else "front", cx, w)
+                a = _lock_at(m, _phase_at(cy))
+                l -= gain * LOCK_DEPTH * a
+
+                if not upright:
+                    rx, ry = cx - (w - 1) / 2.0, cy - (h - 1) / 2.0
+                    l -= HEAD_CROWN * (math.hypot(rx, ry)
+                                       / math.hypot((w - 1) / 2.0, (h - 1) / 2.0))
+
+                if upright and cx in ends:
+                    last, prev = ends[cx]
+                    t = TIP[0] if cy == last else (TIP[1] if prev is not None and cy == prev else 0)
+                    if t:
+                        lean = TIP_LOCK_LEAN[0] + TIP_LOCK_LEAN[1] * a
+                        l -= gain * t * (LOCK_DEPTH / 4.0) * lean
+
+                span = (cy / (h - 1)) - 0.5 if h > 1 else 0.0
+                l -= (HEAD_GRAZE if upright else HEAD_GRAZE_TOP) * span
+
+                l += _strand(face, int(m - 0.5), cy)
+                row.append(l)
+            got.append(row)
+        out[face] = got
+    return out
+
+
+def _relight_head(vals: Dict[str, List[List[float | None]]], gain: float,
+                  moved: List[str] | None = None) -> Dict[str, List[List[float | None]]]:
+    """One light source round the box, spent as a shift of each COLUMN's mean.
+
+    `relight` for a covering, and simpler than the body's for one reason: there is a single ramp and
+    the arithmetic is in luminance, so a correction is exact and one pass converges. The body's has to
+    run four times because it spends in whole ramp steps of fifteen different materials.
+
+    WHAT IT REMOVES is the vignette the paintings were authored with — `W3W2W1W1W1W1W2W3` on every
+    course of every face, darker at both its own edges. Four vignettes round one box put two dark
+    columns against each other at every corner, which is the fault `check_wrap` exists to catch and
+    which it scored at 25 over the thirteen shipped files.
+
+    WHAT IT MUST NOT REMOVE is the lock, and the first version did. A lock is a per-column pattern
+    exactly like a vignette, so a correction that only knows the column mean cancels both — the crown
+    came back off the banded read-out with its parting inverted. So each column's target carries
+    `_lock_column`, the lock's own offset, and the correction only relights the remainder.
+
+    THE TIP IS DELIBERATELY NOT HANDED BACK WITH IT. A tip is a bottom-of-column feature, so its
+    contrast is against the cells above it in the same column and survives as deviation either way;
+    its column MEAN, on the other hand, depends entirely on how many cells that column has, and
+    handing that back put a 30-point step at `citizen_beard_03`'s jaw where a one-cell column reported
+    a whole tip as its intent. Everything else — the strands within a column, the crown, the noise —
+    is deviation from its own column and never moves.
+
+    `top` and `bottom` take the FRONT face's whole correction, exactly as the body's `relight` does,
+    because a box's net unwraps them above the front and their column axis is the front's x. Giving the
+    lids their own correction instead was tried and measured worse on both counts: the crown's radial
+    falloff is itself a per-column pattern, so an independent correction flattens it into the light —
+    the lid came back darkest at its own two edges, which is the vignette again — and the thirteen
+    files lost 8 to 19 distinct colours each. Borrowing the front's leaves the crown's midline
+    columns darker than the two either side, which reads as a CENTRE PARTING rather than as the lock's
+    crest; that is the one place the lid and the four upright faces disagree, and a parting is a
+    hair feature, so it is left standing and recorded here rather than corrected away.
+    """
+    fs = net(*BOXES["hat"])
+    widths = {f: fs[f][2] for f in fs}
+    heights = {f: fs[f][3] for f in fs}
+
+    def col_mean(grid: List[List[float | None]], cx: int) -> float | None:
+        col = [r[cx] for r in grid if r[cx] is not None]
+        return sum(col) / len(col) if col else None
+
+    live = [v for f in CYCLE for r in vals[f] for v in r if v is not None]
+    if not live:
+        return vals
+    mean_now = sum(live) / len(live)
+    swing = min(max(live) - min(live), HEAD_SWING)
+
+    keep = {f: [_lock_column(f, cx, widths[f], heights[f], gain) for cx in range(widths[f])]
+            for f in CYCLE}
+    flat = [v for f in CYCLE for v in keep[f]]
+    keep_bar = sum(flat) / len(flat)
+
+    delta: Dict[str, List[float]] = {}
+    for face in CYCLE:
+        out = []
+        for cx, theta in enumerate(_col_angles(face, widths[face])):
+            now = col_mean(vals[face], cx)
+            want = mean_now + swing * (0.5 - shade_at(theta)) + keep[face][cx] - keep_bar
+            out.append(0.0 if now is None else want - now)
+        delta[face] = out
+        if moved is not None:
+            moved.append(f"{face} " + " ".join(f"{d:+.0f}" for d in out))
+
+    got: Dict[str, List[List[float | None]]] = {}
+    for face, rows in vals.items():
+        d_for = delta["front"] if face in ("top", "bottom") else delta[face]
+        got[face] = [[None if v is None else v + d_for[cx] for cx, v in enumerate(r)]
+                     for r in rows]
+    return got
+
+
+def model_head(kind: str, art: Dict[str, List[str]]) -> Dict[str, List[List[int | None]]]:
+    """One painting's authored FORM plus its interior, as indices into `HEAD_FINE`.
+
+    THE SILHOUETTE IS NOT TOUCHED. Every cell the art left `..` stays transparent and every cell it
+    painted stays painted; what changes is only the tone inside the outline, which is the division
+    the owner drew — the outlines are settled, the insides are not.
+
+    Fields, then the light, then the fraction DITHERED onto the one-point ramp rather than rounded
+    away, exactly as `_shift` does for a body.
+    """
+    vals = _relight_head(_head_fields(kind, art), LOCK_GAIN[kind])
+    out: Dict[str, List[List[int | None]]] = {}
+    for face, (_, _, w, h) in net(*BOXES["hat"]).items():
+        rows = vals[face]
+        got: List[List[int | None]] = []
+        for cy in range(h):
+            # the dither's column is the FOLDED ring index, not the raw one: keying the Bayer
+            # pattern on the column would put its own phase on the two sides differently.
+            got.append([None if rows[cy][cx] is None else
+                        _fine(rows[cy][cx],
+                              (BAYER4[cy % 4][int(_ring_m(face if face in CYCLE else "front",
+                                                          cx, w) - 0.5) % 4] + 0.5) / 16.0)
+                        for cx in range(w)])
+        out[face] = got
+    return out
+
+
+def stamp_head(sym, grids: Dict[str, List[List[int | None]]]) -> None:
+    """Write one painting's six faces into the `hat` net and NOWHERE ELSE.
+
+    The layer re-renders the whole model with this texture, so a texel outside the `hat` net would
+    appear on the torso or the leg. `verify_head` counts that as a fault rather than trusting this.
+    """
+    for face, (x0, y0, w, h) in net(*BOXES["hat"]).items():
+        rows = grids[face]
+        for cy in range(h):
+            for cx in range(w):
+                v = rows[cy][cx]
+                if v is not None:
+                    sym[y0 + cy][x0 + cx] = v
 
 
 def materialise_head(sym) -> Image.Image:
@@ -3476,12 +4366,12 @@ def materialise_head(sym) -> Image.Image:
     px = im.load()
     for y in range(64):
         for x in range(64):
-            ch = sym[y][x]
-            if ch is None:
+            v = sym[y][x]
+            if v is None:
                 continue
-            if ch not in HEAD_LEGEND:
-                raise SystemExit(f"no head tone for '{ch}' at ({x},{y})")
-            px[x, y] = HEAD_LEGEND[ch] + (255,)
+            if not 0 <= v < len(HEAD_FINE):
+                raise SystemExit(f"head tone {v} at ({x},{y}) is off the {len(HEAD_FINE)}-step ramp")
+            px[x, y] = HEAD_FINE[v] + (255,)
     return im
 
 
@@ -3700,16 +4590,28 @@ def head_name(kind: str, slug: str) -> str:
     return f"citizen_{kind}_{slug}.png"
 
 
+def head_tones_floor(cover: int) -> int:
+    """How many tones a covering of this size owes, and why it is not one number.
+
+    A stubble is 72 texels and a wimple 359; ten tones is a real floor for the first and no floor at
+    all for the second, which is what the flat `MIN_HEAD_TONES` gate could not say. Never more than
+    the texel count, because a painting cannot hold more colours than it has pixels.
+    """
+    return min(cover, max(MIN_HEAD_TONES, int(round(HEAD_TONES_PER_TEXEL * cover))))
+
+
 def verify_head(kind: str, slug: str, im: Image.Image) -> List[str]:
     """Every claim a head painting makes.
 
     The first is the one that matters: the layer re-renders the WHOLE model with this texture, so a
     texel outside the `hat` net lands on the torso or the leg. The second is the face window, which
-    an earlier generated set got wrong on two of nine files.
+    an earlier generated set got wrong on two of nine files. The third is `check_sides`' rule brought
+    inside the writer, because a gate that only runs afterwards is a gate that ships once.
     """
     bad: List[str] = []
     px = im.load()
-    hat = {(x, y) for _, (x0, y0, w, h) in [(f, r) for f, r in net(*BOXES["hat"]).items()]
+    fs = net(*BOXES["hat"])
+    hat = {(x, y) for _, (x0, y0, w, h) in fs.items()
            for y in range(y0, y0 + h) for x in range(x0, x0 + w)}
     stray = [(x, y) for y in range(64) for x in range(64)
              if px[x, y][3] > 8 and (x, y) not in hat]
@@ -3717,25 +4619,68 @@ def verify_head(kind: str, slug: str, im: Image.Image) -> List[str]:
         bad.append(f"{len(stray)}px outside the `hat` net, e.g. {stray[0]} — this texture is drawn "
                    f"over the WHOLE model, so that lands on a torso or a leg")
 
-    fx, fy, _, _ = net(*BOXES["hat"])["front"]
+    fx, fy, _, _ = fs["front"]
     shut = [(cx, cy) for cx, cy in sorted(FACE_WINDOW) if px[fx + cx, fy + cy][3] > 8]
     if shut:
         bad.append(f"the face window is painted at {shut} — rows 3..5 cols 1..6 are the eyes and "
                    f"the nose and row 6 cols 3-4 the mouth, and a covering that walls them up is "
                    f"invisible in the net and unmissable on a figure")
 
+    # BOTH SIDES, AND THE SILHOUETTE EXACTLY MIRRORED. Thirteen of thirteen paintings shipped with
+    # `left` blank; see `mirror_left` and `check_sides.py`. Measured over the 31 references: 0 paint
+    # one side face and leave the other bare. The TONE is deliberately not gated as an exact mirror —
+    # 17 of the 25 that paint a side differ across it by more than the invisibility threshold, and
+    # `HEAD_TURN` is why ours do too — but the swing is bounded, so a bug there is still catchable.
+    rx, ry, rw, rh = fs["right"]
+    lx, ly, _, _ = fs["left"]
+    r = l = 0
+    shape = 0
+    worst = 0.0
+    for cy in range(rh):
+        for cx in range(rw):
+            a = px[rx + cx, ry + cy]
+            b = px[lx + (rw - 1 - cx), ly + cy]
+            r += a[3] > 8
+            l += b[3] > 8
+            if (a[3] > 8) != (b[3] > 8):
+                shape += 1
+            elif a[3] > 8:
+                worst = max(worst, abs(lum(a[:3]) - lum(b[:3])))
+    if not r and not l:
+        pass                                     # a covering with no side face at all is fine
+    elif shape:
+        bad.append(f"`right` paints {r} texels and `left` {l}, and {shape} cells disagree — the "
+                   f"silhouette of a covering is the same on both sides of a head. All thirteen "
+                   f"paintings shipped with `left` at exactly zero; 0 of 31 references do that, and "
+                   f"the mod already shipped an empty left arm and left leg for one whole revision")
+    elif worst > HEAD_SWING + 1.0:
+        bad.append(f"the two sides differ by up to {worst:.0f} luminance points where the light's "
+                   f"whole swing round the box is {HEAD_SWING:.0f} — that is more than illumination")
+
     cover = sum(1 for x, y in hat if px[x, y][3] > 8)
     if not MIN_HEAD_COVER <= cover <= MAX_HEAD_COVER:
         bad.append(f"covers {cover} of the cube's 384 texels, wanted "
-                   f"{MIN_HEAD_COVER}..{MAX_HEAD_COVER} (references: median 73, max 316)")
+                   f"{MIN_HEAD_COVER}..{MAX_HEAD_COVER} (the cube less the face window)")
     tones = len({px[x, y][:3] for x, y in hat if px[x, y][3] > 8})
-    if tones < MIN_HEAD_TONES:
-        bad.append(f"{tones} tones, floor {MIN_HEAD_TONES} — a silhouette in three tones is a "
-                   f"sticker, and flat is what this whole file exists to leave behind")
+    floor = head_tones_floor(cover)
+    if tones < floor:
+        bad.append(f"{tones} tones over {cover} texels, floor {floor} — the bodies run "
+                   f"{HEAD_COLOUR_BAND[0]}..{HEAD_COLOUR_BAND[1]} and the references 139 median, "
+                   f"and a silhouette in eight tones has no interior at all")
     darkest = min((px[x, y][0] for x, y in hat if px[x, y][3] > 8), default=255)
-    if darkest < MIN_BRAID_TONE:
-        bad.append(f"darkest tone {darkest:#02x}, floor {MIN_BRAID_TONE:#02x} — the tint is a "
+    if darkest < MIN_HEAD_TONE:
+        bad.append(f"darkest tone {darkest:#02x}, floor {MIN_HEAD_TONE:#02x} — the tint is a "
                    f"multiply and cannot lighten, so this could never be fair hair")
+
+    # NO FULL COURSES. `docs/STYLE.md`'s painted-stripe rule, and the skin skill records it catching
+    # three times on cloth: a highlight or a shadow running the whole width of a face reads as plaid.
+    # Only courses of four cells or more — two painted cells of one tone is a corner, not a stripe.
+    for face, (x0, y0, w, h) in fs.items():
+        for cy in range(h):
+            on = [px[x0 + cx, y0 + cy][:3] for cx in range(w) if px[x0 + cx, y0 + cy][3] > 8]
+            if len(on) >= 4 and len(set(on)) == 1:
+                bad.append(f"{face} course {cy} is {len(on)} cells of one tone — a full course of a "
+                           f"highlight or a shadow reads as plaid; hold the columns and displace")
     return bad
 
 
@@ -3744,7 +4689,7 @@ def head_textures() -> Dict[Tuple[str, str], Image.Image]:
     for kind, table in HEAD_SETS:
         for slug, art in table.items():
             sym = blank_head()
-            stamp_head(sym, art)
+            stamp_head(sym, model_head(kind, mirror_left(art)))
             out[(kind, slug)] = materialise_head(sym)
     return out
 
@@ -4342,21 +5287,49 @@ def main() -> int:
     heads = head_textures()
     print("\n  HAIR, BEARDS AND HEADWEAR — paint on the `hat` cube, not geometry. 31 of 31 "
           "references use the head's second layer.")
-    covers = []
+    print(f"    {'file':26} {'cover':>5} {'left':>5} {'tones':>6} {'floor':>5} {'ceil':>5} "
+          f"{'t/px':>6} {'dark':>5}  {'mirror':>6}")
+    covers, tones_got, ratios = [], [], []
+    fs = net(*BOXES["hat"])
     for (kind, slug), tex in sorted(heads.items()):
         bad = verify_head(kind, slug, tex)
         px = tex.load()
-        hat = [(x, y) for _, (x0, y0, w, h) in net(*BOXES["hat"]).items()
+        hat = [(x, y) for _, (x0, y0, w, h) in fs.items()
                for y in range(y0, y0 + h) for x in range(x0, x0 + w)]
         cover = sum(1 for x, y in hat if px[x, y][3] > 8)
+        tones = len({px[x, y][:3] for x, y in hat if px[x, y][3] > 8})
+        dark = min((px[x, y][0] for x, y in hat if px[x, y][3] > 8), default=255)
+        lx, ly, lw, lh = fs["left"]
+        rx, ry, _, _ = fs["right"]
+        left = sum(1 for cy in range(lh) for cx in range(lw)
+                   if px[lx + cx, ly + cy][3] > 8)
+        worst = max((abs(lum(px[rx + cx, ry + cy][:3]) - lum(px[lx + (lw - 1 - cx), ly + cy][:3]))
+                     for cy in range(lh) for cx in range(lw)
+                     if px[rx + cx, ry + cy][3] > 8 and px[lx + (lw - 1 - cx), ly + cy][3] > 8),
+                    default=0.0)
         covers.append(cover)
-        print(f"    {head_name(kind, slug):26} {cover:4}/384 texels  "
-              f"{len({px[x, y][:3] for x, y in hat if px[x, y][3] > 8}):2} tones")
+        tones_got.append(tones)
+        ratios.append(tones / max(cover, 1))
+        print(f"    {head_name(kind, slug):26} {cover:5} {left:5} {tones:6} "
+              f"{head_tones_floor(cover):5} {cover:5} {tones / max(cover, 1):6.2f} "
+              f"{dark:#5x}  {worst:6.1f}")
         if bad:
             faults[head_name(kind, slug)] = bad
     covers.sort()
+    tones_got.sort()
+    ratios.sort()
     print(f"    coverage median {covers[len(covers) // 2]} against the references' 73 "
-          f"(their range 10..316, ours {covers[0]}..{covers[-1]})")
+          f"(their range 10..316, ours {covers[0]}..{covers[-1]}); `left` is the mirror of `right` "
+          f"and the two differ only by the light, whose whole swing is {HEAD_SWING:.0f}")
+    inband = sum(1 for t in tones_got if t >= HEAD_COLOUR_BAND[0])
+    print(f"    tones {tones_got[0]}..{tones_got[-1]} against the bodies' "
+          f"{HEAD_COLOUR_BAND[0]}..{HEAD_COLOUR_BAND[1]} and the references' 139 median — "
+          f"{inband} of {len(tones_got)} reach the band. `ceil` IS the ceiling and it is why the "
+          f"rest cannot: a painting holds no more colours than it has texels, and a body paints "
+          f"1632 where these paint {covers[0]}..{covers[-1]}. See `HEAD_COLOUR_BAND`.")
+    print(f"    tones per texel {ratios[0]:.2f}..{ratios[-1]:.2f}, floor "
+          f"{HEAD_TONES_PER_TEXEL}; the eleven references painting 100 hat texels or more manage a "
+          f"median of 0.073 and a maximum of 0.735")
 
     braid = draw_braid(mask) if not args.check else (
         Image.open(OUT / TRIM_NAME).convert("RGBA") if (OUT / TRIM_NAME).exists() else None)
