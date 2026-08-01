@@ -5,7 +5,7 @@
     "readable": true,
     "recoverable": true,
     "planValid": true,
-    "floors": 5,
+    "floors": 4,
     "devices": 3,
     "warnings": [
       {
@@ -18,7 +18,11 @@
       },
       {
         "rule": "mixed_material_row",
-        "message": "row 2 contains 4 mapped materials"
+        "message": "row 1 contains 6 mapped materials"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 2 contains 3 mapped materials"
       },
       {
         "rule": "mixed_material_row",
@@ -30,11 +34,11 @@
       },
       {
         "rule": "mixed_material_row",
-        "message": "row 4 contains 5 mapped materials"
+        "message": "row 4 contains 4 mapped materials"
       },
       {
         "rule": "mixed_material_row",
-        "message": "row 5 contains 4 mapped materials"
+        "message": "row 5 contains 3 mapped materials"
       },
       {
         "rule": "gap_in_floors",
@@ -59,13 +63,13 @@
     ],
     "blockStats": {
       "original": 286,
-      "recovered": 1017,
-      "identical": 100,
-      "moved": 135,
-      "missing": 51,
-      "extra": 782
+      "recovered": 901,
+      "identical": 70,
+      "moved": 140,
+      "missing": 76,
+      "extra": 691
     },
-    "yaml": "name: granary_lvl1\nversion: 1\nstructure:\n  footprint: [15, 11]\n  height: 9\n  origin: [0, 0, 0]\nfloors:\n  - range: [0, 0]\n    material: dirt\n    layout: ground\n  - range: [1, 1]\n    material: oak_leaves\n    layout: residential\n  - range: [2, 3]\n    material: oak_planks\n    layout: residential\n  - range: [4, 4]\n    material: oak_fence\n    layout: residential\n  - range: [5, 8]\n    material: oak_slab\n    layout: battlements\ndevices:\n  - kind: torch\n    pos: [8, 2, 7]\n  - kind: torch\n    pos: [2, 2, 8]\n  - kind: torch\n    pos: [7, 5, 3]\nrules:\n  guard: [no_floating_roof, no_slab_rider, no_hanging_roof, no_cantilever, no_orphan_fence]\n  compliance: [constant_footprint, material_ladder, contiguous_floors]\noutput:\n  name: granary_lvl1\n  path: recovered/\n",
+    "yaml": "name: granary_lvl1\nversion: 1\nstructure:\n  footprint: [15, 11]\n  height: 9\n  origin: [0, 0, 0]\nfloors:\n  - range: [0, 0]\n    material: dirt\n    layout: ground\n  - range: [1, 1]\n    material: cobblestone\n    layout: residential\n  - range: [2, 3]\n    material: oak_planks\n    layout: residential\n  - range: [4, 8]\n    material: oak_slab\n    layout: battlements\ndevices:\n  - kind: torch\n    pos: [8, 2, 7]\n  - kind: torch\n    pos: [2, 2, 8]\n  - kind: torch\n    pos: [7, 5, 3]\nrules:\n  guard: [no_floating_roof, no_slab_rider, no_hanging_roof, no_cantilever, no_orphan_fence]\n  compliance: [constant_footprint, material_ladder, contiguous_floors]\noutput:\n  name: granary_lvl1\n  path: recovered/\n",
     "plan": {
       "name": "granary_lvl1",
       "version": 1,
@@ -95,7 +99,7 @@
             1,
             1
           ],
-          "material": "oak_leaves",
+          "material": "cobblestone",
           "layout": "residential"
         },
         {
@@ -109,14 +113,6 @@
         {
           "range": [
             4,
-            4
-          ],
-          "material": "oak_fence",
-          "layout": "residential"
-        },
-        {
-          "range": [
-            5,
             8
           ],
           "material": "oak_slab",
@@ -175,7 +171,7 @@
     "readable": true,
     "recoverable": true,
     "planValid": true,
-    "floors": 7,
+    "floors": 5,
     "devices": 10,
     "warnings": [
       {
@@ -204,27 +200,27 @@
       },
       {
         "rule": "mixed_material_row",
-        "message": "row 1 contains 3 mapped materials"
-      },
-      {
-        "rule": "ambiguous_floor",
-        "message": "row 1 has tied dominant materials oak_fence and oak_leaves"
+        "message": "row 1 contains 7 mapped materials"
       },
       {
         "rule": "mixed_material_row",
-        "message": "row 3 contains 6 mapped materials"
+        "message": "row 2 contains 6 mapped materials"
       },
       {
         "rule": "mixed_material_row",
-        "message": "row 4 contains 9 mapped materials"
+        "message": "row 3 contains 5 mapped materials"
       },
       {
         "rule": "mixed_material_row",
-        "message": "row 5 contains 6 mapped materials"
+        "message": "row 4 contains 7 mapped materials"
       },
       {
         "rule": "mixed_material_row",
-        "message": "row 7 contains 5 mapped materials"
+        "message": "row 5 contains 4 mapped materials"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 7 contains 4 mapped materials"
       },
       {
         "rule": "mixed_material_row",
@@ -232,7 +228,11 @@
       },
       {
         "rule": "mixed_material_row",
-        "message": "row 9 contains 4 mapped materials"
+        "message": "row 9 contains 3 mapped materials"
+      },
+      {
+        "rule": "gap_in_floors",
+        "message": "row 10 contains no recoverable floor material"
       },
       {
         "rule": "unparseable_device",
@@ -305,13 +305,13 @@
     ],
     "blockStats": {
       "original": 657,
-      "recovered": 1370,
-      "identical": 108,
-      "moved": 382,
-      "missing": 167,
-      "extra": 880
+      "recovered": 1133,
+      "identical": 111,
+      "moved": 324,
+      "missing": 222,
+      "extra": 698
     },
-    "yaml": "name: house_3_lvl6\nversion: 1\nstructure:\n  footprint: [14, 12]\n  height: 11\n  origin: [0, 0, 0]\nfloors:\n  - range: [0, 0]\n    material: grass_block\n    layout: ground\n  - range: [1, 1]\n    material: oak_fence\n    layout: residential\n  - range: [2, 2]\n    material: oak_leaves\n    layout: residential\n  - range: [3, 3]\n    material: cobblestone_slab\n    layout: residential\n  - range: [4, 5]\n    material: oak_planks\n    layout: residential\n  - range: [6, 9]\n    material: oak_slab\n    layout: residential\n  - range: [10, 10]\n    material: cobblestone_wall\n    layout: roof\ndevices:\n  - kind: torch\n    pos: [6, 2, 4]\n  - kind: torch\n    pos: [5, 3, 9]\n  - kind: torch\n    pos: [12, 3, 10]\n  - kind: torch\n    pos: [9, 5, 5]\n  - kind: torch\n    pos: [5, 7, 0]\n  - kind: torch\n    pos: [5, 7, 5]\n  - kind: flower_pot\n    pos: [2, 1, 1]\n  - kind: flower_pot\n    pos: [3, 2, 1]\n  - kind: flower_pot\n    pos: [5, 4, 2]\n  - kind: flower_pot\n    pos: [2, 10, 5]\nrules:\n  guard: [no_floating_roof, no_slab_rider, no_hanging_roof, no_cantilever, no_orphan_fence]\n  compliance: [constant_footprint, material_ladder, contiguous_floors]\noutput:\n  name: house_3_lvl6\n  path: recovered/\n",
+    "yaml": "name: house_3_lvl6\nversion: 1\nstructure:\n  footprint: [14, 12]\n  height: 11\n  origin: [0, 0, 0]\nfloors:\n  - range: [0, 0]\n    material: grass_block\n    layout: ground\n  - range: [1, 2]\n    material: mossy_cobblestone\n    layout: residential\n  - range: [3, 3]\n    material: cobblestone_slab\n    layout: residential\n  - range: [4, 5]\n    material: oak_planks\n    layout: residential\n  - range: [6, 10]\n    material: oak_slab\n    layout: battlements\ndevices:\n  - kind: torch\n    pos: [6, 2, 4]\n  - kind: torch\n    pos: [5, 3, 9]\n  - kind: torch\n    pos: [12, 3, 10]\n  - kind: torch\n    pos: [9, 5, 5]\n  - kind: torch\n    pos: [5, 7, 0]\n  - kind: torch\n    pos: [5, 7, 5]\n  - kind: flower_pot\n    pos: [2, 1, 1]\n  - kind: flower_pot\n    pos: [3, 2, 1]\n  - kind: flower_pot\n    pos: [5, 4, 2]\n  - kind: flower_pot\n    pos: [2, 10, 5]\nrules:\n  guard: [no_floating_roof, no_slab_rider, no_hanging_roof, no_cantilever, no_orphan_fence]\n  compliance: [constant_footprint, material_ladder, contiguous_floors]\noutput:\n  name: house_3_lvl6\n  path: recovered/\n",
     "plan": {
       "name": "house_3_lvl6",
       "version": 1,
@@ -339,17 +339,9 @@
         {
           "range": [
             1,
-            1
-          ],
-          "material": "oak_fence",
-          "layout": "residential"
-        },
-        {
-          "range": [
-            2,
             2
           ],
-          "material": "oak_leaves",
+          "material": "mossy_cobblestone",
           "layout": "residential"
         },
         {
@@ -371,18 +363,10 @@
         {
           "range": [
             6,
-            9
-          ],
-          "material": "oak_slab",
-          "layout": "residential"
-        },
-        {
-          "range": [
-            10,
             10
           ],
-          "material": "cobblestone_wall",
-          "layout": "roof"
+          "material": "oak_slab",
+          "layout": "battlements"
         }
       ],
       "devices": [
@@ -493,7 +477,7 @@
     "readable": true,
     "recoverable": true,
     "planValid": true,
-    "floors": 4,
+    "floors": 3,
     "devices": 2,
     "warnings": [
       {
@@ -506,11 +490,11 @@
       },
       {
         "rule": "mixed_material_row",
-        "message": "row 1 contains 2 mapped materials"
+        "message": "row 1 contains 3 mapped materials"
       },
       {
         "rule": "mixed_material_row",
-        "message": "row 2 contains 4 mapped materials"
+        "message": "row 2 contains 2 mapped materials"
       },
       {
         "rule": "mixed_material_row",
@@ -527,13 +511,13 @@
     ],
     "blockStats": {
       "original": 236,
-      "recovered": 469,
-      "identical": 66,
-      "moved": 123,
-      "missing": 47,
-      "extra": 280
+      "recovered": 406,
+      "identical": 61,
+      "moved": 106,
+      "missing": 69,
+      "extra": 239
     },
-    "yaml": "name: house_lvl1\nversion: 1\nstructure:\n  footprint: [9, 11]\n  height: 6\n  origin: [0, 0, 0]\nfloors:\n  - range: [0, 0]\n    material: dirt\n    layout: ground\n  - range: [1, 1]\n    material: oak_fence\n    layout: residential\n  - range: [2, 2]\n    material: oak_planks\n    layout: residential\n  - range: [3, 5]\n    material: oak_slab\n    layout: battlements\ndevices:\n  - kind: torch\n    pos: [2, 2, 10]\n  - kind: torch\n    pos: [4, 4, 3]\nrules:\n  guard: [no_floating_roof, no_slab_rider, no_hanging_roof, no_cantilever, no_orphan_fence]\n  compliance: [constant_footprint, material_ladder, contiguous_floors]\noutput:\n  name: house_lvl1\n  path: recovered/\n",
+    "yaml": "name: house_lvl1\nversion: 1\nstructure:\n  footprint: [9, 11]\n  height: 6\n  origin: [0, 0, 0]\nfloors:\n  - range: [0, 0]\n    material: dirt\n    layout: ground\n  - range: [1, 2]\n    material: oak_planks\n    layout: residential\n  - range: [3, 5]\n    material: oak_slab\n    layout: battlements\ndevices:\n  - kind: torch\n    pos: [2, 2, 10]\n  - kind: torch\n    pos: [4, 4, 3]\nrules:\n  guard: [no_floating_roof, no_slab_rider, no_hanging_roof, no_cantilever, no_orphan_fence]\n  compliance: [constant_footprint, material_ladder, contiguous_floors]\noutput:\n  name: house_lvl1\n  path: recovered/\n",
     "plan": {
       "name": "house_lvl1",
       "version": 1,
@@ -561,14 +545,6 @@
         {
           "range": [
             1,
-            1
-          ],
-          "material": "oak_fence",
-          "layout": "residential"
-        },
-        {
-          "range": [
-            2,
             2
           ],
           "material": "oak_planks",
@@ -644,19 +620,19 @@
       },
       {
         "rule": "mixed_material_row",
-        "message": "row 1 contains 4 mapped materials"
+        "message": "row 1 contains 2 mapped materials"
       },
       {
         "rule": "mixed_material_row",
-        "message": "row 2 contains 4 mapped materials"
+        "message": "row 2 contains 2 mapped materials"
       },
       {
         "rule": "ambiguous_floor",
-        "message": "row 2 has tied dominant materials oak_fence and oak_leaves"
+        "message": "row 2 has tied dominant materials cobblestone and cobblestone_slab"
       },
       {
         "rule": "mixed_material_row",
-        "message": "row 4 contains 5 mapped materials"
+        "message": "row 4 contains 4 mapped materials"
       },
       {
         "rule": "mixed_material_row",
@@ -722,12 +698,12 @@
     "blockStats": {
       "original": 666,
       "recovered": 1300,
-      "identical": 98,
-      "moved": 379,
+      "identical": 97,
+      "moved": 380,
       "missing": 189,
       "extra": 823
     },
-    "yaml": "name: merchant_shop_lvl1\nversion: 1\nstructure:\n  footprint: [15, 15]\n  height: 11\n  origin: [0, 0, 0]\nfloors:\n  - range: [0, 0]\n    material: dirt\n    layout: ground\n  - range: [1, 2]\n    material: oak_fence\n    layout: residential\n  - range: [3, 3]\n    material: cobblestone_slab\n    layout: residential\n  - range: [4, 10]\n    material: oak_slab\n    layout: battlements\ndevices:\n  - kind: torch\n    pos: [8, 2, 4]\n  - kind: torch\n    pos: [4, 2, 6]\n  - kind: torch\n    pos: [12, 2, 6]\n  - kind: torch\n    pos: [9, 2, 11]\n  - kind: torch\n    pos: [1, 2, 13]\n  - kind: torch\n    pos: [12, 3, 14]\n  - kind: torch\n    pos: [10, 6, 4]\n  - kind: torch\n    pos: [10, 6, 10]\n  - kind: lever\n    pos: [8, 2, 9]\nrules:\n  guard: [no_floating_roof, no_slab_rider, no_hanging_roof, no_cantilever, no_orphan_fence]\n  compliance: [constant_footprint, material_ladder, contiguous_floors]\noutput:\n  name: merchant_shop_lvl1\n  path: recovered/\n",
+    "yaml": "name: merchant_shop_lvl1\nversion: 1\nstructure:\n  footprint: [15, 15]\n  height: 11\n  origin: [0, 0, 0]\nfloors:\n  - range: [0, 0]\n    material: dirt\n    layout: ground\n  - range: [1, 2]\n    material: cobblestone\n    layout: residential\n  - range: [3, 3]\n    material: cobblestone_slab\n    layout: residential\n  - range: [4, 10]\n    material: oak_slab\n    layout: battlements\ndevices:\n  - kind: torch\n    pos: [8, 2, 4]\n  - kind: torch\n    pos: [4, 2, 6]\n  - kind: torch\n    pos: [12, 2, 6]\n  - kind: torch\n    pos: [9, 2, 11]\n  - kind: torch\n    pos: [1, 2, 13]\n  - kind: torch\n    pos: [12, 3, 14]\n  - kind: torch\n    pos: [10, 6, 4]\n  - kind: torch\n    pos: [10, 6, 10]\n  - kind: lever\n    pos: [8, 2, 9]\nrules:\n  guard: [no_floating_roof, no_slab_rider, no_hanging_roof, no_cantilever, no_orphan_fence]\n  compliance: [constant_footprint, material_ladder, contiguous_floors]\noutput:\n  name: merchant_shop_lvl1\n  path: recovered/\n",
     "plan": {
       "name": "merchant_shop_lvl1",
       "version": 1,
@@ -757,7 +733,7 @@
             1,
             2
           ],
-          "material": "oak_fence",
+          "material": "cobblestone",
           "layout": "residential"
         },
         {

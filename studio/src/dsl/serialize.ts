@@ -80,6 +80,16 @@ const IGNORED_IDS = new Set([
   'barrier', 'light', 'structure_block',
 ]);
 
+const DECOR_PATTERNS: RegExp[] = [
+  /_fence$/, /_fence_gate$/, /_wall$/,
+  /_leaves$/, /_sapling$/, /_vines?$/, /_hanging_sign$/, /_wall_sign$/,
+  /_carpet$/, /_pressure_plate$/, /_button$/, /_trapdoor$/,
+  /_banner$/, /_sign$/, /_hanging_roots$/,
+  /^chain$/, /^flower_pot$/, /^potted_/,
+  /^moss_carpet$/, /^moss_block$/, /^vine$/, /^cave_vines$/, /^glow_lichen$/,
+  /^water$/, /^seagrass$/, /^kelp$/, /^short_grass$/, /^tall_grass$/,
+];
+
 export function serializeStructureToPlan(
   structure: Structure,
   options: SerializationOptions = {},
@@ -282,16 +292,16 @@ function extractFloorMaterial(
   warnings: SerializationWarning[],
 ): RowSummary {
   const perimeterCells = rowCells.filter((cell) => isPerimeterCell(cell.pos, size));
-  const perimeterFloors = perimeterCells.filter((cell) => classifyBlock(cell.id) === 'floor');
-  if (perimeterFloors.length > 0) {
-    emitRowWarnings(y, perimeterFloors, warnings);
+  const perimeterWalls = perimeterCells.filter((cell) => isStructuralMaterial(classifyBlock(cell.id)));
+  if (perimeterWalls.length > 0) {
+    emitRowWarnings(y, perimeterWalls, warnings);
     return {
-      material: dominantMaterialId(perimeterFloors),
+      material: dominantMaterialId(perimeterWalls),
       hasSlabOrStair: perimeterCells.some((cell) => isSlabOrStairId(cell.id)),
     };
   }
 
-  const rowFloors = rowCells.filter((cell) => classifyBlock(cell.id) === 'floor');
+  const rowFloors = rowCells.filter((cell) => isStructuralMaterial(classifyBlock(cell.id)));
   const rowHasSlabOrStair = rowCells.some((cell) => isSlabOrStairId(cell.id));
 
   if (y === 0) {
@@ -320,6 +330,10 @@ function extractFloorMaterial(
     return { material: dominantMaterialId(rowFloors), hasSlabOrStair: rowHasSlabOrStair };
   }
   return { material: null, hasSlabOrStair: rowHasSlabOrStair };
+}
+
+function isStructuralMaterial(kind: ReturnType<typeof classifyBlock>): boolean {
+  return kind === 'wall';
 }
 
 function emitRowWarnings(
@@ -869,10 +883,12 @@ function isAirId(id: string): boolean {
   return id === 'air' || id === 'cave_air' || id === 'void_air';
 }
 
-function classifyBlock(id: string): 'floor' | 'device' | 'ignored' {
-  if (IGNORED_IDS.has(id)) return 'ignored';
-  if (isDevicePattern(id)) return 'device';
-  return 'floor';
+function classifyBlock(id: string): 'wall' | 'decor' | 'device' | 'ignored' {
+  const bare = id.startsWith('minecraft:') ? id.slice('minecraft:'.length) : id;
+  if (IGNORED_IDS.has(bare)) return 'ignored';
+  if (isDevicePattern(bare)) return 'device';
+  if (DECOR_PATTERNS.some((pattern) => pattern.test(bare))) return 'decor';
+  return 'wall';
 }
 
 function isDevicePattern(id: string): boolean {
