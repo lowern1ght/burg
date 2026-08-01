@@ -1,0 +1,56 @@
+# Minimal watchtower plan — a 5x5 oak box with a door, a torch inside,
+# and a corner post on each of the four corners. The example validates
+# cleanly and the generator produces a structure with > 0 blocks.
+name: "Minimal watchtower (DSL example)"
+version: 1
+
+structure:
+  footprint: [5, 5]
+  height: 4
+  origin: [0, 0, 0]
+
+# A single storey — the building is one floor of timber with a roof course
+# on top. The author's plains houses do the same in 80% of lvl1 buildings.
+floors:
+  - range: [0, 3]
+    material: "oak_planks"
+    layout: "residential"
+
+devices:
+  # Front door on the south face, ground floor.
+  - kind: door
+    side: south
+    floor: 1
+
+  # A standing torch inside, in the centre of the floor (torch on fence
+  # post is the corpus's idiom — 89% of standing torches sit on a fence).
+  - kind: torch
+    pos: [2, 2, 2]
+
+  # Corner posts on all four corners — half the corpus has oak_log corners
+  # running the full height. The validator skips this if a corner is outside
+  # the footprint, so 4 is the max.
+  - kind: corner_post
+    pos: [0, 1, 0]
+    height: 3
+  - kind: corner_post
+    pos: [4, 1, 0]
+    height: 3
+  - kind: corner_post
+    pos: [0, 1, 4]
+    height: 3
+  - kind: corner_post
+    pos: [4, 1, 4]
+    height: 3
+
+rules:
+  guard:
+    - no_floating_roof
+    - no_slab_rider
+  compliance:
+    - constant_footprint
+    - contiguous_floors
+
+output:
+  name: "watchtower_dsl_example"
+  path: "military/watchtower/"

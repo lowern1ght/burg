@@ -1,0 +1,874 @@
+[
+  {
+    "name": "granary_lvl1.nbt",
+    "size": 4992,
+    "readable": true,
+    "recoverable": true,
+    "planValid": true,
+    "floors": 5,
+    "devices": 3,
+    "warnings": [
+      {
+        "rule": "unknown_block",
+        "message": "unknown block \"lily_pad\"; using oak_planks"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 0 contains 2 mapped materials"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 2 contains 4 mapped materials"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 3 contains 3 mapped materials"
+      },
+      {
+        "rule": "ambiguous_floor",
+        "message": "row 3 has tied dominant materials oak_planks and oak_slab"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 4 contains 5 mapped materials"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 5 contains 4 mapped materials"
+      },
+      {
+        "rule": "gap_in_floors",
+        "message": "row 7 contains no recoverable floor material"
+      },
+      {
+        "rule": "gap_in_floors",
+        "message": "row 8 contains no recoverable floor material"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "ladder at 6,1,3 is not on a perimeter wall"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "ladder at 6,2,3 is not on a perimeter wall"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "ladder at 6,3,3 is not on a perimeter wall"
+      }
+    ],
+    "blockStats": {
+      "original": 286,
+      "recovered": 1017,
+      "identical": 100,
+      "moved": 135,
+      "missing": 51,
+      "extra": 782
+    },
+    "yaml": "name: granary_lvl1\nversion: 1\nstructure:\n  footprint: [15, 11]\n  height: 9\n  origin: [0, 0, 0]\nfloors:\n  - range: [0, 0]\n    material: dirt\n    layout: ground\n  - range: [1, 1]\n    material: oak_leaves\n    layout: residential\n  - range: [2, 3]\n    material: oak_planks\n    layout: residential\n  - range: [4, 4]\n    material: oak_fence\n    layout: residential\n  - range: [5, 8]\n    material: oak_slab\n    layout: battlements\ndevices:\n  - kind: torch\n    pos: [8, 2, 7]\n  - kind: torch\n    pos: [2, 2, 8]\n  - kind: torch\n    pos: [7, 5, 3]\nrules:\n  guard: [no_floating_roof, no_slab_rider, no_hanging_roof, no_cantilever, no_orphan_fence]\n  compliance: [constant_footprint, material_ladder, contiguous_floors]\noutput:\n  name: granary_lvl1\n  path: recovered/\n",
+    "plan": {
+      "name": "granary_lvl1",
+      "version": 1,
+      "structure": {
+        "footprint": [
+          15,
+          11
+        ],
+        "height": 9,
+        "origin": [
+          0,
+          0,
+          0
+        ]
+      },
+      "floors": [
+        {
+          "range": [
+            0,
+            0
+          ],
+          "material": "dirt",
+          "layout": "ground"
+        },
+        {
+          "range": [
+            1,
+            1
+          ],
+          "material": "oak_leaves",
+          "layout": "residential"
+        },
+        {
+          "range": [
+            2,
+            3
+          ],
+          "material": "oak_planks",
+          "layout": "residential"
+        },
+        {
+          "range": [
+            4,
+            4
+          ],
+          "material": "oak_fence",
+          "layout": "residential"
+        },
+        {
+          "range": [
+            5,
+            8
+          ],
+          "material": "oak_slab",
+          "layout": "battlements"
+        }
+      ],
+      "devices": [
+        {
+          "kind": "torch",
+          "pos": [
+            8,
+            2,
+            7
+          ]
+        },
+        {
+          "kind": "torch",
+          "pos": [
+            2,
+            2,
+            8
+          ]
+        },
+        {
+          "kind": "torch",
+          "pos": [
+            7,
+            5,
+            3
+          ]
+        }
+      ],
+      "rules": {
+        "guard": [
+          "no_floating_roof",
+          "no_slab_rider",
+          "no_hanging_roof",
+          "no_cantilever",
+          "no_orphan_fence"
+        ],
+        "compliance": [
+          "constant_footprint",
+          "material_ladder",
+          "contiguous_floors"
+        ]
+      },
+      "output": {
+        "name": "granary_lvl1",
+        "path": "recovered/"
+      }
+    }
+  },
+  {
+    "name": "house_3_lvl6.nbt",
+    "size": 6726,
+    "readable": true,
+    "recoverable": true,
+    "planValid": true,
+    "floors": 7,
+    "devices": 10,
+    "warnings": [
+      {
+        "rule": "unknown_block",
+        "message": "unknown block \"azure_bluet\"; using oak_planks"
+      },
+      {
+        "rule": "unknown_block",
+        "message": "unknown block \"allium\"; using oak_planks"
+      },
+      {
+        "rule": "unknown_block",
+        "message": "unknown block \"pink_tulip\"; using oak_planks"
+      },
+      {
+        "rule": "unknown_block",
+        "message": "unknown block \"chain\"; using oak_planks"
+      },
+      {
+        "rule": "unknown_block",
+        "message": "unknown block \"decorated_pot\"; using oak_planks"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 0 contains 2 mapped materials"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 1 contains 3 mapped materials"
+      },
+      {
+        "rule": "ambiguous_floor",
+        "message": "row 1 has tied dominant materials oak_fence and oak_leaves"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 3 contains 6 mapped materials"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 4 contains 9 mapped materials"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 5 contains 6 mapped materials"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 7 contains 5 mapped materials"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 8 contains 4 mapped materials"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 9 contains 4 mapped materials"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "door at 4,1,8 has no exposed perimeter face"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "door at 8,4,4 has no exposed perimeter face"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "glass pane at 6,2,8 is not on a perimeter wall"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "glass pane at 5,4,1 is not on a perimeter wall"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "glass pane at 5,5,1 is not on a perimeter wall"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "glass pane at 2,5,6 is not on a perimeter wall"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "glass pane at 2,6,6 is not on a perimeter wall"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "glass pane at 4,6,8 is not on a perimeter wall"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "glass pane at 5,6,8 is not on a perimeter wall"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "glass pane at 4,7,8 is not on a perimeter wall"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "glass pane at 5,7,8 is not on a perimeter wall"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "bed at 6,4,6 has no exposed perimeter face"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "bed at 7,4,6 has no exposed perimeter face"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "bed at 6,4,7 has no exposed perimeter face"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "bed at 7,4,7 has no exposed perimeter face"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "furnace at 3,1,5 has no exposed perimeter face"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "furnace at 3,4,5 has no exposed perimeter face"
+      }
+    ],
+    "blockStats": {
+      "original": 657,
+      "recovered": 1370,
+      "identical": 108,
+      "moved": 382,
+      "missing": 167,
+      "extra": 880
+    },
+    "yaml": "name: house_3_lvl6\nversion: 1\nstructure:\n  footprint: [14, 12]\n  height: 11\n  origin: [0, 0, 0]\nfloors:\n  - range: [0, 0]\n    material: grass_block\n    layout: ground\n  - range: [1, 1]\n    material: oak_fence\n    layout: residential\n  - range: [2, 2]\n    material: oak_leaves\n    layout: residential\n  - range: [3, 3]\n    material: cobblestone_slab\n    layout: residential\n  - range: [4, 5]\n    material: oak_planks\n    layout: residential\n  - range: [6, 9]\n    material: oak_slab\n    layout: residential\n  - range: [10, 10]\n    material: cobblestone_wall\n    layout: roof\ndevices:\n  - kind: torch\n    pos: [6, 2, 4]\n  - kind: torch\n    pos: [5, 3, 9]\n  - kind: torch\n    pos: [12, 3, 10]\n  - kind: torch\n    pos: [9, 5, 5]\n  - kind: torch\n    pos: [5, 7, 0]\n  - kind: torch\n    pos: [5, 7, 5]\n  - kind: flower_pot\n    pos: [2, 1, 1]\n  - kind: flower_pot\n    pos: [3, 2, 1]\n  - kind: flower_pot\n    pos: [5, 4, 2]\n  - kind: flower_pot\n    pos: [2, 10, 5]\nrules:\n  guard: [no_floating_roof, no_slab_rider, no_hanging_roof, no_cantilever, no_orphan_fence]\n  compliance: [constant_footprint, material_ladder, contiguous_floors]\noutput:\n  name: house_3_lvl6\n  path: recovered/\n",
+    "plan": {
+      "name": "house_3_lvl6",
+      "version": 1,
+      "structure": {
+        "footprint": [
+          14,
+          12
+        ],
+        "height": 11,
+        "origin": [
+          0,
+          0,
+          0
+        ]
+      },
+      "floors": [
+        {
+          "range": [
+            0,
+            0
+          ],
+          "material": "grass_block",
+          "layout": "ground"
+        },
+        {
+          "range": [
+            1,
+            1
+          ],
+          "material": "oak_fence",
+          "layout": "residential"
+        },
+        {
+          "range": [
+            2,
+            2
+          ],
+          "material": "oak_leaves",
+          "layout": "residential"
+        },
+        {
+          "range": [
+            3,
+            3
+          ],
+          "material": "cobblestone_slab",
+          "layout": "residential"
+        },
+        {
+          "range": [
+            4,
+            5
+          ],
+          "material": "oak_planks",
+          "layout": "residential"
+        },
+        {
+          "range": [
+            6,
+            9
+          ],
+          "material": "oak_slab",
+          "layout": "residential"
+        },
+        {
+          "range": [
+            10,
+            10
+          ],
+          "material": "cobblestone_wall",
+          "layout": "roof"
+        }
+      ],
+      "devices": [
+        {
+          "kind": "torch",
+          "pos": [
+            6,
+            2,
+            4
+          ]
+        },
+        {
+          "kind": "torch",
+          "pos": [
+            5,
+            3,
+            9
+          ]
+        },
+        {
+          "kind": "torch",
+          "pos": [
+            12,
+            3,
+            10
+          ]
+        },
+        {
+          "kind": "torch",
+          "pos": [
+            9,
+            5,
+            5
+          ]
+        },
+        {
+          "kind": "torch",
+          "pos": [
+            5,
+            7,
+            0
+          ]
+        },
+        {
+          "kind": "torch",
+          "pos": [
+            5,
+            7,
+            5
+          ]
+        },
+        {
+          "kind": "flower_pot",
+          "pos": [
+            2,
+            1,
+            1
+          ]
+        },
+        {
+          "kind": "flower_pot",
+          "pos": [
+            3,
+            2,
+            1
+          ]
+        },
+        {
+          "kind": "flower_pot",
+          "pos": [
+            5,
+            4,
+            2
+          ]
+        },
+        {
+          "kind": "flower_pot",
+          "pos": [
+            2,
+            10,
+            5
+          ]
+        }
+      ],
+      "rules": {
+        "guard": [
+          "no_floating_roof",
+          "no_slab_rider",
+          "no_hanging_roof",
+          "no_cantilever",
+          "no_orphan_fence"
+        ],
+        "compliance": [
+          "constant_footprint",
+          "material_ladder",
+          "contiguous_floors"
+        ]
+      },
+      "output": {
+        "name": "house_3_lvl6",
+        "path": "recovered/"
+      }
+    }
+  },
+  {
+    "name": "house_lvl1.nbt",
+    "size": 2274,
+    "readable": true,
+    "recoverable": true,
+    "planValid": true,
+    "floors": 4,
+    "devices": 2,
+    "warnings": [
+      {
+        "rule": "unknown_block",
+        "message": "unknown block \"grass\"; using oak_planks"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 0 contains 2 mapped materials"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 1 contains 2 mapped materials"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 2 contains 4 mapped materials"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 3 contains 3 mapped materials"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 4 contains 2 mapped materials"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "door at 3,1,8 has no exposed perimeter face"
+      }
+    ],
+    "blockStats": {
+      "original": 236,
+      "recovered": 469,
+      "identical": 66,
+      "moved": 123,
+      "missing": 47,
+      "extra": 280
+    },
+    "yaml": "name: house_lvl1\nversion: 1\nstructure:\n  footprint: [9, 11]\n  height: 6\n  origin: [0, 0, 0]\nfloors:\n  - range: [0, 0]\n    material: dirt\n    layout: ground\n  - range: [1, 1]\n    material: oak_fence\n    layout: residential\n  - range: [2, 2]\n    material: oak_planks\n    layout: residential\n  - range: [3, 5]\n    material: oak_slab\n    layout: battlements\ndevices:\n  - kind: torch\n    pos: [2, 2, 10]\n  - kind: torch\n    pos: [4, 4, 3]\nrules:\n  guard: [no_floating_roof, no_slab_rider, no_hanging_roof, no_cantilever, no_orphan_fence]\n  compliance: [constant_footprint, material_ladder, contiguous_floors]\noutput:\n  name: house_lvl1\n  path: recovered/\n",
+    "plan": {
+      "name": "house_lvl1",
+      "version": 1,
+      "structure": {
+        "footprint": [
+          9,
+          11
+        ],
+        "height": 6,
+        "origin": [
+          0,
+          0,
+          0
+        ]
+      },
+      "floors": [
+        {
+          "range": [
+            0,
+            0
+          ],
+          "material": "dirt",
+          "layout": "ground"
+        },
+        {
+          "range": [
+            1,
+            1
+          ],
+          "material": "oak_fence",
+          "layout": "residential"
+        },
+        {
+          "range": [
+            2,
+            2
+          ],
+          "material": "oak_planks",
+          "layout": "residential"
+        },
+        {
+          "range": [
+            3,
+            5
+          ],
+          "material": "oak_slab",
+          "layout": "battlements"
+        }
+      ],
+      "devices": [
+        {
+          "kind": "torch",
+          "pos": [
+            2,
+            2,
+            10
+          ]
+        },
+        {
+          "kind": "torch",
+          "pos": [
+            4,
+            4,
+            3
+          ]
+        }
+      ],
+      "rules": {
+        "guard": [
+          "no_floating_roof",
+          "no_slab_rider",
+          "no_hanging_roof",
+          "no_cantilever",
+          "no_orphan_fence"
+        ],
+        "compliance": [
+          "constant_footprint",
+          "material_ladder",
+          "contiguous_floors"
+        ]
+      },
+      "output": {
+        "name": "house_lvl1",
+        "path": "recovered/"
+      }
+    }
+  },
+  {
+    "name": "merchant_shop_lvl1.nbt",
+    "size": 8366,
+    "readable": true,
+    "recoverable": true,
+    "planValid": true,
+    "floors": 4,
+    "devices": 9,
+    "warnings": [
+      {
+        "rule": "unknown_block",
+        "message": "unknown block \"lily_pad\"; using oak_planks"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 0 contains 2 mapped materials"
+      },
+      {
+        "rule": "ambiguous_floor",
+        "message": "row 0 has tied dominant materials dirt and grass_block"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 1 contains 4 mapped materials"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 2 contains 4 mapped materials"
+      },
+      {
+        "rule": "ambiguous_floor",
+        "message": "row 2 has tied dominant materials oak_fence and oak_leaves"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 4 contains 5 mapped materials"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 6 contains 2 mapped materials"
+      },
+      {
+        "rule": "mixed_material_row",
+        "message": "row 7 contains 2 mapped materials"
+      },
+      {
+        "rule": "gap_in_floors",
+        "message": "row 8 contains no recoverable floor material"
+      },
+      {
+        "rule": "gap_in_floors",
+        "message": "row 9 contains no recoverable floor material"
+      },
+      {
+        "rule": "gap_in_floors",
+        "message": "row 10 contains no recoverable floor material"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "door at 5,1,9 has no exposed perimeter face"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "door at 11,1,10 has no exposed perimeter face"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "door at 7,4,4 has no exposed perimeter face"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "ladder at 7,1,5 is not on a perimeter wall"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "ladder at 7,2,5 is not on a perimeter wall"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "bed at 11,4,9 has no exposed perimeter face"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "bed at 12,4,9 has no exposed perimeter face"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "bed at 11,4,10 has no exposed perimeter face"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "bed at 12,4,10 has no exposed perimeter face"
+      },
+      {
+        "rule": "unparseable_device",
+        "message": "furnace at 12,4,5 has no exposed perimeter face"
+      }
+    ],
+    "blockStats": {
+      "original": 666,
+      "recovered": 1300,
+      "identical": 98,
+      "moved": 379,
+      "missing": 189,
+      "extra": 823
+    },
+    "yaml": "name: merchant_shop_lvl1\nversion: 1\nstructure:\n  footprint: [15, 15]\n  height: 11\n  origin: [0, 0, 0]\nfloors:\n  - range: [0, 0]\n    material: dirt\n    layout: ground\n  - range: [1, 2]\n    material: oak_fence\n    layout: residential\n  - range: [3, 3]\n    material: cobblestone_slab\n    layout: residential\n  - range: [4, 10]\n    material: oak_slab\n    layout: battlements\ndevices:\n  - kind: torch\n    pos: [8, 2, 4]\n  - kind: torch\n    pos: [4, 2, 6]\n  - kind: torch\n    pos: [12, 2, 6]\n  - kind: torch\n    pos: [9, 2, 11]\n  - kind: torch\n    pos: [1, 2, 13]\n  - kind: torch\n    pos: [12, 3, 14]\n  - kind: torch\n    pos: [10, 6, 4]\n  - kind: torch\n    pos: [10, 6, 10]\n  - kind: lever\n    pos: [8, 2, 9]\nrules:\n  guard: [no_floating_roof, no_slab_rider, no_hanging_roof, no_cantilever, no_orphan_fence]\n  compliance: [constant_footprint, material_ladder, contiguous_floors]\noutput:\n  name: merchant_shop_lvl1\n  path: recovered/\n",
+    "plan": {
+      "name": "merchant_shop_lvl1",
+      "version": 1,
+      "structure": {
+        "footprint": [
+          15,
+          15
+        ],
+        "height": 11,
+        "origin": [
+          0,
+          0,
+          0
+        ]
+      },
+      "floors": [
+        {
+          "range": [
+            0,
+            0
+          ],
+          "material": "dirt",
+          "layout": "ground"
+        },
+        {
+          "range": [
+            1,
+            2
+          ],
+          "material": "oak_fence",
+          "layout": "residential"
+        },
+        {
+          "range": [
+            3,
+            3
+          ],
+          "material": "cobblestone_slab",
+          "layout": "residential"
+        },
+        {
+          "range": [
+            4,
+            10
+          ],
+          "material": "oak_slab",
+          "layout": "battlements"
+        }
+      ],
+      "devices": [
+        {
+          "kind": "torch",
+          "pos": [
+            8,
+            2,
+            4
+          ]
+        },
+        {
+          "kind": "torch",
+          "pos": [
+            4,
+            2,
+            6
+          ]
+        },
+        {
+          "kind": "torch",
+          "pos": [
+            12,
+            2,
+            6
+          ]
+        },
+        {
+          "kind": "torch",
+          "pos": [
+            9,
+            2,
+            11
+          ]
+        },
+        {
+          "kind": "torch",
+          "pos": [
+            1,
+            2,
+            13
+          ]
+        },
+        {
+          "kind": "torch",
+          "pos": [
+            12,
+            3,
+            14
+          ]
+        },
+        {
+          "kind": "torch",
+          "pos": [
+            10,
+            6,
+            4
+          ]
+        },
+        {
+          "kind": "torch",
+          "pos": [
+            10,
+            6,
+            10
+          ]
+        },
+        {
+          "kind": "lever",
+          "pos": [
+            8,
+            2,
+            9
+          ]
+        }
+      ],
+      "rules": {
+        "guard": [
+          "no_floating_roof",
+          "no_slab_rider",
+          "no_hanging_roof",
+          "no_cantilever",
+          "no_orphan_fence"
+        ],
+        "compliance": [
+          "constant_footprint",
+          "material_ladder",
+          "contiguous_floors"
+        ]
+      },
+      "output": {
+        "name": "merchant_shop_lvl1",
+        "path": "recovered/"
+      }
+    }
+  }
+]
