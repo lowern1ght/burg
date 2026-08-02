@@ -3,10 +3,12 @@ package org.dawnoftime.onceuponatown.behavior.intent;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
+import org.dawnoftime.onceuponatown.behavior.role.CitizenRole;
 import org.dawnoftime.onceuponatown.town.ItemCost;
 import org.dawnoftime.onceuponatown.town.Town;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * An intent to construct a new building of the given def in the town.
@@ -45,6 +47,11 @@ public record BuildIntent(
     @Override
     public IntentCost cost() {
         return cost;
+    }
+
+    @Override
+    public Set<CitizenRole> requiredRoles() {
+        return Set.of(CitizenRole.BUILDER);
     }
 
     @Override

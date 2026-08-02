@@ -3,12 +3,15 @@ package org.dawnoftime.onceuponatown.behavior;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
+import org.dawnoftime.onceuponatown.behavior.diplomacy.DiplomaticAI;
+import org.dawnoftime.onceuponatown.behavior.diplomacy.DiplomaticRegistry;
 import org.dawnoftime.onceuponatown.behavior.executor.BuildExecutor;
 import org.dawnoftime.onceuponatown.behavior.intent.BuildIntent;
 import org.dawnoftime.onceuponatown.behavior.intent.IntentScheduler;
 import org.dawnoftime.onceuponatown.behavior.intent.NpcSupplier;
 import org.dawnoftime.onceuponatown.behavior.intent.TownIntent;
 import org.dawnoftime.onceuponatown.behavior.intent.UpgradeIntent;
+import org.dawnoftime.onceuponatown.behavior.morale.MoraleState;
 import org.dawnoftime.onceuponatown.behavior.role.RoleAssigner;
 import org.dawnoftime.onceuponatown.behavior.role.RoleAssignerConfig;
 import org.dawnoftime.onceuponatown.behavior.task.BuildTask;
@@ -25,9 +28,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -70,10 +75,15 @@ public final class BehaviorEngine {
         // sharing, the scheduler's supplier never gets bound to the engine and its
         // freeCitizens() returns empty (no level), defeating pairings.
         WorldNpcSupplier supplier = new WorldNpcSupplier();
+        RoleAssigner roleAssigner = new RoleAssigner();
         return new BehaviorEngine(
-            new IntentScheduler(supplier),
+            new IntentScheduler(supplier, roleAssigner),
             new TaskQueue(),
-            supplier
+            supplier,
+            roleAssigner,
+            new MoraleState(),
+            new DiplomaticRegistry(),
+            new DiplomaticAI()
         );
     }
 
@@ -109,14 +119,13 @@ public final class BehaviorEngine {
     private final IntentScheduler scheduler;
     private final TaskQueue tasks;
     private final NpcSupplier npcSupplier;
-    /**
-     * Per-engine role assigner. Updated every {@link #ROLE_UPDATE_INTERVAL} ticks for every
-     * town in the active level. The engine reads roles from here in the next phase (intent
-     * routing); for now the assigner runs but nothing consults it.
-     */
-    private final RoleAssigner roleAssigner = new RoleAssigner();
+    private final RoleAssigner roleAssigner;
+    private final MoraleState morale;
+    private final DiplomaticRegistry diplomaticRegistry;
+    private final DiplomaticAI diplomaticAI;
+    private final DiplomaticAIDriver diplomaticAIDriver;
     /** Tick counter used to throttle the role-assigner update. */
-    private int ticksSinceLastRoleUpdate = 0;
+    private int ticksSinceLastRoleUpdate = ROLE_UPDATE_INTERVAL - 1;
     /** Role-assigner runs every {@value} ticks, i.e. once every 5 seconds at 20 tps. */
     private static final int ROLE_UPDATE_INTERVAL = 100;
 
@@ -128,9 +137,31 @@ public final class BehaviorEngine {
     private ServerLevel currentLevel;
 
     public BehaviorEngine(IntentScheduler scheduler, TaskQueue tasks, NpcSupplier npcSupplier) {
+        this(
+            scheduler,
+            tasks,
+            npcSupplier,
+            scheduler.roleAssigner(),
+            new MoraleState(),
+            new DiplomaticRegistry(),
+            new DiplomaticAI()
+        );
+    }
+
+    public BehaviorEngine(IntentScheduler scheduler, TaskQueue tasks, NpcSupplier npcSupplier,
+                          RoleAssigner roleAssigner, MoraleState morale,
+                          DiplomaticRegistry diplomaticRegistry, DiplomaticAI diplomaticAI) {
+        if (scheduler.roleAssigner() != roleAssigner) {
+            throw new IllegalArgumentException("scheduler and engine must share one RoleAssigner");
+        }
         this.scheduler = scheduler;
         this.tasks = tasks;
         this.npcSupplier = npcSupplier;
+        this.roleAssigner = roleAssigner;
+        this.morale = morale;
+        this.diplomaticRegistry = diplomaticRegistry;
+        this.diplomaticAI = diplomaticAI;
+        this.diplomaticAIDriver = new DiplomaticAIDriver(diplomaticRegistry, diplomaticAI, morale);
         if (npcSupplier instanceof WorldNpcSupplier w) {
             w.bind(this);
         }
@@ -151,6 +182,7 @@ public final class BehaviorEngine {
         this.currentLevel = level;
         try {
             TaskContext ctx = new TaskContext(level, gameTick, npcSupplier);
+            diplomaticRegistry.tickClock();
 
             // 0) Role assigner. Runs at ROLE_UPDATE_INTERVAL (5s at 20 tps) to keep the
             //    bookkeeping cheap. Iterates every town in this level and feeds it the
@@ -204,6 +236,8 @@ public final class BehaviorEngine {
             for (TaskQueue.ActiveTask at : tasks.allActive()) {
                 CitizenTask task = at.task();
                 if (task.state().isTerminal()) continue;
+                float moraleMultiplier = task.moraleMultiplier(morale, task.assignee());
+                LOGGER.debug("[BEHAVIOR] task {} morale multiplier {}", task.id(), moraleMultiplier);
                 TaskState next = task.tick(ctx);
                 if (next.isTerminal()) {
                     task.onComplete(ctx, next);
@@ -213,6 +247,8 @@ public final class BehaviorEngine {
             for (Map.Entry<UUID, TaskState> e : completedThisTick.entrySet()) {
                 tasks.completeForId(e.getKey(), e.getValue());
             }
+
+            diplomaticAIDriver.onServerTick(level);
         } finally {
             this.currentLevel = previous;
         }
@@ -294,7 +330,9 @@ public final class BehaviorEngine {
             ServerLevel level = currentLevel();
             if (level == null || town == null) return java.util.List.of();
             java.util.List<Npc> result = new java.util.ArrayList<>();
-            for (UUID id : town.getBuilderNpcIds()) {
+            Set<UUID> citizenIds = new LinkedHashSet<>(town.getResidentNpcIds());
+            citizenIds.addAll(town.getBuilderNpcIds());
+            for (UUID id : citizenIds) {
                 if (id == null) continue;
                 Entity e = level.getEntity(id);
                 if (e instanceof Npc npc) {

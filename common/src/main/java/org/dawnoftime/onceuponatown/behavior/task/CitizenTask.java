@@ -1,6 +1,7 @@
 package org.dawnoftime.onceuponatown.behavior.task;
 
 import org.dawnoftime.onceuponatown.behavior.intent.TownIntent;
+import org.dawnoftime.onceuponatown.behavior.morale.MoraleState;
 import org.dawnoftime.onceuponatown.entity.Npc;
 
 import java.util.UUID;
@@ -38,6 +39,17 @@ public sealed interface CitizenTask
 
     /** Advances the task one step. Returns the new state. */
     TaskState tick(TaskContext ctx);
+
+    /**
+     * Progress multiplier based on the assignee's morale. Default: linear 0.5x at
+     * 0 morale to 1.5x at 100 morale. Concrete tasks can override for
+     * different curves or to disable morale effects.
+     */
+    default float moraleMultiplier(MoraleState morale, Npc assignee) {
+        if (assignee == null || morale == null) return 1.0f;
+        int value = morale.valueFor(assignee.getUUID());
+        return 0.5f + (value / 100.0f);
+    }
 
     /**
      * True if a higher-priority intent can preempt this task. Walking across the map is

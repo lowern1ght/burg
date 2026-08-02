@@ -1,7 +1,10 @@
 package org.dawnoftime.onceuponatown.behavior.intent;
 
 import net.minecraft.resources.ResourceLocation;
+import org.dawnoftime.onceuponatown.behavior.role.CitizenRole;
 import org.dawnoftime.onceuponatown.town.Town;
+
+import java.util.Set;
 
 /**
  * A declaration of what a town wants its citizens to do.
@@ -55,4 +58,12 @@ public sealed interface TownIntent
 
     /** What executing this intent would cost the town. {@link IntentCost#empty()} for free. */
     IntentCost cost();
+
+    /**
+     * Citizens with these roles can fulfill this intent. Empty set means any role.
+     * Specific intents override to declare role requirements.
+     */
+    default Set<CitizenRole> requiredRoles() {
+        return Set.of();
+    }
 }

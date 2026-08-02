@@ -3,7 +3,10 @@ package org.dawnoftime.onceuponatown.behavior.intent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import org.dawnoftime.onceuponatown.Constants;
+import org.dawnoftime.onceuponatown.behavior.role.CitizenRole;
 import org.dawnoftime.onceuponatown.town.Town;
+
+import java.util.Set;
 
 /**
  * Intent to lay a road (or extend the network) between two world positions.
@@ -55,6 +58,11 @@ public record ExpandIntent(
     @Override
     public IntentCost cost() {
         return cost;
+    }
+
+    @Override
+    public Set<CitizenRole> requiredRoles() {
+        return Set.of(CitizenRole.ROAD_BUILDER, CitizenRole.BUILDER);
     }
 
     @Override

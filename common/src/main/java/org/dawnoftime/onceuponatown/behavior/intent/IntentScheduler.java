@@ -1,6 +1,8 @@
 package org.dawnoftime.onceuponatown.behavior.intent;
 
 import net.minecraft.resources.ResourceLocation;
+import org.dawnoftime.onceuponatown.behavior.role.CitizenRole;
+import org.dawnoftime.onceuponatown.behavior.role.RoleAssigner;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.town.Town;
 import org.slf4j.Logger;
@@ -14,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Holds the live intents for every town, prunes the ones that are no longer wanted, and
@@ -41,6 +44,8 @@ public final class IntentScheduler {
     private static final Logger LOGGER = LoggerFactory.getLogger(IntentScheduler.class);
 
     private final NpcSupplier npcSupplier;
+    private final RoleAssigner roleAssigner;
+    private final boolean legacyRoleFallback;
 
     /** All intents currently considered by the scheduler, grouped by town. Insertion order kept. */
     private final Map<Town, List<TownIntent>> active = new LinkedHashMap<>();
@@ -52,7 +57,22 @@ public final class IntentScheduler {
     private final Map<ResourceLocation, java.util.UUID> pendingAssignments = new HashMap<>();
 
     public IntentScheduler(NpcSupplier npcSupplier) {
+        this(npcSupplier, new RoleAssigner(), true);
+    }
+
+    public IntentScheduler(NpcSupplier npcSupplier, RoleAssigner roleAssigner) {
+        this(npcSupplier, roleAssigner, false);
+    }
+
+    private IntentScheduler(NpcSupplier npcSupplier, RoleAssigner roleAssigner,
+                            boolean legacyRoleFallback) {
         this.npcSupplier = npcSupplier;
+        this.roleAssigner = roleAssigner;
+        this.legacyRoleFallback = legacyRoleFallback;
+    }
+
+    public RoleAssigner roleAssigner() {
+        return roleAssigner;
     }
 
     // --- enqueue / cancel ---------------------------------------------------------------
@@ -120,21 +140,38 @@ public final class IntentScheduler {
         for (Map.Entry<Town, List<TownIntent>> entry : active.entrySet()) {
             Town town = entry.getKey();
             List<TownIntent> intents = entry.getValue();
-            List<Npc> free = npcSupplier.freeCitizens(town);
-            if (free.isEmpty()) continue;
+            List<Npc> available = new ArrayList<>(npcSupplier.freeCitizens(town));
+            if (available.isEmpty()) continue;
 
-            int npcIdx = 0;
             for (TownIntent intent : intents) {
-                if (npcIdx >= free.size()) break;
+                if (available.isEmpty()) break;
                 if (!intent.canResolve(town)) continue;
-                Npc npc = free.get(npcIdx++);
-                pendingAssignments.put(intent.id(), npc.getUUID());
-                LOGGER.debug("[BEHAVIOR] intent {} -> npc {}", intent.id(), npc.getUUID());
+
+                Set<CitizenRole> requiredRoles = intent.requiredRoles();
+                Npc matched = null;
+                for (Npc npc : available) {
+                    if (matchesRole(town, npc, requiredRoles)) {
+                        matched = npc;
+                        break;
+                    }
+                }
+                if (matched == null) continue;
+
+                available.remove(matched);
+                pendingAssignments.put(intent.id(), matched.getUUID());
+                LOGGER.debug("[BEHAVIOR] intent {} -> npc {}", intent.id(), matched.getUUID());
             }
         }
 
         // 3) Clean up towns whose intent lists emptied out.
         active.entrySet().removeIf(e -> e.getValue().isEmpty());
+    }
+
+    private boolean matchesRole(Town town, Npc npc, Set<CitizenRole> requiredRoles) {
+        if (requiredRoles.isEmpty()) return true;
+        CitizenRole role = roleAssigner.currentRole(npc.getUUID());
+        if (legacyRoleFallback && role == CitizenRole.IDLE) role = town.roleOf(npc.getUUID());
+        return requiredRoles.contains(role);
     }
 
     // --- test seams ---------------------------------------------------------------------
