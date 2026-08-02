@@ -4,6 +4,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
+import org.dawnoftime.onceuponatown.behavior.BehaviorEngine;
 import org.dawnoftime.onceuponatown.network.NetworkHelper;
 import net.minecraft.world.level.levelgen.Heightmap;
 import org.dawnoftime.onceuponatown.entity.Npc;
@@ -42,6 +43,12 @@ public class TickScheduler {
                 tickQuests(town, level, gameTime, anchorKey);
                 EraManager.tick(town, level, gameTime, anchorKey);
             }
+
+            // Behavior engine fires after the per-town updates so the existing pipeline has
+            // finished its bookkeeping (NPC spawning, queue resync) before the engine reads
+            // the live state. Opt-in by intent enqueueing: with no intents, the engine is a
+            // no-op.
+            BehaviorEngine.INSTANCE.onServerTick(level, gameTime);
 
             // Spawn builders for each slot up to targetBuilderCount, once a player is nearby.
             if (gameTime % 20 == 0) {

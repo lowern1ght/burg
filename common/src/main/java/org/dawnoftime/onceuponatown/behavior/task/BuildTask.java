@@ -1,10 +1,16 @@
 package org.dawnoftime.onceuponatown.behavior.task;
 
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
+import org.dawnoftime.onceuponatown.behavior.intent.BuildIntent;
 import org.dawnoftime.onceuponatown.behavior.intent.TownIntent;
 import org.dawnoftime.onceuponatown.building.schematic.SchematicBlock;
 import org.dawnoftime.onceuponatown.entity.Npc;
 import org.dawnoftime.onceuponatown.entity.ai.BuildAction;
+import org.dawnoftime.onceuponatown.town.Town;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.UUID;
@@ -18,19 +24,30 @@ import java.util.UUID;
  * surface, so the underlying plan (target, origin, cost, is-instant, prepare-blocks) is
  * shared.
  *
- * <p>Phase 1 is a skeleton: the task walks the action's lifecycle — MOVING, BUILDING,
- * DONE — but does not yet place blocks tick-by-tick. That layering is the next step. Until
- * then the task reports {@link TaskState#IN_PROGRESS} through the BUILDING phase and only
- * flips to DONE after the action's {@code prepareBlocks} returns an empty list.
+ * <p><b>Phase 2 wire (this revision):</b> the task is a thin wrapper over the existing
+ * {@code Town.tryAddToConstructionQueue} / {@code SimpleStateMachine} /
+ * {@code BuildGoal} pipeline rather than its own per-tick block placer. On the first tick
+ * the task delegates the work to the existing public API ({@link
+ * Town#tryAddToConstructionQueue(String)}), and on subsequent ticks it reads the live
+ * {@link Town#getBuildings()} list to detect when the legacy pipeline has finished placing
+ * the building. The actual MOVING / BUILDING phases are still driven by
+ * {@code BuildGoal}; the engine observes and reports state.
+ *
+ * <p>This layering is deliberately incremental. The new engine is opt-in (a town with no
+ * {@link BuildIntent} enqueued has no task and no behaviour change) and the new task does
+ * not duplicate the existing per-tick block placement, which would have been a near-total
+ * rewrite of {@code BuildGoal}. A future phase can promote this task to a first-class
+ * driver; the API surface is small enough that the change is local.
  */
 public final class BuildTask implements CitizenTask {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(BuildTask.class);
 
     private final UUID id;
     private final TownIntent source;
     private final Npc assignee;
     private final BuildAction action;
     private TaskState state;
-    private List<SchematicBlock> blocks;
 
     public BuildTask(UUID id, TownIntent source, Npc assignee, BuildAction action) {
         this.id = id;
@@ -49,31 +66,90 @@ public final class BuildTask implements CitizenTask {
     @Override
     public TaskState tick(TaskContext ctx) {
         if (state.isTerminal()) return state;
-        ServerLevel level = ctx.level();
 
-        // Phase 1 skeleton: we don't yet place blocks per tick. We just walk the action's
-        // lifecycle and report status. The block-by-block placement lands in the next phase.
-        if (action.isInstant()) {
-            if (action.executeInstant(level, assignee)) {
-                action.onComplete(level, assignee);
-                state = TaskState.DONE;
-            }
+        // Citizen gone (chunk unloaded past timeout, removed, etc.) -- the legacy pipeline
+        // would not be able to make progress either.
+        if (assignee == null || !assignee.isAlive() || assignee.isRemoved()) {
+            state = TaskState.FAILED;
             return state;
         }
 
-        if (blocks == null) {
-            blocks = action.prepareBlocks(level, assignee);
-            state = TaskState.IN_PROGRESS;
+        if (state == TaskState.PENDING) {
+            return onFirstTick();
         }
 
-        if (blocks.isEmpty() || action.isFailed()) {
-            action.onComplete(level, assignee);
-            state = action.isFailed() ? TaskState.FAILED : TaskState.DONE;
+        // IN_PROGRESS: monitor the legacy pipeline.
+        return onProgressTick();
+    }
+
+    private TaskState onFirstTick() {
+        if (!(source instanceof BuildIntent bi)) {
+            state = TaskState.FAILED;
             return state;
         }
-
-        // Real placement is deferred to the entity-AI layer (BuildGoal). Until that hook is
-        // wired in, the task spins in IN_PROGRESS so the engine knows something is happening.
+        Town town = bi.town();
+        if (town == null) {
+            state = TaskState.FAILED;
+            return state;
+        }
+        // The legacy Town API keys buildings by their bare path (e.g. "settlement"),
+        // not by full ResourceLocation. BuildingDataHandler.REGISTRY stores them the
+        // same way, so the resource location's path part is the right key to use.
+        boolean enqueued = town.tryAddToConstructionQueue(bi.buildingDefId().getPath());
+        if (!enqueued) {
+            LOGGER.debug("[BEHAVIOR] BuildTask {} could not enqueue building='{}' (queue full,"
+                + " unaffordable, or weight cap exceeded) -- FAILED",
+                id, bi.buildingDefId());
+            state = TaskState.FAILED;
+            return state;
+        }
+        state = TaskState.IN_PROGRESS;
+        LOGGER.debug("[BEHAVIOR] BuildTask {} enqueued building='{}' for citizen {} -- PENDING ->"
+            + " IN_PROGRESS (legacy pipeline takes over)", id, bi.buildingDefId(), assignee.getUUID());
         return state;
     }
+
+    private TaskState onProgressTick() {
+        if (!(source instanceof BuildIntent bi)) {
+            state = TaskState.FAILED;
+            return state;
+        }
+        Town town = bi.town();
+        if (town == null) {
+            state = TaskState.FAILED;
+            return state;
+        }
+
+        // Done when the legacy pipeline has registered the building in the town.
+        String defId = bi.buildingDefId().toString();
+        boolean placed = town.getBuildings().stream().anyMatch(b -> defId.equals(b.getDefId()));
+        if (placed) {
+            state = TaskState.DONE;
+            LOGGER.debug("[BEHAVIOR] BuildTask {} -- building='{}' now placed, DONE", id, defId);
+            return state;
+        }
+
+        // BuildAction reports failure (e.g. the NBT was unreadable) -- surface as FAILED.
+        if (action != null && action.isFailed()) {
+            state = TaskState.FAILED;
+            return state;
+        }
+
+        // Stays IN_PROGRESS.
+        return state;
+    }
+
+    // --- internal: a no-op BuildAction for cases where the task is driven entirely by
+    //     the legacy Town API. The action is never invoked for placement; it exists only
+    //     to satisfy the CitizenTask constructor contract and to surface a failure flag.
+    public static final BuildAction MONITOR = new BuildAction() {
+        @Override public BlockPos getTargetPos() { return BlockPos.ZERO; }
+        @Override public BlockPos getOrigin() { return BlockPos.ZERO; }
+        @Override public boolean isInstant() { return false; }
+        @Override public boolean executeInstant(ServerLevel level, Npc npc) { return false; }
+        @Override public List<SchematicBlock> prepareBlocks(ServerLevel level, Npc npc) { return List.of(); }
+        @Override public void onComplete(ServerLevel level, Npc npc) {}
+        @Override public boolean isFailed() { return false; }
+        @Override public void saveTo(CompoundTag tag) {}
+    };
 }

@@ -16,6 +16,7 @@ import org.dawnoftime.onceuponatown.behavior.intent.IntentCost;
 import org.dawnoftime.onceuponatown.behavior.intent.IntentScheduler;
 import org.dawnoftime.onceuponatown.behavior.intent.NpcSupplier;
 import org.dawnoftime.onceuponatown.behavior.intent.TownIntent;
+import org.dawnoftime.onceuponatown.behavior.task.BuildTask;
 import org.dawnoftime.onceuponatown.behavior.task.CitizenTask;
 import org.dawnoftime.onceuponatown.behavior.task.IdleTask;
 import org.dawnoftime.onceuponatown.behavior.task.PathTask;
@@ -58,6 +59,10 @@ public class BehaviorEngineGameTest {
         ResourceLocation.fromNamespaceAndPath("onceuponatown", "carpenter");
     private static final ResourceLocation MASON =
         ResourceLocation.fromNamespaceAndPath("onceuponatown", "mason");
+    // settlement has weight=0 and no construction_cost, so tryAddToConstructionQueue
+    // succeeds in the test environment (no stock, weight cap=0).
+    private static final ResourceLocation SETTLEMENT =
+        ResourceLocation.fromNamespaceAndPath("onceuponatown", "settlement");
 
     // -----------------------------------------------------------------------------------
     // engine smoke
@@ -318,6 +323,112 @@ public class BehaviorEngineGameTest {
             "the first pairing is in allActive");
         helper.assertTrue(all.stream().anyMatch(at -> at.npcId().equals(npcTwo) && at.task() == t2),
             "the second pairing is in allActive");
+        helper.succeed();
+    }
+
+    // -----------------------------------------------------------------------------------
+    // wire: engine on ServerTick
+    // -----------------------------------------------------------------------------------
+
+    /**
+     * A {@link BuildIntent} is enqueued for a town with a free builder. Running the
+     * engine's {@code onServerTick} once must promote the pairing to a {@link BuildTask}
+     * in the per-citizen queue, and the same tick transitions the task PENDING ->
+     * IN_PROGRESS (because the legacy {@code Town.tryAddToConstructionQueue} call
+     * succeeds in the test setup and the engine ticks the just-assigned task in the
+     * same pass).
+     *
+     * <p>The test does not assert DONE: the legacy {@code BuildGoal} pipeline is not
+     * ticked here (the NPC's {@code SimpleStateMachine.tick} is not called), so no
+     * building is ever placed. The build pipeline takes over only when the NPC's
+     * normal AI tick runs. The wire is what this test exercises: enqueue, pair,
+     * assign, tick the task, monitor for placement.
+     */
+    @GameTest(template = "empty5x5", timeoutTicks = 120, batch = "behavior")
+    public static void engineRunsOnServerTick(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        BlockPos anchor = helper.absolutePos(new BlockPos(2, 1, 2));
+
+        Npc builder = spawnBuilder(level, anchor);
+        Town town = townWith(builder.getUUID());
+        NpcSupplier supplier = new SingleNpcSupplier(town, builder);
+
+        IntentScheduler scheduler = new IntentScheduler(supplier);
+        BehaviorEngine engine = new BehaviorEngine(scheduler, new TaskQueue(), supplier);
+
+        // Use SETTLEMENT (weight=0, no construction_cost) so tryAddToConstructionQueue
+        // succeeds in the test environment where the town has no stock and no era weight cap.
+        TownIntent intent = new BuildIntent(SETTLEMENT, town, 5, IntentCost.empty());
+        scheduler.enqueue(intent);
+
+        // Tick 1: scheduler pairs the intent, engine assigns a BuildTask to the builder,
+        // then ticks the just-assigned task (which transitions PENDING -> IN_PROGRESS by
+        // delegating to Town.tryAddToConstructionQueue).
+        engine.onServerTick(level, level.getGameTime());
+
+        var pairings = scheduler.drainPendingAssignments();
+        helper.assertTrue(pairings.containsKey(SETTLEMENT),
+            "the scheduler paired the intent (pairings=" + pairings + ")");
+        helper.assertTrue(engine.tasks().currentTaskForId(builder.getUUID()).isPresent(),
+            "the engine assigned a task to the paired builder");
+
+        CitizenTask afterTick1 = engine.tasks().currentTaskForId(builder.getUUID()).orElseThrow();
+        helper.assertTrue(afterTick1 instanceof BuildTask,
+            "the assigned task is a BuildTask (was " + afterTick1.getClass().getSimpleName() + ")");
+        helper.assertTrue(afterTick1.state() == TaskState.IN_PROGRESS,
+            "after the first tick the task has transitioned to IN_PROGRESS via"
+                + " Town.tryAddToConstructionQueue (was " + afterTick1.state() + ")");
+        helper.assertTrue(!town.getConstructionQueue().isEmpty(),
+            "BuildTask delegated to Town.tryAddToConstructionQueue, queue now has"
+                + " " + town.getConstructionQueue().size() + " entry/ies");
+
+        // Ticks 2..10: the task stays IN_PROGRESS because the building is not yet placed
+        // (no NPC AI tick has run to drive the legacy BuildGoal). A handful of ticks
+        // is enough to show the task is stable, not spinning, not terminalising.
+        for (int i = 0; i < 9; i++) {
+            engine.onServerTick(level, level.getGameTime() + 1L + i);
+        }
+        CitizenTask afterTen = engine.tasks().currentTaskForId(builder.getUUID()).orElseThrow();
+        helper.assertTrue(afterTen.state() == TaskState.IN_PROGRESS,
+            "after 10 ticks the task is still IN_PROGRESS, monitoring for placement"
+                + " (was " + afterTen.state() + ")");
+        helper.assertTrue(afterTen instanceof BuildTask,
+            "the active task remains a BuildTask (was " + afterTen.getClass().getSimpleName() + ")");
+
+        helper.succeed();
+    }
+
+    /**
+     * A town with NO intents must produce no tasks. This is the
+     * "existing behaviour unchanged" property the wire is meant to preserve: the engine
+     * is opt-in by intent enqueueing, and a town with nothing to do is invisible to it.
+     */
+    @GameTest(template = "empty5x5", timeoutTicks = 80, batch = "behavior")
+    public static void engineNoIntent_noop(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        BlockPos anchor = helper.absolutePos(new BlockPos(2, 1, 2));
+
+        Npc builder = spawnBuilder(level, anchor);
+        Town town = townWith(builder.getUUID());
+        NpcSupplier supplier = new SingleNpcSupplier(town, builder);
+
+        IntentScheduler scheduler = new IntentScheduler(supplier);
+        BehaviorEngine engine = new BehaviorEngine(scheduler, new TaskQueue(), supplier);
+
+        // No intents enqueued.
+        for (int i = 0; i < 10; i++) {
+            engine.onServerTick(level, level.getGameTime() + i);
+        }
+
+        helper.assertTrue(scheduler.activeIntents(town).isEmpty(),
+            "no intents for a town that did not enqueue any");
+        helper.assertTrue(scheduler.drainPendingAssignments().isEmpty(),
+            "no pairings when the scheduler has no intents");
+        helper.assertTrue(engine.tasks().allActive().isEmpty(),
+            "no tasks assigned when no intents were enqueued");
+        helper.assertTrue(town.getConstructionQueue().isEmpty(),
+            "the legacy construction queue is untouched (was "
+                + town.getConstructionQueue().size() + ")");
         helper.succeed();
     }
 

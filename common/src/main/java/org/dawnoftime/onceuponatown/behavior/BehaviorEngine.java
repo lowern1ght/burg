@@ -2,15 +2,21 @@ package org.dawnoftime.onceuponatown.behavior;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import org.dawnoftime.onceuponatown.behavior.intent.BuildIntent;
 import org.dawnoftime.onceuponatown.behavior.intent.IntentScheduler;
 import org.dawnoftime.onceuponatown.behavior.intent.NpcSupplier;
 import org.dawnoftime.onceuponatown.behavior.intent.TownIntent;
+import org.dawnoftime.onceuponatown.behavior.intent.UpgradeIntent;
+import org.dawnoftime.onceuponatown.behavior.task.BuildTask;
 import org.dawnoftime.onceuponatown.behavior.task.CitizenTask;
 import org.dawnoftime.onceuponatown.behavior.task.IdleTask;
 import org.dawnoftime.onceuponatown.behavior.task.TaskContext;
 import org.dawnoftime.onceuponatown.behavior.task.TaskQueue;
 import org.dawnoftime.onceuponatown.behavior.task.TaskState;
+import org.dawnoftime.onceuponatown.behavior.task.UpgradeTask;
 import org.dawnoftime.onceuponatown.entity.Npc;
+import org.dawnoftime.onceuponatown.town.Town;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,30 +34,62 @@ import java.util.UUID;
  *   <li>Run the scheduler. It prunes stale intents, sorts the survivors by priority, and
  *       pairs free citizens with the intents that resolve. The result is a map of intent
  *       id -> citizen uuid.</li>
- *   <li>For each pair, build a default {@link CitizenTask} (placeholder for now — the
- *       per-kind factories land in the next phase) and hand it to the queue.</li>
+ *   <li>For each pairing, build a default {@link CitizenTask} (a {@link BuildTask} for a
+ *       {@link BuildIntent}, an {@link UpgradeTask} for an {@link UpgradeIntent}, an
+ *       {@link IdleTask} for the catch-all) and hand it to the queue.</li>
  *   <li>Tick every active task. If a task lands in a terminal state, fire its
  *       {@link CitizenTask#onComplete} and remove it from the queue.</li>
- *   <li>Free citizens with no task get an {@link IdleTask} assigned so they show up in
- *       future scheduler pairings consistently.</li>
  * </ol>
  *
- * <p>This class is the composition point for the engine but is not yet wired into the
- * NeoForge event bus or {@code TickScheduler}. That wiring is a separate commit on top of
- * this skeleton.
+ * <p>The engine is a singleton ({@link #INSTANCE}). The single Minecraft main thread
+ * drives it from {@code TickScheduler.tick}. The world-aware {@link NpcSupplier}
+ * captures the active {@code ServerLevel} via a per-tick field set by
+ * {@link #onServerTick}; reading it outside a tick returns an empty list / nothing,
+ * which is the safe default.
+ *
+ * <p>Thread safety: not required. Server ticks are single-threaded on the main thread,
+ * and the engine is only invoked from there. Documented for future maintainers.
  */
 public final class BehaviorEngine {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BehaviorEngine.class);
 
+    /**
+     * The singleton. Initialised at class load. Tests may construct their own
+     * {@code BehaviorEngine} for isolation; production code uses this instance.
+     */
+    public static final BehaviorEngine INSTANCE = createInstance();
+
+    private static BehaviorEngine createInstance() {
+        // One WorldNpcSupplier shared between the scheduler and the engine. Without
+        // sharing, the scheduler's supplier never gets bound to the engine and its
+        // freeCitizens() returns empty (no level), defeating pairings.
+        WorldNpcSupplier supplier = new WorldNpcSupplier();
+        return new BehaviorEngine(
+            new IntentScheduler(supplier),
+            new TaskQueue(),
+            supplier
+        );
+    }
+
     private final IntentScheduler scheduler;
     private final TaskQueue tasks;
     private final NpcSupplier npcSupplier;
+
+    /**
+     * The level the engine is currently ticking. Set by {@link #onServerTick} before any
+     * other work; read by {@link WorldNpcSupplier} to resolve UUIDs and builder lists.
+     * Single-threaded (main thread) -- no volatile or synchronization needed.
+     */
+    private ServerLevel currentLevel;
 
     public BehaviorEngine(IntentScheduler scheduler, TaskQueue tasks, NpcSupplier npcSupplier) {
         this.scheduler = scheduler;
         this.tasks = tasks;
         this.npcSupplier = npcSupplier;
+        if (npcSupplier instanceof WorldNpcSupplier w) {
+            w.bind(this);
+        }
     }
 
     public IntentScheduler scheduler() { return scheduler; }
@@ -62,50 +100,79 @@ public final class BehaviorEngine {
      * runs alongside.
      */
     public void onServerTick(ServerLevel level, long gameTick) {
-        TaskContext ctx = new TaskContext(level, gameTick, npcSupplier);
+        ServerLevel previous = this.currentLevel;
+        this.currentLevel = level;
+        try {
+            TaskContext ctx = new TaskContext(level, gameTick, npcSupplier);
 
-        // 1) Scheduler: prune, sort, pair.
-        scheduler.onTick(new IntentScheduler.TickContext() {
-            @Override public long gameTick() { return gameTick; }
-        });
+            // 1) Scheduler: prune, sort, pair.
+            scheduler.onTick(new IntentScheduler.TickContext() {
+                @Override public long gameTick() { return gameTick; }
+            });
 
-        // 2) Take the pairings and assign each to a citizen. Phase 1 doesn't yet know how
-        //    to build a task per intent kind, so we record the pairing in a holding map
-        //    and let the next phase promote it to a real task. For now, a paired citizen
-        //    with no task gets an IdleTask so the engine's invariant (every citizen has a
-        //    task) holds.
-        //    The scheduler's pendingAssignments are NOT drained here — they remain until
-        //    the next scheduler tick clears them. Tests and consumers can peek or drain
-        //    via the scheduler's accessors.
-        Map<ResourceLocation, UUID> pairings = scheduler.peekPairings();
-        for (Map.Entry<ResourceLocation, UUID> e : pairings.entrySet()) {
-            IntentKind kind = kindFor(scheduler.find(e.getKey()).orElse(null));
-            LOGGER.debug("[BEHAVIOR] pairing intent {} -> npc {} (kind={})",
-                e.getKey(), e.getValue(), kind);
-        }
-
-        // 3) Tick active tasks. If a task terminalises, fire onComplete and let the queue
-        //    promote the next waiting task (if any).
-        Map<UUID, TaskState> completedThisTick = new HashMap<>();
-        for (TaskQueue.ActiveTask at : tasks.allActive()) {
-            CitizenTask task = at.task();
-            TaskState next = task.tick(ctx);
-            if (next.isTerminal()) {
-                task.onComplete(ctx, next);
-                completedThisTick.put(at.npcId(), next);
+            // 2) Promote pairings to tasks. The scheduler only knows "intent X goes to
+            //    citizen Y" -- it is the engine's job to construct the right CitizenTask
+            //    for that pairing and hand it to the per-citizen queue.
+            Map<ResourceLocation, UUID> pairings = scheduler.peekPairings();
+            for (Map.Entry<ResourceLocation, UUID> e : pairings.entrySet()) {
+                ResourceLocation intentId = e.getKey();
+                UUID citizenId = e.getValue();
+                TownIntent intent = scheduler.find(intentId).orElse(null);
+                if (intent == null) {
+                    LOGGER.debug("[BEHAVIOR] pairing for intent {} has no intent in scheduler --"
+                        + " skipping", intentId);
+                    continue;
+                }
+                Npc citizen = npcSupplier.findByUuid(citizenId).orElse(null);
+                if (citizen == null) {
+                    LOGGER.debug("[BEHAVIOR] pairing for intent {} -> {} has no live citizen --"
+                        + " skipping", intentId, citizenId);
+                    continue;
+                }
+                CitizenTask task = buildTask(intent, citizen);
+                if (task == null) {
+                    LOGGER.debug("[BEHAVIOR] no task factory for intent kind {} -- skipping",
+                        kindFor(intent));
+                    continue;
+                }
+                tasks.assign(citizen, task);
             }
-        }
-        for (Map.Entry<UUID, TaskState> e : completedThisTick.entrySet()) {
-            tasks.completeForId(e.getKey(), e.getValue());
-        }
 
-        // 4) Free citizens without a task get an IdleTask so the engine sees them as
-        //    "currently doing nothing" rather than "lost".
-        //    Skipped here — the engine doesn't have a town-set on this tick; left for the
-        //    wiring commit that knows the town list.
+            // 3) Tick active tasks. If a task terminalises, fire onComplete and let the queue
+            //    promote the next waiting task (if any).
+            Map<UUID, TaskState> completedThisTick = new HashMap<>();
+            for (TaskQueue.ActiveTask at : tasks.allActive()) {
+                CitizenTask task = at.task();
+                if (task.state().isTerminal()) continue;
+                TaskState next = task.tick(ctx);
+                if (next.isTerminal()) {
+                    task.onComplete(ctx, next);
+                    completedThisTick.put(at.npcId(), next);
+                }
+            }
+            for (Map.Entry<UUID, TaskState> e : completedThisTick.entrySet()) {
+                tasks.completeForId(e.getKey(), e.getValue());
+            }
+        } finally {
+            this.currentLevel = previous;
+        }
     }
 
-    // --- kind classification (placeholder) -----------------------------------------------
+    /**
+     * Factory: choose the task kind for a given intent. Returns null if the engine has no
+     * executor for this intent kind yet (defensive -- the engine logs and skips).
+     */
+    private static CitizenTask buildTask(TownIntent intent, Npc citizen) {
+        if (intent instanceof BuildIntent) {
+            return new BuildTask(UUID.randomUUID(), intent, citizen, BuildTask.MONITOR);
+        }
+        if (intent instanceof UpgradeIntent) {
+            return new UpgradeTask(UUID.randomUUID(), intent, citizen, UpgradeTask.MONITOR);
+        }
+        return null;
+    }
+
+    // --- kind classification ---------------------------------------------------------
 
     /** A rough classification used by the engine until Phase BEHAVIOR-2 adds the real factories. */
     public enum IntentKind {
@@ -140,5 +207,46 @@ public final class BehaviorEngine {
      */
     public Optional<Npc> findCitizen(UUID id) {
         return npcSupplier.findByUuid(id);
+    }
+
+    /**
+     * World-aware NPC supplier. Reads the level from the bound engine's
+     * {@code currentLevel} field, which is set by {@link #onServerTick} on every
+     * server tick. Returns empty results outside a tick -- callers that hold a
+     * supplier across ticks must tolerate this.
+     */
+    static final class WorldNpcSupplier implements NpcSupplier {
+        private BehaviorEngine engine;
+
+        void bind(BehaviorEngine engine) {
+            this.engine = engine;
+        }
+
+        @Override
+        public java.util.List<Npc> freeCitizens(Town town) {
+            ServerLevel level = currentLevel();
+            if (level == null || town == null) return java.util.List.of();
+            java.util.List<Npc> result = new java.util.ArrayList<>();
+            for (UUID id : town.getBuilderNpcIds()) {
+                if (id == null) continue;
+                Entity e = level.getEntity(id);
+                if (e instanceof Npc npc) {
+                    result.add(npc);
+                }
+            }
+            return result;
+        }
+
+        @Override
+        public Optional<Npc> findByUuid(UUID id) {
+            ServerLevel level = currentLevel();
+            if (level == null) return Optional.empty();
+            Entity e = level.getEntity(id);
+            return e instanceof Npc npc ? Optional.of(npc) : Optional.empty();
+        }
+
+        private ServerLevel currentLevel() {
+            return engine == null ? null : engine.currentLevel;
+        }
     }
 }
