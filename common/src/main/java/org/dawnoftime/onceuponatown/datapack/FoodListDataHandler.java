@@ -4,12 +4,13 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.integration.ItemResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,10 +69,9 @@ public class FoodListDataHandler {
             JsonObject obj = el.getAsJsonObject();
             String itemId = obj.get("item").getAsString();
             int fuv = obj.get("fuv").getAsInt();
-            ResourceLocation rl = ResourceLocation.parse(itemId);
-            Item item = BuiltInRegistries.ITEM.getOptional(rl).orElse(null);
-            if (item == null) continue;
-            map.put(item, fuv);
+            ItemStack stack = ItemResolver.resolve(ResourceLocation.parse(itemId));
+            if (stack.isEmpty()) continue;
+            map.put(stack.getItem(), fuv);
         }
     }
 

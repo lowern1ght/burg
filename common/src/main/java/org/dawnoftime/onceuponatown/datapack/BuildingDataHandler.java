@@ -10,8 +10,9 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.packs.resources.ResourceManager;
-import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import org.dawnoftime.onceuponatown.Ouat;
+import org.dawnoftime.onceuponatown.integration.ItemResolver;
 import org.dawnoftime.onceuponatown.town.BuildingDef;
 import org.dawnoftime.onceuponatown.town.ItemCost;
 import org.dawnoftime.onceuponatown.town.ProductionEntry;
@@ -57,10 +58,11 @@ public class BuildingDataHandler {
         if (json.has("production")) {
             for (JsonElement el : json.getAsJsonArray("production")) {
                 JsonObject p = el.getAsJsonObject();
-                Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(p.get("item").getAsString()));
+                ItemStack stack = ItemResolver.resolve(ResourceLocation.parse(p.get("item").getAsString()));
+                if (stack.isEmpty()) continue;
                 int unlockAtLevel = p.has("unlock_at_level") ? p.get("unlock_at_level").getAsInt() : -1;
                 production.add(new ProductionEntry(
-                    item,
+                    stack.getItem(),
                     p.get("amount").getAsInt(),
                     p.get("every_ticks").getAsInt(),
                     p.get("capacity_stacks").getAsInt(),
@@ -73,8 +75,9 @@ public class BuildingDataHandler {
         if (json.has("construction_cost")) {
             for (JsonElement el : json.getAsJsonArray("construction_cost")) {
                 JsonObject c = el.getAsJsonObject();
-                Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(c.get("item").getAsString()));
-                costs.add(new ItemCost(item, c.get("amount").getAsInt()));
+                ItemStack stack = ItemResolver.resolve(ResourceLocation.parse(c.get("item").getAsString()));
+                if (stack.isEmpty()) continue;
+                costs.add(new ItemCost(stack.getItem(), c.get("amount").getAsInt()));
             }
         }
 
@@ -95,17 +98,19 @@ public class BuildingDataHandler {
         if (json.has("transformations")) {
             for (JsonElement el : json.getAsJsonArray("transformations")) {
                 JsonObject t = el.getAsJsonObject();
+                ItemStack outputStack = ItemResolver.resolve(ResourceLocation.parse(t.get("output").getAsString()));
+                if (outputStack.isEmpty()) continue;
                 List<ItemCost> inputs = new ArrayList<>();
                 for (JsonElement inputEl : t.getAsJsonArray("inputs")) {
                     JsonObject inp = inputEl.getAsJsonObject();
-                    Item inputItem = BuiltInRegistries.ITEM.get(ResourceLocation.parse(inp.get("item").getAsString()));
-                    inputs.add(new ItemCost(inputItem, inp.get("amount").getAsInt()));
+                    ItemStack inputStack = ItemResolver.resolve(ResourceLocation.parse(inp.get("item").getAsString()));
+                    if (inputStack.isEmpty()) continue;
+                    inputs.add(new ItemCost(inputStack.getItem(), inp.get("amount").getAsInt()));
                 }
-                Item outputItem = BuiltInRegistries.ITEM.get(ResourceLocation.parse(t.get("output").getAsString()));
                 int unlockAtLevel = t.has("unlock_at_level") ? t.get("unlock_at_level").getAsInt() : -1;
                 transformations.add(new TransformationRecipe(
                     inputs,
-                    outputItem,
+                    outputStack.getItem(),
                     t.get("output_amount").getAsInt(),
                     t.get("output_capacity_stacks").getAsInt(),
                     unlockAtLevel
@@ -145,8 +150,9 @@ public class BuildingDataHandler {
                 if (u.has("upgrade_cost")) {
                     for (JsonElement ce : u.getAsJsonArray("upgrade_cost")) {
                         JsonObject c = ce.getAsJsonObject();
-                        Item costItem = BuiltInRegistries.ITEM.get(ResourceLocation.parse(c.get("item").getAsString()));
-                        upgradeCost.add(new ItemCost(costItem, c.get("amount").getAsInt()));
+                        ItemStack costStack = ItemResolver.resolve(ResourceLocation.parse(c.get("item").getAsString()));
+                        if (costStack.isEmpty()) continue;
+                        upgradeCost.add(new ItemCost(costStack.getItem(), c.get("amount").getAsInt()));
                     }
                 }
                 upgrades.add(new BuildingDef.UpgradeLevel(cadenceMult, capAdd, amountAdd, residentsAdd, consumptionAdd,
@@ -191,8 +197,9 @@ public class BuildingDataHandler {
         if (json.has("initial_stock")) {
             for (JsonElement el : json.getAsJsonArray("initial_stock")) {
                 JsonObject s = el.getAsJsonObject();
-                Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(s.get("item").getAsString()));
-                initialStock.add(new ItemCost(item, s.get("amount").getAsInt()));
+                ItemStack stack = ItemResolver.resolve(ResourceLocation.parse(s.get("item").getAsString()));
+                if (stack.isEmpty()) continue;
+                initialStock.add(new ItemCost(stack.getItem(), s.get("amount").getAsInt()));
             }
         }
 
