@@ -380,12 +380,14 @@ public class PathLayerGameTest {
     // -----------------------------------------------------------------------------------
 
     /**
-     * The planner-built {@link PathTask} transitions
-     * {@link TaskState#PENDING} → {@link TaskState#IN_PROGRESS} →
-     * {@link TaskState#DONE} across two ticks. Planning-only — no blocks
-     * placed.
+     * The planner-built {@link PathTask} walks through the
+     * {@link TaskState#PENDING} → {@link TaskState#STARTED} →
+     * {@link TaskState#IN_PROGRESS} → {@link TaskState#DONE} lifecycle. Each
+     * tick (after the PENDING tick) advances {@link PathTask#progress()} by
+     * the morale-weighted {@code BASE_RATE}; ten neutral-morale ticks reach
+     * DONE. Planning-only — no blocks placed.
      */
-    @GameTest(template = "empty5x5", timeoutTicks = 60, batch = "path")
+    @GameTest(template = "empty5x5", timeoutTicks = 80, batch = "path")
     public static void pathTask_completesAfterOneTick(GameTestHelper helper) {
         BlockPos a = new BlockPos(0, 1, 0);
         BlockPos b = new BlockPos(1, 1, 0);
@@ -394,14 +396,28 @@ public class PathLayerGameTest {
 
         helper.assertTrue(task.state() == TaskState.PENDING,
             "new task is PENDING (was " + task.state() + ")");
+        helper.assertTrue(task.progress() == 0.0f,
+            "new task progress is 0 (was " + task.progress() + ")");
 
+        // Tick 1: PENDING -> STARTED -> IN_PROGRESS in one pass (no early return);
+        // progress advances to BASE_RATE.
         task.tick(stubContext(helper));
         helper.assertTrue(task.state() == TaskState.IN_PROGRESS,
             "first tick transitions to IN_PROGRESS (was " + task.state() + ")");
+        helper.assertTrue(task.progress() > 0.0f,
+            "first tick advances progress above 0 (was " + task.progress() + ")");
 
-        task.tick(stubContext(helper));
+        // Tick until DONE. At neutral morale (50 -> multiplier 1.0), this takes 10
+        // ticks (BASE_RATE * 10 = 1.0). The loop also guards against an infinite
+        // regression if BASE_RATE drifts to 0 or smaller.
+        int ticksRun = 1;
+        while (task.state() != TaskState.DONE && ticksRun < 100) {
+            task.tick(stubContext(helper));
+            ticksRun++;
+        }
         helper.assertTrue(task.state() == TaskState.DONE,
-            "second tick transitions to DONE (was " + task.state() + ")");
+            "PathTask reaches DONE within 100 ticks (was " + task.state()
+                + " after " + ticksRun + " ticks)");
 
         helper.succeed();
     }
@@ -451,9 +467,12 @@ public class PathLayerGameTest {
 
     /**
      * A minimal {@link org.dawnoftime.onceuponatown.behavior.task.TaskContext}
-     * for tasks that need a level but do not touch the NPC supplier. The
-     * planner-built {@link PathTask} does not look at the context in this
-     * revision, so this is enough for the lifecycle tests.
+     * for tasks that need a level but do not touch the NPC supplier, the
+     * BuildExecutor seam, or the MoraleState. The planner-built {@link
+     * PathTask} reads {@code morale} (default 50) for its progress multiplier
+     * but ignores {@code executor} since placement is wired in a later phase.
+     * Executor is passed as null because the stub context is only used by the
+     * lifecycle tests, which never call into it.
      */
     private static org.dawnoftime.onceuponatown.behavior.task.TaskContext stubContext(
             GameTestHelper helper) {
@@ -469,6 +488,8 @@ public class PathLayerGameTest {
                         java.util.UUID id) {
                     return Optional.empty();
                 }
-            });
+            },
+            null,
+            new org.dawnoftime.onceuponatown.behavior.morale.MoraleState());
     }
 }

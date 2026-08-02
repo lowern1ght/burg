@@ -338,11 +338,12 @@ public class BehaviorEngineGameTest {
      * succeeds in the test setup and the engine ticks the just-assigned task in the
      * same pass).
      *
-     * <p>The test does not assert DONE: the legacy {@code BuildGoal} pipeline is not
-     * ticked here (the NPC's {@code SimpleStateMachine.tick} is not called), so no
-     * building is ever placed. The build pipeline takes over only when the NPC's
-     * normal AI tick runs. The wire is what this test exercises: enqueue, pair,
-     * assign, tick the task, monitor for placement.
+     * <p><b>Phase 7 update:</b> the task now also tracks {@link BuildTask#progress()}
+     * each tick (10% per tick at neutral morale). The town has no actual placement
+     * (the legacy {@code BuildGoal} pipeline isn't ticked), so {@code isPlaced}
+     * returns false -- but the morale-driven math still drives the task to DONE
+     * after 10 neutral-morale ticks. The engine removes the DONE task from the
+     * queue and we assert that here.
      */
     @GameTest(template = "empty5x5", timeoutTicks = 120, batch = "behavior")
     public static void engineRunsOnServerTick(GameTestHelper helper) {
@@ -368,7 +369,8 @@ public class BehaviorEngineGameTest {
 
         // Tick 1: scheduler pairs the intent, engine assigns a BuildTask to the builder,
         // then ticks the just-assigned task (which transitions PENDING -> IN_PROGRESS by
-        // delegating to Town.tryAddToConstructionQueue).
+        // delegating to Town.tryAddToConstructionQueue). Phase 7: the tick also advances
+        // progress by the INITIAL_BUMP + BASE_RATE.
         engine.onServerTick(level, level.getGameTime());
 
         var pairings = scheduler.drainPendingAssignments();
@@ -387,18 +389,15 @@ public class BehaviorEngineGameTest {
             "BuildTask delegated to Town.tryAddToConstructionQueue, queue now has"
                 + " " + town.getConstructionQueue().size() + " entry/ies");
 
-        // Ticks 2..10: the task stays IN_PROGRESS because the building is not yet placed
-        // (no NPC AI tick has run to drive the legacy BuildGoal). A handful of ticks
-        // is enough to show the task is stable, not spinning, not terminalising.
-        for (int i = 0; i < 9; i++) {
+        // Ticks 2..N: progress advances each tick. At neutral morale (50 -> multiplier
+        // 1.0) with INITIAL_BUMP=0.05 and BASE_RATE=0.1, the task reaches DONE on the
+        // 10th tick (progress reaches 1.0). The engine removes DONE tasks from the
+        // queue, so currentTaskForId returns empty once the task is terminalised.
+        for (int i = 0; i < 15; i++) {
             engine.onServerTick(level, level.getGameTime() + 1L + i);
         }
-        CitizenTask afterTen = engine.tasks().currentTaskForId(builder.getUUID()).orElseThrow();
-        helper.assertTrue(afterTen.state() == TaskState.IN_PROGRESS,
-            "after 10 ticks the task is still IN_PROGRESS, monitoring for placement"
-                + " (was " + afterTen.state() + ")");
-        helper.assertTrue(afterTen instanceof BuildTask,
-            "the active task remains a BuildTask (was " + afterTen.getClass().getSimpleName() + ")");
+        helper.assertTrue(engine.tasks().currentTaskForId(builder.getUUID()).isEmpty(),
+            "after enough ticks the BuildTask reaches DONE and is removed (currentTask present)");
 
         helper.succeed();
         } finally {

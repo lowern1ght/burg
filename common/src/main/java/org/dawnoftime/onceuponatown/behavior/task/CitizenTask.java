@@ -37,6 +37,14 @@ public sealed interface CitizenTask
     /** Current lifecycle state. Updated by {@link #tick}. */
     TaskState state();
 
+    /**
+     * Estimated progress 0.0 (not started) to 1.0 (complete). Read by the engine
+     * for diagnostics and by tests to verify the morale-driven rate. The default
+     * returns 0 because most stub tasks (speak, patrol, trade) have no work to
+     * measure; concrete working tasks (build, upgrade, path) override.
+     */
+    default float progress() { return 0f; }
+
     /** Advances the task one step. Returns the new state. */
     TaskState tick(TaskContext ctx);
 

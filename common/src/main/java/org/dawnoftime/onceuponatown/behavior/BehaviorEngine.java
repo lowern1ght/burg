@@ -181,7 +181,7 @@ public final class BehaviorEngine {
         ServerLevel previous = this.currentLevel;
         this.currentLevel = level;
         try {
-            TaskContext ctx = new TaskContext(level, gameTick, npcSupplier);
+            TaskContext ctx = new TaskContext(level, gameTick, npcSupplier, staticExecutor, morale);
             diplomaticRegistry.tickClock();
 
             // 0) Role assigner. Runs at ROLE_UPDATE_INTERVAL (5s at 20 tps) to keep the
@@ -221,6 +221,17 @@ public final class BehaviorEngine {
                         + " skipping", intentId, citizenId);
                     continue;
                 }
+                // Phase 7: skip re-assignment when the citizen already has an active task.
+                // The scheduler re-pairs an intent on every tick while it stays valid, and
+                // the supplier doesn't filter out citizens with active tasks -- without
+                // this check, the engine would replace the existing task with a fresh
+                // PENDING-state task every tick and progress (Phase 7) would never
+                // accumulate.
+                if (tasks.currentTaskForId(citizenId).isPresent()) {
+                    LOGGER.debug("[BEHAVIOR] citizen {} already has an active task, skipping"
+                        + " assignment for {}", citizenId, intentId);
+                    continue;
+                }
                 CitizenTask task = buildTask(intent, citizen);
                 if (task == null) {
                     LOGGER.debug("[BEHAVIOR] no task factory for intent kind {} -- skipping",
@@ -242,6 +253,19 @@ public final class BehaviorEngine {
                 if (next.isTerminal()) {
                     task.onComplete(ctx, next);
                     completedThisTick.put(at.npcId(), next);
+                    // Phase 7: drop the source intent when the task lands on DONE so the
+                    // scheduler doesn't re-pair the same intent on the next tick and create
+                    // an infinite assign/DONE/assign cycle. The scheduler's
+                    // isStillValid() does not flip false on its own when the math-driven
+                    // progress hits 1.0 (the building is not yet placed by the legacy
+                    // pipeline), so cancel is the explicit signal. FAILED/INTERRUPTED
+                    // intents are left in place -- a retry might still be wanted.
+                    if (next == TaskState.DONE) {
+                        TownIntent source = task.source();
+                        if (source != null) {
+                            scheduler.cancel(source.id());
+                        }
+                    }
                 }
             }
             for (Map.Entry<UUID, TaskState> e : completedThisTick.entrySet()) {
