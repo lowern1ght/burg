@@ -13,6 +13,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import org.dawnoftime.onceuponatown.Constants;
+import org.dawnoftime.onceuponatown.behavior.executor.BuildExecutor;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
 import org.dawnoftime.onceuponatown.datapack.EraDef;
 import org.dawnoftime.onceuponatown.datapack.EraTransitionDataHandler;
@@ -31,7 +32,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
-public class Town {
+public class Town implements BuildExecutor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Town.class);
 
@@ -438,6 +439,34 @@ public class Town {
 
         constructionQueue.add(new QueueEntry.Upgrade(nextEntryId++, building.defId, worldPos, effectiveLevel));
         return true;
+    }
+
+    // -------------------------------------------------------------------------
+    // BuildExecutor (behavior engine seam)
+    //
+    // These three methods adapt the engine's ResourceLocation-keyed interface to the
+    // legacy bare-string-keyed queue. The placerNpcUuid is accepted but currently ignored:
+    // Town assigns the builder internally when SimpleStateMachine picks the entry up.
+    // -------------------------------------------------------------------------
+
+    @Override
+    public boolean tryQueueNewBuild(Town town, ResourceLocation buildingDefId, String placerNpcUuid) {
+        // placer identity is recorded by the engine; Town assigns internally.
+        return tryAddToConstructionQueue(buildingDefId.getPath());
+    }
+
+    @Override
+    public boolean tryQueueUpgrade(Town town, BlockPos buildingPos, String placerNpcUuid) {
+        return tryQueueUpgrade(buildingPos);
+    }
+
+    @Override
+    public boolean isPlaced(Town town, ResourceLocation buildingDefId) {
+        String path = buildingDefId.getPath();
+        for (PlacedBuilding b : buildings) {
+            if (path.equals(b.defId)) return true;
+        }
+        return false;
     }
 
     // Removes entry at index, restoring its reserved resources to the floating reserve.

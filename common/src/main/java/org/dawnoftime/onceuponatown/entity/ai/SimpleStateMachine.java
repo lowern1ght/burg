@@ -86,6 +86,29 @@ public class SimpleStateMachine {
 
     public State getState() { return current; }
 
+    /**
+     * Public entry point for the behavior engine. Same semantics as the body of
+     * {@link #tickPlayerQueue} after it has selected a {@link BuildAction}: attach the
+     * action to {@code activeBuild}, switch state to {@code BUILD}, and let the regular
+     * {@code tick} loop drive MOVING / BUILDING / DONE via the {@code BuildGoal}.
+     *
+     * <p>The engine calls this when it has already done the placement work itself
+     * (computed a ConnectionPoint, a final position, a rotation, etc.) and wants the NPC
+     * to execute a one-off action without going through the player's GUI queue. The legacy
+     * queue path is unchanged: {@link #tickPlayerQueue} still scans
+     * {@code town.getConstructionQueue()} on every idle tick.
+     *
+     * <p>Behavior-engine queued builds are normally handled by the existing Town pipeline
+     * (engine enqueues via {@code BuildExecutor.tryQueueNewBuild}, the NPC's normal idle
+     * tick picks it up via {@code tickPlayerQueue}). This method is the seam for a future
+     * phase that bypasses the queue entirely.
+     */
+    public void runBuildCycleFromEngine(Npc npc, Town town, BuildAction action) {
+        this.activeBuild = new BuildGoal(npc, action);
+        this.activeQueueEntry = null;
+        this.current = State.BUILD;
+    }
+
     public void tick() {
         switch (current) {
             case IDLE -> tickIdle();

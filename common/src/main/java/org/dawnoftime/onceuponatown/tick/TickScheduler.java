@@ -25,6 +25,11 @@ import java.util.UUID;
 
 public class TickScheduler {
 
+    // Set true after BehaviorEngine.register(...) has been called with a real Town.
+    // The first level to provide a Town wins the slot; subsequent levels don't overwrite it.
+    // Multi-world setups (rare; not currently supported) would need per-world state here.
+    private static boolean engineWired = false;
+
     // Called from OuatForge via TickEvent.ServerTickEvent (Phase.END)
     public static void tick(MinecraftServer server) {
         for (ServerLevel level : server.getAllLevels()) {
@@ -34,6 +39,18 @@ public class TickScheduler {
             for (Map.Entry<Long, Town> townEntry : levelTowns.getAllTownEntries()) {
                 Town town = townEntry.getValue();
                 long anchorKey = townEntry.getKey();
+
+                // One-time wiring of the behavior engine's BuildExecutor seam. The first
+                // Town to appear wins; a second level's town does not overwrite the first.
+                // BuildExecutor is registered with a concrete Town because Town implements
+                // the interface directly.
+                if (!engineWired) {
+                    BehaviorEngine.register(town, BehaviorEngine.getNpcSupplier());
+                    engineWired = true;
+                    org.slf4j.LoggerFactory.getLogger(TickScheduler.class)
+                        .info("[OUAT-BEHAVIOR] BuildExecutor wired to first town (anchor={})",
+                            BlockPos.of(anchorKey));
+                }
 
                 ProductionManager.tick(town, level, gameTime, anchorKey);
                 FoodManager.tick(town, level, gameTime, anchorKey);

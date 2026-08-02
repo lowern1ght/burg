@@ -355,7 +355,12 @@ public class BehaviorEngineGameTest {
 
         IntentScheduler scheduler = new IntentScheduler(supplier);
         BehaviorEngine engine = new BehaviorEngine(scheduler, new TaskQueue(), supplier);
+        // Phase 2: the engine now requires a registered BuildExecutor. Town implements it
+        // directly, so we register the test town. Real production wires the same way from
+        // TickScheduler.
+        BehaviorEngine.register(town, supplier);
 
+        try {
         // Use SETTLEMENT (weight=0, no construction_cost) so tryAddToConstructionQueue
         // succeeds in the test environment where the town has no stock and no era weight cap.
         TownIntent intent = new BuildIntent(SETTLEMENT, town, 5, IntentCost.empty());
@@ -396,6 +401,9 @@ public class BehaviorEngineGameTest {
             "the active task remains a BuildTask (was " + afterTen.getClass().getSimpleName() + ")");
 
         helper.succeed();
+        } finally {
+            BehaviorEngine.register(null, null);
+        }
     }
 
     /**
@@ -429,6 +437,142 @@ public class BehaviorEngineGameTest {
         helper.assertTrue(town.getConstructionQueue().isEmpty(),
             "the legacy construction queue is untouched (was "
                 + town.getConstructionQueue().size() + ")");
+        helper.succeed();
+    }
+
+    // -----------------------------------------------------------------------------------
+    // BuildExecutor seam (Phase 2)
+    // -----------------------------------------------------------------------------------
+
+    /**
+     * A registered {@link FakeBuildExecutor} records the {@code tryQueueNewBuild} call
+     * when the engine promotes a {@link BuildIntent} pairing to a {@link BuildTask}. The
+     * fake's town and defId arguments must match what the task was constructed with.
+     */
+    @GameTest(template = "empty5x5", timeoutTicks = 80, batch = "behavior")
+    public static void engineUsesBuildExecutor(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        BlockPos anchor = helper.absolutePos(new BlockPos(2, 1, 2));
+
+        Npc builder = spawnBuilder(level, anchor);
+        Town town = townWith(builder.getUUID());
+        NpcSupplier supplier = new SingleNpcSupplier(town, builder);
+
+        // Register a fake executor before running the engine. After this point any
+        // BuildTask the engine creates will route through the fake.
+        FakeBuildExecutor fake = new FakeBuildExecutor();
+        IntentScheduler scheduler = new IntentScheduler(supplier);
+        BehaviorEngine engine = new BehaviorEngine(scheduler, new TaskQueue(), supplier);
+        BehaviorEngine.register(fake, supplier);
+
+        try {
+            TownIntent intent = new BuildIntent(SETTLEMENT, town, 5, IntentCost.empty());
+            scheduler.enqueue(intent);
+            engine.onServerTick(level, level.getGameTime());
+
+            var newBuildCalls = fake.getNewBuildCalls();
+            helper.assertTrue(!newBuildCalls.isEmpty(),
+                "BuildExecutor.tryQueueNewBuild was called at least once (calls="
+                    + newBuildCalls.size() + ")");
+            FakeBuildExecutor.NewBuildCall call = newBuildCalls.get(0);
+            helper.assertTrue(call.town() == town,
+                "the executor received the same town instance the intent was bound to");
+            helper.assertTrue(SETTLEMENT.equals(call.defId()),
+                "the executor received the intent's defId (was " + call.defId() + ")");
+            helper.assertTrue(builder.getUUID().toString().equals(call.placerUuid()),
+                "the executor received the builder's UUID as placer (was " + call.placerUuid() + ")");
+        } finally {
+            // Leave the static state clean for the next test (last writer wins, but a stale
+            // fake would surprise a later test).
+            BehaviorEngine.register(null, null);
+        }
+        helper.succeed();
+    }
+
+    /**
+     * When the executor returns false (queue full, unaffordable, weight cap exceeded,
+     * etc.) the engine marks the {@link BuildTask} as FAILED on the same tick rather than
+     * leaving it spinning in IN_PROGRESS. Verified end-to-end via
+     * {@link TaskState#FAILED}.
+     */
+    @GameTest(template = "empty5x5", timeoutTicks = 80, batch = "behavior")
+    public static void fakeExecutorRejectsNoop(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        BlockPos anchor = helper.absolutePos(new BlockPos(2, 1, 2));
+
+        Npc builder = spawnBuilder(level, anchor);
+        Town town = townWith(builder.getUUID());
+        NpcSupplier supplier = new SingleNpcSupplier(town, builder);
+
+        FakeBuildExecutor fake = new FakeBuildExecutor();
+        fake.newBuildResult = false;   // reject every enqueue
+        IntentScheduler scheduler = new IntentScheduler(supplier);
+        BehaviorEngine engine = new BehaviorEngine(scheduler, new TaskQueue(), supplier);
+        BehaviorEngine.register(fake, supplier);
+
+        try {
+            TownIntent intent = new BuildIntent(SETTLEMENT, town, 5, IntentCost.empty());
+            scheduler.enqueue(intent);
+            engine.onServerTick(level, level.getGameTime());
+
+            // The engine's tick completed and removed the BuildTask from the queue because
+            // it transitioned to FAILED on the same tick (the executor rejected the
+            // enqueue). Verify via the recorded call list and via the town's empty queue --
+            // the task is no longer present to read directly.
+            helper.assertTrue(fake.getNewBuildCalls().size() == 1,
+                "the executor was called exactly once before the task failed (calls="
+                    + fake.getNewBuildCalls().size() + ")");
+            helper.assertTrue(town.getConstructionQueue().isEmpty(),
+                "no construction queue entry was added (executor rejected) (queue size="
+                    + town.getConstructionQueue().size() + ")");
+            helper.assertTrue(engine.tasks().allActive().isEmpty(),
+                "the BuildTask is no longer active (terminalized and removed) (active="
+                    + engine.tasks().allActive().size() + ")");
+        } finally {
+            BehaviorEngine.register(null, null);
+        }
+        helper.succeed();
+    }
+
+    /**
+     * Last writer wins. A second {@link BehaviorEngine#register} overwrites the first.
+     * Asserts by swapping a recording executor for a no-call executor and observing that
+     * the second register's executor is the one the engine picks up.
+     */
+    @GameTest(template = "empty5x5", timeoutTicks = 80, batch = "behavior")
+    public static void engineRegistersExecutorOnce(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        BlockPos anchor = helper.absolutePos(new BlockPos(2, 1, 2));
+
+        Npc builder = spawnBuilder(level, anchor);
+        Town town = townWith(builder.getUUID());
+        NpcSupplier supplier = new SingleNpcSupplier(town, builder);
+
+        FakeBuildExecutor first = new FakeBuildExecutor();
+        FakeBuildExecutor second = new FakeBuildExecutor();
+        IntentScheduler scheduler = new IntentScheduler(supplier);
+        BehaviorEngine engine = new BehaviorEngine(scheduler, new TaskQueue(), supplier);
+
+        BehaviorEngine.register(first, supplier);
+        BehaviorEngine.register(second, supplier);
+        helper.assertTrue(BehaviorEngine.getExecutor() == second,
+            "the second register() overwrites the first (got " + BehaviorEngine.getExecutor()
+                + ")");
+
+        // Sanity check that the engine actually routes through second on this tick.
+        try {
+            scheduler.enqueue(new BuildIntent(SETTLEMENT, town, 5, IntentCost.empty()));
+            engine.onServerTick(level, level.getGameTime());
+
+            helper.assertTrue(first.getNewBuildCalls().isEmpty(),
+                "the first (overwritten) executor recorded no calls (calls="
+                    + first.getNewBuildCalls().size() + ")");
+            helper.assertTrue(second.getNewBuildCalls().size() == 1,
+                "the second (current) executor recorded the engine's call (calls="
+                    + second.getNewBuildCalls().size() + ")");
+        } finally {
+            BehaviorEngine.register(null, null);
+        }
         helper.succeed();
     }
 

@@ -3,6 +3,7 @@ package org.dawnoftime.onceuponatown.behavior;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
+import org.dawnoftime.onceuponatown.behavior.executor.BuildExecutor;
 import org.dawnoftime.onceuponatown.behavior.intent.BuildIntent;
 import org.dawnoftime.onceuponatown.behavior.intent.IntentScheduler;
 import org.dawnoftime.onceuponatown.behavior.intent.NpcSupplier;
@@ -71,6 +72,35 @@ public final class BehaviorEngine {
             supplier
         );
     }
+
+    // --- static test seam (Phase 2) --------------------------------------------------
+    //
+    // The engine's BuildExecutor and NpcSupplier are registered once per server lifetime
+    // (TickScheduler wires them at startup). Tests call register() with a FakeBuildExecutor
+    // and any NpcSupplier they like. The volatile fields give the reads a happens-before
+    // relationship with the writes -- single-threaded on the main thread, but the
+    // explicit volatile documents that.
+    //
+    // Last writer wins: a second register() overwrites the first. Tests rely on this to
+    // swap the seam between cases (engineRegistersExecutorOnce tests the semantics).
+
+    private static volatile BuildExecutor staticExecutor;
+    private static volatile NpcSupplier staticNpcSupplier;
+
+    /**
+     * Register the BuildExecutor and NpcSupplier the engine uses when assigning tasks.
+     * Last writer wins.
+     */
+    public static void register(BuildExecutor executor, NpcSupplier npcSupplier) {
+        staticExecutor = executor;
+        staticNpcSupplier = npcSupplier;
+    }
+
+    /** The executor currently registered, or null if register() has not been called. */
+    public static BuildExecutor getExecutor() { return staticExecutor; }
+
+    /** The NPC supplier currently registered, or null if register() has not been called. */
+    public static NpcSupplier getNpcSupplier() { return staticNpcSupplier; }
 
     private final IntentScheduler scheduler;
     private final TaskQueue tasks;
@@ -160,14 +190,21 @@ public final class BehaviorEngine {
 
     /**
      * Factory: choose the task kind for a given intent. Returns null if the engine has no
-     * executor for this intent kind yet (defensive -- the engine logs and skips).
+     * executor for this intent kind yet (defensive -- the engine logs and skips), or if
+     * no BuildExecutor has been registered (the engine cannot enqueue without one).
      */
     private static CitizenTask buildTask(TownIntent intent, Npc citizen) {
+        BuildExecutor exec = staticExecutor;
+        if (exec == null) {
+            LOGGER.debug("[BEHAVIOR] no BuildExecutor registered -- cannot assign task for"
+                + " intent kind {}", kindFor(intent));
+            return null;
+        }
         if (intent instanceof BuildIntent) {
-            return new BuildTask(UUID.randomUUID(), intent, citizen, BuildTask.MONITOR);
+            return new BuildTask(UUID.randomUUID(), intent, citizen, exec);
         }
         if (intent instanceof UpgradeIntent) {
-            return new UpgradeTask(UUID.randomUUID(), intent, citizen, UpgradeTask.MONITOR);
+            return new UpgradeTask(UUID.randomUUID(), intent, citizen, exec);
         }
         return null;
     }
