@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { Button, ToggleButton, Toolbar } from 'react-aria-components';
 import { invoke } from '@tauri-apps/api/core';
-import { open } from '@tauri-apps/plugin-shell';
+import { open as openShell } from '@tauri-apps/plugin-shell';
+import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import {
   Hexagon,
@@ -18,6 +19,7 @@ import {
   Copy,
   Settings2,
   X,
+  FolderOpen,
 } from 'lucide-react';
 import { StructureViewer, type ViewerHandle } from './components/StructureViewer';
 import {
@@ -30,7 +32,7 @@ import {
 import { Catalog } from './components/Catalog';
 import { CheckerPanel } from './components/CheckerPanel';
 import { BuildDialog } from './components/BuildDialog';
-import { getSkinDataUrl } from './catalog/api';
+import { getSkinDataUrl, fetchNbtFromPath } from './catalog/api';
 import type { FullReport } from './engine';
 import './index.css';
 
@@ -93,6 +95,23 @@ function App() {
     }
   }, [fileName]);
 
+  const handleOpenFile = useCallback(async () => {
+    const selected = await openDialog({
+      multiple: false,
+      directory: false,
+      filters: [{ name: 'NBT Structure', extensions: ['nbt'] }],
+    });
+    if (typeof selected === 'string' && selected.length > 0) {
+      try {
+        const buf = await fetchNbtFromPath(selected);
+        const name = selected.split(/[\\/]/).pop() ?? 'file.nbt';
+        loadStructure(buf, name, selected);
+      } catch (err) {
+        console.error('Open file failed:', err);
+      }
+    }
+  }, [loadStructure]);
+
   useEffect(() => {
     persistViewerSettings(viewerSettings);
   }, [viewerSettings]);
@@ -126,6 +145,7 @@ function App() {
         onViewerSettingsChange={setShowViewerSettings}
         onCheck={handleCheck}
         onSave={handleSave}
+        onOpenFile={handleOpenFile}
         onBuild={() => setShowBuildDialog(true)}
       />
 
@@ -222,6 +242,7 @@ function Header({
   onViewerSettingsChange,
   onCheck,
   onSave,
+  onOpenFile,
   onBuild,
 }: {
   hasStructure: boolean;
@@ -231,6 +252,7 @@ function Header({
   onViewerSettingsChange: (show: boolean) => void;
   onCheck: () => void;
   onSave: () => void;
+  onOpenFile: () => void;
   onBuild: () => void;
 }) {
   const [saving, setSaving] = useState(false);
@@ -256,7 +278,7 @@ function Header({
   };
 
   const openInBlockbench = () => {
-    open('https://blockbench.net/').catch(() => {
+    openShell('https://blockbench.net/').catch(() => {
       window.open('https://blockbench.net/features?id=nbt_structure_editor', '_blank');
     });
   };
@@ -306,6 +328,15 @@ function Header({
           >
             <Settings2 className="icon" />
           </ToggleButton>
+
+          <Button
+            className="header-btn"
+            onPress={onOpenFile}
+            aria-label="Open NBT file"
+          >
+            <FolderOpen className="icon" />
+            <span>Open File</span>
+          </Button>
 
           {hasStructure && (
             <Button

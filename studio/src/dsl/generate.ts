@@ -55,16 +55,21 @@ export type GenerationOptions = {
   donor?: BlockGrid;
   /** Name recorded on the harvested vocabulary (e.g. the donor's filename). */
   donorName?: string;
+  /** Skip `validatePlan` — useful when authoring experimental/KCD-style builds
+   *  that intentionally violate the corpus's structural measures. */
+  skipValidation?: boolean;
 };
 
 export function generateStructure(plan: Plan, options: GenerationOptions = {}): GenerationResult {
-  const validation = validatePlan(plan);
-  if (!validation.ok) {
-    throw new Error(
-      `cannot generate structure from invalid plan: ${validation.errors
-        .map((e) => e.rule + ': ' + e.message)
-        .join('; ')}`,
-    );
+  if (!options.skipValidation) {
+    const validation = validatePlan(plan);
+    if (!validation.ok) {
+      throw new Error(
+        `cannot generate structure from invalid plan: ${validation.errors
+          .map((e) => e.rule + ': ' + e.message)
+          .join('; ')}`,
+      );
+    }
   }
 
   const [w, d] = plan.structure.footprint;

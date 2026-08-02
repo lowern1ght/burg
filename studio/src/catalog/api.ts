@@ -28,6 +28,11 @@ export async function fetchStructureNbt(relPath: string): Promise<ArrayBuffer> {
   return new Uint8Array(bytes).buffer;
 }
 
+export async function fetchNbtFromPath(path: string): Promise<ArrayBuffer> {
+  const bytes = await invoke<number[]>('read_nbt_from_path', { path });
+  return new Uint8Array(bytes).buffer;
+}
+
 export async function saveStructureNbt(relPath: string, data: ArrayBuffer): Promise<void> {
   const bytes = Array.from(new Uint8Array(data));
   await invoke<void>('write_nbt', { path: relPath, data: bytes });

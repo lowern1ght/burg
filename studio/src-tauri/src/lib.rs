@@ -232,6 +232,15 @@ fn read_nbt(path: String) -> Result<Vec<u8>, String> {
     fs::read(&full).map_err(|e| format!("{}: {}", path, e))
 }
 
+#[tauri::command]
+fn read_nbt_from_path(path: String) -> Result<Vec<u8>, String> {
+    let p = PathBuf::from(&path);
+    if !p.is_file() {
+        return Err(format!("not a file: {}", path));
+    }
+    fs::read(&p).map_err(|e| format!("{}: {}", path, e))
+}
+
 fn resolve_structure_path(rel: &str) -> Result<PathBuf, String> {
     let root = structures_root();
     let full = root.join(rel);
@@ -372,6 +381,7 @@ pub fn run() {
             list_structures,
             list_skins,
             read_nbt,
+            read_nbt_from_path,
             read_skin,
             write_nbt,
             save_nbt_as,
