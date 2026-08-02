@@ -39,6 +39,18 @@ export {
   type SerializationWarningRule,
   type StructureSerializationResult,
 } from './serialize';
+export {
+  analyse,
+  describe as describeVocabulary,
+  fromBlockState,
+  harvest,
+  merge as mergeVocabularies,
+  pickFromList,
+  toBlockState,
+  type Anatomy,
+  type BlockState,
+  type Vocabulary,
+} from './vocabulary';
 
 import { parseYaml } from './parser';
 import type { YamlValue } from './parser';

@@ -6,13 +6,17 @@
  * walls, floor slabs, battlements/roof cap) before the device pass layers the
  * named patterns (door, window, torch, bed, furnace, ladder, ...) on top.
  *
- * Style comes from a fixed `Vocabulary` — the patterns the generator knows
- * about, indexed by the floor's primary material. The corpus supplies the
- * conventions (corner posts in oak_log, slab cap at residential storeys,
- * stair-pitch roof); the plan supplies the dimensions.
+ * Style comes from a `Vocabulary` — the patterns the generator knows about,
+ * indexed by construction role. When the caller passes a donor `BlockGrid`
+ * (e.g. an existing NBT structure), `harvest()` lifts a vocabulary from it:
+ * every block state the generator emits is one that already occurs in the
+ * corpus, which is what keeps the composed build on-style. Without a donor,
+ * the vocabulary is built from the plan's floor materials and a fixed set
+ * of corpus fallbacks.
  *
- * The generator is deterministic: two runs of the same plan produce the same
- * structure. Stochastic decoration is the corpus's job, not ours.
+ * The generator is deterministic: two runs of the same plan + vocabulary
+ * produce the same structure. Stochastic decoration is the corpus's job, not
+ * ours.
  */
 
 import { Structure, BlockPos } from '@mattzh72/lodestone';
@@ -34,8 +38,26 @@ import type {
   ValidationResult,
 } from './types';
 import { validatePlan } from './validate';
+import {
+  harvest as harvestVocabulary,
+  pickFromList,
+  type BlockGrid,
+  type BlockState,
+  type Vocabulary,
+} from './vocabulary';
 
-export function generateStructure(plan: Plan): GenerationResult {
+/** Optional inputs to `generateStructure`. */
+export type GenerationOptions = {
+  /**
+   * Donor `BlockGrid` whose block states become the generator's vocabulary.
+   * When omitted, the generator falls back to plan-driven defaults.
+   */
+  donor?: BlockGrid;
+  /** Name recorded on the harvested vocabulary (e.g. the donor's filename). */
+  donorName?: string;
+};
+
+export function generateStructure(plan: Plan, options: GenerationOptions = {}): GenerationResult {
   const validation = validatePlan(plan);
   if (!validation.ok) {
     throw new Error(
@@ -48,14 +70,14 @@ export function generateStructure(plan: Plan): GenerationResult {
   const [w, d] = plan.structure.footprint;
   const h = plan.structure.height;
   const grid = makeGrid([w, h, d]);
-  const vocab = buildVocabulary(plan);
+  const vocab = buildVocabulary(plan, options.donor, options.donorName);
 
   const guard = new FabricGuard();
 
   for (const floor of plan.floors) {
     buildFloor(grid, floor, plan, vocab);
   }
-  buildCornerPosts(grid, plan);
+  buildCornerPosts(grid, plan, vocab);
   for (const device of plan.devices) {
     buildDevice(grid, device, plan, guard, vocab);
   }
@@ -87,26 +109,103 @@ export function validate(plan: Plan): ValidationResult {
 
 // ── vocabulary ────────────────────────────────────────────────────
 
-type Vocabulary = {
-  cornerPost: MaterialId;
-  cornerPostTop: MaterialId;
-  porchFloor: MaterialId;
-  thresholdStep: MaterialId;
-};
+/**
+ * Build a vocabulary: harvested from `donor` when provided, otherwise built
+ * from the plan's floor materials with corpus fallbacks. The plan-driven
+ * defaults are the same fallbacks the Python's `harvest()` uses, so the
+ * generator is never empty-handed.
+ */
+function buildVocabulary(plan: Plan, donor?: BlockGrid, donorName?: string): Vocabulary {
+  const harvested = donor ? harvestVocabulary(donor, donorName ?? '') : null;
+  if (harvested) {
+    // Donor is authoritative for single-role items; the plan fills anything
+    // the donor left empty so the generator never sees a null corner post.
+    return fillFromPlan(harvested, plan);
+  }
+  return planDrivenVocabulary(plan);
+}
+
+/** A vocabulary filled with corpus fallbacks + the plan's floor materials. */
+function planDrivenVocabulary(plan: Plan): Vocabulary {
+  const top = findTopmostResidential(plan);
+  const timber: BlockState = { id: top ?? 'oak_log', properties: {} };
+  const stone: BlockState = { id: 'cobblestone', properties: {} };
+  const floor: BlockState = { id: 'oak_planks', properties: {} };
+  const post: BlockState = { id: 'oak_log', properties: { axis: 'y' } };
+  const window: BlockState = {
+    id: 'glass_pane',
+    properties: { east: 'false', north: 'true', south: 'true', west: 'false', waterlogged: 'false' },
+  };
+  const fence: BlockState = {
+    id: 'oak_fence',
+    properties: { east: 'false', north: 'true', south: 'true', west: 'false', waterlogged: 'false' },
+  };
+  const door: BlockState = {
+    id: 'oak_door',
+    properties: { half: 'lower', hinge: 'left', facing: 'south', open: 'false', powered: 'false' },
+  };
+  return {
+    donor: plan.name,
+    apron: [
+      { id: 'grass_block', properties: { snowy: 'false' } },
+      { id: 'coarse_dirt', properties: {} },
+      { id: 'dirt', properties: {} },
+    ],
+    floor: [floor],
+    stone: [stone, { id: 'mossy_cobblestone', properties: {} }],
+    timber: [timber],
+    post,
+    slab_top: { id: 'oak_slab', properties: { type: 'top', waterlogged: 'false' } },
+    slab_bottom: { id: 'oak_slab', properties: { type: 'bottom', waterlogged: 'false' } },
+    stone_slab_top: { id: 'cobblestone_slab', properties: { type: 'top', waterlogged: 'false' } },
+    window: [window],
+    fence,
+    crenel: stone,
+    stairs: [
+      { id: 'oak_stairs', properties: { facing: 'north', half: 'bottom' } },
+    ],
+    light: [{ id: 'lantern', properties: { hanging: 'false', waterlogged: 'false' } }],
+    door_lower: [door],
+    door_upper: [{ ...door, properties: { ...door.properties, half: 'upper' } }],
+    rail: [fence],
+    roof_stairs: [
+      { id: 'oak_stairs', properties: { facing: 'north', half: 'bottom' } },
+    ],
+    beam: [{ id: 'oak_slab', properties: { type: 'bottom', waterlogged: 'false' } }],
+    hanging: [{ id: 'lantern', properties: { hanging: 'true', waterlogged: 'false' } }],
+    vegetation: [{ id: 'oak_leaves', properties: { persistent: 'true' } }],
+    decoration: [{ id: 'barrel', properties: { facing: 'up' } }],
+  };
+}
 
 /**
- * The fixed set of patterns the residential generator knows about. Indices
- * are picked once at plan-load time from the floor materials; the generator
- * itself works off the resolved vocabulary rather than re-deriving each cell.
+ * Fill any null/empty vocabulary role from the plan's floor materials, so a
+ * donor that is missing a role (e.g. a 1-storey building with no crenel)
+ * still gives the generator something to use.
  */
-function buildVocabulary(plan: Plan): Vocabulary {
-  const ground = plan.floors.find((f) => f.layout === 'ground');
-  const top = findTopmostResidential(plan);
+function fillFromPlan(v: Vocabulary, plan: Plan): Vocabulary {
+  const fallback: Vocabulary = planDrivenVocabulary(plan);
   return {
-    cornerPost: top ?? 'oak_log',
-    cornerPostTop: 'stripped_oak_log',
-    porchFloor: ground?.material ?? 'dirt_path',
-    thresholdStep: 'cobblestone_stairs',
+    ...v,
+    timber: v.timber.length > 0 ? v.timber : fallback.timber,
+    stone: v.stone.length > 0 ? v.stone : fallback.stone,
+    floor: v.floor.length > 0 ? v.floor : fallback.floor,
+    post: v.post ?? fallback.post,
+    fence: v.fence ?? fallback.fence,
+    crenel: v.crenel ?? fallback.crenel,
+    slab_top: v.slab_top ?? fallback.slab_top,
+    slab_bottom: v.slab_bottom ?? fallback.slab_bottom,
+    stone_slab_top: v.stone_slab_top ?? fallback.stone_slab_top,
+    window: v.window.length > 0 ? v.window : fallback.window,
+    door_lower: v.door_lower.length > 0 ? v.door_lower : fallback.door_lower,
+    door_upper: v.door_upper.length > 0 ? v.door_upper : fallback.door_upper,
+    rail: v.rail.length > 0 ? v.rail : fallback.rail,
+    roof_stairs: v.roof_stairs.length > 0 ? v.roof_stairs : fallback.roof_stairs,
+    beam: v.beam.length > 0 ? v.beam : fallback.beam,
+    light: v.light.length > 0 ? v.light : fallback.light,
+    hanging: v.hanging.length > 0 ? v.hanging : fallback.hanging,
+    vegetation: v.vegetation.length > 0 ? v.vegetation : fallback.vegetation,
+    decoration: v.decoration.length > 0 ? v.decoration : fallback.decoration,
   };
 }
 
@@ -326,7 +425,7 @@ function stairFacingForSide(side: Side): string {
 
 // ── corner posts ──────────────────────────────────────────────────
 
-function buildCornerPosts(grid: MutableBlockGrid, plan: Plan): void {
+function buildCornerPosts(grid: MutableBlockGrid, plan: Plan, vocab: Vocabulary): void {
   const [w, depth] = plan.structure.footprint;
   const h = plan.structure.height;
   const corners: Array<[number, number]> = [
@@ -337,12 +436,18 @@ function buildCornerPosts(grid: MutableBlockGrid, plan: Plan): void {
   ];
   const topFloor = topFloorRange(plan);
   const topHi = topFloor?.[1] ?? h - 1;
+  // The harvested `post` carries the full block state (typically
+  // `oak_log{axis=y}`); the cap row above the top floor in the corpus uses
+  // `stripped_oak_log{axis=y}`. We keep the cap as a fixed fallback so a
+  // donor that harvested something else for `post` (e.g. `birch_log`) still
+  // gets the corpus's capped-silhouette on the very top cell.
+  const mainPost = vocab.post ?? { id: 'oak_log', properties: { axis: 'y' } };
+  const capPost = { id: 'stripped_oak_log', properties: { axis: 'y' } };
   for (let y = 1; y < h; y++) {
     for (const [x, z] of corners) {
       if (cellReservedByDevice(x, y, z, plan)) continue;
-      const mat: MaterialId =
-        y > topHi ? 'stripped_oak_log' : 'oak_log';
-      grid.set(x, y, z, makeBlock(mat, { axis: 'y' }));
+      const state = y > topHi ? capPost : mainPost;
+      grid.set(x, y, z, makeBlock(state.id, state.properties));
     }
   }
 }
@@ -463,10 +568,10 @@ function buildDevice(
       written.push(...placeDoor(grid, d, plan, vocab));
       break;
     case 'window':
-      written.push(...placeWindow(grid, d, plan));
+      written.push(...placeWindow(grid, d, plan, vocab));
       break;
     case 'torch':
-      written.push(placeTorch(grid, d));
+      written.push(placeTorch(grid, d, vocab));
       break;
     case 'ladder':
       written.push(placeLadder(grid, d));
@@ -475,7 +580,7 @@ function buildDevice(
       written.push(placeLever(grid, d));
       break;
     case 'flower_pot':
-      written.push(placeFlowerPot(grid, d));
+      written.push(placeFlowerPot(grid, d, vocab));
       break;
     case 'bed':
       written.push(...placeBed(grid, d, plan));
@@ -487,28 +592,28 @@ function buildDevice(
       written.push(placeBarrel(grid, d, plan));
       break;
     case 'candle':
-      written.push(placeCandle(grid, d));
+      written.push(placeCandle(grid, d, vocab));
       break;
     case 'campfire':
-      written.push(placeCampfire(grid, d));
+      written.push(placeCampfire(grid, d, vocab));
       break;
     case 'furnace':
       written.push(placeFurnace(grid, d, plan));
       break;
     case 'external_stair':
-      written.push(...placeExternalStair(grid, d, plan));
+      written.push(...placeExternalStair(grid, d, plan, vocab));
       break;
     case 'chimney':
       written.push(...placeChimney(grid, d, plan));
       break;
     case 'crenellation':
-      written.push(...placeCrenellation(grid, d, plan));
+      written.push(...placeCrenellation(grid, d, plan, vocab));
       break;
     case 'fence_post':
-      written.push(...placeFencePost(grid, d));
+      written.push(...placeFencePost(grid, d, vocab));
       break;
     case 'corner_post':
-      written.push(...placeCornerPost(grid, d, plan));
+      written.push(...placeCornerPost(grid, d, plan, vocab));
       break;
   }
   for (const w of written) guard.recordOrigin(w);
@@ -531,28 +636,32 @@ function placeDoor(
   grid: MutableBlockGrid,
   d: Extract<Device, { kind: 'door' }>,
   plan: Plan,
-  _vocab: Vocabulary,
+  vocab: Vocabulary,
 ): Coord[] {
   const { x, z } = perimeterCellFor(d.side, plan);
   const out: Coord[] = [];
-  grid.set(x, d.floor, z, makeBlock('oak_door', {
+  const lower = pickFromList(vocab.door_lower, 0) ?? {
+    id: 'oak_door',
+    properties: { half: 'lower', hinge: 'left', facing: 'south', open: 'false', powered: 'false' },
+  };
+  const upper = pickFromList(vocab.door_upper, 0) ?? {
+    id: lower.id,
+    properties: { ...lower.properties, half: 'upper' },
+  };
+  grid.set(x, d.floor, z, makeBlock(lower.id, {
+    ...lower.properties,
     facing: d.side,
     half: 'lower',
-    hinge: 'left',
-    open: 'false',
-    powered: 'false',
   }));
   out.push([x, d.floor, z]);
 
   const upperY = d.floor + 1;
   const h = plan.structure.height;
   if (upperY < h) {
-    grid.set(x, upperY, z, makeBlock('oak_door', {
+    grid.set(x, upperY, z, makeBlock(upper.id, {
+      ...upper.properties,
       facing: d.side,
       half: 'upper',
-      hinge: 'left',
-      open: 'false',
-      powered: 'false',
     }));
     out.push([x, upperY, z]);
   }
@@ -582,14 +691,19 @@ function placeWindow(
   grid: MutableBlockGrid,
   d: Extract<Device, { kind: 'window' }>,
   plan: Plan,
+  vocab: Vocabulary,
 ): Coord[] {
   const [w, depth] = plan.structure.footprint;
   const cx = Math.floor(w / 2);
   const cz = Math.floor(depth / 2);
   const half = Math.floor((d.width ?? 1) / 2);
   const out: Coord[] = [];
+  const win = pickFromList(vocab.window, 0) ?? {
+    id: 'glass_pane',
+    properties: { east: 'false', north: 'true', south: 'true', west: 'false', waterlogged: 'false' },
+  };
   const write = (x: number, z: number): void => {
-    grid.set(x, d.floor, z, makeBlock('glass_pane'));
+    grid.set(x, d.floor, z, makeBlock(win.id, win.properties));
     out.push([x, d.floor, z]);
   };
   switch (d.side) {
@@ -609,9 +723,10 @@ function placeWindow(
   return out;
 }
 
-function placeTorch(grid: MutableBlockGrid, d: Extract<Device, { kind: 'torch' }>): Coord {
+function placeTorch(grid: MutableBlockGrid, d: Extract<Device, { kind: 'torch' }>, vocab: Vocabulary): Coord {
   const [x, y, z] = d.pos;
-  grid.set(x, y, z, makeBlock('torch'));
+  const torch = pickFromLight(vocab, 'torch') ?? { id: 'torch', properties: {} };
+  grid.set(x, y, z, makeBlock(torch.id, torch.properties));
   return [x, y, z];
 }
 
@@ -636,9 +751,13 @@ function placeLever(grid: MutableBlockGrid, d: Extract<Device, { kind: 'lever' }
   return [x, y, z];
 }
 
-function placeFlowerPot(grid: MutableBlockGrid, d: Extract<Device, { kind: 'flower_pot' }>): Coord {
+function placeFlowerPot(grid: MutableBlockGrid, d: Extract<Device, { kind: 'flower_pot' }>, vocab: Vocabulary): Coord {
   const [x, y, z] = d.pos;
-  grid.set(x, y, z, makeBlock('flower_pot'));
+  const pot = pickFromList(vocab.decoration, 0);
+  // The decoration role is a generic catch-all; only use it for actual pots.
+  const useVocab = pot !== null && pot.id === 'flower_pot';
+  const block = useVocab ? pot! : { id: 'flower_pot', properties: {} };
+  grid.set(x, y, z, makeBlock(block.id, block.properties));
   return [x, y, z];
 }
 
@@ -699,15 +818,25 @@ function placeBarrel(
   return [x, d.floor, z];
 }
 
-function placeCandle(grid: MutableBlockGrid, d: Extract<Device, { kind: 'candle' }>): Coord {
+function placeCandle(grid: MutableBlockGrid, d: Extract<Device, { kind: 'candle' }>, vocab: Vocabulary): Coord {
   const [x, y, z] = d.pos;
-  grid.set(x, y, z, makeBlock('candle'));
+  const candle = pickFromLight(vocab, 'candle') ?? { id: 'candle', properties: {} };
+  grid.set(x, y, z, makeBlock(candle.id, candle.properties));
   return [x, y, z];
 }
 
-function placeCampfire(grid: MutableBlockGrid, d: Extract<Device, { kind: 'campfire' }>): Coord {
+function placeCampfire(grid: MutableBlockGrid, d: Extract<Device, { kind: 'campfire' }>, vocab: Vocabulary): Coord {
   const [x, y, z] = d.pos;
-  grid.set(x, y, z, makeBlock('campfire', { lit: 'true', signal_fire: 'false', waterlogged: 'false' }));
+  const fire = pickFromLight(vocab, 'campfire') ?? {
+    id: 'campfire',
+    properties: { lit: 'true', signal_fire: 'false', waterlogged: 'false' },
+  };
+  grid.set(x, y, z, makeBlock(fire.id, {
+    lit: 'true',
+    signal_fire: 'false',
+    waterlogged: 'false',
+    ...fire.properties,
+  }));
   return [x, y, z];
 }
 
@@ -725,6 +854,7 @@ function placeExternalStair(
   grid: MutableBlockGrid,
   d: Extract<Device, { kind: 'external_stair' }>,
   plan: Plan,
+  vocab: Vocabulary,
 ): Coord[] {
   const [w, depth] = plan.structure.footprint;
   const inwardAxisOffset = (i: number): number =>
@@ -732,6 +862,10 @@ function placeExternalStair(
   const facing = stairFacingForExternal(d.side);
   const out: Coord[] = [];
   const h = Math.max(0, d.end_y - d.start_y);
+  // The harvested `roof_stairs` carries an actual `facing` value from the
+  // donor. The device's `side` overrides it: the stair the device lays
+  // climbs INWARD, so its `facing` is the opposite of the side it sits on.
+  const stair = pickFromList(vocab.roof_stairs, 0) ?? { id: 'oak_stairs', properties: { facing, half: 'bottom' } };
   for (let i = 0; i < h; i++) {
     const inward = inwardAxisOffset(i);
     let x: number;
@@ -743,7 +877,11 @@ function placeExternalStair(
       case 'west': x = 0; z = Math.floor(depth / 2) + inward; break;
     }
     if (x < 0 || x >= w || z < 0 || z >= depth) continue;
-    grid.set(x, d.start_y + i, z, makeBlock('oak_stairs', { facing, half: 'bottom' }));
+    grid.set(x, d.start_y + i, z, makeBlock(stair.id, {
+      ...stair.properties,
+      facing,
+      half: 'bottom',
+    }));
     out.push([x, d.start_y + i, z]);
   }
   return out;
@@ -776,22 +914,24 @@ function placeCrenellation(
   grid: MutableBlockGrid,
   d: Extract<Device, { kind: 'crenellation' }>,
   plan: Plan,
+  vocab: Vocabulary,
 ): Coord[] {
   const [w, depth] = plan.structure.footprint;
   const y = d.top_y;
   const stride = d.spacing + 1;
   const out: Coord[] = [];
+  const merlon = vocab.crenel ?? { id: 'cobblestone', properties: {} };
   for (let x = 0; x < w; x++) {
     if (x % stride === 0) {
-      grid.set(x, y, 0, makeBlock('cobblestone'));
-      grid.set(x, y, depth - 1, makeBlock('cobblestone'));
+      grid.set(x, y, 0, makeBlock(merlon.id, merlon.properties));
+      grid.set(x, y, depth - 1, makeBlock(merlon.id, merlon.properties));
       out.push([x, y, 0], [x, y, depth - 1]);
     }
   }
   for (let z = 0; z < depth; z++) {
     if (z % stride === 0) {
-      grid.set(0, y, z, makeBlock('cobblestone'));
-      grid.set(w - 1, y, z, makeBlock('cobblestone'));
+      grid.set(0, y, z, makeBlock(merlon.id, merlon.properties));
+      grid.set(w - 1, y, z, makeBlock(merlon.id, merlon.properties));
       out.push([0, y, z], [w - 1, y, z]);
     }
   }
@@ -801,11 +941,13 @@ function placeCrenellation(
 function placeFencePost(
   grid: MutableBlockGrid,
   d: Extract<Device, { kind: 'fence_post' }>,
+  vocab: Vocabulary,
 ): Coord[] {
   const [x, y, z] = d.pos;
   const out: Coord[] = [];
+  const fence = vocab.fence ?? { id: 'oak_fence', properties: {} };
   for (let i = 0; i < d.height; i++) {
-    grid.set(x, y + i, z, makeBlock('oak_fence'));
+    grid.set(x, y + i, z, makeBlock(fence.id, fence.properties));
     out.push([x, y + i, z]);
   }
   return out;
@@ -815,17 +957,27 @@ function placeCornerPost(
   grid: MutableBlockGrid,
   d: Extract<Device, { kind: 'corner_post' }>,
   plan: Plan,
+  vocab: Vocabulary,
 ): Coord[] {
   const [x, y, z] = d.pos;
   const [w, depth] = plan.structure.footprint;
   const onCorner = (x === 0 || x === w - 1) && (z === 0 || z === depth - 1);
   if (!onCorner) return [];
   const out: Coord[] = [];
+  const post = vocab.post ?? { id: 'oak_log', properties: { axis: 'y' } };
   for (let i = 0; i < d.height; i++) {
-    grid.set(x, y + i, z, makeBlock('oak_log', { axis: 'y' }));
+    grid.set(x, y + i, z, makeBlock(post.id, post.properties));
     out.push([x, y + i, z]);
   }
   return out;
+}
+
+/** Find the first light whose id matches a kind we want (torch/candle/campfire). */
+function pickFromLight(vocab: Vocabulary, kind: 'torch' | 'candle' | 'campfire'): BlockState | null {
+  for (const s of vocab.light) {
+    if (s.id === kind) return s;
+  }
+  return null;
 }
 
 // ── Structure assembly ────────────────────────────────────────────

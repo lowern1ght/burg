@@ -198,6 +198,36 @@ describe('dsl — generateStructure', () => {
     expect(report).toBeDefined();
     expect(typeof report.ok).toBe('boolean');
   });
+
+  it('accepts a donor BlockGrid and emits blocks lifted from it', async () => {
+    const plan = loadPlan(loadExampleYaml());
+    const { makeGrid } = await import('../engine/test-utils');
+    // Build a 5x5x5 donor that contributes a `spruce_log` post — the harvested
+    // vocabulary should put `spruce_log` on the corners, not the default oak.
+    const entries = [
+      { pos: [0, 1, 0] as [number, number, number], id: 'spruce_log', props: { axis: 'y' } },
+      { pos: [4, 1, 0] as [number, number, number], id: 'spruce_log', props: { axis: 'y' } },
+      { pos: [0, 1, 4] as [number, number, number], id: 'spruce_log', props: { axis: 'y' } },
+      { pos: [4, 1, 4] as [number, number, number], id: 'spruce_log', props: { axis: 'y' } },
+    ];
+    const donor = makeGrid([5, 4, 5], entries);
+    const gen = generateStructure(plan, { donor, donorName: 'spruce_donor' });
+    // The plan's corner_post devices were already on the corners before the
+    // harvest pass, but the new auto-placed corner posts (per the plan's
+    // ground + residential scaffold) should also pick up the harvested
+    // spruce_log.
+    const [, h, d] = gen.bbox;
+    const w = 5;
+    const scaffoldCorners: [number, number, number][] = [
+      [0, 1, 0], [w - 1, 1, 0], [0, 1, d - 1], [w - 1, 1, d - 1],
+    ];
+    for (const pos of scaffoldCorners) {
+      const block = gen.structure.getBlock(pos as unknown as [number, number, number]);
+      expect(block).not.toBeNull();
+      expect(block!.state.getName().toString()).toContain('spruce_log');
+    }
+    void h;
+  });
 });
 
 describe('dsl — buildFromYaml convenience', () => {
