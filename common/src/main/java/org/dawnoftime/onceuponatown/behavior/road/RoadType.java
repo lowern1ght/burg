@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.behavior.path;
+package org.dawnoftime.onceuponatown.behavior.road;
 
 /**
  * The kind of road piece a {@link RoadSegment} resolves into.

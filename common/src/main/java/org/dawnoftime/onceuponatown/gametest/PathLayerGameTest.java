@@ -11,15 +11,15 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import org.dawnoftime.onceuponatown.Constants;
 import org.dawnoftime.onceuponatown.behavior.intent.ExpandIntent;
 import org.dawnoftime.onceuponatown.behavior.intent.IntentCost;
-import org.dawnoftime.onceuponatown.behavior.path.RoadBuilder;
-import org.dawnoftime.onceuponatown.behavior.path.RoadGraph;
-import org.dawnoftime.onceuponatown.behavior.path.RoadLayer;
-import org.dawnoftime.onceuponatown.behavior.path.RoadLayerFromStructures;
-import org.dawnoftime.onceuponatown.behavior.path.RoadPlanner;
-import org.dawnoftime.onceuponatown.behavior.path.RoadSegment;
-import org.dawnoftime.onceuponatown.behavior.path.RoadType;
-import org.dawnoftime.onceuponatown.behavior.path.TerrainCost;
-import org.dawnoftime.onceuponatown.behavior.task.PathTask;
+import org.dawnoftime.onceuponatown.behavior.road.RoadBuilder;
+import org.dawnoftime.onceuponatown.behavior.road.RoadGraph;
+import org.dawnoftime.onceuponatown.behavior.road.RoadLayer;
+import org.dawnoftime.onceuponatown.behavior.road.RoadLayerFromStructures;
+import org.dawnoftime.onceuponatown.behavior.road.RoadPlanner;
+import org.dawnoftime.onceuponatown.behavior.road.RoadSegment;
+import org.dawnoftime.onceuponatown.behavior.road.RoadType;
+import org.dawnoftime.onceuponatown.behavior.road.TerrainCost;
+import org.dawnoftime.onceuponatown.behavior.task.RoadTask;
 import org.dawnoftime.onceuponatown.behavior.task.TaskState;
 import org.dawnoftime.onceuponatown.town.Town;
 
@@ -30,7 +30,7 @@ import java.util.Optional;
  * GameTest coverage for the Phase BEHAVIOR-3 path layer.
  *
  * <p>Exercises the planner, the cost table, the layer, the builder, and the
- * resulting {@link PathTask} lifecycle. Lives in {@code gametest/} (not
+ * resulting {@link RoadTask} lifecycle. Lives in {@code gametest/} (not
  * {@code common/src/test/}) because {@link TerrainCost} and {@link
  * RoadPlanner} import {@code net.minecraft.*} types — the plain-JVM test
  * source set has no Minecraft on its classpath.
@@ -301,11 +301,11 @@ public class PathLayerGameTest {
 
     /**
      * End-to-end: an {@link ExpandIntent} is handed to {@link RoadBuilder},
-     * which returns a list of {@link PathTask}s. Each task carries the
+     * which returns a list of {@link RoadTask}s. Each task carries the
      * planner's segment and the layer's piece NBT.
      */
     @GameTest(template = "empty5x5", timeoutTicks = 80, batch = "path")
-    public static void roadBuilder_producesPathTask(GameTestHelper helper) {
+    public static void roadBuilder_producesRoadTask(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
         BlockPos from = helper.absolutePos(new BlockPos(0, 1, 0));
         BlockPos to = helper.absolutePos(new BlockPos(0, 1, 4));
@@ -320,12 +320,12 @@ public class PathLayerGameTest {
             new RoadLayerFromStructures()
         );
 
-        List<PathTask> tasks = builder.planTasks(intent, town, level);
+        List<RoadTask> tasks = builder.planTasks(intent, town, level);
 
         helper.assertTrue(tasks.size() == 1,
             "one task per segment (was " + tasks.size() + ")");
 
-        PathTask task = tasks.get(0);
+        RoadTask task = tasks.get(0);
         helper.assertTrue(task.segment() != null,
             "the task carries the planner's segment");
         helper.assertTrue(task.segment().start().equals(from),
@@ -376,23 +376,23 @@ public class PathLayerGameTest {
     }
 
     // -----------------------------------------------------------------------------------
-    // PathTask
+    // RoadTask
     // -----------------------------------------------------------------------------------
 
     /**
-     * The planner-built {@link PathTask} walks through the
+     * The planner-built {@link RoadTask} walks through the
      * {@link TaskState#PENDING} → {@link TaskState#STARTED} →
      * {@link TaskState#IN_PROGRESS} → {@link TaskState#DONE} lifecycle. Each
-     * tick (after the PENDING tick) advances {@link PathTask#progress()} by
+     * tick (after the PENDING tick) advances {@link RoadTask#progress()} by
      * the morale-weighted {@code BASE_RATE}; ten neutral-morale ticks reach
      * DONE. Planning-only — no blocks placed.
      */
     @GameTest(template = "empty5x5", timeoutTicks = 80, batch = "path")
-    public static void pathTask_completesAfterOneTick(GameTestHelper helper) {
+    public static void roadTask_completesAfterOneTick(GameTestHelper helper) {
         BlockPos a = new BlockPos(0, 1, 0);
         BlockPos b = new BlockPos(1, 1, 0);
         RoadSegment segment = new RoadSegment(a, b, List.of(a, b), RoadType.STREET);
-        PathTask task = new PathTask(segment, EXPECTED_STREET);
+        RoadTask task = new RoadTask(segment, EXPECTED_STREET);
 
         helper.assertTrue(task.state() == TaskState.PENDING,
             "new task is PENDING (was " + task.state() + ")");
@@ -416,21 +416,21 @@ public class PathLayerGameTest {
             ticksRun++;
         }
         helper.assertTrue(task.state() == TaskState.DONE,
-            "PathTask reaches DONE within 100 ticks (was " + task.state()
+            "RoadTask reaches DONE within 100 ticks (was " + task.state()
                 + " after " + ticksRun + " ticks)");
 
         helper.succeed();
     }
 
     /**
-     * The legacy stub form of {@link PathTask} (UUID + source + assignee)
+     * The legacy stub form of {@link RoadTask} (UUID + source + assignee)
      * preserves the pre-revision behaviour: a single FAILED state on first
      * tick. The existing queue tests rely on this; the new constructor
      * shape is additive.
      */
     @GameTest(template = "empty5x5", timeoutTicks = 60, batch = "path")
-    public static void pathTask_legacyStub_failsOnFirstTick(GameTestHelper helper) {
-        PathTask legacy = new PathTask(java.util.UUID.randomUUID(), null, null);
+    public static void roadTask_legacyStub_failsOnFirstTick(GameTestHelper helper) {
+        RoadTask legacy = new RoadTask(java.util.UUID.randomUUID(), null, null);
 
         helper.assertTrue(legacy.state() == TaskState.PENDING,
             "legacy stub starts PENDING (was " + legacy.state() + ")");
@@ -469,7 +469,7 @@ public class PathLayerGameTest {
      * A minimal {@link org.dawnoftime.onceuponatown.behavior.task.TaskContext}
      * for tasks that need a level but do not touch the NPC supplier, the
      * BuildExecutor seam, or the MoraleState. The planner-built {@link
-     * PathTask} reads {@code morale} (default 50) for its progress multiplier
+     * RoadTask} reads {@code morale} (default 50) for its progress multiplier
      * but ignores {@code executor} since placement is wired in a later phase.
      * Executor is passed as null because the stub context is only used by the
      * lifecycle tests, which never call into it.

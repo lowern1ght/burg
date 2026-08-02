@@ -11,11 +11,11 @@ import org.dawnoftime.onceuponatown.Constants;
 import org.dawnoftime.onceuponatown.behavior.intent.BuildIntent;
 import org.dawnoftime.onceuponatown.behavior.intent.IntentCost;
 import org.dawnoftime.onceuponatown.behavior.morale.MoraleState;
-import org.dawnoftime.onceuponatown.behavior.path.RoadSegment;
-import org.dawnoftime.onceuponatown.behavior.path.RoadType;
+import org.dawnoftime.onceuponatown.behavior.road.RoadSegment;
+import org.dawnoftime.onceuponatown.behavior.road.RoadType;
 import org.dawnoftime.onceuponatown.behavior.task.BuildTask;
 import org.dawnoftime.onceuponatown.behavior.task.CitizenTask;
-import org.dawnoftime.onceuponatown.behavior.task.PathTask;
+import org.dawnoftime.onceuponatown.behavior.task.RoadTask;
 import org.dawnoftime.onceuponatown.behavior.task.TaskContext;
 import org.dawnoftime.onceuponatown.behavior.task.TaskState;
 import org.dawnoftime.onceuponatown.entity.Npc;
@@ -34,7 +34,7 @@ import java.util.UUID;
  * <p>Phase 6 wired the morale multiplier into the engine's log line; Phase 7
  * makes it move {@link CitizenTask#progress()} per tick. The cases here
  * exercise the multiplier directly via {@link BuildTask#tick} and
- * {@link PathTask#tick}, side-stepping the engine so the math is the only
+ * {@link RoadTask#tick}, side-stepping the engine so the math is the only
  * thing under test.
  *
  * <p>The morale-driven math is linear (0.5x at 0 morale to 1.5x at 100 morale);
@@ -167,12 +167,12 @@ public class MoraleProgressGameTest {
     }
 
     // -----------------------------------------------------------------------------------
-    // PathTask waypoint advancement
+    // RoadTask waypoint advancement
     // -----------------------------------------------------------------------------------
 
     /**
      * Build a 10-waypoint segment, run 5 ticks at neutral morale, and verify
-     * {@link PathTask#currentWaypoint} tracks progress linearly: at progress 0.5
+     * {@link RoadTask#currentWaypoint} tracks progress linearly: at progress 0.5
      * the halfway point of the waypoint list (index 5) is the current waypoint.
      */
     @GameTest(template = "empty5x5", timeoutTicks = 80, batch = "behavior")
@@ -185,7 +185,7 @@ public class MoraleProgressGameTest {
             waypoints.add(new BlockPos(i, 1, 0));
         }
         RoadSegment segment = new RoadSegment(a, b, waypoints, RoadType.STREET);
-        PathTask task = new PathTask(segment, SETTLEMENT);
+        RoadTask task = new RoadTask(segment, SETTLEMENT);
 
         MoraleState morale = new MoraleState();
         // No assignee on the production constructor -> multiplier defaults to 1.0.
@@ -194,7 +194,7 @@ public class MoraleProgressGameTest {
         }
 
         helper.assertTrue(task.progress() > 0.4f,
-            "PathTask progressed past 0.4 in 5 ticks (was " + task.progress() + ")");
+            "RoadTask progressed past 0.4 in 5 ticks (was " + task.progress() + ")");
         helper.assertTrue(task.currentWaypoint() == 5,
             "currentWaypoint() tracks halfway through 10 waypoints at progress 0.5"
                 + " (was " + task.currentWaypoint() + ")");
@@ -254,7 +254,7 @@ public class MoraleProgressGameTest {
         Town town = new Town();
         town.setName("ProgressTest");
         return new BuildTask(UUID.randomUUID(),
-            new BuildIntent(SETTLEMENT, town, 5, IntentCost.empty()),
+            new BuildIntent(SETTLEMENT, town, 5, IntentCost.empty(), Town.Zone.CORE),
             builder, fake);
     }
 

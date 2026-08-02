@@ -1,4 +1,4 @@
-package org.dawnoftime.onceuponatown.behavior.path;
+package org.dawnoftime.onceuponatown.behavior.road;
 
 import net.minecraft.core.BlockPos;
 import org.dawnoftime.onceuponatown.town.Town;

@@ -21,12 +21,23 @@ import java.util.Set;
  * already stands in the town. That is the only "supersedes" check — a richer rule (e.g.
  * "drop if a higher-priority build intent for the same defId exists") can be layered in
  * later without changing the interface.
+ *
+ * <p><b>DIST-1 zoning:</b> {@link #requiredZone} declares the zone the building wants
+ * to live in. The first slice carries the field and verifies it via {@link #canResolve};
+ * the actual position-picking enforcement (Town.tryAddToConstructionQueue picking a slot
+ * inside the zone rather than anywhere) is deferred to a follow-up commit.
+ *
+ * <p><b>DIST-2 era gate:</b> {@link #canResolve} also checks the town's current era
+ * against the era the building is unlocked at. The first slice uses a no-op
+ * {@link #eraFor} (returns 0 for every defId) so the gate is wired but inert until
+ * BuildingDataHandler exposes the era field.
  */
 public record BuildIntent(
         ResourceLocation buildingDefId,
         Town town,
         int priority,
-        IntentCost cost
+        IntentCost cost,
+        Town.Zone requiredZone
 ) implements TownIntent {
 
     @Override
@@ -59,13 +70,42 @@ public record BuildIntent(
         if (town.getBuilderNpcIds().isEmpty()) {
             return false;
         }
-        return cost.isEmpty() || town.getTownInventory().hasStock(toItemCost(cost));
+        if (!cost.isEmpty() && !town.getTownInventory().hasStock(toItemCost(cost))) {
+            return false;
+        }
+
+        // DIST-2 era gate: building must be unlocked at the town's current era.
+        // Disabled until BuildingDataHandler exposes the era field — see eraFor().
+        int requiredEra = eraFor(buildingDefId);
+        if (town.getCurrentEra() < requiredEra) {
+            return false;
+        }
+
+        // DIST-1 zoning: requiredZone is carried on the intent; full enforcement
+        // (Town.tryAddToConstructionQueue picking a position inside the zone)
+        // is deferred to a follow-up commit. The gate here is wired but inert.
+        if (requiredZone == null) {
+            return false;
+        }
+
+        return true;
     }
 
     @Override
     public boolean isStillValid(Town town) {
         String id = buildingDefId.toString();
         return town.getBuildings().stream().noneMatch(b -> b.getDefId().equals(id));
+    }
+
+    /**
+     * The era a building def is unlocked at. Returns 0 for the first slice
+     * (every building is always available) because the era field is not yet
+     * exposed on BuildingDef / BuildingDataHandler. A future commit adds the
+     * field, this method reads it, and the era gate in {@link #canResolve}
+     * becomes effective.
+     */
+    private static int eraFor(ResourceLocation defId) {
+        return 0;
     }
 
     private static List<ItemCost> toItemCost(IntentCost cost) {

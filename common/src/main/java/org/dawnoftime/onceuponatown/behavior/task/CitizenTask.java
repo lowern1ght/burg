@@ -19,7 +19,7 @@ import java.util.UUID;
  * never type-checks at runtime; the compiler enforces exhaustiveness.
  */
 public sealed interface CitizenTask
-        permits BuildTask, UpgradeTask, PathTask, TradeTask,
+        permits BuildTask, UpgradeTask, RoadTask, TradeTask,
                 SpeakTask, PatrolTask, IdleTask {
 
     /** Stable id for this task instance. Used by the queue and the log. */

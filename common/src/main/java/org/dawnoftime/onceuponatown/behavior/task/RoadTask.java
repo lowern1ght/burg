@@ -2,7 +2,7 @@ package org.dawnoftime.onceuponatown.behavior.task;
 
 import net.minecraft.resources.ResourceLocation;
 import org.dawnoftime.onceuponatown.behavior.intent.TownIntent;
-import org.dawnoftime.onceuponatown.behavior.path.RoadSegment;
+import org.dawnoftime.onceuponatown.behavior.road.RoadSegment;
 import org.dawnoftime.onceuponatown.entity.Npc;
 
 import java.util.UUID;
@@ -13,7 +13,7 @@ import java.util.UUID;
  * <p><b>Scope (this revision):</b> planning only. The task holds the
  * {@link RoadSegment} the planner produced and the {@link ResourceLocation}
  * of the NBT piece the {@link
- * org.dawnoftime.onceuponatown.behavior.path.RoadLayer} resolved for it.
+ * org.dawnoftime.onceuponatown.behavior.road.RoadLayer} resolved for it.
  * Each tick the task advances a morale-weighted progress counter and exposes
  * the matching {@link #currentWaypoint()}. No blocks are placed.
  *
@@ -34,7 +34,7 @@ import java.util.UUID;
  * the pre-revision stub behaviour. The new planner-driven constructor is
  * the production path.
  */
-public final class PathTask implements CitizenTask {
+public final class RoadTask implements CitizenTask {
 
     /** Per-tick increment at morale=50 (multiplier 1.0). 10 ticks = full completion. */
     private static final float BASE_RATE = 0.1f;
@@ -54,7 +54,7 @@ public final class PathTask implements CitizenTask {
      * placement commit. {@code assignee} may be null for the legacy planner-
      * only path -- {@link #moraleMultiplier} treats null as 1.0x.
      */
-    public PathTask(RoadSegment segment, ResourceLocation pieceNbt) {
+    public RoadTask(RoadSegment segment, ResourceLocation pieceNbt) {
         this.id = UUID.randomUUID();
         this.source = null;
         this.assignee = null;
@@ -65,11 +65,11 @@ public final class PathTask implements CitizenTask {
 
     /**
      * Legacy stub constructor. Used by the existing queue tests and any
-     * other code that needs a {@link PathTask} without going through the
+     * other code that needs a {@link RoadTask} without going through the
      * planner. The task {@link TaskState#FAILED} on first tick -- the same
      * no-op behaviour the pre-revision stub had.
      */
-    public PathTask(UUID id, TownIntent source, Npc assignee) {
+    public RoadTask(UUID id, TownIntent source, Npc assignee) {
         this.id = id;
         this.source = source;
         this.assignee = assignee;

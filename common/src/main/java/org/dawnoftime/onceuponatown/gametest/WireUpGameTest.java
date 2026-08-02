@@ -73,7 +73,7 @@ public class WireUpGameTest {
         BehaviorEngine.register(executor, supplier);
 
         try {
-            scheduler.enqueue(new BuildIntent(SETTLEMENT, town, 10, IntentCost.empty()));
+            scheduler.enqueue(new BuildIntent(SETTLEMENT, town, 10, IntentCost.empty(), Town.Zone.CORE));
             engine.onServerTick(level, level.getGameTime());
 
             CitizenTask builderTask = engine.tasks().currentTaskForId(builder.getUUID()).orElse(null);

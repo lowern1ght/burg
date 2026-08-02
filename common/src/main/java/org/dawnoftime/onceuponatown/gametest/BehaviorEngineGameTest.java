@@ -19,7 +19,7 @@ import org.dawnoftime.onceuponatown.behavior.intent.TownIntent;
 import org.dawnoftime.onceuponatown.behavior.task.BuildTask;
 import org.dawnoftime.onceuponatown.behavior.task.CitizenTask;
 import org.dawnoftime.onceuponatown.behavior.task.IdleTask;
-import org.dawnoftime.onceuponatown.behavior.task.PathTask;
+import org.dawnoftime.onceuponatown.behavior.task.RoadTask;
 import org.dawnoftime.onceuponatown.behavior.task.SpeakTask;
 import org.dawnoftime.onceuponatown.behavior.task.TaskQueue;
 import org.dawnoftime.onceuponatown.behavior.task.TaskState;
@@ -114,7 +114,7 @@ public class BehaviorEngineGameTest {
         IntentScheduler scheduler = new IntentScheduler(supplier);
         BehaviorEngine engine = new BehaviorEngine(scheduler, new TaskQueue(), supplier);
 
-        TownIntent intent = new BuildIntent(CARPENTER, town, 5, IntentCost.empty());
+        TownIntent intent = new BuildIntent(CARPENTER, town, 5, IntentCost.empty(), Town.Zone.CORE);
         scheduler.enqueue(intent);
 
         engine.onServerTick(level, level.getGameTime());
@@ -146,7 +146,7 @@ public class BehaviorEngineGameTest {
         IntentScheduler scheduler = new IntentScheduler(supplier);
         BehaviorEngine engine = new BehaviorEngine(scheduler, new TaskQueue(), supplier);
 
-        scheduler.enqueue(new BuildIntent(CARPENTER, town, 5, IntentCost.empty()));
+        scheduler.enqueue(new BuildIntent(CARPENTER, town, 5, IntentCost.empty(), Town.Zone.CORE));
         engine.onServerTick(level, level.getGameTime());
 
         helper.assertTrue(scheduler.activeIntents(town).isEmpty(),
@@ -173,10 +173,11 @@ public class BehaviorEngineGameTest {
         IntentScheduler scheduler = new IntentScheduler(supplier);
         BehaviorEngine engine = new BehaviorEngine(scheduler, new TaskQueue(), supplier);
 
-        scheduler.enqueue(new BuildIntent(MASON, town, 1, IntentCost.empty()));
-        scheduler.enqueue(new BuildIntent(CARPENTER, town, 10, IntentCost.empty()));
+        scheduler.enqueue(new BuildIntent(MASON, town, 1, IntentCost.empty(), Town.Zone.INDUSTRY));
+        scheduler.enqueue(new BuildIntent(CARPENTER, town, 10, IntentCost.empty(), Town.Zone.CORE));
         scheduler.enqueue(new BuildIntent(
-            ResourceLocation.fromNamespaceAndPath("onceuponatown", "mid"), town, 5, IntentCost.empty()));
+            ResourceLocation.fromNamespaceAndPath("onceuponatown", "mid"), town, 5, IntentCost.empty(),
+            Town.Zone.CORE));
 
         engine.onServerTick(level, level.getGameTime());
 
@@ -200,7 +201,7 @@ public class BehaviorEngineGameTest {
         IntentScheduler scheduler = new IntentScheduler(supplier);
         BehaviorEngine engine = new BehaviorEngine(scheduler, new TaskQueue(), supplier);
 
-        scheduler.enqueue(new BuildIntent(CARPENTER, town, 5, IntentCost.empty()));
+        scheduler.enqueue(new BuildIntent(CARPENTER, town, 5, IntentCost.empty(), Town.Zone.CORE));
         scheduler.cancel(CARPENTER);
         engine.onServerTick(level, level.getGameTime());
 
@@ -249,7 +250,7 @@ public class BehaviorEngineGameTest {
         TaskQueue queue = new TaskQueue();
         UUID npcOne = UUID.randomUUID();
 
-        CitizenTask first = new PathTask(UUID.randomUUID(), null, null);
+        CitizenTask first = new RoadTask(UUID.randomUUID(), null, null);
         CitizenTask second = new SpeakTask(UUID.randomUUID(), null, null);
         CitizenTask waiting = new IdleTask(null);
 
@@ -273,7 +274,7 @@ public class BehaviorEngineGameTest {
     public static void queue_complete_noWaiting_citizenGoesIdle(GameTestHelper helper) {
         TaskQueue queue = new TaskQueue();
         UUID npcOne = UUID.randomUUID();
-        CitizenTask only = new PathTask(UUID.randomUUID(), null, null);
+        CitizenTask only = new RoadTask(UUID.randomUUID(), null, null);
 
         queue.assignToId(npcOne, only);
         queue.completeForId(npcOne, TaskState.DONE);
@@ -288,9 +289,9 @@ public class BehaviorEngineGameTest {
     public static void queue_waitingIsFifo(GameTestHelper helper) {
         TaskQueue queue = new TaskQueue();
         UUID npcOne = UUID.randomUUID();
-        CitizenTask current = new PathTask(UUID.randomUUID(), null, null);
+        CitizenTask current = new RoadTask(UUID.randomUUID(), null, null);
         CitizenTask firstWaiting = new SpeakTask(UUID.randomUUID(), null, null);
-        CitizenTask secondWaiting = new PathTask(UUID.randomUUID(), null, null);
+        CitizenTask secondWaiting = new RoadTask(UUID.randomUUID(), null, null);
 
         queue.assignToId(npcOne, current);
         queue.enqueueWaitingForId(npcOne, firstWaiting);
@@ -311,7 +312,7 @@ public class BehaviorEngineGameTest {
         TaskQueue queue = new TaskQueue();
         UUID npcOne = UUID.randomUUID();
         UUID npcTwo = UUID.randomUUID();
-        CitizenTask t1 = new PathTask(UUID.randomUUID(), null, null);
+        CitizenTask t1 = new RoadTask(UUID.randomUUID(), null, null);
         CitizenTask t2 = new SpeakTask(UUID.randomUUID(), null, null);
 
         queue.assignToId(npcOne, t1);
@@ -364,7 +365,7 @@ public class BehaviorEngineGameTest {
         try {
         // Use SETTLEMENT (weight=0, no construction_cost) so tryAddToConstructionQueue
         // succeeds in the test environment where the town has no stock and no era weight cap.
-        TownIntent intent = new BuildIntent(SETTLEMENT, town, 5, IntentCost.empty());
+        TownIntent intent = new BuildIntent(SETTLEMENT, town, 5, IntentCost.empty(), Town.Zone.CORE);
         scheduler.enqueue(intent);
 
         // Tick 1: scheduler pairs the intent, engine assigns a BuildTask to the builder,
@@ -465,7 +466,7 @@ public class BehaviorEngineGameTest {
         BehaviorEngine.register(fake, supplier);
 
         try {
-            TownIntent intent = new BuildIntent(SETTLEMENT, town, 5, IntentCost.empty());
+            TownIntent intent = new BuildIntent(SETTLEMENT, town, 5, IntentCost.empty(), Town.Zone.CORE);
             scheduler.enqueue(intent);
             engine.onServerTick(level, level.getGameTime());
 
@@ -510,7 +511,7 @@ public class BehaviorEngineGameTest {
         BehaviorEngine.register(fake, supplier);
 
         try {
-            TownIntent intent = new BuildIntent(SETTLEMENT, town, 5, IntentCost.empty());
+            TownIntent intent = new BuildIntent(SETTLEMENT, town, 5, IntentCost.empty(), Town.Zone.CORE);
             scheduler.enqueue(intent);
             engine.onServerTick(level, level.getGameTime());
 
@@ -560,7 +561,7 @@ public class BehaviorEngineGameTest {
 
         // Sanity check that the engine actually routes through second on this tick.
         try {
-            scheduler.enqueue(new BuildIntent(SETTLEMENT, town, 5, IntentCost.empty()));
+            scheduler.enqueue(new BuildIntent(SETTLEMENT, town, 5, IntentCost.empty(), Town.Zone.CORE));
             engine.onServerTick(level, level.getGameTime());
 
             helper.assertTrue(first.getNewBuildCalls().isEmpty(),

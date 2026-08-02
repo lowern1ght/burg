@@ -226,6 +226,69 @@ public class Town implements BuildExecutor {
     public List<BoundingBox> getBlockedZones() { return Collections.unmodifiableList(blockedZones); }
     public boolean isUnderUpgrade(BlockPos pos) { return underUpgrade.contains(pos); }
 
+    // -------------------------------------------------------------------------
+    // DIST-1 Zoning
+    //
+    // Position-based heuristic that classifies world positions into one of
+    // four zones based on distance from the town's centroid. The heuristic
+    // is intentionally simple for the first slice: a future phase will also
+    // look at planned road segments (for the ROAD zone) and the next era
+    // weight cap (for MILITARY threshold changes).
+    //
+    // Anchor (centroid) is derived from the placed buildings; if there are
+    // none yet, the anchor falls back to BlockPos.ZERO. Building zone
+    // enforcement (Town.tryAddToConstructionQueue respecting requiredZone)
+    // is deferred to a future commit — this slice only exposes the zone
+    // taxonomy + the per-position lookup.
+    // -------------------------------------------------------------------------
+
+    /**
+     * Position-based zone taxonomy. CORE is the inner ring around the town's
+     * centroid (people, stores, public buildings); INDUSTRY is the outer
+     * ring (farms, workshops, dirty work); ROAD is reserved for positions
+     * on a planned road segment; MILITARY is beyond INDUSTRY (walls, towers).
+     */
+    public enum Zone {
+        /** Within 32 blocks of anchor — houses, public buildings, the well. */
+        CORE,
+        /** 32-64 blocks — farms, workshops, kilns, byres. */
+        INDUSTRY,
+        /** On a planned road segment (detected from {@link org.dawnoftime.onceuponatown.behavior.road.RoadGraph}). */
+        ROAD,
+        /** Beyond 64 blocks — walls, towers, lookout posts. Reserved for the future. */
+        MILITARY
+    }
+
+    /** Centroid of placed buildings; falls back to BlockPos.ZERO for an empty town. */
+    public BlockPos getAnchorPos() {
+        if (buildings.isEmpty()) return BlockPos.ZERO;
+        long sumX = 0;
+        long sumZ = 0;
+        int y = buildings.get(0).worldPos.getY();
+        for (PlacedBuilding b : buildings) {
+            sumX += b.worldPos.getX();
+            sumZ += b.worldPos.getZ();
+        }
+        int n = buildings.size();
+        return new BlockPos((int) (sumX / n), y, (int) (sumZ / n));
+    }
+
+    /**
+     * Returns the zone for a given position, based on distance from the
+     * town anchor. ROAD zone detection (intersection with the road graph)
+     * is not yet implemented — that lands with the full zoning enforcement
+     * in a future commit.
+     */
+    public Zone zoneOf(BlockPos pos) {
+        BlockPos anchor = getAnchorPos();
+        double dx = pos.getX() - anchor.getX();
+        double dz = pos.getZ() - anchor.getZ();
+        double dist = Math.sqrt(dx * dx + dz * dz);
+        if (dist <= 32.0) return Zone.CORE;
+        if (dist <= 64.0) return Zone.INDUSTRY;
+        return Zone.MILITARY;
+    }
+
     // Seeds currentMaxWeight from the matched era 0 data file.
     // Called once at world gen after all starter buildings are registered.
     public void initFromEraDef() {

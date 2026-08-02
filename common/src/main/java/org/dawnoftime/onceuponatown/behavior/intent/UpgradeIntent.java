@@ -62,6 +62,16 @@ public record UpgradeIntent(
             return false;
         }
         String id = buildingDefId.toString();
+        // DIST-2 era gate: upgrading a building requires the town's current era
+        // to be strictly greater than the era the building was unlocked at
+        // (the +1 means "advance one era past unlock before upgrades become
+        // available"). The first slice uses a no-op eraFor (returns 0), so the
+        // gate becomes "currentEra >= 1" — upgrades blocked at era 0, allowed
+        // at era 1+ once the eraFor stub is replaced with the real field read.
+        int unlockEra = eraFor(buildingDefId);
+        if (town.getCurrentEra() < unlockEra + 1) {
+            return false;
+        }
         return town.getBuildings().stream()
             .filter(b -> b.getDefId().equals(id) && b.worldPos.equals(buildingPos))
             .findFirst()
@@ -72,6 +82,17 @@ public record UpgradeIntent(
                 return b.getUpgradeLevel() < maxLevel;
             })
             .orElse(false);
+    }
+
+    /**
+     * Era the building def was unlocked at. Returns 0 for the first slice
+     * (every building is unlocked at era 0) because the era field is not yet
+     * exposed on BuildingDef / BuildingDataHandler. A future commit adds the
+     * field, this method reads it, and the era gate in {@link #canResolve}
+     * becomes fully data-driven.
+     */
+    private static int eraFor(ResourceLocation defId) {
+        return 0;
     }
 
     @Override

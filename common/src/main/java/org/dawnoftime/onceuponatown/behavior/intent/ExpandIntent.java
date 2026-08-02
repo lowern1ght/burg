@@ -24,7 +24,7 @@ import java.util.Set;
  * are conservative — the engine will pair an intent with a free builder
  * whenever the town has one, and the planner's failure modes (no path
  * found, malformed endpoints) are folded into the resulting
- * {@link org.dawnoftime.onceuponatown.behavior.task.PathTask} lifecycle.
+ * {@link org.dawnoftime.onceuponatown.behavior.task.RoadTask} lifecycle.
  */
 public record ExpandIntent(
         BlockPos from,

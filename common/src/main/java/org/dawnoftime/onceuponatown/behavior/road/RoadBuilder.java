@@ -1,9 +1,9 @@
-package org.dawnoftime.onceuponatown.behavior.path;
+package org.dawnoftime.onceuponatown.behavior.road;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import org.dawnoftime.onceuponatown.behavior.intent.ExpandIntent;
-import org.dawnoftime.onceuponatown.behavior.task.PathTask;
+import org.dawnoftime.onceuponatown.behavior.task.RoadTask;
 import org.dawnoftime.onceuponatown.town.Town;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,9 +12,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Front door of the path layer.
+ * Front door of the road layer.
  *
- * <p>Takes an {@link ExpandIntent} and produces zero or more {@link PathTask}s
+ * <p>Takes an {@link ExpandIntent} and produces zero or more {@link RoadTask}s
  * the engine can assign to a builder. The shape is "one task per segment"
  * because that's what the engine's {@link
  * org.dawnoftime.onceuponatown.behavior.BehaviorEngine} per-citizen queue
@@ -50,13 +50,13 @@ public final class RoadBuilder {
     }
 
     /**
-     * Plan the route for an expand intent and produce one {@link PathTask} per
+     * Plan the route for an expand intent and produce one {@link RoadTask} per
      * segment. Side effect: records the intent's endpoints as nodes and the
      * resulting segment in the {@link RoadGraph}.
      */
-    public List<PathTask> planTasks(ExpandIntent intent, Town town, ServerLevel level) {
+    public List<RoadTask> planTasks(ExpandIntent intent, Town town, ServerLevel level) {
         if (intent == null || town == null || level == null) {
-            LOGGER.debug("[PATH] planTasks called with null argument (intent={}, town={}, level={})"
+            LOGGER.debug("[ROAD] planTasks called with null argument (intent={}, town={}, level={})"
                 + " -- returning empty task list", intent, town, level);
             return List.of();
         }
@@ -71,9 +71,9 @@ public final class RoadBuilder {
 
         // 3) Resolve the piece id and emit one task.
         ResourceLocation pieceNbt = layer.pieceFor(segment);
-        List<PathTask> tasks = new ArrayList<>();
-        tasks.add(new PathTask(segment, pieceNbt));
-        LOGGER.debug("[PATH] planned segment from={} to={} type={} waypoints={} pieceNbt={}",
+        List<RoadTask> tasks = new ArrayList<>();
+        tasks.add(new RoadTask(segment, pieceNbt));
+        LOGGER.debug("[ROAD] planned segment from={} to={} type={} waypoints={} pieceNbt={}",
             intent.from(), intent.to(), segment.type(), segment.length(), pieceNbt);
         return tasks;
     }
