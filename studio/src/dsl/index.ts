@@ -51,6 +51,11 @@ export {
   type BlockState,
   type Vocabulary,
 } from './vocabulary';
+export {
+  buildFromSpec,
+  type BuildSpec,
+  type BuildResult,
+} from './building-generator';
 
 import { parseYaml } from './parser';
 import type { YamlValue } from './parser';
