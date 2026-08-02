@@ -124,6 +124,7 @@ public final class BehaviorEngine {
     private final DiplomaticRegistry diplomaticRegistry;
     private final DiplomaticAI diplomaticAI;
     private final DiplomaticAIDriver diplomaticAIDriver;
+    private final BattleDriver battleDriver;
     /** Tick counter used to throttle the role-assigner update. */
     private int ticksSinceLastRoleUpdate = ROLE_UPDATE_INTERVAL - 1;
     /** Role-assigner runs every {@value} ticks, i.e. once every 5 seconds at 20 tps. */
@@ -144,13 +145,22 @@ public final class BehaviorEngine {
             scheduler.roleAssigner(),
             new MoraleState(),
             new DiplomaticRegistry(),
-            new DiplomaticAI()
+            new DiplomaticAI(),
+            new BattleDriver()
         );
     }
 
     public BehaviorEngine(IntentScheduler scheduler, TaskQueue tasks, NpcSupplier npcSupplier,
                           RoleAssigner roleAssigner, MoraleState morale,
                           DiplomaticRegistry diplomaticRegistry, DiplomaticAI diplomaticAI) {
+        this(scheduler, tasks, npcSupplier, roleAssigner, morale,
+            diplomaticRegistry, diplomaticAI, new BattleDriver());
+    }
+
+    public BehaviorEngine(IntentScheduler scheduler, TaskQueue tasks, NpcSupplier npcSupplier,
+                          RoleAssigner roleAssigner, MoraleState morale,
+                          DiplomaticRegistry diplomaticRegistry, DiplomaticAI diplomaticAI,
+                          BattleDriver battleDriver) {
         if (scheduler.roleAssigner() != roleAssigner) {
             throw new IllegalArgumentException("scheduler and engine must share one RoleAssigner");
         }
@@ -162,6 +172,7 @@ public final class BehaviorEngine {
         this.diplomaticRegistry = diplomaticRegistry;
         this.diplomaticAI = diplomaticAI;
         this.diplomaticAIDriver = new DiplomaticAIDriver(diplomaticRegistry, diplomaticAI, morale);
+        this.battleDriver = battleDriver;
         if (npcSupplier instanceof WorldNpcSupplier w) {
             w.bind(this);
         }
@@ -273,6 +284,12 @@ public final class BehaviorEngine {
             }
 
             diplomaticAIDriver.onServerTick(level);
+
+            // 4) Battle driver. Throttled internally to once per second; just
+            //    forwards the per-squad state and advances the state machine
+            //    for every active AT_WAR relation. No-ops when diplomacy is
+            //    quiet — the team's peaceful realms pay nothing here.
+            battleDriver.onServerTick(level, gameTick, diplomaticRegistry);
         } finally {
             this.currentLevel = previous;
         }
