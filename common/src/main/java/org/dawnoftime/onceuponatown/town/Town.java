@@ -14,6 +14,7 @@ import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import org.dawnoftime.onceuponatown.Constants;
 import org.dawnoftime.onceuponatown.behavior.executor.BuildExecutor;
+import org.dawnoftime.onceuponatown.behavior.role.CitizenRole;
 import org.dawnoftime.onceuponatown.datapack.BuildingDataHandler;
 import org.dawnoftime.onceuponatown.datapack.EraDef;
 import org.dawnoftime.onceuponatown.datapack.EraTransitionDataHandler;
@@ -706,6 +707,22 @@ public class Town implements BuildExecutor {
      * null hole must be kept. Nobody has a resident slot.
      */
     public List<UUID> getResidentNpcIds() { return residentNpcIds; }
+
+    /**
+     * Returns the citizen's role for this town.
+     *
+     * <p>Backward-compatible shim: a citizen whose UUID is in the legacy {@code builderNpcIds}
+     * list reads as {@link CitizenRole#BUILDER}; everyone else reads as {@link CitizenRole#IDLE}.
+     * The full role system lives in {@link org.dawnoftime.onceuponatown.behavior.role.RoleAssigner}
+     * and the engine will start honouring its assignments in the next slice. This method exists
+     * so call sites that need a "what does this town think of this citizen" answer have one
+     * place to look and the engine can later swap the implementation without rippling the call
+     * sites.
+     */
+    public CitizenRole roleOf(UUID citizenId) {
+        if (citizenId != null && builderNpcIds.contains(citizenId)) return CitizenRole.BUILDER;
+        return CitizenRole.IDLE;
+    }
 
     /** The town's people, records and all, living and dead. Never null. */
     public org.dawnoftime.onceuponatown.people.Population people() { return people; }

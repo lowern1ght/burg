@@ -9,6 +9,8 @@ import org.dawnoftime.onceuponatown.behavior.intent.IntentScheduler;
 import org.dawnoftime.onceuponatown.behavior.intent.NpcSupplier;
 import org.dawnoftime.onceuponatown.behavior.intent.TownIntent;
 import org.dawnoftime.onceuponatown.behavior.intent.UpgradeIntent;
+import org.dawnoftime.onceuponatown.behavior.role.RoleAssigner;
+import org.dawnoftime.onceuponatown.behavior.role.RoleAssignerConfig;
 import org.dawnoftime.onceuponatown.behavior.task.BuildTask;
 import org.dawnoftime.onceuponatown.behavior.task.CitizenTask;
 import org.dawnoftime.onceuponatown.behavior.task.IdleTask;
@@ -17,11 +19,13 @@ import org.dawnoftime.onceuponatown.behavior.task.TaskQueue;
 import org.dawnoftime.onceuponatown.behavior.task.TaskState;
 import org.dawnoftime.onceuponatown.behavior.task.UpgradeTask;
 import org.dawnoftime.onceuponatown.entity.Npc;
+import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.Town;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -105,6 +109,16 @@ public final class BehaviorEngine {
     private final IntentScheduler scheduler;
     private final TaskQueue tasks;
     private final NpcSupplier npcSupplier;
+    /**
+     * Per-engine role assigner. Updated every {@link #ROLE_UPDATE_INTERVAL} ticks for every
+     * town in the active level. The engine reads roles from here in the next phase (intent
+     * routing); for now the assigner runs but nothing consults it.
+     */
+    private final RoleAssigner roleAssigner = new RoleAssigner();
+    /** Tick counter used to throttle the role-assigner update. */
+    private int ticksSinceLastRoleUpdate = 0;
+    /** Role-assigner runs every {@value} ticks, i.e. once every 5 seconds at 20 tps. */
+    private static final int ROLE_UPDATE_INTERVAL = 100;
 
     /**
      * The level the engine is currently ticking. Set by {@link #onServerTick} before any
@@ -125,6 +139,9 @@ public final class BehaviorEngine {
     public IntentScheduler scheduler() { return scheduler; }
     public TaskQueue tasks() { return tasks; }
 
+    /** The role assigner this engine maintains. Tests and the next phase consult this directly. */
+    public RoleAssigner roleAssigner() { return roleAssigner; }
+
     /**
      * Runs one engine tick. The engine is the only thing that ticks tasks; the scheduler
      * runs alongside.
@@ -134,6 +151,19 @@ public final class BehaviorEngine {
         this.currentLevel = level;
         try {
             TaskContext ctx = new TaskContext(level, gameTick, npcSupplier);
+
+            // 0) Role assigner. Runs at ROLE_UPDATE_INTERVAL (5s at 20 tps) to keep the
+            //    bookkeeping cheap. Iterates every town in this level and feeds it the
+            //    currently-loaded citizens. Idempotent: a citizen that has already been
+            //    assigned keeps its role, so repeated ticks are safe.
+            ticksSinceLastRoleUpdate++;
+            if (ticksSinceLastRoleUpdate >= ROLE_UPDATE_INTERVAL) {
+                ticksSinceLastRoleUpdate = 0;
+                for (Town town : LevelTowns.get(level).getAllTowns()) {
+                    List<Npc> citizens = npcSupplier.freeCitizens(town);
+                    roleAssigner.update(town, citizens, RoleAssignerConfig.defaults());
+                }
+            }
 
             // 1) Scheduler: prune, sort, pair.
             scheduler.onTick(new IntentScheduler.TickContext() {
