@@ -11,12 +11,15 @@ import org.dawnoftime.onceuponatown.behavior.war.BattleStateMachine;
 import org.dawnoftime.onceuponatown.behavior.war.CasualtyModel;
 import org.dawnoftime.onceuponatown.behavior.war.Squad;
 import org.dawnoftime.onceuponatown.behavior.war.SquadGoal;
+import org.dawnoftime.onceuponatown.integration.xaero.XaeroIntegration;
 import org.dawnoftime.onceuponatown.town.LevelTowns;
 import org.dawnoftime.onceuponatown.town.Town;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -70,6 +73,14 @@ public final class BattleDriver {
     private final CasualtyModel casualties = new CasualtyModel();
     private final BattleStateMachine sm = new BattleStateMachine();
     private int ticksSinceLastTick = 0;
+    /**
+     * Relations that were {@link DiplomaticStatus#AT_WAR} at the previous
+     * {@code BATTLE_TICK_INTERVAL} tick. Diffed against the current set each
+     * tick to detect new and ended wars. New wars fire
+     * {@link XaeroIntegration#onWarStarted}; wars that are no longer
+     * {@code AT_WAR} fire {@link XaeroIntegration#onWarEnded}.
+     */
+    private final Set<Relation> activeWars = new HashSet<>();
 
     public void onServerTick(ServerLevel level, long gameTick, DiplomaticRegistry registry) {
         if (level == null || registry == null) return;
@@ -77,8 +88,29 @@ public final class BattleDriver {
         if (ticksSinceLastTick < BATTLE_TICK_INTERVAL) return;
         ticksSinceLastTick = 0;
 
+        // 0) Diff the current AT_WAR set against the previous tick. The diff drives
+        //    the soft-dep Xaero Minimap integration (and any other future lifecycle
+        //    hook that wants to know "this war just started" / "this war just ended").
+        //    We collect currentWars as a fresh Set so the diff is straightforward and
+        //    no relation is double-counted.
+        Set<Relation> currentWars = new HashSet<>();
         for (Relation rel : registry.allRelations()) {
-            if (rel.status() != DiplomaticStatus.AT_WAR) continue;
+            if (rel.status() == DiplomaticStatus.AT_WAR) currentWars.add(rel);
+        }
+        Set<Relation> newWars = new HashSet<>(currentWars);
+        newWars.removeAll(activeWars);
+        Set<Relation> endedWars = new HashSet<>(activeWars);
+        endedWars.removeAll(currentWars);
+        for (Relation w : newWars) {
+            XaeroIntegration.onWarStarted(w.from(), w.to());
+        }
+        for (Relation w : endedWars) {
+            XaeroIntegration.onWarEnded(w.from(), w.to());
+        }
+        activeWars.clear();
+        activeWars.addAll(currentWars);
+
+        for (Relation rel : currentWars) {
             Town attacker = rel.from();
             Town defender = rel.to();
             if (attacker == null || defender == null) continue;

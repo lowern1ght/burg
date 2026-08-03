@@ -8,6 +8,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
 import org.dawnoftime.onceuponatown.datapack.QuestDataHandler;
+import org.dawnoftime.onceuponatown.integration.xaero.XaeroIntegration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +61,10 @@ public class LevelTowns extends SavedData {
     public void registerTown(BlockPos anchorPos, Town town) {
         towns.put(anchorPos.asLong(), town);
         setDirty();
+        // Soft-dep waypoint integration. No-op when Xaero's Minimap is not loaded;
+        // on the server JVM with Xaero loaded the call logs a one-shot warning and
+        // returns (Xaero is client-side only). See XaeroIntegration class javadoc.
+        XaeroIntegration.onTownRegistered(town);
     }
 
     public Optional<Town> getTownAt(BlockPos anchorPos) {
