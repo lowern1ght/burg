@@ -28,6 +28,12 @@ feedback loop in a project whose verification bar is in-game
 - **THEN** it converts `BlockPos` to `BlockCoord` before the call; the
   domain signature accepts only `BlockCoord`.
 
+#### Scenario: ResourceLocation stays at the edge
+- **WHEN** infrastructure code needs an item identity for a domain call
+- **THEN** it converts the Minecraft `ResourceLocation` (or the `Item`
+  it points at) to `ItemId` before the call; the domain signature
+  accepts only `ItemId`.
+
 #### Scenario: UUID stays at the edge
 - **WHEN** a domain call needs a citizen identity
 - **THEN** it accepts a `CitizenId` (the domain value object); the
@@ -61,7 +67,16 @@ build with it, and vice versa. The Standing and Acquisition carve
 demonstrates this: missing `Acquisition` / `Standings` NBT keys read as
 `FREE` / empty book on load.
 
-#### Scenario: old world loads after the standing carve
+#### Scenario: old world loads after a carve
+- **WHEN** a world last saved before a strangler carve (standing,
+  stock-ledger, queue view, quest view, dual-write) is opened by a
+  post-carve build
+- **THEN** the town loads with all buildings, queue entries, stock, era,
+  standing and acquisition intact — missing additive keys read as their
+  defaults (`FREE` acquisition, empty `StandingBook`, `StockLedger.EMPTY`
+  reserve), verified in a running game, not only in a unit round-trip.
+
+## Scenario: old world loads after the standing carve
 - **WHEN** a world last saved before this commit is opened by a
   post-carve build
 - **THEN** the town loads with `getAcquisition() == FREE` and
