@@ -1,0 +1,29 @@
+{
+  "id": "merchant_shop",
+  "nbt": "burg:plains/jobs/merchant_shop",
+  "entry_pool": "burg:jobs",
+  "icon_item": "minecraft:emerald",
+  "category": "jobs",
+  "zone": "core",
+  "weight": 3,
+
+  "required_residents": 5,
+  "construction_cost": [
+    {
+      "item": "minecraft:oak_log",
+      "amount": 25
+    },
+    {
+      "item": "minecraft:cobblestone",
+      "amount": 10
+    }
+  ],
+  "nbt_levels": [
+    "burg:plains/jobs/merchant_shop_lvl1",
+    "burg:plains/jobs/merchant_shop_lvl2",
+    "burg:plains/jobs/merchant_shop_lvl3",
+    "burg:plains/jobs/merchant_shop_lvl4",
+    "burg:plains/jobs/merchant_shop_lvl5",
+    "burg:plains/jobs/merchant_shop_lvl6"
+  ]
+}

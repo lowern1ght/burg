@@ -229,7 +229,7 @@ def load(path: str | Path) -> Voxels:
     return vox
 
 
-CORPUS_ROOT = "common/src/main/resources/data/onceuponatown/structure"
+CORPUS_ROOT = "common/src/main/resources/data/burg/structure"
 
 
 def load_corpus(root: str | Path = CORPUS_ROOT,

@@ -1,0 +1,15 @@
+{
+  "id": "wild_bee",
+  "nbt": "burg:plains/jobs/wild_bee",
+  "entry_pool": "burg:jobs",
+  "icon_item": "minecraft:bee_nest",
+  "category": "naturals",
+  "weight": 1,
+
+  "construction_cost": [
+    {
+      "item": "minecraft:oak_log",
+      "amount": 5
+    }
+  ]
+}

@@ -76,7 +76,7 @@ def jigsaw(target: str, pool: str = "minecraft:empty",
     })
 
 
-STREET_JIGSAW = ("onceuponatown:streets", "onceuponatown:plains/streets")
+STREET_JIGSAW = ("burg:streets", "burg:plains/streets")
 
 
 # ── vocabulary ──────────────────────────────────────────────────────
@@ -670,7 +670,7 @@ def compose_tower(v: Vocabulary, plan: TowerPlan, seed: int = 0) -> Voxels:
                        FacadeStyle.tier1_timber(), seed=seed + 3,
                        arches=False, corbels=False)
 
-    _add_connectors(vox, x0, x1, z0, z1, plan.front, "onceuponatown:military")
+    _add_connectors(vox, x0, x1, z0, z1, plan.front, "burg:military")
     _scatter_props(vox, x0, x1, z0, z1, rng, level=plan.level)
     _scatter_vegetation(vox, x0, x1, z0, z1, rng)
     ensure_climbable(vox, lx, lz, lad, x0, x1, z0, z1)
@@ -857,7 +857,7 @@ def compose_yard(v: Vocabulary, plan: YardPlan, seed: int = 0) -> Voxels:
     articulate(vox, shell, 1, plan.wall_h, FacadeStyle.tier1_stone(),
                seed=seed, arches=False, corbels=False)
 
-    _add_connectors(vox, x0, x1, z0, z1, plan.front, "onceuponatown:military")
+    _add_connectors(vox, x0, x1, z0, z1, plan.front, "burg:military")
     return vox
 
 
@@ -984,7 +984,7 @@ def compose_wall(v: Vocabulary, plan: WallPlan, seed: int = 0) -> Voxels:
                 ("east", (sx - 1, 0, m_out + thick // 2)))
     for side, pos in ends:
         vox.set(pos, state("jigsaw", orientation=JIGSAW_ORIENTATION[side]),
-                jigsaw("onceuponatown:military"))
+                jigsaw("burg:military"))
     return vox
 
 
@@ -996,7 +996,7 @@ def _add_connectors(vox: Voxels, x0: int, x1: int, z0: int, z1: int,
 
     Mirrors the author's layout: the entry jigsaw uses `minecraft:empty` as its
     pool and the building's entry_pool as its target; street jigsaws point at
-    `onceuponatown:plains/streets`.
+    `burg:plains/streets`.
     """
     sx, sy, sz = vox.size
     edge = {"north": (( x0 + x1) // 2, 0, 0),

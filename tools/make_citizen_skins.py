@@ -151,7 +151,7 @@ from make_female_skins import (BODICE, CHEMISE, GOWNS, SKIRT, SLEEVE, UNDER,
 
 HERE = Path(__file__).resolve().parent
 OUT = HERE.parent / (
-    "common/src/main/resources/assets/onceuponatown/textures/entity/npc")
+    "common/src/main/resources/assets/burg/textures/entity/npc")
 SHEET = HERE / "structures/out/npc"
 
 # The only filenames this script may write. Everything else in that directory is either the

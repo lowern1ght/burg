@@ -63,8 +63,8 @@ from structures.fabric import Canvas
 from structures.nbtio import BlockState, Coord, Voxels, load
 from structures.pasture import FULL_BLOCKS, NEIGH4, STURDY, VEC, AXIS_OF
 
-LIVESTOCK = Path("../common/src/main/resources/data/onceuponatown/structure/livestock")
-CORPUS = Path("../common/src/main/resources/data/onceuponatown/structure")
+LIVESTOCK = Path("../common/src/main/resources/data/burg/structure/livestock")
+CORPUS = Path("../common/src/main/resources/data/burg/structure")
 
 ROOF_MATERIAL = ("_slab", "_stairs")
 # Too thin or too small to bridge a corner or to fill a dead cell.

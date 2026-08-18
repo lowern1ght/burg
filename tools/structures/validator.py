@@ -165,5 +165,5 @@ def validate_path(path: Path, *, quiet: bool = False) -> int:
 
 
 if __name__ == "__main__":
-    target = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("common/src/main/resources/data/onceuponatown/structures")
+    target = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("common/src/main/resources/data/burg/structures")
     sys.exit(validate_path(target))

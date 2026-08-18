@@ -1,0 +1,23 @@
+{
+  "id": "wild_stone",
+  "nbt": "burg:plains/jobs/wild_stone",
+  "entry_pool": "burg:jobs",
+  "icon_item": "minecraft:cobblestone",
+  "category": "naturals",
+  "weight": 1,
+
+  "construction_cost": [
+    {
+      "item": "minecraft:cobblestone",
+      "amount": 5
+    }
+  ],
+  "production": [
+    {
+      "item": "minecraft:cobblestone",
+      "amount": 1,
+      "every_ticks": 2100,
+      "capacity_stacks": 1
+    }
+  ]
+}

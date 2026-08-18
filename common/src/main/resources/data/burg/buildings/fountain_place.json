@@ -1,0 +1,26 @@
+{
+  "id": "fountain_place",
+  "nbt": "burg:plains/gardens/fountain_place",
+  "entry_pool": "burg:gardens",
+  "icon_item": "minecraft:bell",
+  "category": "gardens",
+  "zone": "core",
+  "weight": 4,
+
+  "production_bonus": 0.05,
+  "required_residents": 10,
+  "construction_cost": [
+    {
+      "item": "minecraft:oak_log",
+      "amount": 35
+    },
+    {
+      "item": "minecraft:cobblestone",
+      "amount": 10
+    },
+    {
+      "item": "minecraft:white_wool",
+      "amount": 5
+    }
+  ]
+}

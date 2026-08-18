@@ -1,0 +1,53 @@
+{
+  "id": "house_3",
+  "nbt": "burg:plains/houses/house_3",
+  "entry_pool": "burg:houses",
+  "icon_item": "minecraft:yellow_bed",
+  "category": "buildings",
+  "zone": "core",
+  "weight": 2,
+
+  "residents": 2,
+  "consumption_per_resident": 1.0,
+  "construction_cost": [
+    {
+      "item": "minecraft:oak_log",
+      "amount": 20
+    }
+  ],
+  "nbt_levels": [
+    "burg:plains/houses/house_3_lvl1",
+    "burg:plains/houses/house_3_lvl2",
+    "burg:plains/houses/house_3_lvl3",
+    "burg:plains/houses/house_3_lvl4",
+    "burg:plains/houses/house_3_lvl5",
+    "burg:plains/houses/house_3_lvl6"
+  ],
+  "upgrades": [
+    {
+      "consumption_per_resident_add": 0.15,
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 20 }]
+    },
+    {
+      "consumption_per_resident_add": 0.15,
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 30 }]
+    },
+    {
+      "consumption_per_resident_add": 0.20,
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 40 }]
+    },
+    {
+      "residents_add": 1,
+      "consumption_per_resident_add": 0.15,
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 60 }]
+    },
+    {
+      "consumption_per_resident_add": 0.15,
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 80 }]
+    },
+    {
+      "consumption_per_resident_add": 0.20,
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 100 }]
+    }
+  ]
+}

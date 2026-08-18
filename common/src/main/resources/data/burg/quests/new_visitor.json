@@ -1,0 +1,13 @@
+{
+  "id": "burg:new_visitor",
+  "type": "NOTE",
+  "title": "quest.burg.new_visitor.title",
+  "description": "quest.burg.new_visitor.desc",
+
+  "prerequisites": {
+    "min_era": 0,
+    "stock_conditions": [
+      { "item": "minecraft:oak_log", "min": 35 }
+    ]
+  }
+}

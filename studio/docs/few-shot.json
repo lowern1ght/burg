@@ -3,7 +3,7 @@
     {
       "family": "house",
       "rung": "variantA.lvl6",
-      "source": "common/src/main/resources/data/onceuponatown/structure/plains/houses/house_lvl6.nbt",
+      "source": "common/src/main/resources/data/burg/structure/plains/houses/house_lvl6.nbt",
       "footprint": [9, 11],
       "height": 9,
       "topBlocks": [
@@ -63,7 +63,7 @@
     {
       "family": "house",
       "rung": "variantA.lvl3",
-      "source": "common/src/main/resources/data/onceuponatown/structure/plains/houses/house_lvl3.nbt",
+      "source": "common/src/main/resources/data/burg/structure/plains/houses/house_lvl3.nbt",
       "footprint": [9, 11],
       "height": 7,
       "topBlocks": [
@@ -116,7 +116,7 @@
     {
       "family": "job",
       "rung": "merchant_shop.lvl5",
-      "source": "common/src/main/resources/data/onceuponatown/structure/plains/jobs/merchant_shop_lvl5.nbt",
+      "source": "common/src/main/resources/data/burg/structure/plains/jobs/merchant_shop_lvl5.nbt",
       "footprint": [15, 15],
       "height": 13,
       "topBlocks": [
@@ -172,7 +172,7 @@
     {
       "family": "starter",
       "rung": "settlement.lvl1",
-      "source": "common/src/main/resources/data/onceuponatown/structure/plains/starters/settlement_lvl1.nbt",
+      "source": "common/src/main/resources/data/burg/structure/plains/starters/settlement_lvl1.nbt",
       "footprint": [15, 14],
       "height": 9,
       "topBlocks": [
@@ -195,7 +195,7 @@
         "cobblestone"
       ],
       "devices": [
-        "onceuponatown:town_anchor jigsaw at the centre (mod block — without it the settlement never becomes a village candidate)",
+        "burg:town_anchor jigsaw at the centre (mod block — without it the settlement never becomes a village candidate)",
         "multiple distinct buildings in one bbox (cottage, workshop, gated yard, shed, empty plot)",
         "paths weave between buildings (dirt_path clusters)",
         "oak_fence separations",
@@ -215,7 +215,7 @@
       ],
       "evolutionFrom": "settlement.nbt (lvl0) → settlement_lvl1 is the larger version of the same arrangement; same 15x14 footprint.",
       "notes": [
-        "The single onceuponatown:town_anchor jigsaw marker is the worldgen handle — without it the rotation pipeline never recognises this as a village candidate.",
+        "The single burg:town_anchor jigsaw marker is the worldgen handle — without it the rotation pipeline never recognises this as a village candidate.",
         "Five sub-buildings in one bbox separated by oak_fence; dirt_path connects them.",
         "Apron is asymmetric — grass_block next to coarse_dirt next to dirt_path, never a uniform perimeter.",
         "Blast_furnace + crafting_table + stone slab identify this as settlement_3 (carrots/potatoes recipe), not settlement_2 (mud/oak_button/smoker). Don't mix the recipes."
@@ -224,7 +224,7 @@
     {
       "family": "wall_segment",
       "rung": "lvl4",
-      "source": "common/src/main/resources/data/onceuponatown/structure/military/wall_segment/wall_segment_lvl4.nbt",
+      "source": "common/src/main/resources/data/burg/structure/military/wall_segment/wall_segment_lvl4.nbt",
       "footprint": [6, 8],
       "height": 12,
       "topBlocks": [
@@ -284,7 +284,7 @@
     {
       "family": "watchtower",
       "rung": "lvl6",
-      "source": "common/src/main/resources/data/onceuponatown/structure/military/watchtower/watchtower_lvl6.nbt",
+      "source": "common/src/main/resources/data/burg/structure/military/watchtower/watchtower_lvl6.nbt",
       "footprint": [11, 9],
       "height": 18,
       "topBlocks": [
@@ -352,7 +352,7 @@
     {
       "family": "armory",
       "rung": "lvl3",
-      "source": "common/src/main/resources/data/onceuponatown/structure/military/armory/armory_lvl3.nbt",
+      "source": "common/src/main/resources/data/burg/structure/military/armory/armory_lvl3.nbt",
       "footprint": [14, 14],
       "height": 19,
       "topBlocks": [

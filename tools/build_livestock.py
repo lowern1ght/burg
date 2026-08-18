@@ -47,7 +47,7 @@ from structures.critic import Verdict, judge
 from structures.nbtio import save
 from structures.pasture import BREEDS, LADDER, Breed, Pen, Tier, check_pen
 
-CORPUS = Path("../common/src/main/resources/data/onceuponatown/structure")
+CORPUS = Path("../common/src/main/resources/data/burg/structure")
 OUT = CORPUS / "livestock"
 SHEETS = Path("structures/out/livestock")
 SEED_TRIES = 24

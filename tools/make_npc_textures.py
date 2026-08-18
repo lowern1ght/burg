@@ -43,7 +43,7 @@ from PIL import Image, ImageDraw
 from remap_npc_uv import PLAYER_BOXES, faces as _net, player_sampled
 
 OUT = Path(__file__).resolve().parent.parent / (
-    "common/src/main/resources/assets/onceuponatown/textures/entity/npc")
+    "common/src/main/resources/assets/burg/textures/entity/npc")
 SHEET = Path(__file__).resolve().parent / "structures/out/npc"
 
 Box = Tuple[int, int, int, int]          # x0, y0, w, h

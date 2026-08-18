@@ -28,9 +28,9 @@ from typing import Dict, List, Tuple
 from structures.nbtio import Voxels, load
 
 HERE = Path(__file__).resolve().parent
-CORPUS = HERE.parent / ("common/src/main/resources/data/onceuponatown/"
+CORPUS = HERE.parent / ("common/src/main/resources/data/burg/"
                         "structure/plains")
-OURS = HERE.parent / ("common/src/main/resources/data/onceuponatown/"
+OURS = HERE.parent / ("common/src/main/resources/data/burg/"
                       "structure")
 
 # What the calibrated metric still reports on the author's own 121 files, and

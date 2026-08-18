@@ -15,10 +15,10 @@ const defaultPackRoot = path.resolve(
 
 const repoRoot = path.resolve(__dirname, '..');
 const structuresRoot = path.join(
-  repoRoot, 'common', 'src', 'main', 'resources', 'data', 'onceuponatown', 'structure',
+  repoRoot, 'common', 'src', 'main', 'resources', 'data', 'burg', 'structure',
 );
 const skinsRoot = path.join(
-  repoRoot, 'common', 'src', 'main', 'resources', 'assets', 'onceuponatown', 'textures', 'entity', 'npc',
+  repoRoot, 'common', 'src', 'main', 'resources', 'assets', 'burg', 'textures', 'entity', 'npc',
 );
 
 const NON_CUBE_SUFFIXES = [

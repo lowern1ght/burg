@@ -9,7 +9,7 @@ import type { ParsedStructure } from '../NBT';
 const REPO_ROOT = path.resolve(__dirname, '../../../..');
 const STRUCT = path.join(
   REPO_ROOT,
-  'common/src/main/resources/data/onceuponatown/structure',
+  'common/src/main/resources/data/burg/structure',
 );
 const FIXTURES = {
   street3: path.join(STRUCT, 'plains/streets/street_3.nbt'),

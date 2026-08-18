@@ -1,0 +1,18 @@
+{
+  "id": "lone_place",
+  "nbt": "burg:plains/gardens/lone_place",
+  "entry_pool": "burg:gardens",
+  "icon_item": "minecraft:oak_leaves",
+  "category": "gardens",
+  "zone": "core",
+  "weight": 3,
+
+  "production_bonus": 0.03,
+  "required_residents": 5,
+  "construction_cost": [
+    {
+      "item": "minecraft:oak_log",
+      "amount": 25
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "id": "cow_field",
+  "nbt": "burg:plains/jobs/cow_field",
+  "entry_pool": "burg:jobs",
+  "icon_item": "minecraft:beef",
+  "category": "jobs",
+  "zone": "outer",
+  "weight": 2,
+
+  "herd": 2,
+  "consumption_per_herd": 1.0,
+  "required_buildings": [
+    { "defId": "wheat_field", "count": 1 }
+  ],
+  "construction_cost": [
+    {
+      "item": "minecraft:oak_log",
+      "amount": 12
+    }
+  ],
+  "production": [
+    {
+      "item": "minecraft:beef",
+      "amount": 1,
+      "every_ticks": 1600,
+      "capacity_stacks": 1
+    },
+    {
+      "item": "minecraft:leather",
+      "amount": 1,
+      "every_ticks": 2100,
+      "capacity_stacks": 1
+    }
+  ]
+}

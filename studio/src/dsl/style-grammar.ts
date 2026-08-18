@@ -611,7 +611,7 @@ const STARTERS: FamilyGrammar = {
   },
   devices: {
     required: [
-      { kind: 'town_anchor', rule: 'one onceuponatown:town_anchor mod jigsaw at the centre — without it the settlement never becomes a village candidate.' },
+      { kind: 'town_anchor', rule: 'one burg:town_anchor mod jigsaw at the centre — without it the settlement never becomes a village candidate.' },
       { kind: 'multi_building', rule: 'several distinct buildings in one bounding box, separated by fences and joined by dirt_path.' },
     ],
     common: ['crafting_table', 'oak_door', 'torch', 'wall_torch', 'oak_trapdoor'],
@@ -619,7 +619,7 @@ const STARTERS: FamilyGrammar = {
   },
   composition: [
     {
-      rule: 'one onceuponatown:town_anchor mod jigsaw at the centre — the worldgen rotation pipeline looks for it.',
+      rule: 'one burg:town_anchor mod jigsaw at the centre — the worldgen rotation pipeline looks for it.',
       source: 'plains-style.md §7 "don\'t drop the town_anchor"',
     },
     {
@@ -637,7 +637,7 @@ const STARTERS: FamilyGrammar = {
   ],
   antiPatterns: [
     {
-      rule: 'a settlement without the onceuponatown:town_anchor — never becomes a village candidate.',
+      rule: 'a settlement without the burg:town_anchor — never becomes a village candidate.',
       source: 'plains-style.md §7',
     },
     {

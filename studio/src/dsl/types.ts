@@ -172,7 +172,7 @@ export type Rules = {
 export type Output = {
   /** Default NBT name (e.g. "watchtower_lvl1"). */
   name: string;
-  /** Subpath under `common/src/main/resources/data/onceuponatown/structure/`. */
+  /** Subpath under `common/src/main/resources/data/burg/structure/`. */
   path: string;
 };
 

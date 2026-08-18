@@ -13,7 +13,7 @@ plugins {
 // Mojang-mapped @Inject targets, so it is intentionally NOT added to the
 // annotation-processor path. Instead a minimal refmap is emitted directly.
 //
-// The mixin config references "onceuponatown.refmap.json". At runtime the
+// The mixin config references "${mod_id}.refmap.json". At runtime the
 // mixin loader reads it, finds no entry for "placeInChunk", and falls back to
 // the method name from the @Inject annotation — which is already the correct
 // Mojang name. The mixin fires.
@@ -24,7 +24,7 @@ plugins {
 def generateRefmap = tasks.register('generateMixinRefmap') {
     group = 'build'
     description = 'Writes a minimal mixin refmap for NeoForge (Mojang-mapped runtime)'
-    def output = layout.buildDirectory.file('resources/main/onceuponatown.refmap.json')
+    def output = layout.buildDirectory.file("resources/main/${mod_id}.refmap.json")
     outputs.file(output)
     doLast {
         def target = output.get().asFile

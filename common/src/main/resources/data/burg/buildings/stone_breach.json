@@ -1,0 +1,24 @@
+{
+  "id": "stone_breach",
+  "nbt": "burg:plains/jobs/stone_breach",
+  "entry_pool": "burg:jobs",
+  "icon_item": "minecraft:wooden_pickaxe",
+  "category": "jobs",
+  "zone": "outer",
+  "weight": 2,
+
+  "construction_cost": [
+    {
+      "item": "minecraft:cobblestone",
+      "amount": 5
+    }
+  ],
+  "production": [
+    {
+      "item": "minecraft:cobblestone",
+      "amount": 2,
+      "every_ticks": 1800,
+      "capacity_stacks": 2
+    }
+  ]
+}

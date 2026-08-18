@@ -1,0 +1,125 @@
+{
+  "id": "leather_workshop",
+  "nbt": "burg:plains/jobs/leather_workshop",
+  "entry_pool": "burg:jobs",
+  "icon_item": "minecraft:leather",
+  "category": "jobs",
+  "zone": "outer",
+  "weight": 3,
+
+  "required_buildings": [
+    { "defId": "cow_field", "count": 2 }
+  ],
+  "construction_cost": [
+    {
+      "item": "minecraft:oak_log",
+      "amount": 25
+    },
+    {
+      "item": "minecraft:cobblestone",
+      "amount": 5
+    }
+  ],
+  "transform_input_ratio": 0.1,
+  "transform_every_ticks": 1600,
+  "transformations": [
+    {
+      "inputs": [
+        { "item": "minecraft:stick", "amount": 8 },
+        { "item": "minecraft:leather", "amount": 1 }
+      ],
+      "output": "minecraft:item_frame",
+      "output_amount": 1,
+      "output_capacity_stacks": 1
+    },
+    {
+      "inputs": [
+        { "item": "minecraft:leather", "amount": 5 }
+      ],
+      "output": "minecraft:leather_helmet",
+      "output_amount": 1,
+      "output_capacity_stacks": 1
+    },
+    {
+      "inputs": [
+        { "item": "minecraft:leather", "amount": 8 }
+      ],
+      "output": "minecraft:leather_chestplate",
+      "output_amount": 1,
+      "output_capacity_stacks": 1
+    },
+    {
+      "inputs": [
+        { "item": "minecraft:leather", "amount": 7 }
+      ],
+      "output": "minecraft:leather_leggings",
+      "output_amount": 1,
+      "output_capacity_stacks": 1
+    },
+    {
+      "inputs": [
+        { "item": "minecraft:leather", "amount": 5 }
+      ],
+      "output": "minecraft:leather_boots",
+      "output_amount": 1,
+      "output_capacity_stacks": 1
+    },
+    {
+      "inputs": [
+        { "item": "minecraft:leather", "amount": 7 }
+      ],
+      "output": "minecraft:leather_horse_armor",
+      "output_amount": 1,
+      "output_capacity_stacks": 1,
+      "unlock_at_level": 1
+    },
+    {
+      "inputs": [
+        { "item": "minecraft:leather", "amount": 5 }
+      ],
+      "output": "minecraft:saddle",
+      "output_amount": 1,
+      "output_capacity_stacks": 1,
+      "unlock_at_level": 1
+    },
+    {
+      "inputs": [
+        { "item": "minecraft:leather", "amount": 5 }
+      ],
+      "output": "minecraft:name_tag",
+      "output_amount": 1,
+      "output_capacity_stacks": 1,
+      "unlock_at_level": 3
+    }
+  ],
+  "upgrades": [
+    {
+      "unlocks_display": ["minecraft:leather_horse_armor","minecraft:saddle"],
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 20 }]
+    },
+    {
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 30 }]
+    },
+    {
+      "unlocks_display": ["minecraft:name_tag"],
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 40 }]
+    },
+    {
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 60 }]
+    },
+    {
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 80 }]
+    },
+    {
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 100 }]
+    }
+  ],
+  "nbt_levels": [
+    "burg:plains/jobs/leather_workshop_lvl1",
+    "burg:plains/jobs/leather_workshop_lvl2",
+    "burg:plains/jobs/leather_workshop_lvl3",
+    "burg:plains/jobs/leather_workshop_lvl4",
+    "burg:plains/jobs/leather_workshop_lvl5",
+    "burg:plains/jobs/leather_workshop_lvl6"
+  ]
+}

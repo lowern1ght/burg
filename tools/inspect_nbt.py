@@ -4,7 +4,7 @@ import gzip
 import io
 from pathlib import Path
 
-p = Path("common/src/main/resources/data/onceuponatown/structures/plains/starters/settlement.nbt")
+p = Path("common/src/main/resources/data/burg/structures/plains/starters/settlement.nbt")
 data = p.read_bytes()
 nbt = nbtlib.File.parse(io.BytesIO(gzip.decompress(data)))
 

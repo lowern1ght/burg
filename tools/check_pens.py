@@ -36,7 +36,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from structures.nbtio import Coord, Voxels, load
 from structures.pasture import MOB_JUMP, NEIGH4, _mob_passable, _mob_surface
 
-LIVESTOCK = Path("../common/src/main/resources/data/onceuponatown/structure/livestock")
+LIVESTOCK = Path("../common/src/main/resources/data/burg/structure/livestock")
 
 
 def animal_cells(vox: Voxels) -> List[Coord]:

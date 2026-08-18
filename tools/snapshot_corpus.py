@@ -27,7 +27,7 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-LIVE = REPO / "common/src/main/resources/data/onceuponatown/structure/plains"
+LIVE = REPO / "common/src/main/resources/data/burg/structure/plains"
 BASELINE = REPO / "corpus_baseline/plains"
 MANIFEST = REPO / "corpus_baseline/MANIFEST.sha256"
 

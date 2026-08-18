@@ -43,7 +43,7 @@ from structures.critic import Finding, Verdict, judge
 from structures.traverse import check_route
 from structures.nbtio import Voxels, load, save
 
-CORPUS = Path("../common/src/main/resources/data/onceuponatown/structure")
+CORPUS = Path("../common/src/main/resources/data/burg/structure")
 OUT = CORPUS / "military"
 SHEETS = Path("structures/out/military")
 SEED_TRIES = 24
