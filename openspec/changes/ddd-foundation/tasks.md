@@ -35,5 +35,11 @@
 
 - [ ] 4.1 First carve: Production out of `Town` — its own openspec
   change, one carve per change, verified in a running game.
-- [ ] 4.2 Architecture test enforcing the layering once real classes
-  exist (bare-JVM domain purity per `domain-settlement` scenario).
+- [x] 4.2 Architecture test enforcing the layering once real classes
+  exist (bare-JVM domain purity per `domain-settlement` scenario):
+  `common/src/test/java/org/lowern1ght/burg/architecture/DomainPurityTest.java`
+  walks the `domain/` subtree and fails on (a) `import net.minecraft.*`
+  or `import net.neoforged.*` lines, and (b) bare Minecraft type names
+  (`BlockPos`, `ItemStack`, `Level`, `CompoundTag`) used outside comments
+  and string literals. Source-text scan only, no ArchUnit — keeps the
+  test on the existing JUnit BOM. `:common:test` green.
