@@ -364,6 +364,7 @@ in a running game.
 
 - [`docs/PHILOSOPHY.md`](../01-vision/PHILOSOPHY.md) — design pillars and out-of-scope rules
 - [ADR-0008](../06-decisions/ADR-0008-ddd-foundation.md) — DDD foundation decision this section summarizes
+- [`modding/README.md`](modding/README.md) — NeoForge 1.21.1 agent modding pack (official-docs index, API footgun rules, excerpts)
 - [`CONTRIBUTING.md`](../../CONTRIBUTING.md) — PR process
 - Issue [#1](https://github.com/lowern1ght/burg/issues/1) — NeoForge 1.21.1 port (will refactor some file paths)
 - Issue [#11](https://github.com/lowern1ght/burg/issues/11) — code rename `onceuponatown` → `burg`
