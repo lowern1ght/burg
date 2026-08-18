@@ -13,7 +13,7 @@
 ## 2. Package skeleton
 
 - [x] 2.1 Create
-  `common/src/main/java/org/dawnoftime/onceuponatown/domain/{settlement,realm,diplomacy,war,shared}/`
+  `common/src/main/java/org/lowern1ght/burg/domain/{settlement,realm,diplomacy,war,shared}/`
   with one `package-info.java` per package stating its context and layer
   rule (no Minecraft types in domain).
 - [x] 2.2 Create

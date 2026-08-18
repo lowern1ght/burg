@@ -39,3 +39,7 @@ skills-lock.json
 
 # generated viewer: rebuilt by tools/export_rig.py, and it embeds every texture
 tools/viewer/citizens.html
+
+# Agent worktrees — parallel checkouts; never commit
+.agents/worktree/
+
