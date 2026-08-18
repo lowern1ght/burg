@@ -9,16 +9,16 @@
 **Previous text:** the act-3 → act-4 transition was described at proposal
 level only; no test enforced it.
 
-**New text:** the act-4 transition is gated on the per-town derived
+**New text:** the act-4 transition SHALL be gated on the per-town derived
 `HubMode` (§"hub has two modes" in `construction-mode-supply-mode`).
 Concretely:
 
-- `Town#hubMode` is the source of truth.
+- `Town#hubMode` MUST be the source of truth.
 - The transition from `CONSTRUCTION` to `SUPPLY` happens at the predicate's
   *transition* moment — the first tick where both standing and structural
   conditions are met.
 - The transition is **permanent**: a town that has crossed into SUPPLY mode
-  does not revert to CONSTRUCTION mode for any standing decay in acts 4–5.
+  MUST NOT revert to CONSTRUCTION mode for any standing decay in acts 4–5.
   (Standing can fall; the town can de-list the player; the mode does not
   flip back. This matches VISION §"earned-crown trajectory": once you cross,
   you have crossed.)

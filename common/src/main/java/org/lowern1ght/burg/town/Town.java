@@ -22,6 +22,8 @@ import org.lowern1ght.burg.datapack.EraTransitionDef;
 import org.lowern1ght.burg.domain.settlement.Acquisition;
 import org.lowern1ght.burg.domain.settlement.ConstructionIntent;
 import org.lowern1ght.burg.domain.settlement.ConstructionQueue;
+import org.lowern1ght.burg.domain.settlement.HubMode;
+import org.lowern1ght.burg.domain.settlement.HubView;
 import org.lowern1ght.burg.domain.settlement.QuestLog;
 import org.lowern1ght.burg.domain.settlement.QuestRef;
 import org.lowern1ght.burg.domain.settlement.Standing;
@@ -453,9 +455,23 @@ public class Town implements BuildExecutor {
 
     // Checks affordability (available stock minus already-reserved amounts), reserves resources,
     // and appends a NewBuild entry to the queue. Returns false if unaffordable or queue is full.
+    //
+    // ADR-0019 (hub-becomes-window): the construction intent is built as a
+    // domain ConstructionIntent first and validated against the immutable
+    // ConstructionQueue view's capacity before the legacy list is mutated.
+    // The legacy list stays the NBT-roundtrip owner and the source of truth
+    // on disk; the domain projection is the shape the act-4 supply-mode
+    // widget reads back from. This is the carve-shape application of
+    // "make Hub setter forward to ConstructionQueue.enqueue through a
+    // domain method" (per ADR-0018 §"hub-becomes-window is where the
+    // player-facing call sites land").
     public boolean tryAddToConstructionQueue(String defId) {
         BuildingDef def = BuildingDataHandler.get(defId).orElse(null);
-        if (def == null || constructionQueue.size() >= QUEUE_CAPACITY) return false;
+        if (def == null) return false;
+        long entryId = nextEntryId++;
+        ConstructionIntent intent = new ConstructionIntent.NewBuild(entryId, defId);
+        // Domain-side validation: would the immutable queue accept this intent?
+        if (!constructionQueueView().hasCapacity()) return false;
         // Weight cap: block new builds (not upgrades) that would exceed the era limit.
         if (getCurrentWeight() + def.weight > getCurrentMaxWeight()) return false;
         TownInventory inv = getTownInventory();
@@ -466,7 +482,7 @@ public class Town implements BuildExecutor {
         for (ItemCost cost : def.constructionCost) {
             queueReservedStock.merge(cost.item(), cost.amount(), Integer::sum);
         }
-        constructionQueue.add(new QueueEntry.NewBuild(nextEntryId++, defId));
+        constructionQueue.add(new QueueEntry.NewBuild(entryId, defId));
         syncConstructionQueueFromLegacy();
         return true;
     }
@@ -973,6 +989,57 @@ public class Town implements BuildExecutor {
         if (constructionQueueCacheIsConsistent()) return constructionQueueDomain;
         syncConstructionQueueFromLegacy();
         return constructionQueueDomain;
+    }
+
+    // -------------------------------------------------------------------------
+    // ADR-0019 — derived hub mode (the act-4 transition).
+    //
+    // The HubView is derived from the construction queue + acquisition, not
+    // stored. Two carve-shape rules (per the change `hub-becomes-window`):
+    //
+    //   1. HubView is empty when either the construction queue is empty
+    //      (the town has nothing for the player to influence) or the
+    //      acquisition ladder position is outside the act-4 set
+    //      {ELEVATED, FOUNDED}. The empty state falls back to the
+    //      legacy CONSTRUCTION hub — today's screen, rendered unchanged.
+    //
+    //   2. The mode carried by a non-empty HubView is SUPPLY for now. The
+    //      full SUPPLY-mode widget set (intent list, stock-gap, supply
+    //      input) lands in a future carve that depends on this one; this
+    //      PR names the mode and exposes the predicate so the GUI can
+    //      branch on it without re-deriving the same predicate at every
+    //      call site.
+    //
+    // The view is derived per call (no cache) because the access is O(1)
+    // today — a `constructionQueueView().isEmpty()` plus an enum compare —
+    // and the future carve that adds SUPPLY-mode content will cache a
+    // heavier HubView under the same discipline the StockLedger /
+    // ConstructionQueue / QuestLog caches use (synced at every known
+    // mutation site, rebuild on cache-miss).
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the town's hub view: the {@link HubMode} the renderer
+     * should pick when the player opens the Town Anchor, plus the
+     * {@link HubView#isEmpty()} predicate. See ADR-0019 for the full
+     * act-4 transition semantics.
+     */
+    public HubView hubView() {
+        if (constructionQueueView().isEmpty()) return HubView.EMPTY;
+        if (acquisition != Acquisition.ELEVATED && acquisition != Acquisition.FOUNDED) {
+            return HubView.EMPTY;
+        }
+        return new HubView(HubMode.SUPPLY);
+    }
+
+    /**
+     * Returns the town's current {@link HubMode} — a convenience
+     * accessor for callers that need only the mode (e.g. logging,
+     * gateway-style menus that branch on mode). Equivalent to
+     * {@code hubView().mode()}.
+     */
+    public HubMode hubMode() {
+        return hubView().mode();
     }
 
     // -------------------------------------------------------------------------

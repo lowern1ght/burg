@@ -21,6 +21,13 @@ import org.lowern1ght.burg.town.Town;
 
 import java.util.Set;
 
+// TODO(ADR-0019 hub-becomes-window follow-up): this packet stays on the
+// direct `Town.tryAddToStockUnchecked` path this PR per ADR-0018 §"diffuse
+// rewiring to hub-becomes-window" — the act-4 player-facing deposit path
+// migrates to `new SupplyStock.Handler(adapter).handle(...)` when the
+// SUPPLY-mode widget lands in TownHubScreen. Move it then; don't
+// half-do it here, the legacy reserve map and the StockLedger cache
+// share a callback the current `applyStockLedger` does not know about.
 public record C2SDepositPacket(BlockPos anchorPos) implements CustomPacketPayload {
 
     public static final Type<C2SDepositPacket> TYPE = new Type<>(
