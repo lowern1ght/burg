@@ -2,6 +2,8 @@ package org.lowern1ght.burg.application.settlement;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.lowern1ght.burg.application.settlement.ports.TownStandingPort;
+import org.lowern1ght.burg.domain.settlement.Acquisition;
 import org.lowern1ght.burg.domain.settlement.Standing;
 import org.lowern1ght.burg.domain.shared.CitizenId;
 
@@ -85,5 +87,75 @@ class AdjustStandingTest {
     void nullCitizenRejected() {
         assertThrows(NullPointerException.class,
             () -> new AdjustStanding(null, 5));
+    }
+
+    @Test
+    @DisplayName("adjusting one citizen leaves every other citizen's score alone")
+    void adjustmentsAreScopedToTheCitizen() {
+        FakeTownStanding town = new FakeTownStanding();
+        AdjustStanding.Handler handler = new AdjustStanding.Handler(town);
+
+        handler.handle(new AdjustStanding(id(1), 7));
+        handler.handle(new AdjustStanding(id(2), 3));
+
+        assertAll(
+            () -> assertEquals(7, handler.handle(new AdjustStanding(id(1), 0)).value(),
+                "citizen 1 is read back at the accumulated score"),
+            () -> assertEquals(3, handler.handle(new AdjustStanding(id(2), 0)).value(),
+                "citizen 2 is read back at its own score"),
+            () -> assertEquals(2, town.rollSize(),
+                "the book carries two distinct entries — one per citizen")
+        );
+    }
+
+    @Test
+    @DisplayName("a maximum-magnitude delta is accepted at the command boundary")
+    void maxDeltaAccepted() {
+        FakeTownStanding town = new FakeTownStanding();
+        AdjustStanding.Handler handler = new AdjustStanding.Handler(town);
+
+        // Pin the upper-bound contract: Integer.MAX_VALUE is a valid delta
+        // and the handler carries it through. The Standing score is
+        // int-keyed — a second MAX_VALUE adjustment would wrap, which is
+        // the model's behaviour, not the boundary's.
+        Standing first = handler.handle(new AdjustStanding(id(1), Integer.MAX_VALUE));
+
+        assertAll(
+            () -> assertEquals(Integer.MAX_VALUE, first.value(),
+                "a single MAX_VALUE delta reads back exactly as adjusted"),
+            () -> assertEquals(1, town.rollSize(),
+                "the citizen is on the roll — the score is non-zero")
+        );
+    }
+
+    @Test
+    @DisplayName("the handler rethrows a port failure without leaving partial state")
+    void portFailurePropagates() {
+        TownStandingPort brokenPort = new TownStandingPort() {
+            @Override
+            public Standing standingFor(CitizenId citizen) {
+                throw new IllegalStateException("port dead");
+            }
+
+            @Override
+            public void adjustStanding(CitizenId citizen, int delta) {
+                throw new IllegalStateException("port dead");
+            }
+
+            @Override
+            public Acquisition acquisition() {
+                throw new IllegalStateException("port dead");
+            }
+
+            @Override
+            public void setAcquisition(Acquisition acquisition) {
+                throw new IllegalStateException("port dead");
+            }
+        };
+        AdjustStanding.Handler handler = new AdjustStanding.Handler(brokenPort);
+
+        assertThrows(IllegalStateException.class,
+            () -> handler.handle(new AdjustStanding(id(1), 5)),
+            "a failing port surfaces its exception — the use case never swallows it");
     }
 }
