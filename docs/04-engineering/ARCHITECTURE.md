@@ -350,7 +350,7 @@ of the domain behind value-object wrappers (`TownId`, `BlockCoord`,
 `CitizenId`, `ItemId`).
 
 The landing zone is an empty package skeleton under
-`common/src/main/java/org/dawnoftime/onceuponatown/{domain,application,infrastructure}/`.
+`common/src/main/java/org/lowern1ght/burg/{domain,application,infrastructure}/`.
 `Town` remains the aggregate root of Settlement and is **not** rewritten —
 responsibilities move out one carve per change (strangler), behind a
 facade that keeps the `ouat_towns` NBT shape so old worlds keep loading.

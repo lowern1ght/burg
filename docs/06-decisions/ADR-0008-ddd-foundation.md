@@ -84,8 +84,8 @@ classpath — that is the enforcement signal, not review.
   future work, one carve per change.
 - No gameplay behavior change, no new product features, no pillar impact.
 - No move of the plains corpus or any NBT assets.
-- No package rename (`onceuponatown` → `burg` is issue [#11](https://github.com/lowern1ght/burg/issues/11),
-  independent of this).
+- Package rename is landed separately (ADR-0007); this ADR assumes
+  `org.lowern1ght.burg`.
 
 ## Consequences
 

@@ -11,7 +11,7 @@ facade that keeps the NBT shape.
 
 This change is the **foundation drop**: the ADR, this proposal, one real
 capability spec (`domain-settlement`), and an empty Java package skeleton
-under the (still current) `org.dawnoftime.onceuponatown` package. No
+under the (still current) `org.lowern1ght.burg` package. No
 gameplay code moves. `Town.java` is not touched.
 
 Pillar citation: this change serves **no pillar directly** — it is
