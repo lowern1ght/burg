@@ -36,7 +36,7 @@ VISION.md act citation applies.
   (Production, ConstructionQueue, Standing, QuestLog) has a home to add
   scenarios to.
 - **CODE-SKELETON** empty packages under
-  `common/src/main/java/org/dawnoftime/onceuponatown/`:
+  `common/src/main/java/org/lowern1ght/burg/`:
   `domain/{settlement,realm,diplomacy,war,shared}`,
   `application/{settlement,realm}`,
   `infrastructure/{persistence,neoforge}` — one `package-info.java` each
@@ -60,9 +60,9 @@ VISION.md act citation applies.
 # Impact
 
 Affected code:
-- `common/src/main/java/org/dawnoftime/onceuponatown/domain/**`,
+- `common/src/main/java/org/lowern1ght/burg/domain/**`,
   `application/**`, `infrastructure/**` — new, empty (package-info only).
-- `common/src/main/java/org/dawnoftime/onceuponatown/town/Town.java` —
+- `common/src/main/java/org/lowern1ght/burg/town/Town.java` —
   **not touched** in this change.
 
 Affected docs:
