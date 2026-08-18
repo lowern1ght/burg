@@ -33,7 +33,7 @@ from structures import render_png
 from structures.critic import judge
 from structures.nbtio import Coord, Voxels, load
 
-LIVESTOCK = Path("../common/src/main/resources/data/onceuponatown/structure/livestock")
+LIVESTOCK = Path("../common/src/main/resources/data/burg/structure/livestock")
 
 OUT = Path("structures/out/selfgate")
 COORD = re.compile(r"\((-?\d+),\s*(-?\d+),\s*(-?\d+)\)")

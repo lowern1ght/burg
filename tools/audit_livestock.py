@@ -22,7 +22,7 @@ from structures import pasture as P
 from structures.anatomy import analyse
 from structures.nbtio import Voxels, load, load_corpus
 
-ROOT = Path("../common/src/main/resources/data/onceuponatown")
+ROOT = Path("../common/src/main/resources/data/burg")
 MINE = ROOT / "structure/livestock"
 
 VEC = {"north": (0, -1), "south": (0, 1), "west": (-1, 0), "east": (1, 0)}

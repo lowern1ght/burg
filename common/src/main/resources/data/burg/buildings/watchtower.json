@@ -1,0 +1,67 @@
+{
+  "id": "watchtower",
+  "nbt": "burg:military/watchtower/watchtower",
+  "entry_pool": "burg:military",
+  "icon_item": "minecraft:ladder",
+  "category": "military",
+  "weight": 1,
+
+  "residents": 0,
+  "consumption_per_resident": 0.0,
+  "construction_cost": [
+    { "item": "minecraft:oak_log", "amount": 20 },
+    { "item": "minecraft:oak_planks", "amount": 15 }
+  ],
+
+  "nbt_levels": [
+    "burg:military/watchtower/watchtower_lvl1",
+    "burg:military/watchtower/watchtower_lvl2",
+    "burg:military/watchtower/watchtower_lvl3",
+    "burg:military/watchtower/watchtower_lvl4",
+    "burg:military/watchtower/watchtower_lvl5",
+    "burg:military/watchtower/watchtower_lvl6"
+  ],
+  "upgrades": [
+    {
+      "unlocks_display": ["minecraft:oak_log"],
+      "upgrade_cost": [
+        { "item": "minecraft:oak_log", "amount": 16 },
+        { "item": "minecraft:oak_planks", "amount": 12 }
+      ]
+    },
+    {
+      "upgrade_cost": [
+        { "item": "minecraft:cobblestone", "amount": 24 },
+        { "item": "minecraft:oak_log", "amount": 8 }
+      ]
+    },
+    {
+      "upgrade_cost": [
+        { "item": "minecraft:cobblestone", "amount": 32 },
+        { "item": "minecraft:cobblestone_wall", "amount": 12 }
+      ]
+    },
+    {
+      "upgrade_cost": [
+        { "item": "minecraft:cobblestone", "amount": 40 },
+        { "item": "minecraft:cobblestone_wall", "amount": 16 }
+      ]
+    },
+    {
+      "residents_add": 1,
+      "consumption_per_resident_add": 1.0,
+      "upgrade_cost": [
+        { "item": "minecraft:cobblestone", "amount": 56 },
+        { "item": "minecraft:oak_log", "amount": 32 },
+        { "item": "minecraft:oak_planks", "amount": 24 }
+      ]
+    },
+    {
+      "upgrade_cost": [
+        { "item": "minecraft:cobblestone", "amount": 72 },
+        { "item": "minecraft:oak_log", "amount": 40 },
+        { "item": "minecraft:oak_planks", "amount": 32 }
+      ]
+    }
+  ]
+}

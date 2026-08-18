@@ -182,7 +182,7 @@ def trim(vox: Voxels, pad: int = 1) -> Voxels:
     return vox
 
 MARGIN = 1                      # apron cells outside the fence, all round
-JOBS_TARGET = "onceuponatown:jobs"
+JOBS_TARGET = "burg:jobs"
 
 NEIGH4: Tuple[Coord2, ...] = ((1, 0), (-1, 0), (0, 1), (0, -1))
 AXIS_OF = {"north": "z", "south": "z", "west": "x", "east": "x"}
@@ -257,7 +257,7 @@ FOLD = ("grass_block", "grass_block", "coarse_dirt", "coarse_dirt", "dirt")
 #   * beds appear at `house_lvl4`, which is where the JSON grants residents
 
 HOUSES = Path(__file__).resolve().parents[2] / (
-    "common/src/main/resources/data/onceuponatown/structure/plains/houses")
+    "common/src/main/resources/data/burg/structure/plains/houses")
 
 # **A family per breed, not one house for all three.** Measured: with the same
 # donor everywhere, the three farmsteads came out 0.93 cosine-similar by block

@@ -1,0 +1,15 @@
+{
+  "id": "lake",
+  "nbt": "burg:plains/jobs/lake",
+  "entry_pool": "burg:jobs",
+  "icon_item": "minecraft:cod",
+  "category": "naturals",
+  "weight": 1,
+
+  "construction_cost": [
+    {
+      "item": "minecraft:oak_log",
+      "amount": 5
+    }
+  ]
+}

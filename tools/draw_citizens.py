@@ -131,7 +131,7 @@ from make_female_skins import checker, elevation, head_only, lum, strip
 
 HERE = Path(__file__).resolve().parent
 OUT = HERE.parent / (
-    "common/src/main/resources/assets/onceuponatown/textures/entity/npc")
+    "common/src/main/resources/assets/burg/textures/entity/npc")
 SHEET = HERE / "structures/out/npc"
 
 # The only filenames this script may write. Everything else in that directory is the author's
@@ -149,7 +149,7 @@ GARMENT_FOR_SHEET = "farmer_clothes.png"
 # the mesh and `solids.py` for the shape model, and it exists because for one afternoon two
 # copies of the villager UV table disagreed and every garment in the mod reported phantom faults.
 JAVA_NPC_LOOK = HERE.parent / (
-    "common/src/main/java/org/dawnoftime/onceuponatown/client/NpcLook.java")
+    "common/src/main/java/org/lowern1ght/burg/client/NpcLook.java")
 
 # The braid. ONE file for all eight garments, which is only possible because they share one alpha
 # mask — measured, 252 texels, identical across all eight.

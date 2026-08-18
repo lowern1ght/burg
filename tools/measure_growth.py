@@ -34,7 +34,7 @@ def safe(path: Path):
     except CorruptStructure:
         return None
 
-PLAINS = Path("../common/src/main/resources/data/onceuponatown/structure/plains")
+PLAINS = Path("../common/src/main/resources/data/burg/structure/plains")
 
 
 def ladders() -> Dict[str, List[Tuple[int, Path]]]:

@@ -88,9 +88,9 @@ Coord2 = Tuple[int, int]
 OUT_VEC = {"north": (0, -1), "south": (0, 1), "west": (-1, 0), "east": (1, 0)}
 OPPOSITE = {"north": "south", "south": "north", "west": "east", "east": "west"}
 
-MILITARY_POOL = "onceuponatown:military"
-STREET_TARGET = "onceuponatown:streets"
-STREET_POOL = "onceuponatown:plains/streets"
+MILITARY_POOL = "burg:military"
+STREET_TARGET = "burg:streets"
+STREET_POOL = "burg:plains/streets"
 
 # ── the invariants ──────────────────────────────────────────────────
 #

@@ -22,7 +22,7 @@ from npc_uv import PLAYER_BOXES, faces  # noqa: E402
 
 TOOLS = Path(__file__).resolve().parent
 REPO = TOOLS.parent
-TEX = REPO / "common/src/main/resources/assets/onceuponatown/textures/entity/npc"
+TEX = REPO / "common/src/main/resources/assets/burg/textures/entity/npc"
 OUT = TOOLS / "viewer"
 
 # Cube geometry, straight out of NpcModel.createBodyLayer / HumanoidModel.createMesh.
@@ -99,7 +99,7 @@ def manifest():
 
     bodies = sorted_names("citizen_body_*.png") or sorted_names("citizen_m_*.png")
     return {
-        "textureDir": "../../common/src/main/resources/assets/onceuponatown/textures/entity/npc",
+        "textureDir": "../../common/src/main/resources/assets/burg/textures/entity/npc",
         "slots": {
             # Drawn bodies only. `default_skin.png` and the twelve relayed `citizen_skin_*`
             # are RETIRED -- nothing in the Java reads them, and listing retired art in the

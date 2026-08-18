@@ -1,0 +1,37 @@
+package org.lowern1ght.burg.network;
+
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
+import org.lowern1ght.burg.Constants;
+import org.lowern1ght.burg.client.TownHubClientState;
+
+public record S2CCitizenUpdatePacket(CompoundTag data) implements CustomPacketPayload {
+
+    public static final Type<S2CCitizenUpdatePacket> TYPE = new Type<>(
+        ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "s2c_citizen_update"));
+
+    public static final StreamCodec<FriendlyByteBuf, S2CCitizenUpdatePacket> STREAM_CODEC =
+        StreamCodec.of(S2CCitizenUpdatePacket::write, S2CCitizenUpdatePacket::read);
+
+    private static S2CCitizenUpdatePacket read(FriendlyByteBuf buf) {
+        return new S2CCitizenUpdatePacket(buf.readNbt());
+    }
+
+    private static void write(FriendlyByteBuf buf, S2CCitizenUpdatePacket packet) {
+        buf.writeNbt(packet.data());
+    }
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
+    }
+
+    public static void handle(S2CCitizenUpdatePacket packet, IPayloadContext context) {
+        context.enqueueWork(() ->
+            TownHubClientState.pendingCitizenUpdate = packet.data());
+    }
+}

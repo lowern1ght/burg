@@ -27,7 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from structures.anatomy import analyse
 from structures.nbtio import CorruptStructure, Voxels, load
 
-PLAINS = Path("../common/src/main/resources/data/onceuponatown/structure/plains")
+PLAINS = Path("../common/src/main/resources/data/burg/structure/plains")
 VEC = {"north": (0, -1), "south": (0, 1), "west": (-1, 0), "east": (1, 0)}
 OPP = {"north": "south", "south": "north", "west": "east", "east": "west"}
 

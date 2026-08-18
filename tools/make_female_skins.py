@@ -74,7 +74,7 @@ from remap_npc_uv import (NEW_REGIONS, PLAYER_BOXES as BOXES, faces as net,
 
 HERE = Path(__file__).resolve().parent
 OUT = HERE.parent / (
-    "common/src/main/resources/assets/onceuponatown/textures/entity/npc")
+    "common/src/main/resources/assets/burg/textures/entity/npc")
 SHEET = HERE / "structures/out/npc"
 
 # The only filenames this script is ever allowed to write. Anything else is a bug, and the

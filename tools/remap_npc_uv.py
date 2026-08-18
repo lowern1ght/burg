@@ -64,7 +64,7 @@ from npc_uv import (MIRROR_SWAP, NEW_REGIONS, PLAYER_BOXES, faces,  # noqa: F401
                     player_sampled)
 
 SRC_DIR = os.path.join("..", "common", "src", "main", "resources", "assets",
-                       "onceuponatown", "textures", "entity", "npc")
+                       "burg", "textures", "entity", "npc")
 OUT_DIR = "npc_uv_out"
 
 # Files that were AUTHORED on the player layout and have nothing to relay. `make_female_skins.py`

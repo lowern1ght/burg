@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "burg:block/town_anchor" }
+  }
+}

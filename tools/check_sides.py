@@ -81,7 +81,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from npc_uv import PLAYER_BOXES as BOXES, faces as net  # noqa: E402
 
 TEX = Path(__file__).resolve().parent.parent / (
-    "common/src/main/resources/assets/onceuponatown/textures/entity/npc")
+    "common/src/main/resources/assets/burg/textures/entity/npc")
 REFS = Path.home() / "Downloads/house.mrs/skins"
 
 # The three opposite pairs of a box net. Only the sides are gated, and only on a base cube; see the

@@ -1,0 +1,35 @@
+{
+  "from_era": 0,
+  "from_orientation": "industrial",
+  "orientation_label": "burg.orientation.industrial",
+  "structure_label": "burg.structure.settlement",
+  "icon_item": "minecraft:cobblestone",
+  "min_weight_percent": 90,
+  "weight_cap_increase": 10,
+  "resource_cost": [
+    {
+      "item": "minecraft:oak_log",
+      "amount": 20
+    }
+  ],
+  "required_residents": 2,
+  "required_buildings": [
+    {
+      "defId": "wild_stone",
+      "count": 2
+    },
+    {
+      "defId": "workshop",
+      "count": 1
+    }
+  ],
+  "unlocked_building_ids": [
+    "sheep_field",
+    "lumberjack",
+    "stone_breach",
+    "wild_spot"
+  ],
+  "auto_upgrade_ids": [
+    "settlement"
+  ]
+}

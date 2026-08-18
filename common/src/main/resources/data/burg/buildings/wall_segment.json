@@ -1,0 +1,52 @@
+{
+  "id": "wall_segment",
+  "nbt": "burg:military/wall_segment/wall_segment",
+  "entry_pool": "burg:military",
+  "icon_item": "minecraft:cobblestone",
+  "category": "military",
+  "weight": 4,
+
+  "residents": 0,
+  "consumption_per_resident": 0.0,
+  "construction_cost": [
+    { "item": "minecraft:oak_log", "amount": 32 },
+    { "item": "minecraft:oak_fence", "amount": 6 }
+  ],
+
+  "nbt_levels": [
+    "burg:military/wall_segment/wall_segment_lvl1",
+    "burg:military/wall_segment/wall_segment_lvl2",
+    "burg:military/wall_segment/wall_segment_lvl3",
+    "burg:military/wall_segment/wall_segment_lvl4"
+  ],
+  "upgrades": [
+    {
+      "upgrade_cost": [
+        { "item": "minecraft:cobblestone", "amount": 40 },
+        { "item": "minecraft:oak_planks", "amount": 48 }
+      ]
+    },
+    {
+      "upgrade_cost": [
+        { "item": "minecraft:cobblestone", "amount": 110 },
+        { "item": "minecraft:cobblestone_slab", "amount": 12 },
+        { "item": "minecraft:cobblestone_wall", "amount": 6 }
+      ]
+    },
+    {
+      "upgrade_cost": [
+        { "item": "minecraft:cobblestone", "amount": 40 },
+        { "item": "minecraft:cobblestone_stairs", "amount": 8 },
+        { "item": "minecraft:lantern", "amount": 3 }
+      ]
+    },
+    {
+      "upgrade_cost": [
+        { "item": "minecraft:oak_planks", "amount": 36 },
+        { "item": "minecraft:oak_slab", "amount": 30 },
+        { "item": "minecraft:oak_stairs", "amount": 16 },
+        { "item": "minecraft:oak_log", "amount": 8 }
+      ]
+    }
+  ]
+}

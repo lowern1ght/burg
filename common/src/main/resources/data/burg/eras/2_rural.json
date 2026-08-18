@@ -1,0 +1,33 @@
+{
+  "from_era": 1,
+  "from_orientation": "agricultural",
+  "orientation_label": "burg.orientation.rural",
+  "structure_label": "burg.structure.village",
+  "icon_item": "minecraft:wheat_seeds",
+  "min_weight_percent": 90,
+  "weight_cap_increase": 10,
+  "resource_cost": [
+    {
+      "item": "minecraft:oak_log",
+      "amount": 42
+    },
+    {
+      "item": "minecraft:cobblestone",
+      "amount": 10
+    }
+  ],
+  "required_residents": 4,
+  "required_buildings": [
+    {
+      "defId": "wheat_farm",
+      "count": 1
+    }
+  ],
+  "unlocked_building_ids": [
+    "granary",
+    "carpenter",
+    "lone_place"
+  ],
+  "unlock_new_builder": true,
+  "next_orientation": "rural"
+}

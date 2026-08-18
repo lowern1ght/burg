@@ -390,7 +390,7 @@ function EmptyState() {
       <h2>No structure loaded</h2>
       <p>Pick one from the catalog, or drag a <code>.nbt</code> file here.</p>
       <p className="empty-hint">
-        Structures live in <code>common/src/main/resources/data/onceuponatown/structure/</code>
+        Structures live in <code>common/src/main/resources/data/burg/structure/</code>
       </p>
     </div>
   );

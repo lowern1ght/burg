@@ -1,0 +1,51 @@
+{
+  "id": "settlement",
+  "nbt": "burg:plains/starters/settlement",
+  "entry_pool": "burg:starters",
+  "icon_item": "minecraft:campfire",
+  "category": "town_center",
+  "weight": 0,
+
+  "initial_stock": [
+    { "item": "minecraft:oak_log", "amount": 10 },
+    { "item": "minecraft:cobblestone", "amount": 10 }
+  ],
+  "production": [
+    {
+      "item": "minecraft:oak_log",
+      "amount": 1,
+      "every_ticks": 1200,
+      "capacity_stacks": 2
+    },
+    {
+      "item": "minecraft:cobblestone",
+      "amount": 1,
+      "every_ticks": 1800,
+      "capacity_stacks": 1
+    }
+  ],
+  "transform_input_ratio": 0.1,
+  "transform_every_ticks": 1600,
+  "transformations": [
+    {
+      "inputs": [
+        { "item": "minecraft:cobblestone", "amount": 3 },
+        { "item": "minecraft:charcoal", "amount": 1 }
+      ],
+      "output": "minecraft:stone",
+      "output_amount": 3,
+      "output_capacity_stacks": 1,
+      "unlock_at_level": 1
+    }
+  ],
+  "upgrades": [
+    {
+      "capacity_stacks_add": 1,
+      "unlocks_display": ["minecraft:stone"],
+      "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 0 }]
+    }
+  ],
+  "nbt_levels": [
+    "burg:plains/starters/settlement_lvl1"
+  ]
+}

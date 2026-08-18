@@ -44,7 +44,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from npc_uv import PLAYER_BOXES, faces  # noqa: E402
 
 TEX = Path(__file__).resolve().parent.parent / (
-    "common/src/main/resources/assets/onceuponatown/textures/entity/npc")
+    "common/src/main/resources/assets/burg/textures/entity/npc")
 
 # Enough symbols to letter a dense body without repeating. Ordered so the darkest tone gets the
 # first symbol, which makes two files comparable by eye: `a` is the shadow in both.

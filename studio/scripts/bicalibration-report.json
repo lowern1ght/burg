@@ -1,6 +1,6 @@
 {
   "generated": "2026-07-31T04:41:17.401Z",
-  "corpusRoot": "common/src/main/resources/data/onceuponatown/structure/plains",
+  "corpusRoot": "common/src/main/resources/data/burg/structure/plains",
   "fileCount": 125,
   "readable": 125,
   "unreadable": 0,
@@ -1561,7 +1561,7 @@
   "files": [
     {
       "name": "gardens/fountain_place.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\gardens\\fountain_place.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\gardens\\fountain_place.nbt",
       "loaded": true,
       "blockCount": 942,
       "stray": {
@@ -1669,7 +1669,7 @@
     },
     {
       "name": "gardens/lone_garden.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\gardens\\lone_garden.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\gardens\\lone_garden.nbt",
       "loaded": true,
       "blockCount": 1759,
       "stray": {
@@ -1780,7 +1780,7 @@
     },
     {
       "name": "gardens/lone_place.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\gardens\\lone_place.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\gardens\\lone_place.nbt",
       "loaded": true,
       "blockCount": 1320,
       "stray": {
@@ -1888,7 +1888,7 @@
     },
     {
       "name": "gardens/well.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\gardens\\well.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\gardens\\well.nbt",
       "loaded": true,
       "blockCount": 560,
       "stray": {
@@ -1996,7 +1996,7 @@
     },
     {
       "name": "gardens/wild_spot.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\gardens\\wild_spot.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\gardens\\wild_spot.nbt",
       "loaded": true,
       "blockCount": 567,
       "stray": {
@@ -2102,7 +2102,7 @@
     },
     {
       "name": "houses/house.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\houses\\house.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\houses\\house.nbt",
       "loaded": true,
       "blockCount": 415,
       "stray": {
@@ -2212,7 +2212,7 @@
     },
     {
       "name": "houses/house_2.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\houses\\house_2.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\houses\\house_2.nbt",
       "loaded": true,
       "blockCount": 848,
       "stray": {
@@ -2324,7 +2324,7 @@
     },
     {
       "name": "houses/house_2_lvl1.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\houses\\house_2_lvl1.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\houses\\house_2_lvl1.nbt",
       "loaded": true,
       "blockCount": 1464,
       "stray": {
@@ -2432,7 +2432,7 @@
     },
     {
       "name": "houses/house_2_lvl2.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\houses\\house_2_lvl2.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\houses\\house_2_lvl2.nbt",
       "loaded": true,
       "blockCount": 1464,
       "stray": {
@@ -2540,7 +2540,7 @@
     },
     {
       "name": "houses/house_2_lvl3.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\houses\\house_2_lvl3.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\houses\\house_2_lvl3.nbt",
       "loaded": true,
       "blockCount": 1500,
       "stray": {
@@ -2648,7 +2648,7 @@
     },
     {
       "name": "houses/house_2_lvl4.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\houses\\house_2_lvl4.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\houses\\house_2_lvl4.nbt",
       "loaded": true,
       "blockCount": 1500,
       "stray": {
@@ -2756,7 +2756,7 @@
     },
     {
       "name": "houses/house_2_lvl5.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\houses\\house_2_lvl5.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\houses\\house_2_lvl5.nbt",
       "loaded": true,
       "blockCount": 1500,
       "stray": {
@@ -2864,7 +2864,7 @@
     },
     {
       "name": "houses/house_2_lvl6.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\houses\\house_2_lvl6.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\houses\\house_2_lvl6.nbt",
       "loaded": true,
       "blockCount": 1625,
       "stray": {
@@ -2976,7 +2976,7 @@
     },
     {
       "name": "houses/house_3.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\houses\\house_3.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\houses\\house_3.nbt",
       "loaded": true,
       "blockCount": 1518,
       "stray": {
@@ -3088,7 +3088,7 @@
     },
     {
       "name": "houses/house_3_lvl1.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\houses\\house_3_lvl1.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\houses\\house_3_lvl1.nbt",
       "loaded": true,
       "blockCount": 1562,
       "stray": {
@@ -3196,7 +3196,7 @@
     },
     {
       "name": "houses/house_3_lvl2.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\houses\\house_3_lvl2.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\houses\\house_3_lvl2.nbt",
       "loaded": true,
       "blockCount": 1424,
       "stray": {
@@ -3302,7 +3302,7 @@
     },
     {
       "name": "houses/house_3_lvl3.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\houses\\house_3_lvl3.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\houses\\house_3_lvl3.nbt",
       "loaded": true,
       "blockCount": 1617,
       "stray": {
@@ -3412,7 +3412,7 @@
     },
     {
       "name": "houses/house_3_lvl4.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\houses\\house_3_lvl4.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\houses\\house_3_lvl4.nbt",
       "loaded": true,
       "blockCount": 1617,
       "stray": {
@@ -3522,7 +3522,7 @@
     },
     {
       "name": "houses/house_3_lvl5.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\houses\\house_3_lvl5.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\houses\\house_3_lvl5.nbt",
       "loaded": true,
       "blockCount": 1650,
       "stray": {
@@ -3632,7 +3632,7 @@
     },
     {
       "name": "houses/house_3_lvl6.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\houses\\house_3_lvl6.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\houses\\house_3_lvl6.nbt",
       "loaded": true,
       "blockCount": 1650,
       "stray": {
@@ -3742,7 +3742,7 @@
     },
     {
       "name": "houses/house_lvl1.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\houses\\house_lvl1.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\houses\\house_lvl1.nbt",
       "loaded": true,
       "blockCount": 498,
       "stray": {
@@ -3850,7 +3850,7 @@
     },
     {
       "name": "houses/house_lvl2.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\houses\\house_lvl2.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\houses\\house_lvl2.nbt",
       "loaded": true,
       "blockCount": 502,
       "stray": {
@@ -3958,7 +3958,7 @@
     },
     {
       "name": "houses/house_lvl3.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\houses\\house_lvl3.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\houses\\house_lvl3.nbt",
       "loaded": true,
       "blockCount": 598,
       "stray": {
@@ -4066,7 +4066,7 @@
     },
     {
       "name": "houses/house_lvl4.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\houses\\house_lvl4.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\houses\\house_lvl4.nbt",
       "loaded": true,
       "blockCount": 612,
       "stray": {
@@ -4174,7 +4174,7 @@
     },
     {
       "name": "houses/house_lvl5.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\houses\\house_lvl5.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\houses\\house_lvl5.nbt",
       "loaded": true,
       "blockCount": 820,
       "stray": {
@@ -4286,7 +4286,7 @@
     },
     {
       "name": "houses/house_lvl6.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\houses\\house_lvl6.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\houses\\house_lvl6.nbt",
       "loaded": true,
       "blockCount": 830,
       "stray": {
@@ -4394,7 +4394,7 @@
     },
     {
       "name": "houses/house_manualtest.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\houses\\house_manualtest.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\houses\\house_manualtest.nbt",
       "loaded": true,
       "blockCount": 287,
       "stray": {
@@ -4500,7 +4500,7 @@
     },
     {
       "name": "jobs/bee_field.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\bee_field.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\bee_field.nbt",
       "loaded": true,
       "blockCount": 1256,
       "stray": {
@@ -4608,7 +4608,7 @@
     },
     {
       "name": "jobs/beekeeper.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\beekeeper.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\beekeeper.nbt",
       "loaded": true,
       "blockCount": 2974,
       "stray": {
@@ -4716,7 +4716,7 @@
     },
     {
       "name": "jobs/beekeeper_lvl1.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\beekeeper_lvl1.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\beekeeper_lvl1.nbt",
       "loaded": true,
       "blockCount": 2974,
       "stray": {
@@ -4824,7 +4824,7 @@
     },
     {
       "name": "jobs/beekeeper_lvl2.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\beekeeper_lvl2.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\beekeeper_lvl2.nbt",
       "loaded": true,
       "blockCount": 3054,
       "stray": {
@@ -4934,7 +4934,7 @@
     },
     {
       "name": "jobs/beekeeper_lvl3.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\beekeeper_lvl3.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\beekeeper_lvl3.nbt",
       "loaded": true,
       "blockCount": 3040,
       "stray": {
@@ -5044,7 +5044,7 @@
     },
     {
       "name": "jobs/beekeeper_lvl4.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\beekeeper_lvl4.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\beekeeper_lvl4.nbt",
       "loaded": true,
       "blockCount": 3040,
       "stray": {
@@ -5154,7 +5154,7 @@
     },
     {
       "name": "jobs/beekeeper_lvl5.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\beekeeper_lvl5.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\beekeeper_lvl5.nbt",
       "loaded": true,
       "blockCount": 3066,
       "stray": {
@@ -5262,7 +5262,7 @@
     },
     {
       "name": "jobs/beekeeper_lvl6.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\beekeeper_lvl6.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\beekeeper_lvl6.nbt",
       "loaded": true,
       "blockCount": 3066,
       "stray": {
@@ -5370,7 +5370,7 @@
     },
     {
       "name": "jobs/beekeeper_lvl7.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\beekeeper_lvl7.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\beekeeper_lvl7.nbt",
       "loaded": true,
       "blockCount": 3066,
       "stray": {
@@ -5478,7 +5478,7 @@
     },
     {
       "name": "jobs/carpenter.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\carpenter.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\carpenter.nbt",
       "loaded": true,
       "blockCount": 1330,
       "stray": {
@@ -5586,7 +5586,7 @@
     },
     {
       "name": "jobs/carpenter_lvl1.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\carpenter_lvl1.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\carpenter_lvl1.nbt",
       "loaded": true,
       "blockCount": 1340,
       "stray": {
@@ -5694,7 +5694,7 @@
     },
     {
       "name": "jobs/carpenter_lvl2.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\carpenter_lvl2.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\carpenter_lvl2.nbt",
       "loaded": true,
       "blockCount": 1380,
       "stray": {
@@ -5802,7 +5802,7 @@
     },
     {
       "name": "jobs/carpenter_lvl3.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\carpenter_lvl3.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\carpenter_lvl3.nbt",
       "loaded": true,
       "blockCount": 1380,
       "stray": {
@@ -5910,7 +5910,7 @@
     },
     {
       "name": "jobs/carpenter_lvl4.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\carpenter_lvl4.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\carpenter_lvl4.nbt",
       "loaded": true,
       "blockCount": 1380,
       "stray": {
@@ -6018,7 +6018,7 @@
     },
     {
       "name": "jobs/carpenter_lvl5.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\carpenter_lvl5.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\carpenter_lvl5.nbt",
       "loaded": true,
       "blockCount": 1380,
       "stray": {
@@ -6126,7 +6126,7 @@
     },
     {
       "name": "jobs/carpenter_lvl6.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\carpenter_lvl6.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\carpenter_lvl6.nbt",
       "loaded": true,
       "blockCount": 1380,
       "stray": {
@@ -6234,7 +6234,7 @@
     },
     {
       "name": "jobs/carpenter_lvl7.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\carpenter_lvl7.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\carpenter_lvl7.nbt",
       "loaded": true,
       "blockCount": 1380,
       "stray": {
@@ -6342,7 +6342,7 @@
     },
     {
       "name": "jobs/carrot_field.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\carrot_field.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\carrot_field.nbt",
       "loaded": true,
       "blockCount": 370,
       "stray": {
@@ -6449,7 +6449,7 @@
     },
     {
       "name": "jobs/cow_field.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\cow_field.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\cow_field.nbt",
       "loaded": true,
       "blockCount": 360,
       "stray": {
@@ -6533,7 +6533,7 @@
     },
     {
       "name": "jobs/granary.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\granary.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\granary.nbt",
       "loaded": true,
       "blockCount": 1026,
       "stray": {
@@ -6641,7 +6641,7 @@
     },
     {
       "name": "jobs/granary_lvl1.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\granary_lvl1.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\granary_lvl1.nbt",
       "loaded": true,
       "blockCount": 1485,
       "stray": {
@@ -6749,7 +6749,7 @@
     },
     {
       "name": "jobs/granary_lvl2.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\granary_lvl2.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\granary_lvl2.nbt",
       "loaded": true,
       "blockCount": 1485,
       "stray": {
@@ -6857,7 +6857,7 @@
     },
     {
       "name": "jobs/granary_lvl3.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\granary_lvl3.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\granary_lvl3.nbt",
       "loaded": true,
       "blockCount": 1485,
       "stray": {
@@ -6965,7 +6965,7 @@
     },
     {
       "name": "jobs/granary_lvl4.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\granary_lvl4.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\granary_lvl4.nbt",
       "loaded": true,
       "blockCount": 1485,
       "stray": {
@@ -7073,7 +7073,7 @@
     },
     {
       "name": "jobs/granary_lvl5.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\granary_lvl5.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\granary_lvl5.nbt",
       "loaded": true,
       "blockCount": 1485,
       "stray": {
@@ -7181,7 +7181,7 @@
     },
     {
       "name": "jobs/granary_lvl6.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\granary_lvl6.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\granary_lvl6.nbt",
       "loaded": true,
       "blockCount": 1485,
       "stray": {
@@ -7289,7 +7289,7 @@
     },
     {
       "name": "jobs/granary_lvl7.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\granary_lvl7.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\granary_lvl7.nbt",
       "loaded": true,
       "blockCount": 1485,
       "stray": {
@@ -7400,7 +7400,7 @@
     },
     {
       "name": "jobs/grove.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\grove.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\grove.nbt",
       "loaded": true,
       "blockCount": 772,
       "stray": {
@@ -7506,7 +7506,7 @@
     },
     {
       "name": "jobs/kitchen.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\kitchen.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\kitchen.nbt",
       "loaded": true,
       "blockCount": 1131,
       "stray": {
@@ -7614,7 +7614,7 @@
     },
     {
       "name": "jobs/kitchen_lvl1.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\kitchen_lvl1.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\kitchen_lvl1.nbt",
       "loaded": true,
       "blockCount": 1170,
       "stray": {
@@ -7724,7 +7724,7 @@
     },
     {
       "name": "jobs/kitchen_lvl2.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\kitchen_lvl2.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\kitchen_lvl2.nbt",
       "loaded": true,
       "blockCount": 1274,
       "stray": {
@@ -7832,7 +7832,7 @@
     },
     {
       "name": "jobs/kitchen_lvl3.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\kitchen_lvl3.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\kitchen_lvl3.nbt",
       "loaded": true,
       "blockCount": 1378,
       "stray": {
@@ -7940,7 +7940,7 @@
     },
     {
       "name": "jobs/kitchen_lvl4.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\kitchen_lvl4.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\kitchen_lvl4.nbt",
       "loaded": true,
       "blockCount": 1612,
       "stray": {
@@ -8048,7 +8048,7 @@
     },
     {
       "name": "jobs/kitchen_lvl5.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\kitchen_lvl5.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\kitchen_lvl5.nbt",
       "loaded": true,
       "blockCount": 1677,
       "stray": {
@@ -8156,7 +8156,7 @@
     },
     {
       "name": "jobs/kitchen_lvl6.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\kitchen_lvl6.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\kitchen_lvl6.nbt",
       "loaded": true,
       "blockCount": 1681,
       "stray": {
@@ -8266,7 +8266,7 @@
     },
     {
       "name": "jobs/lake.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\lake.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\lake.nbt",
       "loaded": true,
       "blockCount": 304,
       "stray": {
@@ -8372,7 +8372,7 @@
     },
     {
       "name": "jobs/leather_workshop.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\leather_workshop.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\leather_workshop.nbt",
       "loaded": true,
       "blockCount": 2010,
       "stray": {
@@ -8480,7 +8480,7 @@
     },
     {
       "name": "jobs/leather_workshop_lvl1.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\leather_workshop_lvl1.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\leather_workshop_lvl1.nbt",
       "loaded": true,
       "blockCount": 2400,
       "stray": {
@@ -8588,7 +8588,7 @@
     },
     {
       "name": "jobs/leather_workshop_lvl2.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\leather_workshop_lvl2.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\leather_workshop_lvl2.nbt",
       "loaded": true,
       "blockCount": 2400,
       "stray": {
@@ -8698,7 +8698,7 @@
     },
     {
       "name": "jobs/leather_workshop_lvl3.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\leather_workshop_lvl3.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\leather_workshop_lvl3.nbt",
       "loaded": true,
       "blockCount": 2400,
       "stray": {
@@ -8806,7 +8806,7 @@
     },
     {
       "name": "jobs/leather_workshop_lvl4.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\leather_workshop_lvl4.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\leather_workshop_lvl4.nbt",
       "loaded": true,
       "blockCount": 2400,
       "stray": {
@@ -8914,7 +8914,7 @@
     },
     {
       "name": "jobs/leather_workshop_lvl5.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\leather_workshop_lvl5.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\leather_workshop_lvl5.nbt",
       "loaded": true,
       "blockCount": 2400,
       "stray": {
@@ -9022,7 +9022,7 @@
     },
     {
       "name": "jobs/leather_workshop_lvl6.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\leather_workshop_lvl6.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\leather_workshop_lvl6.nbt",
       "loaded": true,
       "blockCount": 2080,
       "stray": {
@@ -9133,7 +9133,7 @@
     },
     {
       "name": "jobs/lumberjack.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\lumberjack.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\lumberjack.nbt",
       "loaded": true,
       "blockCount": 2136,
       "stray": {
@@ -9241,7 +9241,7 @@
     },
     {
       "name": "jobs/merchant_shop.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\merchant_shop.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\merchant_shop.nbt",
       "loaded": true,
       "blockCount": 2024,
       "stray": {
@@ -9351,7 +9351,7 @@
     },
     {
       "name": "jobs/merchant_shop_lvl1.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\merchant_shop_lvl1.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\merchant_shop_lvl1.nbt",
       "loaded": true,
       "blockCount": 2244,
       "stray": {
@@ -9461,7 +9461,7 @@
     },
     {
       "name": "jobs/merchant_shop_lvl2.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\merchant_shop_lvl2.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\merchant_shop_lvl2.nbt",
       "loaded": true,
       "blockCount": 2365,
       "stray": {
@@ -9569,7 +9569,7 @@
     },
     {
       "name": "jobs/merchant_shop_lvl3.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\merchant_shop_lvl3.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\merchant_shop_lvl3.nbt",
       "loaded": true,
       "blockCount": 2475,
       "stray": {
@@ -9677,7 +9677,7 @@
     },
     {
       "name": "jobs/merchant_shop_lvl4.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\merchant_shop_lvl4.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\merchant_shop_lvl4.nbt",
       "loaded": true,
       "blockCount": 2925,
       "stray": {
@@ -9785,7 +9785,7 @@
     },
     {
       "name": "jobs/merchant_shop_lvl5.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\merchant_shop_lvl5.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\merchant_shop_lvl5.nbt",
       "loaded": true,
       "blockCount": 2925,
       "stray": {
@@ -9896,7 +9896,7 @@
     },
     {
       "name": "jobs/merchant_shop_lvl6.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\merchant_shop_lvl6.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\merchant_shop_lvl6.nbt",
       "loaded": true,
       "blockCount": 3150,
       "stray": {
@@ -10008,7 +10008,7 @@
     },
     {
       "name": "jobs/oven.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\oven.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\oven.nbt",
       "loaded": true,
       "blockCount": 534,
       "stray": {
@@ -10116,7 +10116,7 @@
     },
     {
       "name": "jobs/pig_farm.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\pig_farm.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\pig_farm.nbt",
       "loaded": true,
       "blockCount": 3517,
       "stray": {
@@ -10224,7 +10224,7 @@
     },
     {
       "name": "jobs/pig_farm_lvl1.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\pig_farm_lvl1.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\pig_farm_lvl1.nbt",
       "loaded": true,
       "blockCount": 3720,
       "stray": {
@@ -10332,7 +10332,7 @@
     },
     {
       "name": "jobs/pig_farm_lvl2.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\pig_farm_lvl2.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\pig_farm_lvl2.nbt",
       "loaded": true,
       "blockCount": 4116,
       "stray": {
@@ -10440,7 +10440,7 @@
     },
     {
       "name": "jobs/pig_farm_lvl3.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\pig_farm_lvl3.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\pig_farm_lvl3.nbt",
       "loaded": true,
       "blockCount": 4116,
       "stray": {
@@ -10548,7 +10548,7 @@
     },
     {
       "name": "jobs/pig_farm_lvl4.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\pig_farm_lvl4.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\pig_farm_lvl4.nbt",
       "loaded": true,
       "blockCount": 4883,
       "stray": {
@@ -10656,7 +10656,7 @@
     },
     {
       "name": "jobs/pig_farm_lvl5.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\pig_farm_lvl5.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\pig_farm_lvl5.nbt",
       "loaded": true,
       "blockCount": 4967,
       "stray": {
@@ -10764,7 +10764,7 @@
     },
     {
       "name": "jobs/pig_farm_lvl6.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\pig_farm_lvl6.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\pig_farm_lvl6.nbt",
       "loaded": true,
       "blockCount": 5171,
       "stray": {
@@ -10874,7 +10874,7 @@
     },
     {
       "name": "jobs/pig_farm_lvl7.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\pig_farm_lvl7.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\pig_farm_lvl7.nbt",
       "loaded": true,
       "blockCount": 5171,
       "stray": {
@@ -10982,7 +10982,7 @@
     },
     {
       "name": "jobs/pig_farm_lvl8.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\pig_farm_lvl8.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\pig_farm_lvl8.nbt",
       "loaded": true,
       "blockCount": 5171,
       "stray": {
@@ -11094,7 +11094,7 @@
     },
     {
       "name": "jobs/pig_field.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\pig_field.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\pig_field.nbt",
       "loaded": true,
       "blockCount": 443,
       "stray": {
@@ -11200,7 +11200,7 @@
     },
     {
       "name": "jobs/potato_field.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\potato_field.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\potato_field.nbt",
       "loaded": true,
       "blockCount": 262,
       "stray": {
@@ -11306,7 +11306,7 @@
     },
     {
       "name": "jobs/sheep_field.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\sheep_field.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\sheep_field.nbt",
       "loaded": true,
       "blockCount": 539,
       "stray": {
@@ -11414,7 +11414,7 @@
     },
     {
       "name": "jobs/stone_breach.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\stone_breach.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\stone_breach.nbt",
       "loaded": true,
       "blockCount": 246,
       "stray": {
@@ -11522,7 +11522,7 @@
     },
     {
       "name": "jobs/wheat_farm.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\wheat_farm.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\wheat_farm.nbt",
       "loaded": true,
       "blockCount": 4034,
       "stray": {
@@ -11632,7 +11632,7 @@
     },
     {
       "name": "jobs/wheat_farm_lvl1.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\wheat_farm_lvl1.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\wheat_farm_lvl1.nbt",
       "loaded": true,
       "blockCount": 4301,
       "stray": {
@@ -11742,7 +11742,7 @@
     },
     {
       "name": "jobs/wheat_farm_lvl2.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\wheat_farm_lvl2.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\wheat_farm_lvl2.nbt",
       "loaded": true,
       "blockCount": 5005,
       "stray": {
@@ -11854,7 +11854,7 @@
     },
     {
       "name": "jobs/wheat_farm_lvl3.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\wheat_farm_lvl3.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\wheat_farm_lvl3.nbt",
       "loaded": true,
       "blockCount": 5005,
       "stray": {
@@ -11966,7 +11966,7 @@
     },
     {
       "name": "jobs/wheat_farm_lvl4.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\wheat_farm_lvl4.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\wheat_farm_lvl4.nbt",
       "loaded": true,
       "blockCount": 5269,
       "stray": {
@@ -12078,7 +12078,7 @@
     },
     {
       "name": "jobs/wheat_farm_lvl5.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\wheat_farm_lvl5.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\wheat_farm_lvl5.nbt",
       "loaded": true,
       "blockCount": 5368,
       "stray": {
@@ -12190,7 +12190,7 @@
     },
     {
       "name": "jobs/wheat_farm_lvl6.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\wheat_farm_lvl6.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\wheat_farm_lvl6.nbt",
       "loaded": true,
       "blockCount": 5368,
       "stray": {
@@ -12300,7 +12300,7 @@
     },
     {
       "name": "jobs/wheat_field.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\wheat_field.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\wheat_field.nbt",
       "loaded": true,
       "blockCount": 355,
       "stray": {
@@ -12409,7 +12409,7 @@
     },
     {
       "name": "jobs/wild_bee.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\wild_bee.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\wild_bee.nbt",
       "loaded": true,
       "blockCount": 477,
       "stray": {
@@ -12515,7 +12515,7 @@
     },
     {
       "name": "jobs/wild_crops.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\wild_crops.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\wild_crops.nbt",
       "loaded": true,
       "blockCount": 222,
       "stray": {
@@ -12621,7 +12621,7 @@
     },
     {
       "name": "jobs/wild_stone.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\wild_stone.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\wild_stone.nbt",
       "loaded": true,
       "blockCount": 126,
       "stray": {
@@ -12728,7 +12728,7 @@
     },
     {
       "name": "jobs/workshop.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\workshop.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\workshop.nbt",
       "loaded": true,
       "blockCount": 325,
       "stray": {
@@ -12832,7 +12832,7 @@
     },
     {
       "name": "jobs/workshop_lvl1.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\workshop_lvl1.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\workshop_lvl1.nbt",
       "loaded": true,
       "blockCount": 325,
       "stray": {
@@ -12940,7 +12940,7 @@
     },
     {
       "name": "jobs/workshop_lvl2.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\workshop_lvl2.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\workshop_lvl2.nbt",
       "loaded": true,
       "blockCount": 325,
       "stray": {
@@ -13048,7 +13048,7 @@
     },
     {
       "name": "jobs/workshop_lvl3.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\workshop_lvl3.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\workshop_lvl3.nbt",
       "loaded": true,
       "blockCount": 328,
       "stray": {
@@ -13156,7 +13156,7 @@
     },
     {
       "name": "jobs/workshop_lvl4.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\jobs\\workshop_lvl4.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\jobs\\workshop_lvl4.nbt",
       "loaded": true,
       "blockCount": 409,
       "stray": {
@@ -13264,7 +13264,7 @@
     },
     {
       "name": "starters/settlement.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\starters\\settlement.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\starters\\settlement.nbt",
       "loaded": true,
       "blockCount": 1288,
       "stray": {
@@ -13372,7 +13372,7 @@
     },
     {
       "name": "starters/settlement_2.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\starters\\settlement_2.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\starters\\settlement_2.nbt",
       "loaded": true,
       "blockCount": 1146,
       "stray": {
@@ -13482,7 +13482,7 @@
     },
     {
       "name": "starters/settlement_2_lvl1.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\starters\\settlement_2_lvl1.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\starters\\settlement_2_lvl1.nbt",
       "loaded": true,
       "blockCount": 1148,
       "stray": {
@@ -13590,7 +13590,7 @@
     },
     {
       "name": "starters/settlement_3.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\starters\\settlement_3.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\starters\\settlement_3.nbt",
       "loaded": true,
       "blockCount": 1104,
       "stray": {
@@ -13698,7 +13698,7 @@
     },
     {
       "name": "starters/settlement_3_lvl1.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\starters\\settlement_3_lvl1.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\starters\\settlement_3_lvl1.nbt",
       "loaded": true,
       "blockCount": 1104,
       "stray": {
@@ -13806,7 +13806,7 @@
     },
     {
       "name": "starters/settlement_lvl1.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\starters\\settlement_lvl1.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\starters\\settlement_lvl1.nbt",
       "loaded": true,
       "blockCount": 1737,
       "stray": {
@@ -13914,7 +13914,7 @@
     },
     {
       "name": "streets/street_1.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\streets\\street_1.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\streets\\street_1.nbt",
       "loaded": true,
       "blockCount": 44,
       "stray": {
@@ -13998,7 +13998,7 @@
     },
     {
       "name": "streets/street_10.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\streets\\street_10.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\streets\\street_10.nbt",
       "loaded": true,
       "blockCount": 101,
       "stray": {
@@ -14102,7 +14102,7 @@
     },
     {
       "name": "streets/street_11.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\streets\\street_11.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\streets\\street_11.nbt",
       "loaded": true,
       "blockCount": 483,
       "stray": {
@@ -14208,7 +14208,7 @@
     },
     {
       "name": "streets/street_2.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\streets\\street_2.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\streets\\street_2.nbt",
       "loaded": true,
       "blockCount": 212,
       "stray": {
@@ -14292,7 +14292,7 @@
     },
     {
       "name": "streets/street_3.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\streets\\street_3.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\streets\\street_3.nbt",
       "loaded": true,
       "blockCount": 46,
       "stray": {
@@ -14376,7 +14376,7 @@
     },
     {
       "name": "streets/street_4.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\streets\\street_4.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\streets\\street_4.nbt",
       "loaded": true,
       "blockCount": 269,
       "stray": {
@@ -14464,7 +14464,7 @@
     },
     {
       "name": "streets/street_5.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\streets\\street_5.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\streets\\street_5.nbt",
       "loaded": true,
       "blockCount": 344,
       "stray": {
@@ -14572,7 +14572,7 @@
     },
     {
       "name": "streets/street_6.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\streets\\street_6.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\streets\\street_6.nbt",
       "loaded": true,
       "blockCount": 191,
       "stray": {
@@ -14656,7 +14656,7 @@
     },
     {
       "name": "streets/street_7.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\streets\\street_7.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\streets\\street_7.nbt",
       "loaded": true,
       "blockCount": 60,
       "stray": {
@@ -14740,7 +14740,7 @@
     },
     {
       "name": "streets/street_8.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\streets\\street_8.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\streets\\street_8.nbt",
       "loaded": true,
       "blockCount": 268,
       "stray": {
@@ -14844,7 +14844,7 @@
     },
     {
       "name": "streets/street_9.nbt",
-      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\onceuponatown\\structure\\plains\\streets\\street_9.nbt",
+      "path": "C:\\Users\\bradw\\source\\stbl\\oncepope\\common\\src\\main\\resources\\data\\burg\\structure\\plains\\streets\\street_9.nbt",
       "loaded": true,
       "blockCount": 201,
       "stray": {

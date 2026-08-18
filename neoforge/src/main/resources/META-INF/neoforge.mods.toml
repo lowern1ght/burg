@@ -7,7 +7,7 @@ loaderVersion = "[2,)" #mandatory (NeoForge mod loader uses forge's network prot
 license = "${license}" # Review your options at https://choosealicense.com/.
 
 # A URL to refer people to for problems / questions
-issueTrackerURL = "https://github.com/DawnOfTimeMC/onceuponatown/issues"
+issueTrackerURL = "https://github.com/lowern1ght/burg/issues"
 
 [[mods]] #mandatory
 modId = "${mod_id}" #mandatory

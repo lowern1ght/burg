@@ -24,7 +24,7 @@ from typing import Dict, List, Sequence
 from structures.fabric import Canvas
 from structures.nbtio import CorruptStructure, load
 
-DATA = Path("../common/src/main/resources/data/onceuponatown/structure")
+DATA = Path("../common/src/main/resources/data/burg/structure")
 
 
 def scan(paths: Sequence[Path]) -> None:

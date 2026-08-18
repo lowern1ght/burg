@@ -32,7 +32,7 @@ const STUDIO = resolve(__dirname, '..');
 const REPO = resolve(STUDIO, '..');
 const CORPUS_ROOT = join(
   REPO,
-  'common', 'src', 'main', 'resources', 'data', 'onceuponatown', 'structure', 'plains',
+  'common', 'src', 'main', 'resources', 'data', 'burg', 'structure', 'plains',
 );
 
 // ── helpers ────────────────────────────────────────────────────────────────

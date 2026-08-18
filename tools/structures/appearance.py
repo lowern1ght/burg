@@ -100,7 +100,7 @@ COLOURS: Dict[str, str] = {
 
     # markers
     "jigsaw": "#c04ad0",
-    "onceuponatown:town_anchor": "#d4a017",
+    "burg:town_anchor": "#d4a017",
     "town_anchor": "#d4a017",
 }
 

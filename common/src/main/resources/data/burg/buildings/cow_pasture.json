@@ -1,0 +1,123 @@
+{
+  "id": "cow_pasture",
+  "nbt": "burg:livestock/cow_pasture/cow_pasture",
+  "entry_pool": "burg:jobs",
+  "icon_item": "minecraft:leather",
+  "category": "jobs",
+  "zone": "outer",
+  "weight": 2,
+  "herd": 2,
+  "consumption_per_herd": 1.0,
+  "required_buildings": [
+    {
+      "defId": "wheat_field",
+      "count": 1
+    }
+  ],
+  "construction_cost": [
+    {
+      "item": "minecraft:oak_log",
+      "amount": 42
+    },
+    {
+      "item": "minecraft:cobblestone",
+      "amount": 10
+    }
+  ],
+  "production": [
+    {
+      "item": "minecraft:beef",
+      "amount": 1,
+      "every_ticks": 1600,
+      "capacity_stacks": 1
+    },
+    {
+      "item": "minecraft:leather",
+      "amount": 1,
+      "every_ticks": 2100,
+      "capacity_stacks": 1
+    }
+  ],
+  "upgrades": [
+    {
+      "capacity_stacks_add": 1,
+      "upgrade_cost": [
+        {
+          "item": "minecraft:oak_log",
+          "amount": 16
+        }
+      ]
+    },
+    {
+      "herd_add": 1,
+      "consumption_per_herd_add": 1.0,
+      "amount_add": 1,
+      "upgrade_cost": [
+        {
+          "item": "minecraft:oak_log",
+          "amount": 20
+        },
+        {
+          "item": "minecraft:cobblestone",
+          "amount": 24
+        }
+      ]
+    },
+    {
+      "capacity_stacks_add": 1,
+      "upgrade_cost": [
+        {
+          "item": "minecraft:oak_log",
+          "amount": 28
+        },
+        {
+          "item": "minecraft:cobblestone",
+          "amount": 12
+        }
+      ]
+    },
+    {
+      "herd_add": 1,
+      "consumption_per_herd_add": 1.0,
+      "amount_add": 1,
+      "upgrade_cost": [
+        {
+          "item": "minecraft:oak_log",
+          "amount": 36
+        },
+        {
+          "item": "minecraft:cobblestone",
+          "amount": 16
+        },
+        {
+          "item": "minecraft:white_bed",
+          "amount": 2
+        }
+      ],
+      "residents_add": 2,
+      "consumption_per_resident_add": 0.15
+    },
+    {
+      "cadence_multiplier": 0.1,
+      "capacity_stacks_add": 1,
+      "upgrade_cost": [
+        {
+          "item": "minecraft:oak_log",
+          "amount": 48
+        },
+        {
+          "item": "minecraft:hay_block",
+          "amount": 8
+        }
+      ]
+    }
+  ],
+  "nbt_levels": [
+    "burg:livestock/cow_pasture/cow_pasture_lvl1",
+    "burg:livestock/cow_pasture/cow_pasture_lvl2",
+    "burg:livestock/cow_pasture/cow_pasture_lvl3",
+    "burg:livestock/cow_pasture/cow_pasture_lvl4",
+    "burg:livestock/cow_pasture/cow_pasture_lvl5"
+  ],
+  "residents": 0
+}

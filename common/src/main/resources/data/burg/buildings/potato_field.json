@@ -1,0 +1,31 @@
+{
+  "id": "potato_field",
+  "nbt": "burg:plains/jobs/potato_field",
+  "entry_pool": "burg:jobs",
+  "icon_item": "minecraft:potato",
+  "category": "jobs",
+  "zone": "outer",
+  "weight": 2,
+
+  "required_buildings": [
+    { "defId": "wild_crops", "count": 1 }
+  ],
+  "construction_cost": [
+    {
+      "item": "minecraft:oak_log",
+      "amount": 10
+    },
+    {
+      "item": "minecraft:potato",
+      "amount": 5
+    }
+  ],
+  "production": [
+    {
+      "item": "minecraft:potato",
+      "amount": 2,
+      "every_ticks": 1600,
+      "capacity_stacks": 1
+    }
+  ]
+}

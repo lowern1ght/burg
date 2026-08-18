@@ -22,7 +22,7 @@ fn structures_root() -> PathBuf {
         .join("main")
         .join("resources")
         .join("data")
-        .join("onceuponatown")
+        .join("burg")
         .join("structure")
 }
 
@@ -33,7 +33,7 @@ fn skins_root() -> PathBuf {
         .join("main")
         .join("resources")
         .join("assets")
-        .join("onceuponatown")
+        .join("burg")
         .join("textures")
         .join("entity")
         .join("npc")
