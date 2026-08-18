@@ -9,10 +9,17 @@ import java.util.Map;
 public class TownInventory {
     private final List<PlacedBuilding> buildings;
     private final Map<Item, Integer> reserve;
+    // ADR-0013 — fired after any mutation of {@code reserve} so the Town's
+    // StockLedger cache stays in sync. Null is treated as a no-op so the
+    // class remains usable in tests / one-off constructions without the
+    // domain view; production callers (Town.getTownInventory) pass the
+    // sync hook.
+    private final Runnable afterReserveMutate;
 
-    public TownInventory(List<PlacedBuilding> buildings, Map<Item, Integer> reserve) {
+    public TownInventory(List<PlacedBuilding> buildings, Map<Item, Integer> reserve, Runnable afterReserveMutate) {
         this.buildings = buildings;
         this.reserve = reserve;
+        this.afterReserveMutate = afterReserveMutate == null ? () -> {} : afterReserveMutate;
     }
 
     public int getStock(Item item) {
@@ -45,6 +52,7 @@ public class TownInventory {
         for (ItemCost cost : costs) {
             reserve.merge(cost.item(), cost.amount(), Integer::sum);
         }
+        afterReserveMutate.run();
     }
 
     public boolean hasStock(List<ItemCost> costs) {
@@ -68,5 +76,6 @@ public class TownInventory {
                 reserve.put(cost.item(), inReserve - taken);
             }
         }
+        afterReserveMutate.run();
     }
 }

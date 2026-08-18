@@ -412,7 +412,11 @@ public class Town implements BuildExecutor {
 
     // Computed aggregate view: buildings + floating reserve
     public TownInventory getTownInventory() {
-        return new TownInventory(buildings, reserveStock);
+        // The callback keeps stockLedger in sync whenever the inventory view
+        // mutates reserveStock (removeStock / addStock); see TownInventory for
+        // the wiring. The view holds the same Map reference so a mutation in
+        // either place is visible to the other.
+        return new TownInventory(buildings, reserveStock, this::syncStockLedgerFromReserve);
     }
 
     // Player command injection - into first building if available, otherwise into reserve
@@ -421,6 +425,7 @@ public class Town implements BuildExecutor {
             buildings.get(0).forceAdd(item, quantity);
         } else {
             reserveStock.merge(item, quantity, Integer::sum);
+            syncStockLedgerFromReserve();
         }
     }
 
@@ -573,6 +578,7 @@ public class Town implements BuildExecutor {
         }
         constructionQueue.remove(index);
         shiftClaimsAfter(index);
+        syncStockLedgerFromReserve();
         return true;
     }
 
@@ -754,34 +760,126 @@ public class Town implements BuildExecutor {
     public StandingBook getStandingBook() { return standingBook; }
 
     // -------------------------------------------------------------------------
-    // ADR-0010 — strangler facade for stock (ItemId + StockLedger).
+    // ADR-0010 + ADR-0013 — strangler facade for stock (ItemId + StockLedger).
     //
-    // The Minecraft-keyed reserveStock map stays the source of truth and
-    // the NBT shape is unchanged: every existing field, method, and key is
-    // byte-for-byte preserved. The new accessor exposes a Minecraft-free
-    // domain view (StockLedger) built from reserveStock via the
-    // BuiltInRegistries key. A future carve promotes the ledger to the
-    // source of truth and demotes reserveStock to the persistence side; this
-    // carve only makes the data visible to the domain layer.
+    // reserveStock remains the source of truth and the NBT-roundtrip owner;
+    // the NBT shape is byte-for-byte unchanged. StockLedger is now a cached
+    // Minecraft-free view rebuilt at every known mutation site, with a
+    // fallback rebuild when the cache disagrees with reserveStock. ADR-0013
+    // adds the symmetric domain→MC write path ({@link #applyStockLedger})
+    // so application code can drive the reserve from the ledger without
+    // rewriting the production tick. reserveStock stays in
+    // {@link TownInventory} and on disk; StockLedger stays in the domain.
     // -------------------------------------------------------------------------
 
     /**
-     * Returns the town's reserve stock as a Minecraft-free
-     * {@link StockLedger}, rebuilt from {@code reserveStock} on every call.
-     * Read-only — the ledger is a view, not a backing store. Mutations
-     * continue to go through {@link #addStock(Item, int)} and
-     * {@link #removeStock(List)} against the legacy {@code reserveStock}
-     * map.
+     * Cached Minecraft-free view of {@code reserveStock}. Kept in sync at
+     * every known mutation site ({@link #addStock}, the queue's refund
+     * cycle, the additive NBT load in {@link #fromNbt}, every
+     * {@link TownInventory} mutation via its callback, and
+     * {@link #applyStockLedger}). {@link #stockLedger()} falls back to a
+     * full rebuild when the cache and reserveStock disagree — see
+     * {@link #stockLedgerCacheIsConsistent()}.
      */
-    public StockLedger stockLedger() {
-        if (reserveStock.isEmpty()) return StockLedger.EMPTY;
+    private StockLedger stockLedger = StockLedger.EMPTY;
+
+    /**
+     * Rebuilds {@link #stockLedger} from {@code reserveStock}. Cheap
+     * (reserve is small, typically a few dozen) and idempotent. Called at
+     * every known reserveStock mutation site so {@link #stockLedger()} can
+     * return the cache on the fast path. Unknown / null entries are
+     * dropped at the edge so the ledger stays sparse — the same discipline
+     * StockLedger applies to its own constructor.
+     */
+    private void syncStockLedgerFromReserve() {
+        if (reserveStock.isEmpty()) {
+            stockLedger = StockLedger.EMPTY;
+            return;
+        }
         LinkedHashMap<ItemId, Integer> view = new LinkedHashMap<>(reserveStock.size());
         reserveStock.forEach((item, qty) -> {
             if (item == null || qty == null || qty <= 0) return;
             ResourceLocation key = BuiltInRegistries.ITEM.getKey(item);
+            if (key == null) return;  // unregistered item — drop at edge
             view.put(ItemId.of(key.toString()), qty);
         });
-        return StockLedger.of(view);
+        stockLedger = view.isEmpty() ? StockLedger.EMPTY : StockLedger.of(view);
+    }
+
+    /**
+     * Cheap consistency check between {@link #stockLedger} and
+     * {@code reserveStock}: same emptiness on both sides and, when non-
+     * empty, the same number of positive entries. Sufficient to detect the
+     * "cache is empty because someone forgot to sync" case; a fuller
+     * content-equality check would be O(reserve.size) per call and is not
+     * worth the cost on the hot read path.
+     */
+    private boolean stockLedgerCacheIsConsistent() {
+        if (reserveStock.isEmpty()) return stockLedger.isEmpty();
+        if (stockLedger.isEmpty()) return false;
+        int reserveCount = 0;
+        for (Map.Entry<Item, Integer> e : reserveStock.entrySet()) {
+            if (e.getKey() != null && e.getValue() != null && e.getValue() > 0) {
+                reserveCount++;
+            }
+        }
+        return reserveCount == stockLedger.size();
+    }
+
+    /**
+     * Returns the town's reserve stock as a Minecraft-free
+     * {@link StockLedger}. Returns the cached {@link #stockLedger} field on
+     * the fast path; falls back to a full rebuild via
+     * {@link #syncStockLedgerFromReserve()} when the cache disagrees with
+     * {@code reserveStock} (the "missed a sync" safety net). ADR-0010
+     * left the accessor rebuilding on every call; ADR-0013 keeps that
+     * correctness but caches the result so the rebuild only fires when the
+     * cache is provably stale.
+     */
+    public StockLedger stockLedger() {
+        if (stockLedgerCacheIsConsistent()) return stockLedger;
+        syncStockLedgerFromReserve();
+        return stockLedger;
+    }
+
+    /**
+     * Replaces {@code reserveStock} from the contents of the given domain
+     * {@link StockLedger}. Each {@link ItemId} is resolved against the
+     * Minecraft item registry; entries whose ItemId is absent from the
+     * registry, malformed, or {@code minecraft:air} are skipped — this
+     * lets a domain ledger built from arbitrary sources (datapacks,
+     * generated configs, tests) apply safely to a real town without
+     * polluting it with phantom items. Returns the number of skipped
+     * entries so callers can log / surface a partial-apply warning.
+     *
+     * <p>This is the domain→MC write counterpart to {@link #stockLedger()}
+     * (the MC→domain read path). It enables the application layer to drive
+     * the reserve from the StockLedger without rewriting the production
+     * tick; reserveStock remains the persistence owner.
+     */
+    public int applyStockLedger(StockLedger ledger) {
+        Objects.requireNonNull(ledger, "ledger");
+        reserveStock.clear();
+        int skipped = 0;
+        for (Map.Entry<ItemId, Integer> e : ledger.entries().entrySet()) {
+            if (e.getValue() == null || e.getValue() <= 0) {
+                // drop zero-quantity entries silently — same discipline as StockLedger.of
+                continue;
+            }
+            ResourceLocation rl = ResourceLocation.tryParse(e.getKey().value());
+            if (rl == null) {
+                skipped++;
+                continue;
+            }
+            Item item = BuiltInRegistries.ITEM.get(rl);
+            if (item == null) {
+                skipped++;
+                continue;
+            }
+            reserveStock.merge(item, e.getValue(), Integer::sum);
+        }
+        syncStockLedgerFromReserve();
+        return skipped;
     }
 
     // -------------------------------------------------------------------------
@@ -1166,6 +1264,11 @@ public class Town implements BuildExecutor {
                 town.reserveStock.put(item, reserveTag.getInt(key));
             }
         }
+        // ADR-0013 — sync the StockLedger cache after the additive NBT load.
+        // A pre-ADR-0010 world has no StockLedger data; this produces the
+        // EMPTY sentinel. A post-ADR-0010 world has reserveStock populated
+        // by the loop above; this rebuilds the cache to match.
+        town.syncStockLedgerFromReserve();
         tag.getList("BlockedZones", Tag.TAG_COMPOUND).forEach(t -> {
             CompoundTag zTag = (CompoundTag) t;
             town.blockedZones.add(new BoundingBox(
