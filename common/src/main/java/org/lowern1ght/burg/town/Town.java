@@ -22,6 +22,8 @@ import org.lowern1ght.burg.datapack.EraTransitionDef;
 import org.lowern1ght.burg.domain.settlement.Acquisition;
 import org.lowern1ght.burg.domain.settlement.ConstructionIntent;
 import org.lowern1ght.burg.domain.settlement.ConstructionQueue;
+import org.lowern1ght.burg.domain.settlement.QuestLog;
+import org.lowern1ght.burg.domain.settlement.QuestRef;
 import org.lowern1ght.burg.domain.settlement.Standing;
 import org.lowern1ght.burg.domain.settlement.StandingBook;
 import org.lowern1ght.burg.domain.settlement.StockLedger;
@@ -786,35 +788,8 @@ public class Town implements BuildExecutor {
 
     // -------------------------------------------------------------------------
     // ADR-0011 — strangler facade for the construction queue.
-    //
-    // The Minecraft-keyed List<QueueEntry> constructionQueue field stays the
-    // source of truth (NBT keys ConstructionQueue and QueueReservedStock are
-    // unchanged). NewBuild/Upgrade, the world pos as BlockPos, and the
-    // queue's mutation surface (tryAddToConstructionQueue, tryQueueUpgrade,
-    // removeFromConstructionQueue, consumeQueueEntry, claimQueueEntry, ...)
-    // all keep operating on the legacy field. This accessor rebuilds a
-    // Minecraft-free ConstructionQueue view on every call so the domain
-    // layer can read the queue without a BlockPos or Item on the classpath.
-    // NBT round-trip and every other field stay byte-for-byte identical.
     // -------------------------------------------------------------------------
 
-    /**
-     * Returns the player's construction queue as a Minecraft-free
-     * {@link ConstructionQueue}, rebuilt from {@code constructionQueue}
-     * on every call. Read-only — the queue is a view, not a backing
-     * store. Mutations continue to go through {@link #tryAddToConstructionQueue},
-     * {@link #tryQueueUpgrade}, {@link #removeFromConstructionQueue},
-     * {@link #consumeQueueEntry}, and the per-slot claim helpers.
-     *
-     * <p>Mapping: {@link QueueEntry.NewBuild} maps to
-     * {@link ConstructionIntent.NewBuild} (carries only
-     * {@code entryId} + {@code buildingDefId}); {@link QueueEntry.Upgrade}
-     * maps to {@link ConstructionIntent.Upgrade}, with the world
-     * coordinate stringified as {@code BlockPos.asLong()} →
-     * {@link Long#toString(long)} so the domain carries no {@code BlockPos}
-     * reference. Insertion order is preserved (index 0 = head, last
-     * index = tail).
-     */
     public ConstructionQueue constructionQueueView() {
         if (constructionQueue.isEmpty()) return ConstructionQueue.EMPTY;
         List<ConstructionIntent> intents = new ArrayList<>(constructionQueue.size());
@@ -830,6 +805,44 @@ public class Town implements BuildExecutor {
             }
         }
         return ConstructionQueue.of(intents);
+    }
+
+    // -------------------------------------------------------------------------
+    // ADR-0012 — strangler facade for the quest log (QuestRef + QuestLog).
+    // -------------------------------------------------------------------------
+
+    public QuestLog questLog() {
+        if (activeQuests.isEmpty() && questDefLastCompleted.isEmpty()) return QuestLog.EMPTY;
+
+        List<QuestRef> refs = new ArrayList<>(activeQuests.size());
+        for (Quest q : activeQuests) {
+            if (q == null || q.defId == null || q.defId.isEmpty()) continue;
+            String type = q.questType != null ? q.questType : QuestRef.TYPE_TASK;
+            if (QuestRef.TYPE_TASK.equals(type)) {
+                refs.add(QuestRef.of(q.defId, type, QuestRef.STATUS_ACTIVE));
+            } else {
+                refs.add(QuestRef.ofUnstatused(q.defId, type));
+            }
+        }
+
+        if (!questDefLastCompleted.isEmpty()) {
+            for (Map.Entry<String, Long> e : questDefLastCompleted.entrySet()) {
+                String defId = e.getKey();
+                if (defId == null || defId.isEmpty()) continue;
+                boolean alreadyActive = false;
+                for (QuestRef ref : refs) {
+                    if (defId.equals(ref.defId())) { alreadyActive = true; break; }
+                }
+                if (alreadyActive) continue;
+                refs.add(QuestRef.of(defId, QuestRef.TYPE_TASK, QuestRef.STATUS_COMPLETED));
+            }
+        }
+
+        Map<String, Long> completed = questDefLastCompleted.isEmpty()
+            ? Map.of()
+            : new LinkedHashMap<>(questDefLastCompleted);
+
+        return QuestLog.of(refs, completed);
     }
 
     public List<Quest> getActiveQuests() { return Collections.unmodifiableList(activeQuests); }
