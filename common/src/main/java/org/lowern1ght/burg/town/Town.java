@@ -19,6 +19,10 @@ import org.lowern1ght.burg.datapack.BuildingDataHandler;
 import org.lowern1ght.burg.datapack.EraDef;
 import org.lowern1ght.burg.datapack.EraTransitionDataHandler;
 import org.lowern1ght.burg.datapack.EraTransitionDef;
+import org.lowern1ght.burg.domain.settlement.Acquisition;
+import org.lowern1ght.burg.domain.settlement.Standing;
+import org.lowern1ght.burg.domain.settlement.StandingBook;
+import org.lowern1ght.burg.domain.shared.CitizenId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -87,6 +92,22 @@ public class Town implements BuildExecutor {
 
     // Players who opted in to receiving village log entries as chat messages. Persisted to NBT.
     private final Set<UUID> chatSubscribers = new HashSet<>();
+
+    // -------------------------------------------------------------------------
+    // ADR-0009 — standing + acquisition (strangler facade; no behavior change).
+    //
+    // Acquisition and StandingBook live in the domain layer and are stored
+    // here only because Town is the save-format owner. NBT keys are additive:
+    // missing keys read as FREE / empty book, so worlds saved before this
+    // carve load unchanged. See openspec/changes/settlement-standing-acquisition
+    // for the scenario set.
+    // -------------------------------------------------------------------------
+
+    /** Town's relation to outside authority (FREE by default). Persisted to NBT. */
+    private Acquisition acquisition = Acquisition.FREE;
+
+    /** Per-citizen standing roll. Empty by default. Persisted to NBT (sparse). */
+    private StandingBook standingBook = StandingBook.EMPTY;
 
     // Player-ordered queue of construction tasks (new builds and upgrades).
     // Resources are pre-reserved in queueReservedStock when an entry is added.
@@ -704,6 +725,30 @@ public class Town implements BuildExecutor {
     public boolean isChatSubscriber(UUID playerId)  { return chatSubscribers.contains(playerId); }
     public Set<UUID> getChatSubscribers()           { return Collections.unmodifiableSet(chatSubscribers); }
 
+    // -------------------------------------------------------------------------
+    // ADR-0009 — strangler facade for standing + acquisition.
+    //
+    // These accessors are the only edge through which standing and acquisition
+    // mutate today; the domain objects themselves are immutable and the
+    // Town-level view is replaced wholesale on every change.
+    // -------------------------------------------------------------------------
+
+    public Acquisition getAcquisition() { return acquisition; }
+    public void setAcquisition(Acquisition value) { this.acquisition = value; }
+
+    /** Returns the standing for a citizen; not-on-roll reads as zero. */
+    public Standing standingFor(UUID citizenId) {
+        return standingBook.standingFor(CitizenId.of(citizenId));
+    }
+
+    /** Adjusts the score for a citizen by {@code delta}; new score replaces the old. */
+    public void adjustStanding(UUID citizenId, int delta) {
+        standingBook = standingBook.adjust(CitizenId.of(citizenId), delta);
+    }
+
+    /** Read-only view of the full standing roll. */
+    public StandingBook getStandingBook() { return standingBook; }
+
     public List<Quest> getActiveQuests() { return Collections.unmodifiableList(activeQuests); }
 
     public void addQuest(Quest q) { activeQuests.add(q); }
@@ -981,6 +1026,20 @@ public class Town implements BuildExecutor {
         }
         tag.putLong("CpInsertionCounter", cpInsertionCounter);
         tag.putLong("NextEntryId", nextEntryId);
+        // ADR-0009 — standing + acquisition. Always write Acquisition (so
+        // FREE is recorded as an explicit default, not silently absent);
+        // write Standings only when non-empty (sparse save).
+        tag.putString("Acquisition", acquisition.toNbt());
+        if (!standingBook.isEmpty()) {
+            ListTag standTag = new ListTag();
+            standingBook.entries().forEach((citizen, standing) -> {
+                CompoundTag s = new CompoundTag();
+                s.putString("Id", citizen.value());
+                s.putInt("Value", standing.value());
+                standTag.add(s);
+            });
+            tag.put("Standings", standTag);
+        }
         return tag;
     }
 
@@ -1113,6 +1172,25 @@ public class Town implements BuildExecutor {
                 try { town.chatSubscribers.add(UUID.fromString(t.getAsString())); }
                 catch (IllegalArgumentException ignored) {}
             });
+        }
+        // ADR-0009 — standing + acquisition. Missing keys default to FREE /
+        // empty book; old saves load unchanged.
+        town.acquisition = tag.contains("Acquisition")
+            ? Acquisition.fromNbtOrDefault(tag.getString("Acquisition"))
+            : Acquisition.FREE;
+        if (tag.contains("Standings")) {
+            Map<CitizenId, Standing> loaded = new LinkedHashMap<>();
+            tag.getList("Standings", Tag.TAG_COMPOUND).forEach(t -> {
+                CompoundTag s = (CompoundTag) t;
+                CitizenId id = CitizenId.parseOrEmpty(s.getString("Id"));
+                if (CitizenId.EMPTY.equals(id)) return;
+                int value = s.getInt("Value");
+                if (value == Standing.DEFAULT) return;
+                loaded.put(id, new Standing(id, value));
+            });
+            town.standingBook = StandingBook.of(loaded);
+        } else {
+            town.standingBook = StandingBook.EMPTY;
         }
         return town;
     }
