@@ -93,7 +93,10 @@ public record C2SContributeQuestPacket(BlockPos anchorPos, String questId) imple
             }
 
             town.removeQuest(packet.questId());
-            town.getQuestDefLastCompleted().put(quest.defId, level.getGameTime());
+            // ADR-0016 — use the sanctioned write path so questLogDomain
+            // stays in sync. Direct puts on the returned map silently drift
+            // the cache; stampQuestCompletion rebuilds it.
+            town.stampQuestCompletion(quest.defId, level.getGameTime());
             LevelTowns.get(level).markDirty();
             NetworkHelper.pushQuestUpdateToWatchers(level, town, packet.anchorPos());
             if (stockUpdated) NetworkHelper.pushStockToWatchers(level, town, packet.anchorPos());
