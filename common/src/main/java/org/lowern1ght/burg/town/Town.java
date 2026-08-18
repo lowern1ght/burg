@@ -467,6 +467,7 @@ public class Town implements BuildExecutor {
             queueReservedStock.merge(cost.item(), cost.amount(), Integer::sum);
         }
         constructionQueue.add(new QueueEntry.NewBuild(nextEntryId++, defId));
+        syncConstructionQueueFromLegacy();
         return true;
     }
 
@@ -507,6 +508,7 @@ public class Town implements BuildExecutor {
             queueReservedStock.merge(c.item(), c.amount(), Integer::sum);
         }
         constructionQueue.add(new QueueEntry.Upgrade(nextEntryId++, building.defId, worldPos, effectiveLevel));
+        syncConstructionQueueFromLegacy();
         return true;
     }
 
@@ -534,6 +536,7 @@ public class Town implements BuildExecutor {
         if (constructionQueue.size() >= QUEUE_CAPACITY) return false;
 
         constructionQueue.add(new QueueEntry.Upgrade(nextEntryId++, building.defId, worldPos, effectiveLevel));
+        syncConstructionQueueFromLegacy();
         return true;
     }
 
@@ -581,6 +584,7 @@ public class Town implements BuildExecutor {
         constructionQueue.remove(index);
         shiftClaimsAfter(index);
         syncStockLedgerFromReserve();
+        syncConstructionQueueFromLegacy();
         return true;
     }
 
@@ -595,15 +599,20 @@ public class Town implements BuildExecutor {
 
     public void consumeQueueEntry(QueueEntry entry) {
         int idx = findQueueIndex(entry.entryId());
+        boolean changed = false;
         if (idx >= 0) {
             constructionQueue.remove(idx);
             shiftClaimsAfter(idx);
+            changed = true;
         }
         // Always drain the reservation even if entry was already removed by the player.
         List<ItemCost> cost = getEntryCost(entry);
         for (ItemCost c : cost) {
             int reserved = queueReservedStock.getOrDefault(c.item(), 0);
             queueReservedStock.put(c.item(), Math.max(0, reserved - c.amount()));
+        }
+        if (changed) {
+            syncConstructionQueueFromLegacy();
         }
     }
 
@@ -885,11 +894,44 @@ public class Town implements BuildExecutor {
     }
 
     // -------------------------------------------------------------------------
-    // ADR-0011 — strangler facade for the construction queue.
+    // ADR-0011 + ADR-0016 — dual-write strangler facade for the construction queue.
+    //
+    // The MC `List<QueueEntry> constructionQueue` remains the SoT and the NBT
+    // owner; ADR-0011 exposed it as a read-only `ConstructionQueueView()` that
+    // rebuilt on every call. ADR-0016 caches that rebuild in a
+    // `constructionQueueDomain` field synced at every known mutation site
+    // (tryAddToConstructionQueue, tryQueueUpgrade, forceQueueUpgrade,
+    // removeFromConstructionQueue, consumeQueueEntry, fromNbt), with a
+    // rebuild fallback when the cache disagrees with the legacy list. NBT
+    // keys `ConstructionQueue` and `QueueReservedStock` are unchanged.
+    //
+    // No `applyConstructionQueue` write path this PR: a domain→legacy write
+    // would have to also re-price `queueReservedStock` from each entry's
+    // building def, which needs `BuildingDataHandler` lookups and a refund
+    // cycle for whatever the legacy reserve currently holds. That's a real
+    // change, not a symmetric mirror of `applyStockLedger`. Sync-from-legacy
+    // covers the read direction; the write side stays a future carve.
     // -------------------------------------------------------------------------
 
-    public ConstructionQueue constructionQueueView() {
-        if (constructionQueue.isEmpty()) return ConstructionQueue.EMPTY;
+    /**
+     * Cached Minecraft-free view of {@code constructionQueue}. Mirrors the
+     * {@link #stockLedger} discipline: kept in sync at every known
+     * mutation site, with a rebuild fallback in
+     * {@link #constructionQueueView()} when the cache disagrees with the
+     * legacy list.
+     */
+    private ConstructionQueue constructionQueueDomain = ConstructionQueue.EMPTY;
+
+    /**
+     * Rebuilds {@link #constructionQueueDomain} from the MC
+     * {@code constructionQueue} list. Idempotent; same discipline
+     * {@link #syncStockLedgerFromReserve()} uses for the reserve mirror.
+     */
+    private void syncConstructionQueueFromLegacy() {
+        if (constructionQueue.isEmpty()) {
+            constructionQueueDomain = ConstructionQueue.EMPTY;
+            return;
+        }
         List<ConstructionIntent> intents = new ArrayList<>(constructionQueue.size());
         for (QueueEntry e : constructionQueue) {
             if (e instanceof QueueEntry.NewBuild nb) {
@@ -902,15 +944,77 @@ public class Town implements BuildExecutor {
                     u.fromLevel()));
             }
         }
-        return ConstructionQueue.of(intents);
+        constructionQueueDomain = ConstructionQueue.of(intents);
+    }
+
+    /**
+     * Cheap consistency check between {@link #constructionQueueDomain} and
+     * {@code constructionQueue}: same emptiness on both sides and, when
+     * non-empty, the same entry count. Same shape as
+     * {@link #stockLedgerCacheIsConsistent()} — sufficient to detect the
+     * "cache is empty because someone forgot to sync" case without paying
+     * for a content-equality walk on every read.
+     */
+    private boolean constructionQueueCacheIsConsistent() {
+        if (constructionQueue.isEmpty()) return constructionQueueDomain.isEmpty();
+        return constructionQueueDomain.size() == constructionQueue.size();
+    }
+
+    /**
+     * Returns the town's construction queue as a Minecraft-free
+     * {@link ConstructionQueue}. Returns the cached
+     * {@link #constructionQueueDomain} field on the fast path; falls back
+     * to a full rebuild via
+     * {@link #syncConstructionQueueFromLegacy()} when the cache disagrees
+     * with {@code constructionQueue} (the "missed a sync" safety net —
+     * mirrors {@link #stockLedger()}).
+     */
+    public ConstructionQueue constructionQueueView() {
+        if (constructionQueueCacheIsConsistent()) return constructionQueueDomain;
+        syncConstructionQueueFromLegacy();
+        return constructionQueueDomain;
     }
 
     // -------------------------------------------------------------------------
-    // ADR-0012 — strangler facade for the quest log (QuestRef + QuestLog).
+    // ADR-0012 + ADR-0016 — dual-write strangler facade for the quest log.
+    //
+    // `activeQuests` + `questDefLastCompleted` remain the SoT and the NBT
+    // owner; ADR-0012 exposed them through `questLog()` as a read-only
+    // rebuild. ADR-0016 caches that rebuild in a `questLogDomain` field
+    // synced at every known mutation site (addQuest, removeQuest,
+    // cleanupOrphanedQuestData, stampQuestCompletion, fromNbt), with a
+    // rebuild fallback when the cache disagrees with the legacy state.
+    // NBT keys `ActiveQuests` and `QuestDefLastCompleted` are unchanged.
+    //
+    // No `applyQuestLog` write path this PR: `QuestRef` carries only
+    // `(defId, type, status)`, while the MC `Quest` carries conditions,
+    // rewards, and the full TaskDef binding. A domain→legacy apply would
+    // silently drop the rich per-quest data the engine needs to run the
+    // quest tick. Sync-from-legacy covers the read direction; the write
+    // side stays a future carve.
     // -------------------------------------------------------------------------
 
-    public QuestLog questLog() {
-        if (activeQuests.isEmpty() && questDefLastCompleted.isEmpty()) return QuestLog.EMPTY;
+    /**
+     * Cached Minecraft-free view of the legacy `activeQuests` +
+     * `questDefLastCompleted` pair. Mirrors {@link #stockLedger}:
+     * synced at every known mutation site, with a rebuild fallback in
+     * {@link #questLog()} when the cache disagrees with the legacy state.
+     */
+    private QuestLog questLogDomain = QuestLog.EMPTY;
+
+    /**
+     * Rebuilds {@link #questLogDomain} from `activeQuests` +
+     * `questDefLastCompleted`. Idempotent; same discipline
+     * {@link #syncStockLedgerFromReserve()} and
+     * {@link #syncConstructionQueueFromLegacy()} use. Malformed entries
+     * (null `defId`, empty `defId`) are dropped at the edge so the
+     * domain view stays clean.
+     */
+    private void syncQuestLogFromLegacy() {
+        if (activeQuests.isEmpty() && questDefLastCompleted.isEmpty()) {
+            questLogDomain = QuestLog.EMPTY;
+            return;
+        }
 
         List<QuestRef> refs = new ArrayList<>(activeQuests.size());
         for (Quest q : activeQuests) {
@@ -940,16 +1044,70 @@ public class Town implements BuildExecutor {
             ? Map.of()
             : new LinkedHashMap<>(questDefLastCompleted);
 
-        return QuestLog.of(refs, completed);
+        questLogDomain = QuestLog.of(refs, completed);
+    }
+
+    /**
+     * Cheap consistency check between {@link #questLogDomain} and the
+     * legacy state: same emptiness on both sides, and when non-empty, the
+     * roll size and completion-map size match. Mirrors
+     * {@link #stockLedgerCacheIsConsistent()} and
+     * {@link #constructionQueueCacheIsConsistent()}.
+     */
+    private boolean questLogCacheIsConsistent() {
+        boolean legacyEmpty = activeQuests.isEmpty() && questDefLastCompleted.isEmpty();
+        if (legacyEmpty) return questLogDomain.isEmpty();
+        return questLogDomain.size() == activeQuests.size()
+            && questLogDomain.lastCompleted().size() == questDefLastCompleted.size();
+    }
+
+    /**
+     * Returns the town's quest log as a Minecraft-free
+     * {@link QuestLog}. Returns the cached {@link #questLogDomain} field
+     * on the fast path; falls back to a full rebuild via
+     * {@link #syncQuestLogFromLegacy()} when the cache disagrees with
+     * the legacy state (the "missed a sync" safety net — mirrors
+     * {@link #stockLedger()} and {@link #constructionQueueView()}).
+     */
+    public QuestLog questLog() {
+        if (questLogCacheIsConsistent()) return questLogDomain;
+        syncQuestLogFromLegacy();
+        return questLogDomain;
     }
 
     public List<Quest> getActiveQuests() { return Collections.unmodifiableList(activeQuests); }
 
-    public void addQuest(Quest q) { activeQuests.add(q); }
+    public void addQuest(Quest q) {
+        activeQuests.add(q);
+        syncQuestLogFromLegacy();
+    }
 
-    public void removeQuest(String questId) { activeQuests.removeIf(q -> q.questId.equals(questId)); }
+    public void removeQuest(String questId) {
+        activeQuests.removeIf(q -> q.questId.equals(questId));
+        syncQuestLogFromLegacy();
+    }
 
+    /**
+     * Read-only view of the quest completion map. The map itself is the
+     * SoT and the NBT owner; callers must NOT mutate it directly. Use
+     * {@link #stampQuestCompletion(String, long)} to record a completion
+     * tick — that path keeps the {@link #questLogDomain} cache in sync.
+     */
     public Map<String, Long> getQuestDefLastCompleted() { return questDefLastCompleted; }
+
+    /**
+     * Records the completion tick for a quest def. ADR-0016 — this is
+     * the only sanctioned write path into the completion map; it keeps
+     * {@link #questLogDomain} in sync so {@link #questLog()} stays on
+     * the cache fast path. Replaces the previous
+     * {@code getQuestDefLastCompleted().put(...)} idiom at call sites.
+     */
+    public void stampQuestCompletion(String defId, long gameTime) {
+        if (defId == null || defId.isEmpty()) return;
+        if (gameTime < 0L) return;
+        questDefLastCompleted.put(defId, gameTime);
+        syncQuestLogFromLegacy();
+    }
 
     // Removes activeQuests and questDefLastCompleted entries whose definition no longer exists.
     // Called at world load after datapacks have been read. Returns true if anything was removed.
@@ -961,7 +1119,11 @@ public class Town implements BuildExecutor {
         });
         int sizeBefore = questDefLastCompleted.size();
         questDefLastCompleted.keySet().retainAll(validDefIds);
-        return changed || questDefLastCompleted.size() != sizeBefore;
+        boolean completedChanged = questDefLastCompleted.size() != sizeBefore;
+        if (changed || completedChanged) {
+            syncQuestLogFromLegacy();
+        }
+        return changed || completedChanged;
     }
 
     // Tries to add item to town stock without checking the accepted set.
@@ -1347,6 +1509,14 @@ public class Town implements BuildExecutor {
                 town.questDefLastCompleted.put(key, qdlcTag.getLong(key));
             }
         }
+        // ADR-0016 — sync the construction queue + quest log caches after
+        // the additive NBT load. Mirrors the stock sync above. A
+        // pre-ADR-0011 / pre-ADR-0012 world produces EMPTY sentinels; a
+        // post-ADR-0011 world has constructionQueue populated by the
+        // loop above, and a post-ADR-0012 world has activeQuests +
+        // questDefLastCompleted populated — both rebuilds hit the cache.
+        town.syncConstructionQueueFromLegacy();
+        town.syncQuestLogFromLegacy();
         if (tag.contains("ActivityLog")) {
             tag.getList("ActivityLog", Tag.TAG_COMPOUND).forEach(t -> {
                 CompoundTag lt = (CompoundTag) t;
