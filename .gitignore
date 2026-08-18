@@ -22,8 +22,20 @@ build
 eclipse
 run
 runs
-# docs/ and CLAUDE.md are project canon — track them.
-# (previously ignored; re-enabled 2026-08-19 so FOCUS / OPENSPEC-INIT / vision land)
+
+# Agent / AI harness — local only, never ship (coding agents leave fingerprints)
+.agents/
+.claude/
+.opencode/
+.cursor/
+.codex/
+.continue/
+.windsurf/
+.gemini/
+.factory/
+CLAUDE.md
+AGENTS.md
+skills-lock.json
 
 # generated viewer: rebuilt by tools/export_rig.py, and it embeds every texture
 tools/viewer/citizens.html
