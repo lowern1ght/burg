@@ -92,7 +92,7 @@ War-scale combat (realm vs realm, sieges, field battles) is **always** NPC-vs-NP
 
 #### Scenario: war simulation reports back
 - **WHEN** a war-scale battle resolves (in-game days, not real time)
-- **THEN** the player's realm gains/loses gold, garrison, and standing with the opposing realm; battle outcome is loggable and survives `data/onceuponatown/realm/<realm-id>/wars/*.json`.
+- **THEN** the player's realm gains/loses gold, garrison, and standing with the opposing realm; battle outcome is loggable and survives `data/burg/realm/<realm-id>/wars/*.json`.
 
 ### Requirement: raid-scale combat is vanilla and player-controlled
 

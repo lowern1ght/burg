@@ -12,7 +12,7 @@ boundary/device differentiation, which only lands at lvl4–lvl5.
 ## Method
 
 From `tools/`, on the shipped NBT under
-`common/src/main/resources/data/onceuponatown/structure/livestock/`:
+`common/src/main/resources/data/burg/structure/livestock/`:
 
 - `selfgate.py` — every checker; report at `tools/structures/out/selfgate/report.md`.
 - `check_pens.py` — flood-fill from each animal's recorded position.

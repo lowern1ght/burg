@@ -16,23 +16,23 @@ Burg MUST load and apply mod content through these five datapack handlers — no
 
 | Handler | Owns | Reads |
 |---|---|---|
-| `BuildingDataHandler` | Building definitions, `construction_cost`, `production`, `weight`, level layout | `data/onceuponatown/buildings/*.json` |
-| `EraTransitionDataHandler` | Era tree, tier transitions, era prerequisites | `data/onceuponatown/era/*.json` |
-| `QuestDataHandler` | Quest definitions, prerequisites, deliverable, reward | `data/onceuponatown/quests/*.json` |
-| `BuilderConfigDataHandler` | Builder behavior tuning (placement speed, work hours, etc.) | `data/onceuponatown/builder/*.json` |
-| `TradePriceDataHandler` | Stock prices, buy/sell rates per item | `data/onceuponatown/trade/*.json` |
+| `BuildingDataHandler` | Building definitions, `construction_cost`, `production`, `weight`, level layout | `data/burg/buildings/*.json` |
+| `EraTransitionDataHandler` | Era tree, tier transitions, era prerequisites | `data/burg/era/*.json` |
+| `QuestDataHandler` | Quest definitions, prerequisites, deliverable, reward | `data/burg/quests/*.json` |
+| `BuilderConfigDataHandler` | Builder behavior tuning (placement speed, work hours, etc.) | `data/burg/builder/*.json` |
+| `TradePriceDataHandler` | Stock prices, buy/sell rates per item | `data/burg/trade/*.json` |
 
 #### Scenario: a new building ships in a datapack
-- **WHEN** a user drops a JSON file matching the building schema into their datapack's `data/onceuponatown/buildings/<id>.json` and points `nbt` at a valid vanilla-format structure
+- **WHEN** a user drops a JSON file matching the building schema into their datapack's `data/burg/buildings/<id>.json` and points `nbt` at a valid vanilla-format structure
 - **THEN** the building appears in the catalog on next server start without any JAR modification, code recompile, or restart of the world file.
 
 #### Scenario: datapack override wins
-- **WHEN** a datapack defines an entry with the same `id` as one in `common/src/main/resources/data/onceuponatown/`
+- **WHEN** a datapack defines an entry with the same `id` as one in `common/src/main/resources/data/burg/`
 - **THEN** the datapack's entry is loaded and the bundled one is ignored. This is how a server admin rebalances without a fork.
 
 ### Requirement: schema stability across versions
 
-A JSON file in `data/onceuponatown/` shipped with Burg vX MUST load without error in any future vY ≥ X within the same major. Adding optional keys is allowed; renaming or removing existing keys is a breaking change that requires a version-gated migration.
+A JSON file in `data/burg/` shipped with Burg vX MUST load without error in any future vY ≥ X within the same major. Adding optional keys is allowed; renaming or removing existing keys is a breaking change that requires a version-gated migration.
 
 #### Scenario: legacy JSON loads cleanly
 - **WHEN** a 1.0.0 datapack is mounted on a 1.x.x server
@@ -51,7 +51,7 @@ Five JSON loaders MUST reload on server start. Mid-session JSON edits are NOT re
 Each concept (a building, an era, a quest, a price, a builder behavior) MUST live in **exactly one** JSON file under the right folder. Two files defining the same `id` MUST be rejected at load time. This is data, not code — no `#include` or partials.
 
 #### Scenario: duplicate id at load time
-- **WHEN** two JSON files under `data/onceuponatown/buildings/` define the same `id`
+- **WHEN** two JSON files under `data/burg/buildings/` define the same `id`
 - **THEN** the loader reports a single error naming both files and stops loading that handler; the server fails to start with a clear `logs/latest.log` entry.
 
 ---
@@ -70,4 +70,4 @@ Each concept (a building, an era, a quest, a price, a builder behavior) MUST liv
 
 - PHILOSOPHY.md §"Pillar 3" + §"Implementation discipline" Q4 *"Can this be done in a datapack?"*
 - ARCHITECTURE.md §"datapack loaders"
-- `data/onceuponatown/buildings/<id>.json` fields: `nbt_levels` count from the JSON itself (each building type has its own ladder, never assume).
+- `data/burg/buildings/<id>.json` fields: `nbt_levels` count from the JSON itself (each building type has its own ladder, never assume).

@@ -68,7 +68,7 @@ Affected code:
   — new optional keys
 
 Affected datapacks:
-- `data/onceuponatown/builder/*.json` — new `hub` key (default shipped value)
+- `data/burg/builder/*.json` — new `hub` key (default shipped value)
 
 Affected docs:
 - `docs/02-roadmap/ROADMAP.md` §"Act 4" — already written; this change

@@ -100,7 +100,7 @@ grafting is the technique that already works.
 
 **Test structures are not mod content.** Anything generated to exercise the pipeline goes
 to `tools/structures/out/bench/` and never into
-`common/src/main/resources/data/onceuponatown/structure/`. The point of a bench build is
+`common/src/main/resources/data/burg/structure/`. The point of a bench build is
 to test the agent, so the more varied the subjects the better — a barracks, a gate, a
 pier, a bridge, a tower — and none of them has to ship.
 

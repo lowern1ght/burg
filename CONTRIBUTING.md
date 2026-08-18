@@ -79,7 +79,7 @@ For new eras, quests, or trade prices, the JSON schema lives in the existing fil
 
 Burg uses Minecraft's built-in translation system (`.lang` files under `assets/<modid>/lang/`). To add a translation:
 
-1. Copy `common/src/main/resources/assets/onceuponatown/lang/en_us.json` to `xx_xx.json` for your locale.
+1. Copy `common/src/main/resources/assets/burg/lang/en_us.json` to `xx_xx.json` for your locale.
 2. Translate only the values, never the keys.
 3. Open a PR.
 

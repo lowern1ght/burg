@@ -117,7 +117,7 @@ BuildAction (entity/ai/BuildAction.java) — pluggable interface
 
 `OuatWalkNodeEvaluator` (entity/ai/) overrides vanilla pathfinding so the NPC can open fence gates and doors.
 
-Secondary activities (mining, crafting) are configured via `data/onceuponatown/jobs/builder.json` and triggered when the construction queue is empty.
+Secondary activities (mining, crafting) are configured via `data/burg/jobs/builder.json` and triggered when the construction queue is empty.
 
 ---
 
@@ -126,7 +126,7 @@ Secondary activities (mining, crafting) are configured via `data/onceuponatown/j
 Five JSON loaders, one per content type. All reload on server start.
 
 ```
-data/onceuponatown/
+data/burg/
 ├── buildings/*.json        → BuildingDataHandler      (datapack/BuildingDataHandler.java:30)
 ├── eras/*.json             → EraTransitionDataHandler (datapack/EraTransitionDataHandler.java:29)
 ├── quests/*.json           → QuestDataHandler         (datapack/QuestDataHandler.java:23)
@@ -148,8 +148,8 @@ Datapack content is the project's primary extension surface. Adding a new buildi
 ```json
 {
   "id": "carpenter",
-  "nbt": "onceuponatown:plains/jobs/carpenter",
-  "entry_pool": "onceuponatown:jobs",
+  "nbt": "burg:plains/jobs/carpenter",
+  "entry_pool": "burg:jobs",
   "icon_item": "minecraft:chiseled_bookshelf",
   "category": "jobs",
   "weight": 3,
@@ -160,7 +160,7 @@ Datapack content is the project's primary extension surface. Adding a new buildi
   "transformations":    [{ "inputs": [...], "output": "...", "output_amount": 1,
                           "output_capacity_stacks": 1 }],
   "upgrades":           [{ "capacity_stacks_add": 1, "upgrade_cost": [...] }],
-  "nbt_levels":         ["onceuponatown:plains/jobs/carpenter_lvl1", ...],
+  "nbt_levels":         ["burg:plains/jobs/carpenter_lvl1", ...],
   "residents": 2,
   "consumption_per_resident": 1.0
 }
@@ -196,7 +196,7 @@ Era 3  — terminal state
 └── 3_forge
 ```
 
-Each era transition file (`data/onceuponatown/eras/N_<name>.json`) specifies: cost, prerequisites (residents, buildings), unlocked buildings, weight cap increase, and optional `unlock_new_builder`.
+Each era transition file (`data/burg/eras/N_<name>.json`) specifies: cost, prerequisites (residents, buildings), unlocked buildings, weight cap increase, and optional `unlock_new_builder`.
 
 ---
 
@@ -207,7 +207,7 @@ Uses **vanilla jigsaw** for structure placement; custom logic for terrain matchi
 ```
 worldgen/structure/plains_town.json
   └── type: minecraft:jigsaw
-       ├── start_pool: onceuponatown:plains/starters
+       ├── start_pool: burg:plains/starters
        └── size: 2 (template pool depth)
 
 worldgen/template_pool/plains/
@@ -216,7 +216,7 @@ worldgen/template_pool/plains/
   ├── houses.json    — house templates
   └── jobs.json      — job building templates
 
-data/onceuponatown/structures/plains/
+data/burg/structure/plains/
   ├── starters/*.nbt
   ├── houses/*.nbt     (per level: house_lvl1.nbt, house_lvl2.nbt, ...)
   ├── jobs/*.nbt
@@ -333,7 +333,7 @@ If you want to understand the project, read these files in order:
 3. `datapack/BuildingDataHandler.java` — the datapack contract.
 4. `entity/ai/BuildGoal.java` — the NPC's main activity.
 5. `client/screen/TownHubScreen.java` — the player-facing UI.
-6. `common/src/main/resources/data/onceuponatown/buildings/carpenter.json` — the JSON schema in practice.
+6. `common/src/main/resources/data/burg/buildings/carpenter.json` — the JSON schema in practice.
 
 If you want to make a change, identify which subsystem it touches, then look at the corresponding section above.
 
