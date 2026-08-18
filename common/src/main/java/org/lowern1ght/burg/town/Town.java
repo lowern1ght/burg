@@ -22,7 +22,9 @@ import org.lowern1ght.burg.datapack.EraTransitionDef;
 import org.lowern1ght.burg.domain.settlement.Acquisition;
 import org.lowern1ght.burg.domain.settlement.Standing;
 import org.lowern1ght.burg.domain.settlement.StandingBook;
+import org.lowern1ght.burg.domain.settlement.StockLedger;
 import org.lowern1ght.burg.domain.shared.CitizenId;
+import org.lowern1ght.burg.domain.shared.ItemId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -748,6 +750,37 @@ public class Town implements BuildExecutor {
 
     /** Read-only view of the full standing roll. */
     public StandingBook getStandingBook() { return standingBook; }
+
+    // -------------------------------------------------------------------------
+    // ADR-0010 — strangler facade for stock (ItemId + StockLedger).
+    //
+    // The Minecraft-keyed reserveStock map stays the source of truth and
+    // the NBT shape is unchanged: every existing field, method, and key is
+    // byte-for-byte preserved. The new accessor exposes a Minecraft-free
+    // domain view (StockLedger) built from reserveStock via the
+    // BuiltInRegistries key. A future carve promotes the ledger to the
+    // source of truth and demotes reserveStock to the persistence side; this
+    // carve only makes the data visible to the domain layer.
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the town's reserve stock as a Minecraft-free
+     * {@link StockLedger}, rebuilt from {@code reserveStock} on every call.
+     * Read-only — the ledger is a view, not a backing store. Mutations
+     * continue to go through {@link #addStock(Item, int)} and
+     * {@link #removeStock(List)} against the legacy {@code reserveStock}
+     * map.
+     */
+    public StockLedger stockLedger() {
+        if (reserveStock.isEmpty()) return StockLedger.EMPTY;
+        LinkedHashMap<ItemId, Integer> view = new LinkedHashMap<>(reserveStock.size());
+        reserveStock.forEach((item, qty) -> {
+            if (item == null || qty == null || qty <= 0) return;
+            ResourceLocation key = BuiltInRegistries.ITEM.getKey(item);
+            view.put(ItemId.of(key.toString()), qty);
+        });
+        return StockLedger.of(view);
+    }
 
     public List<Quest> getActiveQuests() { return Collections.unmodifiableList(activeQuests); }
 
