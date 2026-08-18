@@ -1,9 +1,13 @@
 package org.lowern1ght.burg.tick;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;
 import org.lowern1ght.burg.datapack.BuildingDataHandler;
 import org.lowern1ght.burg.datapack.SettlerJobsDataHandler;
+import org.lowern1ght.burg.domain.settlement.ProductionPlan;
+import org.lowern1ght.burg.domain.settlement.ProductionRule;
+import org.lowern1ght.burg.domain.shared.ItemId;
 import org.lowern1ght.burg.network.NetworkHelper;
 import org.lowern1ght.burg.town.BuildingDef;
 import org.lowern1ght.burg.town.ItemCost;
@@ -49,6 +53,40 @@ public class ProductionManager {
         return 1.0 + building.getLastWorkerSkill() * cfg.skillBonusPerLevel();
     }
 
+    /**
+     * Builds the {@link ProductionPlan} for one production entry. The
+     * legacy entry shape is {@code Item}-keyed; the domain plan is
+     * {@link ItemId}-keyed. This is the seam: the {@code Town} facade
+     * resolves the registry key once and the domain helper does the
+     * arithmetic. A future carve may fold the whole {@code for(...)
+     * stats.production()} loop into a single plan.buildAndApply call;
+     * today we extract one rule at a time to keep the touch minimal
+     * (ADR-0015 non-goal: no big-bang tick rewrite).
+     */
+    static ProductionPlan buildProductionPlan(ProductionEntry entry, double totalMultiplier) {
+        ItemId outputId = ItemId.of(BuiltInRegistries.ITEM.getKey(entry.item()).toString());
+        ProductionRule rule = new ProductionRule(
+            outputId, entry.amount(), entry.everyTicks(), entry.capacityItems());
+        return new ProductionPlan(List.of(rule), totalMultiplier);
+    }
+
+    /**
+     * Convenience bridge: run the entry through
+     * {@link #buildProductionPlan(ProductionEntry, double)} and return
+     * the amount the tick should add to {@code building}'s stock for
+     * {@code entry} on {@code gameTime}. Returns 0 when the rule is
+     * not due this tick (i.e. the plan emits nothing). The capacity
+     * cap is still the adapter's job — the helper returns the raw
+     * scaled amount.
+     */
+    static int computeBoostedAmount(ProductionEntry entry, double totalMultiplier,
+                                     long gameTime, long lastTick) {
+        ProductionPlan plan = buildProductionPlan(entry, totalMultiplier);
+        ItemId outputId = ItemId.of(BuiltInRegistries.ITEM.getKey(entry.item()).toString());
+        Integer due = plan.computeDueOutputs(gameTime, lastTick).get(outputId);
+        return due != null ? due : 0;
+    }
+
     public static boolean tick(Town town, ServerLevel level, long gameTime, long anchorKey) {
         TownInventory inv = town.getTownInventory();
         boolean changed = false;
@@ -88,7 +126,9 @@ public class ProductionManager {
                     double totalMultiplier = bonusMultiplier
                         * building.getInstanceProductionMultiplier()
                         * workerMultiplier(building, gameTime);
-                    int boostedAmount = (int) Math.round(entry.amount() * totalMultiplier);
+                    int boostedAmount = computeBoostedAmount(
+                        entry, totalMultiplier, gameTime, gameTime - effectiveTicks);
+                    if (boostedAmount <= 0) continue;
                     building.forceAdd(entry.item(), Math.min(boostedAmount, max - current));
                     changed = true;
                 }

@@ -33,8 +33,13 @@
 
 ## 4. Later changes (explicitly NOT this one)
 
-- [ ] 4.1 First carve: Production out of `Town` — its own openspec
-  change, one carve per change, verified in a running game.
+- [x] 4.1 First carve: Production out of `Town` — landed as
+  `openspec/changes/settlement-production-domain/` (ADR-0015). The
+  per-entry amount calculation in `ProductionManager.tick` is
+  re-routed through `ProductionPlan.computeDueOutputs`; the
+  transformer pass (`tickTransformer`) is unchanged; `Town.java`
+  is unchanged; NBT is unchanged. The next carve is the
+  transformer pass rewrite (`TransformationPlan` helper).
 - [x] 4.2 Architecture test enforcing the layering once real classes
   exist (bare-JVM domain purity per `domain-settlement` scenario):
   `common/src/test/java/org/lowern1ght/burg/architecture/DomainPurityTest.java`
