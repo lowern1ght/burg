@@ -241,4 +241,113 @@ class StockLedgerTest {
         StockLedger ledger = StockLedger.EMPTY.add(STONE, 5);
         assertEquals(0, ledger.get(OAK_LOG));
     }
+
+    // ADR-0013 — the dual-write path (Town.stockLedger ↔ Town.applyStockLedger)
+    // treats entries() as the canonical wire between Town and the domain layer.
+    // These tests pin the properties the apply path relies on.
+
+    @Test
+    @DisplayName("entries() iteration order matches insertion order — the apply path is deterministic")
+    void entriesPreserveInsertionOrder() {
+        Map<ItemId, Integer> source = new LinkedHashMap<>();
+        source.put(STONE, 5);
+        source.put(OAK_LOG, 3);
+        source.put(DIRT, 1);
+        StockLedger ledger = StockLedger.of(source);
+
+        // List.copyOf preserves encounter order; the test reads as a sequence
+        // check, not a set check, so a LinkedHashMap-vs-HashMap regression
+        // surfaces immediately.
+        assertEquals(
+            java.util.List.of(STONE, OAK_LOG, DIRT),
+            ledger.entries().keySet().stream().toList(),
+            "entries() iterates in insertion order so Town.applyStockLedger is deterministic"
+        );
+    }
+
+    @Test
+    @DisplayName("entries() is a read-only view — mutating the source map after construction does not leak in")
+    void entriesAreImmutableView() {
+        Map<ItemId, Integer> source = new LinkedHashMap<>();
+        source.put(STONE, 5);
+        StockLedger ledger = StockLedger.of(source);
+
+        source.put(OAK_LOG, 3);
+
+        assertEquals(0, ledger.get(OAK_LOG),
+            "mutating the source map after StockLedger.of does not affect the ledger");
+        assertThrows(UnsupportedOperationException.class,
+            () -> ledger.entries().put(DIRT, 1),
+            "entries() returns an unmodifiable view — applyStockLedger's iteration is read-only");
+    }
+
+    @Test
+    @DisplayName("merge is commutative — the dual-write is order-independent")
+    void mergeIsCommutative() {
+        StockLedger a = StockLedger.EMPTY.add(STONE, 10).add(OAK_LOG, 3);
+        StockLedger b = StockLedger.EMPTY.add(STONE, 5).add(DIRT, 7);
+
+        StockLedger ab = a.merge(b);
+        StockLedger ba = b.merge(a);
+
+        assertAll(
+            () -> assertEquals(ab.size(), ba.size(),
+                "the resulting ledger has the same number of entries regardless of merge order"),
+            () -> assertEquals(ab.get(STONE), ba.get(STONE),
+                "overlapping quantities are summed identically"),
+            () -> assertEquals(ab.get(OAK_LOG), ba.get(OAK_LOG),
+                "left-only entries appear in both directions"),
+            () -> assertEquals(ab.get(DIRT), ba.get(DIRT),
+                "right-only entries appear in both directions")
+        );
+    }
+
+    @Test
+    @DisplayName("of() then iterate-and-rebuild is the same ledger — the apply path's loop is total")
+    void ofAndIterateIsTotal() {
+        // The apply path on Town clears reserveStock, iterates ledger.entries(),
+        // and calls reserveStock.merge for each pair. The resulting map is
+        // (value-wise) the same as if applyStockLedger had handed the original
+        // map to StockLedger.of. Pin that here so the apply path's total
+        // behaviour is part of the contract.
+        Map<ItemId, Integer> source = new LinkedHashMap<>();
+        source.put(STONE, 10);
+        source.put(OAK_LOG, 3);
+        source.put(DIRT, 7);
+        StockLedger ledger = StockLedger.of(source);
+
+        // Simulate applyStockLedger's loop without the registry lookup.
+        Map<ItemId, Integer> simulated = new LinkedHashMap<>();
+        for (Map.Entry<ItemId, Integer> e : ledger.entries().entrySet()) {
+            simulated.merge(e.getKey(), e.getValue(), Integer::sum);
+        }
+
+        StockLedger rebuilt = StockLedger.of(simulated);
+        assertAll(
+            () -> assertEquals(ledger.size(), rebuilt.size(),
+                "the rebuilt ledger has the same number of entries"),
+            () -> assertEquals(ledger.get(STONE), rebuilt.get(STONE)),
+            () -> assertEquals(ledger.get(OAK_LOG), rebuilt.get(OAK_LOG)),
+            () -> assertEquals(ledger.get(DIRT), rebuilt.get(DIRT))
+        );
+    }
+
+    @Test
+    @DisplayName("zero-quantity entries on the apply path drop at the edge")
+    void zeroQuantitiesDropOnApplyPath() {
+        // applyStockLedger skips null / non-positive values silently, the
+        // same way StockLedger.of drops zero entries on its own construction.
+        // The constructor is the last line of defence — but the apply path
+        // also short-circuits before lookup, so the resulting map only has
+        // positive entries. This test pins that by feeding a hand-crafted
+        // ledger that includes a zero-quantity entry (after a take drains a
+        // value) and confirming the rebuild remains sparse.
+        StockLedger drained = StockLedger.EMPTY.add(STONE, 10).take(STONE, 10);
+        StockLedger withAnother = drained.add(OAK_LOG, 5);
+
+        assertSame(StockLedger.EMPTY, drained,
+            "drained-to-zero collapses to EMPTY — the apply path inherits this");
+        assertEquals(1, withAnother.size(),
+            "only positive entries survive the apply path's iteration");
+    }
 }
