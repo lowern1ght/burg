@@ -56,9 +56,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * directory first (Gradle sets {@code user.dir} to the {@code :common}
  * module root when running {@code test}), then walks up the tree as a
  * fallback. If {@code domain/} does not exist yet (the skeleton is empty)
- * the tests pass with an empty signal — the rule is wired so deleting
- * the rule by accident fails the build, not so the absence of code
+ * the tests pass with an empty signal — the rule is wired so deleting the
+ * rule by accident fails the build, not so the absence of code
  * fails it.
+ *
+ * <p>A third fence (ADR-0014): the {@code application/} layer — the ports
+ * and use cases — is held to the same import standard as {@code domain/},
+ * per modding/AGENT-RULES.md rule 6 ("Nothing under
+ * {@code org.lowern1ght.burg.domain} (and {@code application} ports) may
+ * import {@code net.minecraft.*}"). Only the import fence applies there
+ * (fence #1); the banned-type-name fence stays domain-only because
+ * application javadoc legitimately names {@code Town} adapters in prose.
  */
 class DomainPurityTest {
 
@@ -66,6 +74,10 @@ class DomainPurityTest {
 
     private static final Path DOMAIN_ROOT =
         COMMON_MAIN_JAVA.resolve("org").resolve("lowern1ght").resolve("burg").resolve("domain");
+
+    /** The application layer (ports + use cases) — same import fence as domain (ADR-0014). */
+    private static final Path APPLICATION_ROOT =
+        COMMON_MAIN_JAVA.resolve("org").resolve("lowern1ght").resolve("burg").resolve("application");
 
     /** Matches {@code import net.minecraft.…}, {@code import net.neoforged.…}, including {@code static}. */
     private static final Pattern IMPORT_NET =
@@ -156,11 +168,40 @@ class DomainPurityTest {
         );
     }
 
+    @Test
+    @DisplayName("application sources (ports + use cases) do not import net.minecraft.* or net.neoforged.*")
+    void applicationStaysMinecraftFree() throws IOException {
+        List<Path> javaSources = listSourcesUnder(APPLICATION_ROOT);
+        if (javaSources.isEmpty()) return;
+
+        List<String> violations = new ArrayList<>();
+        for (Path file : javaSources) {
+            List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
+            for (int i = 0; i < lines.size(); i++) {
+                String line = lines.get(i);
+                if (IMPORT_NET.matcher(line).find()) {
+                    violations.add(rel(file) + ":" + (i + 1) + ": " + line.trim());
+                }
+            }
+        }
+        assertTrue(
+            violations.isEmpty(),
+            () -> "application sources (ports + use cases) must not import net.minecraft.* "
+                + "or net.neoforged.* (modding/AGENT-RULES.md rule 6, ADR-0014); found "
+                + violations.size() + " violation(s):\n  "
+                + String.join("\n  ", violations)
+        );
+    }
+
     // ---------- helpers ----------
 
     private List<Path> listDomainSources() throws IOException {
-        if (!Files.isDirectory(DOMAIN_ROOT)) return List.of();
-        try (var stream = Files.walk(DOMAIN_ROOT)) {
+        return listSourcesUnder(DOMAIN_ROOT);
+    }
+
+    private List<Path> listSourcesUnder(Path root) throws IOException {
+        if (!Files.isDirectory(root)) return List.of();
+        try (var stream = Files.walk(root)) {
             return stream
                 .filter(Files::isRegularFile)
                 .filter(p -> p.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".java"))
