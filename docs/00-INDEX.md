@@ -50,6 +50,7 @@ After those four, branch by what you're doing:
 | [04-engineering/ARCHITECTURE.md](04-engineering/ARCHITECTURE.md) | 👤🤖 | subsystem map: state / tick / ai / datapack / worldgen / client / network, with file refs |
 | [04-engineering/PORT-STATUS.md](04-engineering/PORT-STATUS.md) | 👤🔧 | what survived the NeoForge 1.21.1 port, what's pending, what's unverified |
 | [04-engineering/DATA-FORMATS.md](04-engineering/DATA-FORMATS.md) | 🤖🔧 | the datapack JSON schemas (buildings / eras / quests / config) — the extension contract |
+| [04-engineering/modding/README.md](04-engineering/modding/README.md) | 🤖🔧 | NeoForge 1.21.1 agent modding pack: official-docs index, hard API rules, curated excerpts |
 
 ### How — craft (how we author buildings & skins)
 | doc | who | for |
