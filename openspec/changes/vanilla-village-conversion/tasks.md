@@ -2,7 +2,7 @@
 
 ## 1. Bridgehead NBT
 
-- [ ] 1.1 Author `common/src/main/resources/data/onceuponatown/structure/plains/bridgehead.nbt`
+- [ ] 1.1 Author `common/src/main/resources/data/burg/structure/plains/bridgehead.nbt`
   in Blockbench. Vanilla format (jigsaw-compatible). Size: 5x3x5 footprint.
   Two outward-facing `ConnectionPoint`s on opposite faces. Materials
   consistent with `plains/` style (no stone furniture, mixed

@@ -12,7 +12,7 @@ ladder (plus the trim layer) is dead code at runtime.
 ## Method
 
 All measurements taken from the live texture directory
-`common/src/main/resources/assets/onceuponatown/textures/entity/npc/`, run through
+`common/src/main/resources/assets/burg/textures/entity/npc/`, run through
 `tools/skin_text.py` (the project's "read a skin as text" tool, since an agent cannot see a PNG).
 Files inspected:
 

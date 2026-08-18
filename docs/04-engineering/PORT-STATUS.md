@@ -2,7 +2,7 @@
 
 A living tracker of what has survived, changed, or is still pending in the port from the `1.20.1-reborn` branch to `feat/port-neoforge-1.21.1`. [ARCHITECTURE](ARCHITECTURE.md) describes the pre-port state and warns that paths/APIs will change; this doc records the deltas that have actually landed.
 
-> Branch: `feat/port-neoforge-1.21.1`. Mod id, package and entry class are still `onceuponatown` / `org.dawnoftime.onceuponatown` / `OuatForge` — the rename to `burg` is issue [#11](https://github.com/lowern1ght/burg/issues/1) and has not landed. References to "Ouat" below are current reality, not stale text.
+> Branch: `feat/port-neoforge-1.21.1`. The identity rename to `burg` has landed ([ADR-0007](../06-decisions/ADR-0007-mod-id-rename.md)): mod id, `org.lowern1ght.burg` package, `data/burg/` + `assets/burg/` namespaces and `burg.mixins.json` are current reality. The `OuatForge` / `OuatForgeClient` entry class names survive as a deliberate leftover — references to "Ouat" below mean those classes, not a stale mod id.
 
 ---
 
@@ -30,6 +30,7 @@ Each line carries a one-line evidence pointer (file or commit).
 - **`/ouat town spawn` does site prep.** Surveys the footprint, takes the median ground level, runs `TerrainCarver`, and seeds `initial_stock` — previously the starter floated one course up and the builder could never start. — commit `51d1f11`
 - **i18n passes landed (en/ru).** Town hub widgets, commands, network chat, trade messages, era labels and the anchor block all go through translatable keys with autodetect. — commits `bf2a1e4`…`b9402bd`
 - **Worldgen replacement in plains and meadow.** Vanilla villages in those biomes are replaced by ours. — commit `a76bbea`
+- **Identity rename `onceuponatown` → `burg` landed** (issue [#11](https://github.com/lowern1ght/burg/issues/11), [ADR-0007](../06-decisions/ADR-0007-mod-id-rename.md)). Mod id, gradle `rootProject.name`, the `org.dawnoftime.onceuponatown` → `org.lowern1ght.burg` package, resource namespaces (`data/burg/`, `assets/burg/`), mixin configs and every `burg:` resource location carry the new name. The `OuatForge` / `OuatForgeClient` entry class names were kept. — `gradle.properties:8,16,18`, ADR-0007
 
 ---
 
@@ -37,7 +38,6 @@ Each line carries a one-line evidence pointer (file or commit).
 
 Items the port itself did not finish, or that [ARCHITECTURE](ARCHITECTURE.md) calls out as separate work.
 
-- **Rename `onceuponatown` → `burg`** (issue [#11](https://github.com/lowern1ght/burg/issues/1)). Mod id, gradle `rootProject.name`, the `org.dawnoftime.onceuponatown` package, the `OuatForge` / `OuatForgeClient` entry classes, the `ouat` command prefix and every `onceuponatown:` resource location still carry the old name. This is a separate, deliberate post-port task.
 - **`ARCHITECTURE.md` refresh.** That doc still describes the 1.20.1-reborn tree (it says so itself, line 5) and has not been updated for: the `people/` package, `entity/citizen/`, `gametest/`, `SettlerJobsDataHandler`, `TownIntegrity`, the 18th packet, the attachment-based citizen model, or the rename. PORT-STATUS is the companion until ARCHITECTURE is rewritten.
 - **Player reputation system** (issue [#3](https://github.com/lowern1ght/burg/issues/3)). Not started on this branch; called out in the README roadmap.
 - **Town defense / raids** (issue [#4](https://github.com/lowern1ght/burg/issues/4)). Not started on this branch; called out in the README roadmap.
@@ -49,7 +49,7 @@ Items the port itself did not finish, or that [ARCHITECTURE](ARCHITECTURE.md) ca
 Things this doc cannot confirm without running the game or a full build; recorded honestly rather than guessed.
 
 - **No clean build has been run from this checkout.** `neoforge/build/libs/` is empty in the working tree; the port's compilability is inferred from the clean dev log and the game-test run, not from a freshly produced jar. A `gradle build` is the real test.
-- **Game-test structure `onceuponatown:empty5x5` is reported missing** by the most recent crash report (`neoforge/run/crash-reports/crash-2026-07-27_01.51.25-server.txt`). The `gameTestServer` run configuration exists and the mod loads, but at least one registered game test cannot resolve its structure. Severity unverified — could be a missing fixture or a game-test infra gap, not a port regression.
+- **Game-test structure `empty5x5` is reported missing** (now a `burg:` id; the pre-rename crash report named it `onceuponatown:empty5x5`) by the most recent crash report (`neoforge/run/crash-reports/crash-2026-07-27_01.51.25-server.txt`). The `gameTestServer` run configuration exists and the mod loads, but at least one registered game test cannot resolve its structure. Severity unverified — could be a missing fixture or a game-test infra gap, not a port regression.
 - **World save compatibility.** `Town.fromNbt()` carries backward-compat shims per [ARCHITECTURE](ARCHITECTURE.md), but whether a 1.20.1 save loads cleanly under 1.21.1 has not been verified end-to-end. The `INBTSerializable` signature change (above) is a known risk surface.
 - **Multiplayer behaviour.** All 18 packets are wired, but the S2C broadcast paths (`push*ToWatchers`) have only been exercised in single-player dev. Edge cases around player tracking range, chunk unload, and the new `StartTracking`-driven identity packet are unverified.
 - **Datapack reload on `/reload`.** Handlers reload on `ServerStartingEvent`; whether they also respond correctly to a runtime `/reload` (which 1.21 wires through `ResourceManager` reload listeners) is not confirmed by reading `OuatForge` alone.

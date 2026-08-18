@@ -548,7 +548,7 @@ The current bicalibration artifact was generated on **2026-07-31 at
 04:41:17Z** from:
 
 ```text
-common/src/main/resources/data/onceuponatown/structure/plains
+common/src/main/resources/data/burg/structure/plains
 ```
 
 | Measure | Value | Source |

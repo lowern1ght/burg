@@ -6,7 +6,7 @@
 
 ## Context
 
-`common/src/main/resources/data/onceuponatown/structure/plains/**` is the mod
+`common/src/main/resources/data/burg/structure/plains/**` is the mod
 author's finished work — 125 hand-built NBTs, and the corpus every measurement in
 [`CLAUDE.md`](../../CLAUDE.md) is calibrated against. It is the reference the
 style gates, the fabric checkers and the half-block rule are all staked to. If

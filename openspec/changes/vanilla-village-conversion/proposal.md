@@ -30,7 +30,7 @@ without an audience. This is the single highest-leverage Act 0 task.
   bridgehead carries connection points so existing growth from now on
   works unchanged.
 - **CAP-NEW** `bridgehead-street-piece`: a single Burg NBT (jigsaw piece,
-  vanilla format) that ships in `common/src/main/resources/data/onceuponatown/structure/plains/`
+  vanilla format) that ships in `common/src/main/resources/data/burg/structure/plains/`
   carrying two outward-facing `ConnectionPoint`s. Sized to fit at a vanilla
   village edge without modifying terrain beyond what's required for its
   own footprint.
@@ -59,7 +59,7 @@ Affected code:
   — bridgehead piece registration; replaces 1 jigsaw template entry
 
 Affected data:
-- `common/src/main/resources/data/onceuponatown/structure/plains/bridgehead.nbt`
+- `common/src/main/resources/data/burg/structure/plains/bridgehead.nbt`
   — NEW file. It is read-only corpus territory after creation (FORK_NOTICE
   + CLAUDE.md) — once measured and `selfgate.py`-clean, it becomes a
   calibration artefact. Measure with `tools/check_integrity.py` and

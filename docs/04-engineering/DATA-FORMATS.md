@@ -1,8 +1,8 @@
 # Data formats
 
-Burg is datapack-first — pillar 3 of the [design philosophy](../01-vision/PHILOSOPHY.md). Adding a building, an era branch, a quest, a trade price, or a settler job is a JSON edit; no Java change is required and no recompile is needed. This doc is the extension contract: the shape of every shipped JSON file, grounded in the actual data under `common/src/main/resources/data/onceuponatown/`, plus the handler class that loads each one.
+Burg is datapack-first — pillar 3 of the [design philosophy](../01-vision/PHILOSOPHY.md). Adding a building, an era branch, a quest, a trade price, or a settler job is a JSON edit; no Java change is required and no recompile is needed. This doc is the extension contract: the shape of every shipped JSON file, grounded in the actual data under `common/src/main/resources/data/burg/`, plus the handler class that loads each one.
 
-> The five handlers documented in [ARCHITECTURE](ARCHITECTURE.md) have grown to **eight** on the port branch: `SettlerJobsDataHandler` was added when settlers became working villagers, and `BuilderConfig` / `BuildingList` / `FoodList` / `TradePrice` were already split out. All eight reload on server start from `ServerStartingEvent` (`neoforge/.../OuatForge.java:259-268`); the loader namespace is gated to `onceuponatown` so third-party datapacks must use their own namespace and a future `burg` namespace after the rename.
+> The five handlers documented in [ARCHITECTURE](ARCHITECTURE.md) have grown to **eight** on the port branch: `SettlerJobsDataHandler` was added when settlers became working villagers, and `BuilderConfig` / `BuildingList` / `FoodList` / `TradePrice` were already split out. All eight reload on server start from `ServerStartingEvent` (`neoforge/.../OuatForge.java:259-268`); the loader namespace is gated to `burg` (the mod id; renamed from `onceuponatown` by [ADR-0007](../06-decisions/ADR-0007-mod-id-rename.md)) so third-party datapacks must use their own namespace.
 
 ---
 
@@ -15,8 +15,8 @@ Minimal example (a job building with one transformation and one upgrade):
 ```json
 {
   "id": "carpenter",
-  "nbt": "onceuponatown:plains/jobs/carpenter",
-  "entry_pool": "onceuponatown:jobs",
+  "nbt": "burg:plains/jobs/carpenter",
+  "entry_pool": "burg:jobs",
   "icon_item": "minecraft:chiseled_bookshelf",
   "category": "jobs",
   "zone": "outer",
@@ -36,8 +36,8 @@ Minimal example (a job building with one transformation and one upgrade):
     { "capacity_stacks_add": 1, "upgrade_cost": [{ "item": "minecraft:oak_log", "amount": 20 }] }
   ],
   "nbt_levels": [
-    "onceuponatown:plains/jobs/carpenter_lvl1",
-    "onceuponatown:plains/jobs/carpenter_lvl2"
+    "burg:plains/jobs/carpenter_lvl1",
+    "burg:plains/jobs/carpenter_lvl2"
   ]
 }
 ```
@@ -46,7 +46,7 @@ Minimal example (a job building with one transformation and one upgrade):
 |---|---|---|
 | `id` | yes | Internal id; referenced by `required_buildings`, era `unlocked_building_ids`, `building_list.json` order. |
 | `nbt` | yes | Resource location of the level-0 structure file under `data/<ns>/structure/`. |
-| `entry_pool` | yes | Jigsaw template pool the building is injected through (e.g. `onceuponatown:jobs`, `onceuponatown:houses`, `onceuponatown:military`). |
+| `entry_pool` | yes | Jigsaw template pool the building is injected through (e.g. `burg:jobs`, `burg:houses`, `burg:military`). |
 | `icon_item` | yes | Item id rendered in the construction catalog. |
 | `category` | yes | Catalog grouping: `buildings`, `jobs`, `military`, `naturals`, etc. Drives weight contribution. |
 | `zone` | no | `core` / `outer` — placement preference relative to the town centre. See `house.json` (`core`) vs `carpenter.json` (`outer`). |
@@ -77,8 +77,8 @@ Era 0 — picks the starter and seeds the orientation:
 {
   "era": 0,
   "orientation": "pastoral",
-  "orientation_label": "onceuponatown.orientation.pastoral",
-  "structure_label": "onceuponatown.structure.settlement",
+  "orientation_label": "burg.orientation.pastoral",
+  "structure_label": "burg.structure.settlement",
   "icon_item": "minecraft:porkchop",
   "starter_building_id": "settlement_2",
   "boosted_buildings": ["pig_field", "cow_field", "sheep_field"],
@@ -93,8 +93,8 @@ Era 1+ — a transition from a previous era/orientation:
 {
   "from_era": 1,
   "from_orientation": "agricultural",
-  "orientation_label": "onceuponatown.orientation.urban",
-  "structure_label": "onceuponatown.structure.village",
+  "orientation_label": "burg.orientation.urban",
+  "structure_label": "burg.structure.village",
   "icon_item": "minecraft:emerald",
   "min_weight_percent": 90,
   "weight_cap_increase": 10,
@@ -138,10 +138,10 @@ NOTE quest (no conditions, no reward):
 
 ```json
 {
-  "id": "onceuponatown:new_visitor",
+  "id": "burg:new_visitor",
   "type": "NOTE",
-  "title": "quest.onceuponatown.new_visitor.title",
-  "description": "quest.onceuponatown.new_visitor.desc",
+  "title": "quest.burg.new_visitor.title",
+  "description": "quest.burg.new_visitor.desc",
   "prerequisites": {
     "min_era": 0,
     "stock_conditions": [{ "item": "minecraft:oak_log", "min": 35 }]
@@ -153,10 +153,10 @@ TASK quest (with a DELIVERY condition and a reward):
 
 ```json
 {
-  "id": "onceuponatown:wood_supplies",
+  "id": "burg:wood_supplies",
   "type": "TASK",
-  "title": "quest.onceuponatown.wood_supplies.title",
-  "description": "quest.onceuponatown.wood_supplies.desc",
+  "title": "quest.burg.wood_supplies.title",
+  "description": "quest.burg.wood_supplies.desc",
   "refresh_interval_ticks": 7000,
   "prerequisites": {
     "min_era": 0,
@@ -173,7 +173,7 @@ TASK quest (with a DELIVERY condition and a reward):
 
 | Field | Required | Meaning |
 |---|---|---|
-| `id` | yes | Namespaced id (`onceuponatown:wood_supplies`). |
+| `id` | yes | Namespaced id (`burg:wood_supplies`). |
 | `type` | no (defaults to `TASK`) | `NOTE` or `TASK`. |
 | `title`, `description` | yes | Translation keys. |
 | `refresh_interval_ticks` | TASK only; default 4500 | How long the quest stays offerable before re-rolling. Ignored for NOTE. |
@@ -301,6 +301,6 @@ What a settler (a working villager) does for a living. Loaded by `SettlerJobsDat
 
 - [ARCHITECTURE](ARCHITECTURE.md) — the system map; the datapack layer is described there at a higher level
 - [PORT-STATUS](PORT-STATUS.md) — port branch state; notes which handlers are new since [ARCHITECTURE](ARCHITECTURE.md) was written
-- Handler sources — `common/src/main/java/org/dawnoftime/onceuponatown/datapack/` (eight files: `BuildingDataHandler`, `EraTransitionDataHandler`, `QuestDataHandler`, `BuilderConfigDataHandler`, `SettlerJobsDataHandler`, `BuildingListDataHandler`, `FoodListDataHandler`, `TradePriceDataHandler`)
-- Reload wiring — `neoforge/src/main/java/org/dawnoftime/onceuponatown/OuatForge.java:259-268`
-- Datapack content — `common/src/main/resources/data/onceuponatown/{buildings,eras,quests,config,jobs}/`
+- Handler sources — `common/src/main/java/org/lowern1ght/burg/datapack/` (eight files: `BuildingDataHandler`, `EraTransitionDataHandler`, `QuestDataHandler`, `BuilderConfigDataHandler`, `SettlerJobsDataHandler`, `BuildingListDataHandler`, `FoodListDataHandler`, `TradePriceDataHandler`)
+- Reload wiring — `neoforge/src/main/java/org/lowern1ght/burg/OuatForge.java:259-268`
+- Datapack content — `common/src/main/resources/data/burg/{buildings,eras,quests,config,jobs}/`

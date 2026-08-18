@@ -31,7 +31,7 @@
 
 - [ ] 4.1 Add `hub.transition_standing_threshold` and
   `hub.transition_structure_required` to the shipped
-  `data/onceuponatown/builder/*.json` file (defaults: 50 /
+  `data/burg/builder/*.json` file (defaults: 50 /
   `core_populated | industry_zoned | road_laid`).
 - [ ] 4.2 Add the schema entries to `BuilderConfigDataHandler` so unknown
   keys do not break servers running older datapacks (per

@@ -31,7 +31,7 @@ context: |
     5 - the far end        | rule, conquer   | realm of many villages
 
   Hard scope:
-    - common/src/main/resources/data/onceuponatown/structure/plains/** is read-only (the author's calibration corpus).
+    - common/src/main/resources/data/burg/structure/plains/** is read-only (the author's calibration corpus).
     - No PR adds a hard ban as a pillar; if you find yourself needing one, open a Philosophy change issue first.
     - "Verified in a running game" is the only state that moves a STATUS.md row out of build-green. A green build is not evidence.
 

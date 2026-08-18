@@ -531,6 +531,6 @@ Generated sets live **beside** `plains/`, never inside it: `structure/plains/**`
 is the author's finished work and is read-only for us. We read it — harvest block
 states, graft donors, measure statistics — and write only to our own folders.
 
-Resource ids follow: `onceuponatown:military/watchtower/watchtower_lvl3`,
-`onceuponatown:livestock/sheep_fold/sheep_fold_lvl5`.
+Resource ids follow: `burg:military/watchtower/watchtower_lvl3`,
+`burg:livestock/sheep_fold/sheep_fold_lvl5`.
 `build_military.py` writes into these folders directly.
