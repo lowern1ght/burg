@@ -23,12 +23,25 @@ feedback loop in a project whose verification bar is in-game
   inside `domain/settlement/` or `domain/shared/` is a build failure,
   not a review finding.
 
+#### Scenario: BlockPos stays at the edge
+
+- **WHEN** infrastructure code needs a coordinate for a domain call
+- **THEN** it converts `BlockPos` to `BlockCoord` before the call; the
+  domain signature accepts only `BlockCoord`.
+
 #### Scenario: ResourceLocation stays at the edge
 
 - **WHEN** infrastructure code needs an item identity for a domain call
 - **THEN** it converts the Minecraft `ResourceLocation` (or the `Item`
   it points at) to `ItemId` before the call; the domain signature
   accepts only `ItemId`.
+
+#### Scenario: UUID stays at the edge
+
+- **WHEN** a domain call needs a citizen identity
+- **THEN** it accepts a `CitizenId` (the domain value object); the
+  Minecraft `UUID` is wrapped at the `Town` facade edge and never
+  appears in domain signatures.
 
 ### Requirement: Town stays the aggregate root of Settlement
 
@@ -58,6 +71,14 @@ build with it, and vice versa. The StockLedger carve demonstrates this
 a second time: the `ReserveStock` compound tag and its per-item keys
 (`BuiltInRegistries.ITEM.getKey(item).toString()`) are unchanged, and a
 pre-carve world with an empty reserve reads as `StockLedger.EMPTY`.
+
+#### Scenario: old world loads after a carve
+
+- **WHEN** a world last saved before a strangler carve is opened by a
+  post-carve build
+- **THEN** the town loads with all buildings, queue entries, stock, era
+  and standing intact — verified in a running game, not only in a unit
+  round-trip.
 
 #### Scenario: old world loads after the stock-ledger carve
 
