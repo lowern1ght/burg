@@ -339,9 +339,31 @@ If you want to make a change, identify which subsystem it touches, then look at 
 
 ---
 
+## Target DDD shape
+
+Everything above describes the code as it is. The code as it is heading
+is recorded in [ADR-0008](../06-decisions/ADR-0008-ddd-foundation.md):
+five bounded contexts (**Settlement**, **Realm**, **Diplomacy**,
+**War**, **Content-as-shared-kernel**), each layered
+`domain / application / infrastructure`, with Minecraft types kept out
+of the domain behind value-object wrappers (`TownId`, `BlockCoord`,
+`CitizenId`, `ItemId`).
+
+The landing zone is an empty package skeleton under
+`common/src/main/java/org/dawnoftime/onceuponatown/{domain,application,infrastructure}/`.
+`Town` remains the aggregate root of Settlement and is **not** rewritten —
+responsibilities move out one carve per change (strangler), behind a
+facade that keeps the `ouat_towns` NBT shape so old worlds keep loading.
+New act-4/act-5 systems (realm, diplomacy, war) go into the new packages
+from day one; nothing gameplay-facing changes until a carve is verified
+in a running game.
+
+---
+
 ## Related
 
 - [`docs/PHILOSOPHY.md`](../01-vision/PHILOSOPHY.md) — design pillars and out-of-scope rules
+- [ADR-0008](../06-decisions/ADR-0008-ddd-foundation.md) — DDD foundation decision this section summarizes
 - [`CONTRIBUTING.md`](../../CONTRIBUTING.md) — PR process
 - Issue [#1](https://github.com/lowern1ght/burg/issues/1) — NeoForge 1.21.1 port (will refactor some file paths)
 - Issue [#11](https://github.com/lowern1ght/burg/issues/11) — code rename `onceuponatown` → `burg`
