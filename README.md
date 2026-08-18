@@ -1,58 +1,55 @@
-# Burg
+<p align="center">
+  <strong>Burg</strong><br/>
+  <em>Villages with their own life.</em>
+</p>
 
-> **Villages with their own life.**
+<p align="center">
+  <a href="https://minecraft.net"><img alt="Minecraft 1.21.1" src="https://img.shields.io/badge/Minecraft-1.21.1-brightgreen?style=flat-square" /></a>
+  <a href="https://neoforged.net"><img alt="NeoForge" src="https://img.shields.io/badge/loader-NeoForge-1976d2?style=flat-square" /></a>
+  <a href="LICENSE.md"><img alt="License: GPL-3.0" src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" /></a>
+  <a href="https://github.com/lowern1ght/burg/issues"><img alt="Issues" src="https://img.shields.io/github/issues/lowern1ght/burg?style=flat-square" /></a>
+</p>
 
-[![Minecraft 1.21.1](https://img.shields.io/badge/Minecraft-1.21.1-brightgreen?style=flat-square)](https://minecraft.net)
-[![Mod Loader: NeoForge](https://img.shields.io/badge/loader-NeoForge-1976d2?style=flat-square)](https://neoforged.net)
-[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square)](LICENSE)
+Burg turns vanilla Minecraft villages into places that keep living when you walk away. NPC builders grow the settlement through eras; you earn trust by trading and supplying — and a stranger can, over time, become chief, then king.
 
-**Burg** is a Minecraft mod that transforms vanilla villages into autonomous, thriving towns. NPC builders grow settlements through eras while you develop your own path. Earn trust through helping — defend against raids, complete quests, contribute resources — and villages may eventually recognize you as chief.
+Villages are **not** your colony. They grow themselves. You are a neighbor who can help.
 
-Villages are **not** your project. They grow themselves. You're a neighbor who can help.
+Our philosophy:
 
----
+```text
+→ villages autonomous, not player-driven
+→ help and supply, not command consoles
+→ datapack content, not hardcoded lists
+→ NPC builder places every block
+→ vanilla feel, not a UI overhaul
+```
 
-## Features
+> [!NOTE]
+> NeoForge **1.21.1** is the current line (`master`). The legacy Forge 1.20.1 tree lives on `1.20.1-reborn`. Early development — nothing below is verified as a finished player walk in a published release.
 
-- 🏘️ **Autonomous NPC builders** — villages grow themselves; you can help, not command
-- 🌾 **Era progression** — Settlement → Village → 5 specialized branches (Urban, Rural, Ranching, Cooking, Forge)
-- 🛠️ **Upgrades & production** — buildings transform resources, level up to unlock new recipes
-- 🗺️ **Town hub GUI** — draggable widgets: town map, summary, era progress, quest tracker
-- 💼 **Trading** — buy/sell at the town hall with datapack-driven prices
-- 📜 **Quest system** — delivery quests and lore notes, data-driven prerequisites
-- 📦 **Datapack-first** — add buildings, eras, quests, prices via JSON, no code required
+## See it in action
 
----
+```text
+# schematic — intended loop on master (NeoForge 1.21.1)
 
-## Installation
+You:  find a plains village
+World: Town Anchor sits at the meeting point
 
-1. Install [NeoForge for Minecraft 1.21.1](https://neoforged.net/).
-2. Download the latest release `.jar` from [Releases](https://github.com/lowern1ght/burg/releases).
-3. Drop the file into your `mods/` folder.
-4. Launch Minecraft and find a village — a **Town Anchor** block has been placed at its center.
+You:  right-click a citizen
+Burg:  name · trade · what they are doing right now
 
-> Burg is currently in development for NeoForge 1.21.1. See issue [#1](https://github.com/lowern1ght/burg/issues/1) for the port progress. The legacy version runs on Forge 1.20.1 under the `1.20.1-reborn` branch.
+You:  supply oak logs and cobblestone at the hub
+Burg:  stock rises · builder wakes earlier · walls climb
 
----
+You:  keep helping through eras
+Burg:  settlement → village → branch (urban / rural / ranching / cooking / forge)
+       standing rises · the village may name you chief
+```
 
-## Quick start
+<details>
+<summary><strong>What a datapack building looks like</strong></summary>
 
-1. Find a plains village in your world — a **Town Anchor** block sits at the center.
-2. Right-click it to open the **Town Hub**.
-3. Three tabs are available:
-   - **Stock** — see what the village has produced; buy/sell from your inventory.
-   - **Construction** — queue new buildings or view the catalog; your builder NPC will autonomously construct them.
-   - **Upgrade** — level up placed buildings to unlock new recipes and bonuses.
-4. Drop resources into the trade zone to feed the village.
-5. Watch the NPC builder autonomously grow your village while you develop your own path elsewhere.
-
----
-
-## Datapack development
-
-Burg is fully datapack-driven. Add new buildings, eras, quests, prices, and builder behavior by dropping JSON files into your datapack. See [`docs/PHILOSOPHY.md`](docs/PHILOSOPHY.md) for design intent and the [issues list](https://github.com/lowern1ght/burg/issues) for upcoming documentation.
-
-Minimal building example:
+Drop JSON under your datapack — no Java required:
 
 ```json
 {
@@ -67,44 +64,76 @@ Minimal building example:
 }
 ```
 
----
+Structures are vanilla `.nbt` (Blockbench works). The five loaders — buildings, eras, quests, builder config, trade prices — are the content contract.
 
-## Philosophy
+</details>
 
-Burg is built on a clear design philosophy — the player is a helper, not a leader.
+## Why Burg
 
-- **Villages are autonomous.** They grow even if you never engage.
-- **Player helps, not commands.** No "issue order" UI. The NPC builder is the actor.
-- **Datapack-driven.** New content = JSON, not code.
-- **Vanilla feel.** The existing hub stays minimal; subtle additions only.
+**Autonomous towns** — production, food, quests, and builders tick whether you are online or not.
 
-The full philosophy, including what is explicitly out of scope, lives in [`docs/PHILOSOPHY.md`](docs/PHILOSOPHY.md).
+**Earned crown** — stranger → guest → trusted → chief → king. Power is graduated, not given at spawn.
 
----
+**Datapack-first** — new buildings, eras, quests, and prices are JSON. Code changes are for systems, not content packs.
 
-## Project status
+**Not MineColonies** — no order queue for NPCs, no player-placed town blocks, no combat overhaul. Raid-scale fights stay vanilla; war-scale is NPC-vs-NPC (design on the roadmap).
 
-Burg is in early development. Current focus:
+## Quick start
 
-1. **Port to NeoForge 1.21.1** (issue [#1](https://github.com/lowern1ght/burg/issues/1)) — the immediate blocker for new releases.
-2. **Code rename** `onceuponatown` → `burg` (issue [#11](https://github.com/lowern1ght/burg/issues/11)) — clean slate after the port lands.
-3. **Player reputation system** (issue [#3](https://github.com/lowern1ght/burg/issues/3)) — the foundation for "village as character".
-4. **Town defense / raids** (issue [#4](https://github.com/lowern1ght/burg/issues/4)) — natural way for the player to help and earn trust.
+**Requires:** Minecraft **1.21.1** · [NeoForge](https://neoforged.net/) matching that version · Java **21** (for building from source)
 
-See [all open issues](https://github.com/lowern1ght/burg/issues) for the full roadmap.
+### Play
 
----
+1. Install NeoForge for 1.21.1.
+2. Drop the latest `.jar` from [Releases](https://github.com/lowern1ght/burg/releases) into `mods/`.
+3. Create or open a world, find a plains village, look for the **Town Anchor**.
+
+> Releases may lag the `master` branch while the NeoForge port and content gates settle. Prefer building from source if you need tip-of-tree.
+
+### Build from source
+
+```bash
+git clone https://github.com/lowern1ght/burg.git
+cd burg
+./gradlew :neoforge:build
+```
+
+Jar output lands under `neoforge/build/libs/`.
+
+## Docs
+
+| Doc | What it answers |
+|---|---|
+| [`docs/01-vision/VISION.md`](docs/01-vision/VISION.md) | What kind of game this is (earned crown) |
+| [`docs/01-vision/PHILOSOPHY.md`](docs/01-vision/PHILOSOPHY.md) | Five pillars and hard bans |
+| [`docs/01-vision/FOCUS.md`](docs/01-vision/FOCUS.md) | How this fork differs from upstream |
+| [`docs/02-roadmap/ROADMAP.md`](docs/02-roadmap/ROADMAP.md) | Acts 0–5 in order |
+| [`docs/04-engineering/ARCHITECTURE.md`](docs/04-engineering/ARCHITECTURE.md) | Subsystem map |
+| [`docs/07-state/STATUS.md`](docs/07-state/STATUS.md) | What is build-green vs verified-in-game |
+| [`FORK_NOTICE.md`](FORK_NOTICE.md) | Lineage, license, credits |
+
+## Compared with
+
+**vs. MineColonies** — Full colony management: you hire, order, and place. Burg refuses that surface. Influence is standing, supply, and earned command later — never a god console over every villager.
+
+**vs. Guardians / town mods that drop a rival structure** — Burg prefers converting or growing from vanilla villages (ruling: the player *finds* the village). Ordinary Minecraft places stay the spine.
+
+**vs. Once Upon a Town (upstream)** — Same lineage, different aim. Upstream grew feature breadth; Burg freezes a vision (earned crown, datapack-first, NPC builder as sole block placer) and ports to NeoForge 1.21.1. See [`FOCUS.md`](docs/01-vision/FOCUS.md).
+
+## Status
+
+Early development on `master` (NeoForge 1.21.1). Open work is tracked in [issues](https://github.com/lowern1ght/burg/issues). Subsystem honesty lives in [`STATUS.md`](docs/07-state/STATUS.md) — a green build is not the same as verified-in-game.
+
+## Contributing
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md). Design PRs should cite which pillar they serve ([`PHILOSOPHY.md`](docs/01-vision/PHILOSOPHY.md)). Content that can be JSON should stay JSON.
+
+```bash
+./gradlew build
+```
 
 ## License
 
-GPL-3.0 — see [`LICENSE`](LICENSE).
+**GPL-3.0** — see [`LICENSE.md`](LICENSE.md).
 
-This is a fork of [TheGoldenWorld/OnceUponATown](https://github.com/DawnOfTimeMC/onceuponatown). Original authorship, license inheritance, and the line of descent are documented in [`FORK_NOTICE.md`](FORK_NOTICE.md).
-
----
-
-## Links
-
-- [GitHub repository](https://github.com/lowern1ght/burg)
-- [Issue tracker](https://github.com/lowern1ght/burg/issues)
-- [Original mod](https://github.com/DawnOfTimeMC/onceuponatown) — TheGoldenWorld/OnceUponATown
+Fork of [DawnOfTimeMC/onceuponatown](https://github.com/DawnOfTimeMC/onceuponatown) by **TheGoldenWorld**. Original authorship, GPL inheritance, and what diverged are in [`FORK_NOTICE.md`](FORK_NOTICE.md). Upstream credits stay; this fork does not republish under the upstream CurseForge project id.
