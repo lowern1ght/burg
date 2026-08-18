@@ -20,6 +20,8 @@ import org.lowern1ght.burg.datapack.EraDef;
 import org.lowern1ght.burg.datapack.EraTransitionDataHandler;
 import org.lowern1ght.burg.datapack.EraTransitionDef;
 import org.lowern1ght.burg.domain.settlement.Acquisition;
+import org.lowern1ght.burg.domain.settlement.ConstructionIntent;
+import org.lowern1ght.burg.domain.settlement.ConstructionQueue;
 import org.lowern1ght.burg.domain.settlement.Standing;
 import org.lowern1ght.burg.domain.settlement.StandingBook;
 import org.lowern1ght.burg.domain.settlement.StockLedger;
@@ -780,6 +782,54 @@ public class Town implements BuildExecutor {
             view.put(ItemId.of(key.toString()), qty);
         });
         return StockLedger.of(view);
+    }
+
+    // -------------------------------------------------------------------------
+    // ADR-0011 — strangler facade for the construction queue.
+    //
+    // The Minecraft-keyed List<QueueEntry> constructionQueue field stays the
+    // source of truth (NBT keys ConstructionQueue and QueueReservedStock are
+    // unchanged). NewBuild/Upgrade, the world pos as BlockPos, and the
+    // queue's mutation surface (tryAddToConstructionQueue, tryQueueUpgrade,
+    // removeFromConstructionQueue, consumeQueueEntry, claimQueueEntry, ...)
+    // all keep operating on the legacy field. This accessor rebuilds a
+    // Minecraft-free ConstructionQueue view on every call so the domain
+    // layer can read the queue without a BlockPos or Item on the classpath.
+    // NBT round-trip and every other field stay byte-for-byte identical.
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the player's construction queue as a Minecraft-free
+     * {@link ConstructionQueue}, rebuilt from {@code constructionQueue}
+     * on every call. Read-only — the queue is a view, not a backing
+     * store. Mutations continue to go through {@link #tryAddToConstructionQueue},
+     * {@link #tryQueueUpgrade}, {@link #removeFromConstructionQueue},
+     * {@link #consumeQueueEntry}, and the per-slot claim helpers.
+     *
+     * <p>Mapping: {@link QueueEntry.NewBuild} maps to
+     * {@link ConstructionIntent.NewBuild} (carries only
+     * {@code entryId} + {@code buildingDefId}); {@link QueueEntry.Upgrade}
+     * maps to {@link ConstructionIntent.Upgrade}, with the world
+     * coordinate stringified as {@code BlockPos.asLong()} →
+     * {@link Long#toString(long)} so the domain carries no {@code BlockPos}
+     * reference. Insertion order is preserved (index 0 = head, last
+     * index = tail).
+     */
+    public ConstructionQueue constructionQueueView() {
+        if (constructionQueue.isEmpty()) return ConstructionQueue.EMPTY;
+        List<ConstructionIntent> intents = new ArrayList<>(constructionQueue.size());
+        for (QueueEntry e : constructionQueue) {
+            if (e instanceof QueueEntry.NewBuild nb) {
+                intents.add(new ConstructionIntent.NewBuild(nb.entryId(), nb.defId()));
+            } else if (e instanceof QueueEntry.Upgrade u) {
+                intents.add(new ConstructionIntent.Upgrade(
+                    u.entryId(),
+                    u.defId(),
+                    Long.toString(u.buildingWorldPos().asLong()),
+                    u.fromLevel()));
+            }
+        }
+        return ConstructionQueue.of(intents);
     }
 
     public List<Quest> getActiveQuests() { return Collections.unmodifiableList(activeQuests); }
