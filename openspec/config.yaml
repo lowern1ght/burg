@@ -1,0 +1,71 @@
+schema: spec-driven
+
+# ─── Project context ──────────────────────────────────────────────────────────
+# This block is shown to AI when authoring specs and changes for this project.
+# Sources of truth are docs/01-vision/VISION.md, docs/01-vision/PHILOSOPHY.md,
+# docs/01-vision/RULINGS.md, docs/02-roadmap/ROADMAP.md, docs/07-state/STATUS.md.
+
+context: |
+  Burg is a NeoForge 1.21.1 Minecraft mod - a fork of TheGoldenWorld/OnceUponATown (FORK_NOTICE.md). It is not MineColonies. It is not a kitchen-sink colony sim. It is a medieval life-sim where villages live on their own and a stranger can - through help, or force, or time - become a king over them.
+
+  The five pillars (PHILOSOPHY.md, four of them constitutional and one reclassified) are the design canon. Every capability spec and every change proposal must cite which pillar it serves:
+
+    P1. Villages are autonomous.                  (eternal)
+    P2. Player helps, not commands.               (acts 0 to 3; lifts in act 4 and beyond)
+    P3. Datapack-first content.                   (eternal - five JSON handlers)
+    P4. NPC builder is the actor.                 (eternal - player never places blocks)
+    P5. Vanilla feel.                             (eternal)
+
+  Constitutional rulings (RULINGS.md) override preference. The three that decide everything:
+
+    R1. The player FINDS the village. He does not start in it. Ordinary vanilla villages may become ours rather than the mod placing a rival structure.
+    R2. The player starts as a stranger and earns his way in. Guest is the key role, not a formality.
+    R3. The player only trades and supplies. He never lays a block for the town and never fights a war with his own sword. (Patched 2026-07-31: raid-scale personal combat allowed; war-scale NPC-vs-NPC.)
+
+  The earned-crown trajectory (VISION.md) is six acts:
+    0 - arrival            | travel          | no standing
+    1 - stranger           | look, speak     | is noticed
+    2 - guest              | trade, supply   | standing
+    3 - trusted            | choose          | supply steers what gets built
+    4 - town, then a wall  | keep choosing   | village may name him chief
+    5 - the far end        | rule, conquer   | realm of many villages
+
+  Hard scope:
+    - common/src/main/resources/data/onceuponatown/structure/plains/** is read-only (the author's calibration corpus).
+    - No PR adds a hard ban as a pillar; if you find yourself needing one, open a Philosophy change issue first.
+    - "Verified in a running game" is the only state that moves a STATUS.md row out of build-green. A green build is not evidence.
+
+  Tools and stack notes:
+    - Java 21, NeoForge 1.21.1, Gradle (buildSrc + gradle.properties).
+    - Five datapack handlers (BuildingDataHandler, EraTransitionDataHandler, QuestDataHandler, BuilderConfigDataHandler, TradePriceDataHandler) are the JSON contract. Bypass them means regression.
+    - Five roles planned (existing plus farmer/miner/forager) extend the existing Npc class with new Role enum values, never new entity classes.
+    - Skins: hand-drawn bodies, hair-as-paint, wealth-as-dye (burg-skins skill).
+    - Structures: vanilla-NBT format, edited via Blockbench. CLI checkers live under tools/ (build_military.py, build_livestock.py, check_*.py, selfgate.py, describe.py).
+
+  Commit and branch format (.stbl monorepo) is enforced; see CLAUDE.md. Branches use feature/<slug> (NOT feat/); worktrees go under .agents/worktree/.
+
+  When in doubt, prefer the calm read: a feature that opens the door to five more features is deferred (PHILOSOPHY.md "Does this feature open the door to five more features"). Burg explicitly does not want to be a kitchen sink.
+
+# ─── Per-artifact rules ───────────────────────────────────────────────────────
+# Advisory rules applied on top of the schema templates.
+
+rules:
+  proposal:
+    - Cite which pillars the change serves (P1..P5) in the Why section.
+    - If the change introduces a hard ban or lifts one, name the document it requires (PHILOSOPHY.md or VISION.md) and propose the amendment first.
+    - Quote STATUS.md evidence for any claim of "the system already exists" - a green build is not evidence (ROADMAP.md closing line).
+    - For act 4 or 5 changes the proposal must reference VISION.md section "earned-crown trajectory" and identify which act number it lands in.
+  spec:
+    - Scenarios use WHEN/THEN and stay testable in a running Minecraft world (not just a unit test; verified-in-game is the bar).
+    - When a requirement restates a pillar it does so with the pillar's own language. Paraphrasing is acceptable but include a Source P# footer so traceability to PHILOSOPHY.md survives.
+    - Specs cover capability, not implementation. The five JSON handlers are the contract for content; specs describe behavior, not class diagrams.
+  tasks:
+    - Break tasks into chunks a focused contributor can finish in a single session (no multi-day tasks; split them).
+    - Every task that touches JSON data includes a "described.py self-gate" line for the touched NBTs.
+    - For tasks that change act-number state, include a "STATUS.md updated" line - moving a row out of build-green requires evidence, not assertion.
+
+# ─── Operations guidance ──────────────────────────────────────────────────────
+# Advisory guidance for apply and archive operations lives in code comments
+# and in CLAUDE.md / docs/07-state/OPENSPEC-INIT.md. The schema's
+# `operations` block (which expects guidance as `string[]`) is intentionally
+# not used here — the in-repo docs are the canonical record.

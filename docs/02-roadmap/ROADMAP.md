@@ -35,12 +35,12 @@ player*, and they call him **the stranger**:
 That is ruling 2, in the datapack, before this roadmap existed. The voice of the mod is the
 village talking about you behind your back. Keep it.
 
-### The tension ruling 3 creates, unresolved
+### The tension ruling 3 creates — resolved 2026-07-31 by grilling
 
 Today the player IS the town planner: he right-clicks the anchor and queues buildings. Ruling 3
 says he only trades and supplies, and a planner is neither.
 
-Two readings, and the choice changes acts 2–4:
+Two readings were on the table:
 
 - **Narrow.** Ruling 3 is about his hands — no building, no fighting — and the hub stays his. He
   decides, the town executes. Simplest, and it is what exists.
@@ -48,8 +48,10 @@ Two readings, and the choice changes acts 2–4:
   supply*: bring stone and it builds in stone, bring timber and it builds in timber, starve it of
   iron and it never earns a smithy. The hub becomes a window, not a command console.
 
-The strict reading is a far better fit for rulings 2 and 3 together and for the long game where
-you must *become* chief — but it means rebuilding the hub's purpose. **Not decided.**
+**Decided — strict reading wins (grilling 2026-07-31).** The hub becomes a window; supply steers
+what gets built. The transition lands in act 4 (see below). This also means the hub is no longer
+the sole entry point — see [`VISION.md`](../01-vision/VISION.md) §"the hub is a window" for the
+rathaus / conversation / scrolls channel split.
 
 ---
 
@@ -109,6 +111,7 @@ built. There is no per-player standing anywhere — `Town` holds only `chatSubsc
   gives vanilla's real trade screen, offers by trade, no imitation. This is also where **gold
   replaces emeralds**: `MerchantOffer` takes an arbitrary `ItemCost`, so nothing fights it. Two
   denominations, nugget and ingot, because a single unit makes everything cheap cost the same.
+*(Confirmed 2026-07-31 by grilling — gold in two denominations is the decision, not an open question.)*
 - Supplying materials is how standing rises. `stone_supplies` and `wood_supplies` already are
   exactly this task; they need to be a ladder rather than two entries.
 
@@ -118,7 +121,7 @@ built. There is no per-player standing anywhere — `Town` holds only `chatSubsc
 **State: built, and reachable too early.** The hub, the construction queue, upgrades, era
 advancement and the era branch are all working — they are simply available from the first click.
 
-- The hub opens. What it opens *into* depends on the narrow-versus-strict reading above.
+- The hub opens. *(Grilling 2026-07-31: the strict reading won — the hub becomes a window, not a command console. The transition completes in act 4; through act 3 it is still the stranger's window onto the town.)*
 - **The era branch is the mod's strongest asset and is currently invisible.** Sixteen era defs in
   four tiers: `agricultural / industrial / pastoral`, then `cooking / forge / ranching / rural /
   urban`. The player never learns he is choosing a path. Surfacing that choice — as a decision the
@@ -136,17 +139,50 @@ to "it builds a wall".
   where the ground allows — and eventually **the wall ring should BE the core boundary** instead
   of a flat 32-block radius, since a wall already knows where inside is.
 - Walls, gates and towers are built and style-gated but have never been chained to an era.
+- *(Grilling 2026-07-31)* **The hub transitions to a window here**, under the strict reading of ruling 3. Up through act 3 the hub is a command console (the player queues buildings); in act 4 it becomes a view onto what the town intends to build, and the player's lever is supply, not orders. See [`VISION.md`](../01-vision/VISION.md) §"the hub is a window".
 
 ## Act 5 — The far end
 
 *The player's verb: rule, and negotiate.*
 **State: nothing.**
 
+> **Expanded by [`VISION.md`](../01-vision/VISION.md) (2026-07-31).** This act is where Burg
+> stops being a stranger-sim and becomes a lord-sim, reached *through* the
+> stranger arc rather than instead of it. The vision doc adds three things this
+> roadmap did not have: the **three acquisition paths** (elevated / founded /
+> captured), the **autonomy–control slider** that decides how obedient a held
+> village is, and the **`Realm`/`Kingdom` layer above `Town`** that a king over
+> many villages requires.
+
+> **Re-expanded 2026-07-31 by grilling.** Three things the grilling settled for
+> this act:
+>
+> 1. **The realm is a metropolis plus colonies, not a bag of villages.** The
+>    player's first settlement grows to a city (the metropolis). When the city
+>    needs a resource it lacks, it founds a small resource colony 1000+ blocks
+>    out by expedition; the colony depends on and trades with the metropolis.
+>    The loop is: **city needs resource → expedition → colony → trade route.**
+>    The three acquisition paths (elevated/founded/captured) apply to *foreign*
+>    AI villages, not the player's own colonies — those are always founded by
+>    expedition. See [`VISION.md`](../01-vision/VISION.md) §"the realm grows
+>    from inside".
+> 2. **War-scale combat is confirmed feasible.** The scale problem
+>    (Mount & Blade / Manor Lords vs Minecraft's 1v1) is no longer "not
+>    designed" — the owner graded it **C**: 60+ NPC battles resolved by a
+>    **custom battle state-machine** (not vanilla mob AI), and the existing
+>    **Villager Recruits** mod is the feasibility proof that Minecraft can host
+>    NPC-vs-NPC combat at this scale.
+> 3. **Ruling 3 is patched, not repealed.** Raid-scale combat (attacking a
+>    village garrisoned by worker-militia) lets the player fight personally,
+>    vanilla, any act. War-scale (realm armies, sieges) stays NPC-vs-NPC — the
+>    player commands, supplies, watches. See
+>    [`VISION.md`](../01-vision/VISION.md) §"ruling 3 patched".
+
 - A chief: a named citizen who speaks for the town, so diplomacy has someone to be between.
-- An army from the barracks; the training yard already exists.
+- An army from the barracks; the training yard already exists. *(Grilling 2026-07-31: war-scale confirmed feasible — 60+ NPC battles, custom battle state-machine, Villager Recruits as proof.)*
 - Child towns that specialise — one farms, one logs. **Zoning is the mechanism this will be
   expressed in**, which is why it came first: a child town is a second anchor with a small core
-  and an outer zone of one industry.
+  and an outer zone of one industry. *(Grilling 2026-07-31: reframed — these are colonies founded by expedition from the metropolis, not free-floating child towns. The colony-founding loop is: city needs a resource → expedition → colony on the deposit → trade route back.)*
 - Diplomacy between chiefs.
 
 ---
@@ -159,8 +195,8 @@ to "it builds a wall".
 | hand-drawn bodies at reference density | building | 1 |
 | a schedule — sleep at dusk, work by day | not started | 1 |
 | idlers: wander, talk, swim, hunt, and die of it | not started | 1 |
-| births needing a man, a woman and a spare bed | not started | 2 |
-| gold in two denominations | not started | 2 |
+| births, crowding, emigration | **done** (e8d428b) | 2 |
+| gold in two denominations | **confirmed** (grilling 2026-07-31) | 2 |
 | the pub | not started | 2 |
 | a per-worker skill raising output | **done** | 3 |
 | settlers arriving rather than spawning | **done** | 2 |

@@ -1,5 +1,14 @@
 # Philosophy
 
+> **Superseded in part by [`VISION.md`](VISION.md) (2026-07-31).** The vision
+> doc is now the top-level authority on what kind of game Burg is. Here,
+> **pillar 2** ("player helps, not commands") is reclassified from an eternal
+> rule to *the starting role the player graduates out of by act*, and the
+> **hard bans** below are reclassified as the rules of the stranger/guest phase,
+> lifted in the late game through earned progression. Everything else in this
+> document — pillars 1, 3, 4, 5 and the discipline questions — stands. See
+> [`VISION.md`](VISION.md) §"What becomes a starting role" for the full mapping.
+
 Burg is **not** MineColonies. The player is not the colony leader; villages are not the player's project. They're semi-autonomous places the player can *help*. This document is the design canon — every feature PR must cite which pillar it serves, and what is explicitly out of scope is non-negotiable until this document changes.
 
 ---
@@ -127,7 +136,7 @@ If you want to propose a change to this document, open an issue titled "Philosop
 
 ## Related
 
-- [`README.md`](../README.md) — public-facing summary
-- [`CONTRIBUTING.md`](../CONTRIBUTING.md) — how to file issues and PRs
-- [`docs/ARCHITECTURE.md`](ARCHITECTURE.md) — system map
+- [`README.md`](../../README.md) — public-facing summary
+- [`CONTRIBUTING.md`](../../CONTRIBUTING.md) — how to file issues and PRs
+- [`docs/ARCHITECTURE.md`](../04-engineering/ARCHITECTURE.md) — system map
 - Issue [#2](https://github.com/lowern1ght/burg/issues/2) — design philosophy tracking

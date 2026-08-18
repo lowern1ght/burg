@@ -314,7 +314,7 @@ EntityRegistry.NPC                         — EntityType<Npc>
 MenuRegistry.TOWN_HUB                      — MenuType<TownHubMenu>
 ```
 
-The single block + single entity is intentional — see [`docs/PHILOSOPHY.md` pillar #4](../PHILOSOPHY.md#4-npc-builder-is-the-actor).
+The single block + single entity is intentional — see [`docs/PHILOSOPHY.md` pillar #4](../01-vision/PHILOSOPHY.md#4-npc-builder-is-the-actor).
 
 ---
 
@@ -341,7 +341,7 @@ If you want to make a change, identify which subsystem it touches, then look at 
 
 ## Related
 
-- [`docs/PHILOSOPHY.md`](PHILOSOPHY.md) — design pillars and out-of-scope rules
-- [`CONTRIBUTING.md`](../CONTRIBUTING.md) — PR process
+- [`docs/PHILOSOPHY.md`](../01-vision/PHILOSOPHY.md) — design pillars and out-of-scope rules
+- [`CONTRIBUTING.md`](../../CONTRIBUTING.md) — PR process
 - Issue [#1](https://github.com/lowern1ght/burg/issues/1) — NeoForge 1.21.1 port (will refactor some file paths)
 - Issue [#11](https://github.com/lowern1ght/burg/issues/11) — code rename `onceuponatown` → `burg`
