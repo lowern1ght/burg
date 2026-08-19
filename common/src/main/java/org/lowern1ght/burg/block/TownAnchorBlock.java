@@ -12,6 +12,7 @@ import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.BlockHitResult;
 import org.lowern1ght.burg.blockentity.TownAnchorBlockEntity;
@@ -105,6 +106,57 @@ public class TownAnchorBlock extends BaseEntityBlock {
         }
         if (!player.isCreative()) return state;
         return super.playerWillDestroy(level, pos, state, player);
+    }
+
+    /**
+     * Binding entry point for ADR-0020 (vanilla-village conversion).
+     *
+     * <p>Called by the engine when the anchor block transitions into a placed state. Six
+     * gates run in this order before any binding side effects:
+     *
+     * <ol>
+     *   <li>{@code super.onPlace} first — covers the base class invariants.</li>
+     *   <li>Piston move: skip. A piston placement is not a player intent and must not
+     *       silently bind a town.</li>
+     *   <li>Server side: skip. Clients fire {@code onPlace} too — that path carries no
+     *       authoritative state.</li>
+     *   <li>Existing town: skip. The anchor was swapped in over a registered Town
+     *       (creative / {@code /setblock} / a re-place); its record must stay. The
+     *       {@link #onRemove} handler will restore the block if anything removed the
+     *       anchor while a town was registered, but a deliberate re-placement must
+     *       not re-bind.</li>
+     *   <li>Delegate to {@link Town#bindToVanillaVillage}: pure-JVM decision (the
+     *       {@code VanillaBindingDecider}); villagers enlisted; every footprint
+     *       reserved as a BlockedZone; bridgehead piece placed if shipped.</li>
+     *   <li>Skip-without-binding: fall through to today's campfire-with-no-town
+     *       behaviour ({@link #useWithoutItem} already responds with the
+     *       {@code burg.message.town_anchor.no_town} string).</li>
+     * </ol>
+     *
+     * <p>On bind, broadcast a single confirmation message to players within 64 blocks
+     * of the anchor — the placement is not silent because a town that just came into
+     * being without saying so reads as a bug to the player standing there.
+     */
+    @Override
+    public void onPlace(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
+        super.onPlace(state, level, pos, newState, movedByPiston);
+        if (movedByPiston) return;
+        if (!(level instanceof ServerLevel serverLevel)) return;
+        if (LevelTowns.get(serverLevel).getTownAt(pos).isPresent()) return;
+
+        Town town = new Town();
+        if (!town.bindToVanillaVillage(pos, serverLevel)) {
+            return;
+        }
+        LevelTowns.get(serverLevel).registerTown(pos, town);
+        LevelTowns.get(serverLevel).markDirty();
+
+        for (ServerPlayer player : serverLevel.players()) {
+            if (player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) <= 64.0 * 64.0) {
+                player.sendSystemMessage(net.minecraft.network.chat.Component.translatable(
+                    "burg.message.town_anchor.bound", pos.toShortString()));
+            }
+        }
     }
 
     /**

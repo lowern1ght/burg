@@ -75,6 +75,9 @@ public sealed interface VanillaBindingDecision
      */
     record Bind(Set<VanillaHouseFootprint> footprints) implements VanillaBindingDecision {
 
+        /** Stable reason code for the bind path; {@link Skip} varies by cause, Bind does not. */
+        public static final String REASON_BOUND = "vanilla_bound";
+
         public Bind {
             Objects.requireNonNull(footprints, "footprints");
             if (footprints.isEmpty()) {
@@ -82,6 +85,11 @@ public sealed interface VanillaBindingDecision
                     "Bind decision must carry at least one footprint");
             }
             footprints = Set.copyOf(footprints);   // immutable snapshot
+        }
+
+        @Override
+        public String reasonCode() {
+            return REASON_BOUND;
         }
     }
 }
