@@ -2,12 +2,26 @@
 
 ## 1. Model + state
 
-- [ ] 1.1 Add `HubMode { CONSTRUCTION, SUPPLY }` to `town/Town.java` and a
+- [x] 1.1 Add `HubMode { CONSTRUCTION, SUPPLY }` to `town/Town.java` and a
   `hubMode` accessor derived from standing + structural predicate.
 - [ ] 1.2 Add the standing-threshold and structural-flag defaults to
   `BuilderConfigDataHandler` (read at town registration; not per-tick).
 - [ ] 1.3 Add a unit test for the transition predicate (no GUI required
   yet — pure logic over a fixture `Town`).
+  - **Gap (ADR-0022 wiring PR, 2026-08-19):** the `:common` test
+    target does not reach `Town` — `Town` imports `net.minecraft.*`
+    on its god-object fields (the multiloader-common contract
+    deliberately keeps the test classpath Minecraft-free; only
+    `org.lowern1ght.burg.people` is reachable). The wiring PR
+    attempted to land `TownHubModeTest` in
+    `common/src/test/.../town/` and failed with
+    `NoClassDefFoundError: net/minecraft/nbt/Tag` on `new Town()`.
+    The bare JVM test for `hubMode()` is **deferred** until one of:
+    (a) a `:neoforge` test target exists, or (b) `Town` is
+    refactored to be Minecraft-free (unlikely — god-object).
+    Until then, the only coverage of the predicate is the
+    `tools/describe.py town_hub` walk-through and the
+    `HubModeTest` enum-level contract.
 
 ## 2. GUI
 
@@ -16,16 +30,28 @@
   read-only intent list + a "supply" input field (per-item accept).
 - [ ] 2.2 Update the hub title and tooltip text per act (i18n keys
   `town.hub.title.construction` / `town.hub.title.supply`).
-- [ ] 2.3 Add the `_supply_` packet to the network layer (17 packets
+- [x] 2.3 Add the `_supply_` packet to the network layer (17 packets
   today; this lands packet #18). Mirror `CustomPacketPayload` style.
+  - Landed in the ADR-0022 wiring PR (`feature/screen-wire`,
+    2026-08-19): `S2COpenTownHubV2Packet` carries the anchor pos
+    only; the wire-format intent list is the act-4 follow-up PR.
 
 ## 3. Anchor block
 
-- [ ] 3.1 Branch `TownAnchorBlock.use()` on `Town#hubMode`. Add a
+- [x] 3.1 Branch `TownAnchorBlock.use()` on `Town#hubMode`. Add a
   capability-test scenario in `tests/player-role/` that asserts:
   `open(anchor, stranger)` ⇒ "you are not of this village",
   `open(anchor, guest)` ⇒ `CONSTRUCTION`,
   `open(anchor, chief)` ⇒ `SUPPLY` (if structural predicate met).
+  - Landed in the ADR-0022 wiring PR (`feature/screen-wire`,
+    2026-08-19): the `useWithoutItem` branch dispatches on
+    `town.hubMode()`. CONSTRUCTION-mode keeps the legacy
+    `sendTownHubPacket + openMenu(be)` path untouched. SUPPLY-mode
+    sends `S2COpenTownHubV2Packet` and the client opens
+    `TownHubScreenV2.withEmptyIntent()` via a game-bus
+    `ClientTickEvent.Pre` poll. The V2 screen renders the
+    `NO_INTENT_KEY` placeholder until the act-4 follow-up PR
+    ships the wire-format intent list.
 
 ## 4. Datapack keys
 

@@ -4,6 +4,7 @@ import me.shedaniel.clothconfig2.api.ConfigBuilder;
 import me.shedaniel.clothconfig2.api.ConfigCategory;
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
 import me.shedaniel.clothconfig2.gui.entries.DoubleListEntry;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
@@ -21,8 +22,12 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
+import net.neoforged.neoforge.common.NeoForge;
+import org.lowern1ght.burg.client.TownHubClientState;
+import org.lowern1ght.burg.client.gui.TownHubScreenV2;
 import org.lowern1ght.burg.client.gui.tooltip.BuildingProductionTooltip;
 import org.lowern1ght.burg.client.gui.tooltip.ClientBuildingProductionTooltip;
 import org.lowern1ght.burg.client.gui.tooltip.ClientItemAndTitleTooltip;
@@ -56,11 +61,16 @@ public class OuatForgeClient {
     // Registered at class-load time so the Mods → Burg → Config button works
     // from the very first launch, no need for the player to enable anything.
     // The screen itself is rebuilt every time it is opened (per Cloth's docs).
+    //
+    // ADR-0022 — register the SUPPLY-mode open-gateway tick listener on the
+    // GAME bus (the mod-bus @EventBusSubscriber(Bus.MOD) on this class only
+    // handles setup events; ClientTickEvent lives on the NeoForge.EVENT_BUS).
     static {
         ModLoadingContext.get().registerExtensionPoint(
             IConfigScreenFactory.class,
             () -> (container, parent) -> buildConfigScreen(parent)
         );
+        NeoForge.EVENT_BUS.addListener(OuatForgeClient::onClientTick);
     }
 
     /**
@@ -94,6 +104,43 @@ public class OuatForgeClient {
         general.addEntry(entry);
 
         return builder.build();
+    }
+
+    /**
+     * ADR-0022 — opens the act-4 SUPPLY-mode {@link TownHubScreenV2}
+     * directly via {@link Minecraft#setScreen}. The V2 screen is not a
+     * menu screen (no {@code AbstractContainerScreen}), so it cannot
+     * ride the legacy {@code openMenu(be)} path; the server sends a
+     * small {@code S2COpenTownHubV2Packet} gateway, the client-side
+     * handler stashes the anchor in {@link TownHubClientState#openTownHubV2},
+     * and the next tick {@link #pollOpenTownHubV2()} reads it.
+     *
+     * <p>Must be called on the client thread; the gateway handler runs
+     * inside {@code enqueueWork} which is fine, and {@link #pollOpenTownHubV2()}
+     * is wired to the client tick above so the actual
+     * {@link Minecraft#setScreen} call always lands on the client tick.
+     */
+    private static void openTownHubV2() {
+        Minecraft.getInstance().setScreen(TownHubScreenV2.withEmptyIntent());
+    }
+
+    /**
+     * Polls {@link TownHubClientState#openTownHubV2} once per client tick.
+     * Reads the one-shot flag, opens the V2 screen, and nulls it back so
+     * a stale value never fires twice. The poll is a poll rather than a
+     * direct handler call because the {@code S2COpenTownHubV2Packet.handle}
+     * runs on the network thread, and {@link Minecraft#setScreen} must
+     * execute on the client thread.
+     *
+     * <p>Registered on the GAME bus via {@link NeoForge#EVENT_BUS#addListener}
+     * in the static block — the class-level {@code @EventBusSubscriber(Bus.MOD)}
+     * only handles setup events. Same pattern as
+     * {@code OuatForge#onServerTick}.
+     */
+    public static void onClientTick(ClientTickEvent.Pre event) {
+        if (TownHubClientState.openTownHubV2 == null) return;
+        TownHubClientState.openTownHubV2 = null;
+        openTownHubV2();
     }
 
     // EntityRenderersEvent fires during the initial resource reload, before FMLCommonSetupEvent sets
