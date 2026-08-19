@@ -13,15 +13,15 @@ level only; no test enforced it.
 `HubMode` (§"hub has two modes" in `construction-mode-supply-mode`).
 Concretely:
 
-- `Town#hubMode` is the source of truth.
-- The transition from `CONSTRUCTION` to `SUPPLY` happens at the predicate's
-  *transition* moment — the first tick where both standing and structural
-  conditions are met.
-- The transition is **permanent**: a town that has crossed into SUPPLY mode
-  does not revert to CONSTRUCTION mode for any standing decay in acts 4–5.
-  (Standing can fall; the town can de-list the player; the mode does not
-  flip back. This matches VISION §"earned-crown trajectory": once you cross,
-  you have crossed.)
+- `Town#hubMode` MUST be the source of truth for the transition.
+- The transition from `CONSTRUCTION` to `SUPPLY` MUST happen at the
+  predicate's *transition* moment — the first tick where both standing and
+  structural conditions are met.
+- The transition MUST be **permanent**: a town that has crossed into SUPPLY
+  mode MUST NOT revert to CONSTRUCTION mode for any standing decay in
+  acts 4–5. (Standing can fall; the town can de-list the player; the mode
+  MUST NOT flip back. This matches VISION §"earned-crown trajectory": once
+  you cross, you have crossed.)
 
 #### Scenario: act-4 transition is permanent
 - **WHEN** a town has crossed into SUPPLY mode and the player's standing

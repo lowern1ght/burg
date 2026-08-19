@@ -16,6 +16,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.BlockHitResult;
 import org.lowern1ght.burg.blockentity.TownAnchorBlockEntity;
+import org.lowern1ght.burg.domain.settlement.HubMode;
 import org.lowern1ght.burg.network.NetworkHelper;
 import org.lowern1ght.burg.registry.BlockEntityRegistry;
 import org.lowern1ght.burg.town.LevelTowns;
@@ -73,6 +74,16 @@ public class TownAnchorBlock extends BaseEntityBlock {
                 }
                 net.minecraft.nbt.CompoundTag hubData = town.getHubData(pos);
                 hubData.putBoolean("ChatSubscribed", town.isChatSubscriber(player.getUUID()));
+                // ADR-0019 — log the hub mode at right-click. The widget
+                // set is unchanged in this carve; SUPPLY-mode UI lands in
+                // the act-4 follow-up PR. The log is the operator-visible
+                // signal that the derived predicate flipped, and the unit
+                // round-trip (Town#hubMode) covers the engine-edge check.
+                HubMode mode = town.hubMode();
+                if (mode == HubMode.SUPPLY) {
+                    LOGGER.info("[OUAT-HUB] Town {} at {} opens in SUPPLY mode (act 4 transition)",
+                        town.getName(), pos.toShortString());
+                }
                 NetworkHelper.sendTownHubPacket.accept((ServerPlayer) player, hubData);
                 player.openMenu(be);
             }
