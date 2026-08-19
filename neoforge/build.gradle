@@ -67,6 +67,14 @@ sourceSets.main.resources.srcDir 'src/generated/resources'
 dependencies {
     compileOnly project(":common")
     implementation 'org.jetbrains:annotations:26.0.2'
+
+    // Cloth Config API — `runtimeOnly` so the library is bundled with the mod and the
+    // end user does not have to install it separately. Also `compileOnly` so the
+    // `neoforge` module can resolve the `Config` interface that the common module's
+    // `BurgConfig` exposes through its public surface (ADR-0021).
+    // The JAR is vendored at libs/ — see buildSrc/.../multiloader-common.gradle.
+    runtimeOnly files(rootProject.ext.clothConfigJar)
+    compileOnly files(rootProject.ext.clothConfigJar)
 }
 
 // Make the generated refmap part of the jar output.
