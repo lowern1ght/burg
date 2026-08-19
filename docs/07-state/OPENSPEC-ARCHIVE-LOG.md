@@ -24,6 +24,10 @@ When you close a change without archiving (superseded by another, or the work la
 ## Archived (skip_specs, archived via PRs #29 / #30 already on master)
 settlement-production-domain and settlement-sot-promote were archived before this PR by their feature branches; this log notes them for completeness.
 
+## Re-archive (post-#29 / post-#30)
+
+`settlement-stock-promote` and `settlement-standing-acquisition` were already archived via their respective feature branches (PRs #29 and #30) and are listed in the table below at lines 34 and 36. This entry is a log acknowledgement only — no commit, no PR; just confirming the re-archive.
+
 ## Archived
 
 | name | archived | spec hand-merge | main spec updated |
