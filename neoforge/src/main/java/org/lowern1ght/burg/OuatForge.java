@@ -49,6 +49,7 @@ import org.lowern1ght.burg.network.C2SDepositPacket;
 import org.lowern1ght.burg.network.C2SQueueBuildingPacket;
 import org.lowern1ght.burg.network.C2SRemoveQueuedBuildingPacket;
 import org.lowern1ght.burg.network.C2SRequestStockPacket;
+import org.lowern1ght.burg.network.C2SSupplyStockPacket;
 import org.lowern1ght.burg.network.C2SToggleChatBroadcastPacket;
 import org.lowern1ght.burg.network.C2SUpgradeBuildingPacket;
 import org.lowern1ght.burg.network.NetworkHelper;
@@ -284,6 +285,11 @@ public class OuatForge {
         registrar.playToServer(C2SRequestStockPacket.TYPE,        C2SRequestStockPacket.STREAM_CODEC,        C2SRequestStockPacket::handle);
         registrar.playToServer(C2SToggleChatBroadcastPacket.TYPE, C2SToggleChatBroadcastPacket.STREAM_CODEC, C2SToggleChatBroadcastPacket::handle);
         registrar.playToServer(C2SBuyPacket.TYPE,                 C2SBuyPacket.STREAM_CODEC,                 C2SBuyPacket::handle);
+        // ADR-0022 follow-up — SUPPLY-mode TownHubScreenV2 wires a single
+        // (anchor, itemId, quantity) pair back to the server, the server
+        // merges into the town's reserve stock and pushes a stock snapshot
+        // to the watching players.
+        registrar.playToServer(C2SSupplyStockPacket.TYPE,         C2SSupplyStockPacket.STREAM_CODEC,         C2SSupplyStockPacket::handle);
     }
 
     @SuppressWarnings("unchecked")
