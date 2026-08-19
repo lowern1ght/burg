@@ -67,6 +67,20 @@ public class NetworkHelper {
     public static Consumer<BlockPos>            sendRequestStockPacket         = pos              -> {};
     // Carries requested items for BUY mode: List<(itemId, count)> encoded via C2SBuyPacket
     public static BiConsumer<BlockPos, List<C2SBuyPacket.Entry>> sendBuyPacket = (pos, items) -> {};
+    // SUPPLY-mode TownHubScreenV2 — supply one itemId/quantity to the town's reserve.
+    // Plumbed through a three-arg helper because C2SSupplyStockPacket is the one
+    // C2S payload that needs (anchor, itemId, quantity) — three independent fields,
+    // not a list-of-pairs and not (anchor, scalar).
+    public static SupplyStockSender sendSupplyStockPacket = (pos, itemId, quantity) -> {};
+
+    /**
+     * Wire-format adapter for {@link #sendSupplyStockPacket}. Carries
+     * (anchorPos, itemId, quantity) without forcing the call site to
+     * allocate the {@link C2SSupplyStockPacket} itself.
+     */
+    public interface SupplyStockSender {
+        void send(BlockPos anchorPos, String itemId, int quantity);
+    }
 
     // Sends a targeted stock update to every watcher.
     public static void pushStockToWatchers(ServerLevel level, Town town, BlockPos anchorPos) {

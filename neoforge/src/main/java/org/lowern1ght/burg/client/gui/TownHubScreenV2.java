@@ -2,12 +2,14 @@ package org.lowern1ght.burg.client.gui;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import org.lowern1ght.burg.client.ui.McDrawContext;
 import org.lowern1ght.burg.client.ui.McInputAdapter;
 import org.lowern1ght.burg.common.ui.Root;
 import org.lowern1ght.burg.common.ui.UiEvent;
 import org.lowern1ght.burg.common.ui.Widget;
+import org.lowern1ght.burg.network.NetworkHelper;
 import org.lowern1ght.burg.settlement.ui.SupplyIntentList;
 import org.lowern1ght.burg.settlement.ui.SupplyIntentListWidget;
 
@@ -42,20 +44,54 @@ public class TownHubScreenV2 extends Screen {
 
     private final Root root;
     private final SupplyIntentListWidget intentList;
+    /**
+     * Anchor position of the town the screen was opened against. Carried
+     * by the screen so the click handler can route a {@code C2SSupplyStockPacket}
+     * back to the same town. {@code null} for legacy callers that still
+     * construct the screen with {@link #withEmptyIntent()}.
+     */
+    private final BlockPos anchorPos;
 
-    public TownHubScreenV2(SupplyIntentList data) {
+    public TownHubScreenV2(SupplyIntentList data, BlockPos anchorPos) {
         super(Component.translatable("burg.hub.supply.title"));
         this.root = new Root();
         this.intentList = data.toWidget();
         this.root.add(intentList);
+        this.anchorPos = anchorPos;
     }
 
-    /** Builds a screen with an empty placeholder list. */
+    /**
+     * Legacy constructor — kept so existing tests / mock harnesses that
+     * construct the screen with no anchor still compile. The click handler
+     * is a no-op when the anchor is unset.
+     */
+    public TownHubScreenV2(SupplyIntentList data) {
+        this(data, null);
+    }
+
+    /**
+     * Builds a screen with an empty placeholder list, no anchor.
+     * The act-4 follow-up PR will replace this with a snapshot that
+     * carries the anchor.
+     */
     public static TownHubScreenV2 withEmptyIntent() {
         return new TownHubScreenV2(new SupplyIntentList(
             List.of(),
             SupplyIntentList.computeGaps(List.of(), java.util.Map.of())
         ));
+    }
+
+    /**
+     * Builds a screen anchored to {@code anchorPos} with an empty
+     * placeholder list. The {@code OuatForgeClient#onClientTick} poll
+     * uses this factory so the click handler can route a
+     * {@code C2SSupplyStockPacket} back to the right town.
+     */
+    public static TownHubScreenV2 withAnchor(BlockPos anchorPos) {
+        return new TownHubScreenV2(new SupplyIntentList(
+            List.of(),
+            SupplyIntentList.computeGaps(List.of(), java.util.Map.of())
+        ), anchorPos);
     }
 
     /** Returns the engine root — test harness + future layout hooks. */
@@ -98,7 +134,30 @@ public class TownHubScreenV2 extends Screen {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         root.dispatch(McInputAdapter.mouseDown((int) mouseX, (int) mouseY, button));
+        dispatchSupplyClick();
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    /**
+     * Fires one {@code C2SSupplyStockPacket} when there is a real gap
+     * (missing {@code >} 0) to supply and the screen was opened against
+     * a known anchor. The act-4 input field is not implemented yet, so
+     * any click on the screen routes the first positive gap back to the
+     * server as a placeholder — the server applies it to the town's
+     * reserve stock and pushes a stock snapshot back.
+     */
+    private void dispatchSupplyClick() {
+        if (anchorPos == null) return;
+        for (SupplyIntentList.StockGapItem gap : intentList.data().gaps()) {
+            if (gap.missing() > 0) {
+                NetworkHelper.sendSupplyStockPacket.send(
+                    anchorPos,
+                    gap.item().value(),
+                    gap.missing()
+                );
+                return;
+            }
+        }
     }
 
     @Override
