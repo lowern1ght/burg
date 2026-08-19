@@ -18,6 +18,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModLoadingContext;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.attachment.AttachmentType;
 import net.neoforged.neoforge.common.NeoForge;
@@ -39,6 +41,7 @@ import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import org.lowern1ght.burg.block.TownAnchorBlock;
+import org.lowern1ght.burg.infrastructure.config.BurgConfig;
 import org.lowern1ght.burg.network.C2SAdvanceEraPacket;
 import org.lowern1ght.burg.network.C2SBuyPacket;
 import org.lowern1ght.burg.network.C2SContributeQuestPacket;
@@ -158,6 +161,13 @@ public class OuatForge {
         modBus.addListener(this::onEntityAttributes);
         modBus.addListener(this::onRegisterPayloadHandlers);
 
+        // ADR-0021 — register the user-facing config spec. Cloth Config ships
+        // with the mod (declared `runtimeOnly` in build.gradle) and provides
+        // the screen; the spec itself is NeoForge's `ModConfigSpec` so the
+        // data is also reachable from the bare-JVM population simulation.
+        ModLoadingContext.get().getActiveContainer().registerConfig(
+            ModConfig.Type.COMMON, BurgConfig.SPEC, "burg-common.toml");
+
         NeoForge.EVENT_BUS.addListener(this::onRegisterCommands);
         NeoForge.EVENT_BUS.addListener(this::onServerStarting);
         NeoForge.EVENT_BUS.addListener(this::onServerTick);
@@ -165,6 +175,7 @@ public class OuatForge {
         NeoForge.EVENT_BUS.addListener(this::onStartTracking);
         NeoForge.EVENT_BUS.addListener(this::onChunkLoad);
         NeoForge.EVENT_BUS.addListener(this::onEntityJoin);
+        NeoForge.EVENT_BUS.addListener(this::onModConfigReloading);
     }
 
     // Populate the common static fields after all DeferredRegister suppliers have run
@@ -195,6 +206,25 @@ public class OuatForge {
                 new S2CVillagerIdentityPacket(villager.getUUID(), member));
         NetworkHelper.sendVillagerIdentity = (to, villager, member) ->
             PacketDistributor.sendToPlayer(to, new S2CVillagerIdentityPacket(villager, member));
+
+        // ADR-0021 — push the loaded config value into the bare-JVM
+        // population simulation's `GrowthMultiplier` so the first tick
+        // already sees the user's chosen value (or the default 1.0 on a
+        // fresh install). The ModConfigEvent.Reloading handler below
+        // keeps it in sync after every edit.
+        BurgConfig.refreshMultiplier();
+    }
+
+    /**
+     * Fires on {@code NeoForge.EVENT_BUS} (not the mod bus) every time the
+     * common config reloads — either from disk at startup or after the user
+     * saves in the Cloth screen. Pushes the new value into the bare-JVM
+     * {@link org.lowern1ght.burg.people.GrowthMultiplier} so the next
+     * {@code DaySim.tickDay} sees it.
+     */
+    private void onModConfigReloading(ModConfigEvent.Reloading event) {
+        if (event.getConfig().getSpec() != BurgConfig.SPEC) return;
+        BurgConfig.refreshMultiplier();
     }
 
     /**

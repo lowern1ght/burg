@@ -1,20 +1,28 @@
 package org.lowern1ght.burg;
 
+import me.shedaniel.clothconfig2.api.ConfigBuilder;
+import me.shedaniel.clothconfig2.api.ConfigCategory;
+import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
+import me.shedaniel.clothconfig2.gui.entries.DoubleListEntry;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModLoadingContext;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
+import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import org.lowern1ght.burg.client.gui.tooltip.BuildingProductionTooltip;
 import org.lowern1ght.burg.client.gui.tooltip.ClientBuildingProductionTooltip;
 import org.lowern1ght.burg.client.gui.tooltip.ClientItemAndTitleTooltip;
@@ -26,6 +34,7 @@ import org.lowern1ght.burg.client.renderer.TownVillagerRenderer;
 import org.lowern1ght.burg.entity.Citizen;
 import org.lowern1ght.burg.client.screen.TownHubScreen;
 import org.lowern1ght.burg.entity.Npc;
+import org.lowern1ght.burg.infrastructure.config.BurgConfig;
 import org.lowern1ght.burg.network.C2SAdvanceEraPacket;
 import org.lowern1ght.burg.network.C2SBuyPacket;
 import org.lowern1ght.burg.network.C2SContributeQuestPacket;
@@ -36,11 +45,56 @@ import org.lowern1ght.burg.network.C2SRequestStockPacket;
 import org.lowern1ght.burg.network.C2SToggleChatBroadcastPacket;
 import org.lowern1ght.burg.network.C2SUpgradeBuildingPacket;
 import org.lowern1ght.burg.network.NetworkHelper;
+import org.lowern1ght.burg.people.GrowthMultiplier;
 import org.lowern1ght.burg.screen.TownHubMenu;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 @EventBusSubscriber(modid = Constants.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public class OuatForgeClient {
+
+    // ADR-0021 — Cloth Config provides the user-facing config screen.
+    // Registered at class-load time so the Mods → Burg → Config button works
+    // from the very first launch, no need for the player to enable anything.
+    // The screen itself is rebuilt every time it is opened (per Cloth's docs).
+    static {
+        ModLoadingContext.get().registerExtensionPoint(
+            IConfigScreenFactory.class,
+            () -> (container, parent) -> buildConfigScreen(parent)
+        );
+    }
+
+    /**
+     * Build the Cloth Config screen for the Burg configuration.
+     *
+     * <p>The screen reads the current value from {@link BurgConfig}'s spec,
+     * shows it in a slider bounded by {@link GrowthMultiplier#MIN} /
+     * {@link GrowthMultiplier#MAX}, and on save calls
+     * {@link BurgConfig#refreshMultiplier()} (already wired to the
+     * ModConfigEvent.Reloading listener in {@code OuatForge}) so the next
+     * {@code DaySim.tickDay} sees the new value without a world reload.
+     */
+    private static Screen buildConfigScreen(Screen parent) {
+        ConfigBuilder builder = ConfigBuilder.create()
+            .setParentScreen(parent)
+            .setTitle(Component.literal("Burg"));
+        ConfigEntryBuilder entryBuilder = builder.entryBuilder();
+        ConfigCategory general = builder.getOrCreateCategory(Component.literal("general"));
+
+        DoubleListEntry entry = entryBuilder
+            .startDoubleField(
+                Component.literal("Villager Growth Multiplier"),
+                BurgConfig.VILLAGER_GROWTH_MULTIPLIER.get())
+            .setDefaultValue(GrowthMultiplier.DEFAULT_VALUE)
+            .setMin(GrowthMultiplier.MIN)
+            .setMax(GrowthMultiplier.MAX)
+            .setTooltip(Component.literal(
+                "Scales how quickly new villagers join established towns. 1.0 = default. Higher = faster growth."))
+            .setSaveConsumer(BurgConfig::refreshMultiplier)
+            .build();
+        general.addEntry(entry);
+
+        return builder.build();
+    }
 
     // EntityRenderersEvent fires during the initial resource reload, before FMLCommonSetupEvent sets
     // the common static fields -- use BuiltInRegistries directly.

@@ -7,6 +7,15 @@ base {
     archivesName = "${mod_id}-${project.name}-${minecraft_version}"
 }
 
+// ADR-0021 — Cloth Config API. The library is published at shedaniel's
+// Maven repo (https://maven.shedaniel.me/), but that server is unreliable
+// for automated downloads, so we vendor the JAR at libs/ and reference it
+// via files(). Version 15.0.140 is the latest for Minecraft 1.21.1; 16.x
+// targets 1.21.2+ and is incompatible with 21.1.x. Pinned on the root
+// project so subprojects read the same value.
+rootProject.ext.clothConfigVersion = "15.0.140"
+rootProject.ext.clothConfigJar = rootProject.layout.projectDirectory.file("libs/cloth-config-forge-15.0.140.jar")
+
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(java_version)
     withSourcesJar()
@@ -33,6 +42,10 @@ repositories {
         name = 'BlameJared'
         url = 'https://maven.blamejared.com'
     }
+    // ADR-0021 — Cloth Config API is not on Maven Central; the canonical
+    // Maven source is https://maven.shedaniel.me/ but that server is
+    // unreliable for automated builds, so the JAR is vendored at
+    // libs/ and referenced via files() in common/neoforge build.gradle.
 }
 
 // Declare capabilities on the outgoing configurations.

@@ -169,6 +169,10 @@ public final class DaySim {
             // 341 over a thousand days, because replacing a population that dies of age around
             // day 300 needs about SEVEN births a day and the cap allowed one.
             int chances = Math.min(mothers.size(), fathers.size());
+            // ADR-0021: config-driven growth rate. User-tunable multiplier on the per-day
+            // candidate count, applied at the wire site so the bare-JVM simulation reads
+            // the same value the GUI writes.
+            chances = GrowthMultiplier.current().apply(chances);
             for (int i = 0; i < chances; i++) {
                 if (rng.nextInt(1000) >= rate) continue;
                 Person child = new Person(
