@@ -180,5 +180,7 @@
   "burg.era.weight_unit": "weight",
   "burg.era.residents_unit": "residents",
   "burg.era.select": "Select",
-  "burg.era.selected": "Selected"
+  "burg.era.selected": "Selected",
+
+  "burg.message.hub.supply.no_intent": "No pending intent"
 }
