@@ -192,4 +192,26 @@ public class ProductionManager {
 
         return anyProduced;
     }
+
+    // TODO(act4-followup-1): route the transformer loop through the domain
+    // TransformationRule (domain/settlement/TransformationRule.java) once the
+    // budget and reserve-stock write paths are themselves domain-typed.
+    //
+    // The clean shape would be: pre-build one TransformationRule per active
+    // TransformationRecipe (Item → ItemId via BuiltInRegistries), snapshot the
+    // MC budget as a StockLedger (Item → ItemId translation), call
+    // rule.canApply(snapshot) for the affordance pre-check, and use
+    // rule.inputTotals() for the multi-pass budget drain. The output side
+    // stays a `building.forceAdd` call — rule.apply(stock) puts the output
+    // into StockLedger (reserve), but the legacy behaviour adds the output
+    // to PlacedBuilding.stock (a per-instance cap, not a reserve value), so
+    // the rewrite would have to also redirect the output. That's a real
+    // behavioural change, not a refactor.
+    //
+    // Today the MC-typed path here works correctly: the multi-pass loop,
+    // the per-input-ratio budget, the per-building output capacity, and the
+    // final `inv.removeStock` are all wired and tested through the existing
+    // transformer datapacks. Leaving this carve for the future follow-up so
+    // the wiring lands in one focused PR with the behavioural change
+    // spelled out, not bolted onto a no-op refactor.
 }
