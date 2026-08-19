@@ -28,6 +28,8 @@ import org.lowern1ght.burg.datapack.EraTransitionDef;
 import org.lowern1ght.burg.domain.settlement.Acquisition;
 import org.lowern1ght.burg.domain.settlement.ConstructionIntent;
 import org.lowern1ght.burg.domain.settlement.ConstructionQueue;
+import org.lowern1ght.burg.domain.settlement.HubMode;
+import org.lowern1ght.burg.domain.settlement.HubView;
 import org.lowern1ght.burg.domain.settlement.QuestLog;
 import org.lowern1ght.burg.domain.settlement.QuestRef;
 import org.lowern1ght.burg.domain.settlement.Standing;
@@ -983,6 +985,64 @@ public class Town implements BuildExecutor {
         if (constructionQueueCacheIsConsistent()) return constructionQueueDomain;
         syncConstructionQueueFromLegacy();
         return constructionQueueDomain;
+    }
+
+    // -------------------------------------------------------------------------
+    // ADR-0019 — hub-mode read-only strangler facade (hub-becomes-window).
+    //
+    // The hub now answers two questions: which mode is this town in
+    // (CONSTRUCTION for acts 0–3, SUPPLY for act 4+), and what view of the
+    // town does that mode show. The mode is *derived* from acquisition +
+    // queue state at read time — there is no persisted field, no migration,
+    // and no NBT key. Worlds saved before this change load unchanged: a town
+    // with an empty queue or a FREE/CAPTURED acquisition reads as
+    // HubView.EMPTY (mode = CONSTRUCTION), which is exactly what today's
+    // command-console hub already renders.
+    //
+    // The current predicate is a one-liner — derived per call, no cache —
+    // while the structural side of the spec (standing threshold +
+    // core_populated | industry_zoned | road_laid) is still in flight. The
+    // cached-field discipline constructionQueueDomain uses is reserved for
+    // the follow-up PR that lands the full predicate; today the work is
+    // free so the per-call cost is negligible. Today the spec is satisfied
+    // by the simple rule below; tomorrow it gets the structural side and
+    // stays derived (no NBT).
+    //
+    // `TownAnchorBlock.useWithoutItem` is the only consumer right now: it
+    // logs the mode at right-click. The TownHubScreen widget set is
+    // unchanged in this carve — it still renders the command-console shape
+    // for both modes — and the supply-mode widgets land in the act-4
+    // follow-up PR. The mode is therefore observable from a unit round
+    // trip and from the engine log, not yet from the screen.
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the hub's current mode for this town. Derived per call from
+     * {@link #constructionQueueView()} (empty ⇒ CONSTRUCTION) and
+     * {@link #getAcquisition()} (ELEVATED or FOUNDED on a non-empty queue
+     * ⇒ SUPPLY; FREE or CAPTURED ⇒ CONSTRUCTION).
+     *
+     * <p>Additive default for any town that doesn't satisfy the SUPPLY
+     * precondition is {@link HubMode#CONSTRUCTION}, which is what the
+     * legacy {@code TownHubScreen} already renders.
+     */
+    public HubMode hubMode() {
+        if (constructionQueueView().isEmpty()) return HubMode.CONSTRUCTION;
+        Acquisition a = getAcquisition();
+        if (a == Acquisition.ELEVATED || a == Acquisition.FOUNDED) {
+            return HubMode.SUPPLY;
+        }
+        return HubMode.CONSTRUCTION;
+    }
+
+    /**
+     * Returns the hub's current view for this town. Thin wrapper around
+     * {@link #hubMode()} so callers that want the {@link HubView} (and the
+     * EMPTY sentinel) don't have to rebuild the record themselves. Same
+     * derivation discipline as {@link #hubMode()}; no caching.
+     */
+    public HubView hubView() {
+        return HubView.of(hubMode());
     }
 
     // -------------------------------------------------------------------------

@@ -12,7 +12,14 @@ player-independent. This requirement is preserved as-is. What the hub-mode
 change adds is a single new scenario that exercises the builder's reaction
 to a SUPPLY-mode supply tick.
 
-**New scenario addition:**
+**New text:** the NPC builder's pacing (sleep, work, morale) MUST remain
+player-independent. In a town that has crossed into `HubMode.SUPPLY`, the
+builder MUST still react to a player-supplied item as a stock-deposit
+tick: the item MUST be consumed by the town (added to stock via the
+existing stock-deposit path), and the builder MUST continue on its own
+schedule — no player "go build" command is required, and the builder MUST
+still pause for dusk / sleep / morale. Pillar 4 (NPC builder is the
+actor) MUST be preserved.
 
 #### Scenario: builder consumes a player-supplied item in SUPPLY mode
 - **WHEN** a town is in SUPPLY mode and a player supplies an item the town's
