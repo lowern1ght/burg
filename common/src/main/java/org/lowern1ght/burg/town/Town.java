@@ -33,6 +33,7 @@ import org.lowern1ght.burg.domain.settlement.HubView;
 import org.lowern1ght.burg.domain.settlement.QuestLog;
 import org.lowern1ght.burg.domain.settlement.QuestRef;
 import org.lowern1ght.burg.domain.settlement.Standing;
+import org.lowern1ght.burg.domain.settlement.StructuralFlags;
 import org.lowern1ght.burg.domain.settlement.StandingBook;
 import org.lowern1ght.burg.domain.settlement.StockLedger;
 import org.lowern1ght.burg.domain.settlement.vanilla.VanillaBindingDecision;
@@ -993,20 +994,24 @@ public class Town implements BuildExecutor {
     // The hub now answers two questions: which mode is this town in
     // (CONSTRUCTION for acts 0–3, SUPPLY for act 4+), and what view of the
     // town does that mode show. The mode is *derived* from acquisition +
-    // queue state at read time — there is no persisted field, no migration,
-    // and no NBT key. Worlds saved before this change load unchanged: a town
-    // with an empty queue or a FREE/CAPTURED acquisition reads as
-    // HubView.EMPTY (mode = CONSTRUCTION), which is exactly what today's
-    // command-console hub already renders.
+    // structural-flag state at read time — there is no persisted field, no
+    // migration, and no NBT key. Worlds saved before this change load
+    // unchanged: a town with FREE / CAPTURED acquisition or an empty
+    // structural flag-set reads as HubView.EMPTY (mode = CONSTRUCTION),
+    // which is exactly what today's command-console hub already renders.
     //
-    // The current predicate is a one-liner — derived per call, no cache —
-    // while the structural side of the spec (standing threshold +
-    // core_populated | industry_zoned | road_laid) is still in flight. The
-    // cached-field discipline constructionQueueDomain uses is reserved for
-    // the follow-up PR that lands the full predicate; today the work is
-    // free so the per-call cost is negligible. Today the spec is satisfied
-    // by the simple rule below; tomorrow it gets the structural side and
-    // stays derived (no NBT).
+    // The act-4 gate is now a real two-leg predicate. The first leg is
+    // acquisition: ELEVATED or FOUNDED ⇒ standing is established, the town
+    // trusts a chief. The second leg is the structural triple
+    // (core_populated | industry_zoned | road_laid); today
+    // {@link #structuralFlags()} returns the permissive all-true value
+    // because the underlying road / zoning state is not yet modeled on
+    // {@code Town}, and the gate must stay non-zero for the existing
+    // SUPPLY transition to keep firing. Once those fields land,
+    // {@code structuralFlags()} derives the flags from real state and the
+    // gate gets its teeth (the act-4 PR is not the moment to break the
+    // wire). Cached-field discipline stays reserved for that future carve;
+    // today the work is free so the per-call cost is negligible.
     //
     // `TownAnchorBlock.useWithoutItem` is the only consumer right now: it
     // logs the mode at right-click. The TownHubScreen widget set is
@@ -1018,18 +1023,20 @@ public class Town implements BuildExecutor {
 
     /**
      * Returns the hub's current mode for this town. Derived per call from
-     * {@link #constructionQueueView()} (empty ⇒ CONSTRUCTION) and
-     * {@link #getAcquisition()} (ELEVATED or FOUNDED on a non-empty queue
-     * ⇒ SUPPLY; FREE or CAPTURED ⇒ CONSTRUCTION).
+     * {@link #getAcquisition()} (FREE / CAPTURED ⇒ CONSTRUCTION;
+     * ELEVATED or FOUNDED ⇒ second leg) and {@link #structuralFlags()}
+     * (any flag set ⇒ SUPPLY-eligible; {@link StructuralFlags#NONE} ⇒
+     * CONSTRUCTION). The structural side is the act-4 trigger from
+     * {@code openspec/changes/hub-becomes-window/specs/construction-mode-supply-mode
+     * §"Requirement: structural predicate is three conditions AND-ed"}.
      *
      * <p>Additive default for any town that doesn't satisfy the SUPPLY
      * precondition is {@link HubMode#CONSTRUCTION}, which is what the
      * legacy {@code TownHubScreen} already renders.
      */
     public HubMode hubMode() {
-        if (constructionQueueView().isEmpty()) return HubMode.CONSTRUCTION;
         Acquisition a = getAcquisition();
-        if (a == Acquisition.ELEVATED || a == Acquisition.FOUNDED) {
+        if (a != Acquisition.FREE && structuralFlags().isAnySet()) {
             return HubMode.SUPPLY;
         }
         return HubMode.CONSTRUCTION;
@@ -1043,6 +1050,38 @@ public class Town implements BuildExecutor {
      */
     public HubView hubView() {
         return HubView.of(hubMode());
+    }
+
+    /**
+     * Returns the structural act-4 trigger for this town as a
+     * {@link StructuralFlags} flag-set. Derived per call (no cache, no
+     * persisted field) from the three conditions the
+     * {@code hub-becomes-window} spec names: {@code core_populated},
+     * {@code industry_zoned}, {@code road_laid}.
+     *
+     * <p><b>Permissive default.</b> Today the underlying fields are not
+     * modeled on {@code Town} — there is no zoning layer yet, no road
+     * graph keyed by town, no "every footprint inside the core radius is
+     * occupied" walk. So this method returns
+     * {@code StructuralFlags.of(true, true, true)} (the structural triple
+     * is fully satisfied). The predicate stays non-zero and the existing
+     * SUPPLY transition keeps firing; the act-4 PR is not the moment to
+     * break the wire. When the underlying fields land, this method
+     * flips to {@code StructuralFlags.of(corePopulated, industryZoned,
+     * roadLaid)} derived from real state and the act-4 gate gets its
+     * teeth.
+     *
+     * <p>Cheap today (one factory call returning a referentially-stable
+     * {@link StructuralFlags#NONE}-collapsed or fresh record). The
+     * cached-field discipline {@link #constructionQueueDomain} uses is
+     * reserved for the future carve where this method stops being
+     * free.
+     */
+    public StructuralFlags structuralFlags() {
+        // Permissive: roads / zoning layers not yet modeled on Town.
+        // See the Javadoc above and the "hub-becomes-window" tasks.md
+        // §1.2 / §1.3 for the residual gaps.
+        return StructuralFlags.of(true, true, true);
     }
 
     // -------------------------------------------------------------------------

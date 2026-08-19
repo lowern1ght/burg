@@ -22,6 +22,37 @@
     Until then, the only coverage of the predicate is the
     `tools/describe.py town_hub` walk-through and the
     `HubModeTest` enum-level contract.
+  - **Structural-predicate carve (this branch):**
+    - [x] 1.3.a `StructuralFlags` value type lands in
+      `domain/settlement/StructuralFlags.java` — record with
+      `corePopulated` / `industryZoned` / `roadLaid` flags, a
+      `NONE` sentinel, and an `of(...)` factory that collapses
+      the all-false case to NONE. Coverage: `StructuralFlagsTest`
+      + `StructuralFlagsMutationTest` (pure JUnit).
+    - [x] 1.3.b `Town#structuralFlags()` helper — derived per
+      call, currently permissive (returns
+      `StructuralFlags.of(true, true, true)` because roads /
+      zoning layers are not yet modeled on `Town`).
+    - [x] 1.3.c `Town#hubMode()` updated to require BOTH
+      `acquisition != FREE` AND
+      `structuralFlags().isAnySet()` (the permissive
+      "any-progress-qualifies" form today).
+  - **Test items for the structural predicate** (deferred to the
+    `:neoforge` test target above, or to a future `Town` refactor
+    that makes `Town` Minecraft-free — the predicate's two legs
+    are exercised today only through `StructuralFlagsTest` and
+    the `HubModeTest` enum-level contract):
+    - [ ] 1.3.d **Structural-flag presence** (`all-zero → no
+      SUPPLY`): given a town with `acquisition == FOUNDED` and
+      `structuralFlags == NONE`, `Town#hubMode()` returns
+      `CONSTRUCTION`. Today the helper is hard-coded to all-true
+      so the case is unreachable; the test is the spec for the
+      day the helper flips to derive flags from real state.
+    - [ ] 1.3.e **Structural-flip:** given a town with
+      `acquisition == FOUNDED`, flipping any one flag from `true`
+      to `false` collapses `hubMode()` from `SUPPLY` to
+      `CONSTRUCTION`. Same caveat — the test is the spec for the
+      day the helper flips.
 
 ## 2. GUI
 
