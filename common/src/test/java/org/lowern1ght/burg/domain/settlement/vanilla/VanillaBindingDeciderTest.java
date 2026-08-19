@@ -93,11 +93,15 @@ class VanillaBindingDeciderTest {
     void defaultRadiusIsThirtyTwo() {
         VanillaBindingDecider decider = new VanillaBindingDecider();
         // 32 XZ-blocks exactly: at the boundary, still inside the radius.
-        Set<VanillaHouseFootprint> edge = Set.of(fp(0, 0), fp(32, 0));
+        // The co-located candidate footprint was the original test's mistake — a
+        // footprint at the candidate is distance 0 and ALWAYS in range, so a "33
+        // blocks falls back to Skip" set carrying it would never reach the
+        // out-of-range branch and could not exercise what it claims to test.
+        Set<VanillaHouseFootprint> edge = Set.of(fp(32, 0));
         assertTrue(decider.decide(edge, 0, 0) instanceof VanillaBindingDecision.Bind,
             "32 blocks is still within the radius");
         // 33 XZ-blocks: just outside, falls back to Skip.
-        Set<VanillaHouseFootprint> justOutside = Set.of(fp(0, 0), fp(33, 0));
+        Set<VanillaHouseFootprint> justOutside = Set.of(fp(33, 0));
         assertTrue(decider.decide(justOutside, 0, 0) instanceof VanillaBindingDecision.Skip,
             "33 blocks is outside the radius");
         assertEquals(VanillaBindingDecider.DEFAULT_RADIUS, decider.radius());

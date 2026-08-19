@@ -9,12 +9,18 @@ import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.BedBlock;
+import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BedPart;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import org.lowern1ght.burg.Constants;
 import org.lowern1ght.burg.behavior.executor.BuildExecutor;
 import org.lowern1ght.burg.behavior.role.CitizenRole;
+import org.lowern1ght.burg.building.schematic.BuildSchematic;
 import org.lowern1ght.burg.datapack.BuildingDataHandler;
 import org.lowern1ght.burg.datapack.EraDef;
 import org.lowern1ght.burg.datapack.EraTransitionDataHandler;
@@ -27,8 +33,12 @@ import org.lowern1ght.burg.domain.settlement.QuestRef;
 import org.lowern1ght.burg.domain.settlement.Standing;
 import org.lowern1ght.burg.domain.settlement.StandingBook;
 import org.lowern1ght.burg.domain.settlement.StockLedger;
+import org.lowern1ght.burg.domain.settlement.vanilla.VanillaBindingDecision;
+import org.lowern1ght.burg.domain.settlement.vanilla.VanillaBindingDecider;
+import org.lowern1ght.burg.domain.settlement.vanilla.VanillaHouseFootprint;
 import org.lowern1ght.burg.domain.shared.CitizenId;
 import org.lowern1ght.burg.domain.shared.ItemId;
+import org.lowern1ght.burg.entity.citizen.Citizens;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1288,6 +1298,121 @@ public class Town implements BuildExecutor {
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+
+    // -------------------------------------------------------------------------
+    // ADR-0020 — vanilla-village conversion (bridgehead seam).
+    //
+    // The bind path lives here, not on TownAnchorBlock, because the footprint
+    // collection and the Bridgehead placement are town-level concerns: the
+    // Town is what keeps the blocked-zones roll, not the Anchor. The Anchor
+    // is the *trigger*; the actual conversion is a Town method. The decider
+    // itself is in the domain layer ({@link VanillaBindingDecider}); this
+    // method is the Minecraft-aware facade that hands it `(int, int)` and a
+    // footprint set.
+    // -------------------------------------------------------------------------
+
+    /**
+     * The bridgehead NBT path. Resolves to {@code data/burg/structure/plains/bridgehead.nbt};
+     * missing file is tolerated by {@link #bindToVanillaVillage} (a warning is logged and
+     * the rest of the conversion still happens) so the in-game binding does not depend on
+     * the street piece being shipped before it is authored.
+     */
+    public static final ResourceLocation BRIDGEHEAD_NBT =
+        ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "plains/bridgehead");
+
+    /**
+     * XZ radius used to scan for vanilla house footprints. Aliased to
+     * {@link VanillaBindingDecider#DEFAULT_RADIUS} so the scan and the decision agree;
+     * changing one without the other would let the decider say "Skip" while the scan
+     * produces a non-empty footprint set (or vice versa).
+     */
+    public static final int VANILLA_BIND_RADIUS = VanillaBindingDecider.DEFAULT_RADIUS;
+
+    /**
+     * The Minecraft-aware half of the vanilla-village conversion.
+     *
+     * <p>Scans every loaded block inside {@link #VANILLA_BIND_RADIUS} of {@code meetingPoint}
+     * for doors and bed heads, hands the resulting set to {@link VanillaBindingDecider#decide},
+     * and depending on the decision either enacts the binding (enlist existing villagers,
+     * register every footprint as a blocked zone so growth never lands on a vanilla house,
+     * place the bridgehead piece) or returns {@code false} without mutating this Town.
+     *
+     * <p>Unloaded chunks inside the radius are silently skipped, not failed: a vanilla
+     * village whose centre is in an unloaded chunk produces an empty footprint set,
+     * which the decider turns into {@link VanillaBindingDecision.Skip#noFootprints()}.
+     * Same fallback the player gets from placing the anchor in open plains, so the
+     * contract is "either we can see it or we skip".
+     *
+     * <p>Failure mode for a missing bridgehead NBT: log a warning, leave the
+     * block alone, finish the rest of the conversion. Growth still works — the
+     * town just enters Build mode without an outward seam from the vanilla street.
+     *
+     * @return {@code true} iff the conversion succeeded (the caller can register this
+     *         town in {@link LevelTowns}); {@code false} means "no vanilla village at
+     *         this position" and the anchor stays as today's campfire-only fallback.
+     */
+    public boolean bindToVanillaVillage(BlockPos meetingPoint, ServerLevel level) {
+        Set<VanillaHouseFootprint> footprints = scanVanillaFootprints(meetingPoint, level);
+        VanillaBindingDecision decision = new VanillaBindingDecider().decide(
+            footprints, meetingPoint.getX(), meetingPoint.getZ());
+        if (decision instanceof VanillaBindingDecision.Skip skip) {
+            LOGGER.info("[OUAT] Town anchor at {} did not bind a vanilla village: {} ({})",
+                meetingPoint.toShortString(), skip.reasonCode(), skip.detail());
+            return false;
+        }
+        // We are binding. Enlist the existing villagers first so the people roll is
+        // populated before any growth tick reads from it.
+        int enlisted = Citizens.enlistAllNear(level, meetingPoint);
+        // Reserve every collected footprint as a 1-block BlockedZone. Growth reads
+        // getOccupiedBoxes() to decide where it may place, so a door/bed-head under
+        // a Burg building is no longer a question.
+        for (VanillaHouseFootprint fp : footprints) {
+            addBlockedZone(new BoundingBox(fp.x(), fp.y(), fp.z(), fp.x(), fp.y(), fp.z()));
+        }
+        // Degrade gracefully if the bridgehead NBT is not on disk yet: the rest of the
+        // conversion (villagers + blocked zones) still holds, growth just picks its own
+        // first outward connector on the next tick instead of attaching to the bridgehead.
+        if (level.getStructureManager().get(BRIDGEHEAD_NBT).isPresent()) {
+            BuildSchematic.place(level, meetingPoint, BRIDGEHEAD_NBT, Rotation.NONE);
+        } else {
+            LOGGER.warn("[OUAT] Bridgehead NBT {} missing -- vanilla village at {} bound"
+                + " without a bridgehead piece; growth will pick an alternative outward connector.",
+                BRIDGEHEAD_NBT, meetingPoint.toShortString());
+        }
+        LOGGER.info("[OUAT] Town anchor at {} bound to vanilla village: {} footprints reserved,"
+            + " {} villager(s) enlisted.", meetingPoint.toShortString(), footprints.size(), enlisted);
+        return true;
+    }
+
+    /**
+     * Scans every loaded block inside {@link #VANILLA_BIND_RADIUS} of {@code meetingPoint}
+     * for vanilla house footprints. A "footprint" here is either a {@link DoorBlock} or
+     * the {@link BedPart#HEAD} half of a {@link BedBlock}; both shapes mean "a vanilla
+     * house lives here, growth must not land on top of it".
+     *
+     * <p>Y range covers the full vertical build envelope so doors placed inside a
+     * hillside or on a plateau are still found; the {@link ServerLevel#isLoaded} gate
+     * keeps the scan cheap on worlds with chunks still unloaded around the candidate.
+     */
+    private Set<VanillaHouseFootprint> scanVanillaFootprints(BlockPos meetingPoint, ServerLevel level) {
+        Set<VanillaHouseFootprint> out = new HashSet<>();
+        int r = VANILLA_BIND_RADIUS;
+        BlockPos from = new BlockPos(
+            meetingPoint.getX() - r, level.getMinBuildHeight(), meetingPoint.getZ() - r);
+        BlockPos to = new BlockPos(
+            meetingPoint.getX() + r, level.getMaxBuildHeight() - 1, meetingPoint.getZ() + r);
+        for (BlockPos pos : BlockPos.betweenClosed(from, to)) {
+            if (!level.isLoaded(pos)) continue;
+            BlockState state = level.getBlockState(pos);
+            if (state.getBlock() instanceof DoorBlock) {
+                out.add(new VanillaHouseFootprint(pos.getX(), pos.getY(), pos.getZ()));
+            } else if (state.getBlock() instanceof BedBlock
+                    && state.getValue(BedBlock.PART) == BedPart.HEAD) {
+                out.add(new VanillaHouseFootprint(pos.getX(), pos.getY(), pos.getZ()));
+            }
+        }
+        return out;
+    }
 
     public CompoundTag toNbt() {
         CompoundTag tag = new CompoundTag();

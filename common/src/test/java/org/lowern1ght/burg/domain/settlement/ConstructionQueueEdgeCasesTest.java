@@ -140,8 +140,8 @@ class ConstructionQueueEdgeCasesTest {
         ConstructionQueue afterDequeue = queue.dequeue();
 
         assertAll(
-            () -> assertEquals(peeked, afterDequeue.enqueue(peeked).peek(),
-                "peek is the same value before and after the queue cycles"),
+            () -> assertEquals(false, afterDequeue.entries().contains(peeked),
+                "dequeue removed exactly the peeked entry"),
             () -> assertNotEquals(peeked, afterDequeue.peek(),
                 "after dequeue the peek moves to the next entry"),
             () -> assertEquals(2L, afterDequeue.peek().entryId())
