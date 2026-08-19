@@ -6,9 +6,12 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import org.lowern1ght.burg.client.ui.McDrawContext;
 import org.lowern1ght.burg.client.ui.McInputAdapter;
+import org.lowern1ght.burg.common.ui.InputField;
+import org.lowern1ght.burg.common.ui.Rect;
 import org.lowern1ght.burg.common.ui.Root;
 import org.lowern1ght.burg.common.ui.UiEvent;
 import org.lowern1ght.burg.common.ui.Widget;
+import org.lowern1ght.burg.domain.shared.ItemId;
 import org.lowern1ght.burg.network.NetworkHelper;
 import org.lowern1ght.burg.settlement.ui.SupplyIntentList;
 import org.lowern1ght.burg.settlement.ui.SupplyIntentListWidget;
@@ -42,8 +45,26 @@ import java.util.List;
  */
 public class TownHubScreenV2 extends Screen {
 
+    /** Bottom strip reserved for the supply-quantity input field — pixels. */
+    static final int FIELD_STRIP_HEIGHT = 30;
+
+    /** Horizontal margin around the input field — pixels. */
+    static final int FIELD_MARGIN_X = 8;
+
     private final Root root;
     private final SupplyIntentListWidget intentList;
+    /**
+     * Quantity input — the field the user types into before pressing
+     * {@code Enter} to fire a supply packet. Lives at the bottom of the
+     * screen, below the intent list.
+     */
+    private final InputField quantityField;
+    /**
+     * Item the user has selected by clicking a gap row. {@link ItemId#EMPTY}
+     * means no row has been clicked yet — the submit handler treats that as
+     * a no-op so the user can't submit a packet for an unselected item.
+     */
+    private ItemId pendingSupplyItem = ItemId.EMPTY;
     /**
      * Anchor position of the town the screen was opened against. Carried
      * by the screen so the click handler can route a {@code C2SSupplyStockPacket}
@@ -56,7 +77,10 @@ public class TownHubScreenV2 extends Screen {
         super(Component.translatable("burg.hub.supply.title"));
         this.root = new Root();
         this.intentList = data.toWidget();
+        this.quantityField = new InputField("Quantity", 80, 20);
+        this.quantityField.onSubmit = quantity -> submitQuantity(quantity);
         this.root.add(intentList);
+        this.root.add(quantityField);
         this.anchorPos = anchorPos;
     }
 
@@ -104,14 +128,41 @@ public class TownHubScreenV2 extends Screen {
         return intentList;
     }
 
+    /** Returns the quantity input field — test harness. */
+    public InputField quantityField() {
+        return quantityField;
+    }
+
+    /** Returns the item the user has selected by clicking a gap row — test harness. */
+    public ItemId pendingSupplyItem() {
+        return pendingSupplyItem;
+    }
+
     @Override
     protected void init() {
         super.init();
         // The Root fills the screen; the intent list draws inside it.
         root.layout(this.width, this.height);
+        // The intent list takes the top of the screen; the input field
+        // sits in a fixed-height strip at the bottom. We set both bounds
+        // explicitly because the intent list is a leaf widget whose
+        // bounds the Root filled to the full screen on layout(), and the
+        // input field has its default (0, 0, 80, 20) bounds from the
+        // convenience constructor.
+        int fieldWidth = Math.min(80, this.width - 2 * FIELD_MARGIN_X);
+        intentList.setBounds(new Rect(
+            0, 0, this.width, Math.max(0, this.height - FIELD_STRIP_HEIGHT)
+        ));
+        intentList.layout(this.width, Math.max(0, this.height - FIELD_STRIP_HEIGHT));
+        quantityField.setBounds(new Rect(
+            FIELD_MARGIN_X,
+            this.height - FIELD_STRIP_HEIGHT + 4,
+            fieldWidth,
+            20
+        ));
     }
 
-    @Override
+@Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         // Build the per-frame draw context. originX/originY = 0 here
         // because Screen renders in GUI-space relative to the screen's
@@ -127,6 +178,7 @@ public class TownHubScreenV2 extends Screen {
             mouseY
         );
         intentList.draw(ctx);
+        quantityField.draw(ctx);
     }
 
     // ---- Input forwarding ----
@@ -139,25 +191,44 @@ public class TownHubScreenV2 extends Screen {
     }
 
     /**
-     * Fires one {@code C2SSupplyStockPacket} when there is a real gap
-     * (missing {@code >} 0) to supply and the screen was opened against
-     * a known anchor. The act-4 input field is not implemented yet, so
-     * any click on the screen routes the first positive gap back to the
-     * server as a placeholder — the server applies it to the town's
-     * reserve stock and pushes a stock snapshot back.
+     * Selects the first positive gap on every screen click — the
+     * placeholder behaviour was "fire a packet on click", now it's
+     * "remember which gap was clicked and focus the quantity field".
+     * The actual packet is sent when the user types a number and presses
+     * {@code Enter} in {@link #quantityField}. {@link #pendingSupplyItem}
+     * tracks the selection; {@link ItemId#EMPTY} is the "nothing picked"
+     * sentinel so {@link #submitQuantity(int)} can no-op safely.
      */
     private void dispatchSupplyClick() {
         if (anchorPos == null) return;
         for (SupplyIntentList.StockGapItem gap : intentList.data().gaps()) {
             if (gap.missing() > 0) {
-                NetworkHelper.sendSupplyStockPacket.send(
-                    anchorPos,
-                    gap.item().value(),
-                    gap.missing()
-                );
+                pendingSupplyItem = gap.item();
+                quantityField.requestFocus();
                 return;
             }
         }
+    }
+
+    /**
+     * Fires one {@code C2SSupplyStockPacket} when the user has typed a
+     * positive integer and pressed {@code Enter}. Guards: a quantity of
+     * zero or less is ignored (the {@link InputField} already filtered
+     * that out at parse time, but the screen re-checks defensively); a
+     * missing selection ({@link #pendingSupplyItem} == {@link ItemId#EMPTY})
+     * is ignored so the user can't fire a packet for an unselected item;
+     * a missing anchor (legacy construction path) is ignored.
+     */
+    private void submitQuantity(int quantity) {
+        if (quantity <= 0) return;
+        if (pendingSupplyItem == ItemId.EMPTY) return;
+        if (anchorPos == null) return;
+        NetworkHelper.sendSupplyStockPacket.send(
+            anchorPos,
+            pendingSupplyItem.value(),
+            quantity
+        );
+        quantityField.clear();
     }
 
     @Override

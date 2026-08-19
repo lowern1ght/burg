@@ -23,7 +23,12 @@ import org.lowern1ght.burg.town.Town;
 // the town's reserve stock. ADR-0013 — the additive write path uses
 // reserveStock.merge directly because Town.applyStockLedger is a
 // full-replace of the reserve (overkill for a single-item supply) and
-// the StockLedger cache rebuilds itself lazily on the next read.
+// the StockLedger cache rebuilds itself lazily on the next read. The
+// follow-up makes the rebuild happen eagerly here (see Item A in
+// commit body): touching town.stockLedger() right after the merge
+// triggers the cache-consistency check, which falls back to a full
+// rebuild — so the next reader does not pay the slow path on the first
+// query.
 public record C2SSupplyStockPacket(BlockPos anchorPos, String itemId, int quantity) implements CustomPacketPayload {
 
     public static final Type<C2SSupplyStockPacket> TYPE = new Type<>(
@@ -62,6 +67,12 @@ public record C2SSupplyStockPacket(BlockPos anchorPos, String itemId, int quanti
             if (item == null || item == Items.AIR) return;
 
             town.getReserveStock().merge(item, packet.quantity(), Integer::sum);
+            // Touch town.stockLedger() so the cached StockLedger catches up
+            // with reserveStock immediately; the consistency check on the
+            // accessor fires the full rebuild on the next read. Without
+            // this call the cache is stale until the next reader, which
+            // makes the cache discipline look racy from the outside.
+            town.stockLedger();
             LevelTowns.get(level).markDirty();
             NetworkHelper.pushStockToWatchers(level, town, packet.anchorPos());
         });
