@@ -19,6 +19,7 @@ When you close a change without archiving (superseded by another, or the work la
 | name | tasks | notes |
 |---|---|---|
 | `vanilla-village-conversion` | 0/15 | Design only; no code. Act-0 bridgehead lives on the same code path as the construction queue carve; consider merging into one change before any implementation. |
+| `realm-diplomacy-war-seed` | 15/20 | Mostly implemented (15/20 tasks); the 5 outstanding are the act-1 seeding openers that depend on the act-0 village anchor landing first. |
 | `hub-becomes-window` | 0/14 | Design only; the act-4 transition. Application wiring (ADR-0018) lands here when player-facing call sites for stock deposit are added. |
 
 ## Archived (skip_specs, archived via PRs #29 / #30 already on master)
@@ -55,3 +56,20 @@ The two remaining in-flight changes (`vanilla-village-conversion`, `hub-becomes-
 ## Closed without archive
 
 (none yet)
+
+## Session state (2026-08-19)
+
+Closing note for the openspec-archive-wire PR. The re-archive step attempted
+on the parallel `feature/openspec-rearchive` branch was a **no-op** — both
+`settlement-stock-promote` and `settlement-standing-acquisition` were already
+on disk under `openspec/changes/archive/2026-08-19-.../` from their feature
+branches (PRs #29 and #30), which is what the table above records. The
+`realm-diplomacy-war-seed` row above fixes the one gap the previous worker
+flagged (it was missing from the Active table). Current `openspec list`:
+
+- `vanilla-village-conversion` — 0/15 (design only)
+- `realm-diplomacy-war-seed` — 15/20 (mostly implemented; 5 act-1 seeders)
+- `hub-becomes-window` — 0/14 (design only)
+
+`openspec validate --all` exits 0 over all 10 items (7 main specs + 3 active
+changes). State is clean.
