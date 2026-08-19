@@ -180,5 +180,7 @@
   "burg.era.weight_unit": "веса",
   "burg.era.residents_unit": "жителей",
   "burg.era.select": "Выбрать",
-  "burg.era.selected": "Выбрано"
+  "burg.era.selected": "Выбрано",
+
+  "burg.message.hub.supply.no_intent": "Нет ожидающих решений"
 }
