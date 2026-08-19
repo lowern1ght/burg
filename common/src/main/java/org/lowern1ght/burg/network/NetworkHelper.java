@@ -27,6 +27,12 @@ public class NetworkHelper {
     public static BiConsumer<ServerPlayer, CompoundTag> sendEraUpdatePacket     = (player, data) -> {};
     public static BiConsumer<ServerPlayer, CompoundTag> sendCitizenUpdatePacket = (player, data) -> {};
     public static BiConsumer<ServerPlayer, CompoundTag> sendLogEntryPacket     = (player, data) -> {};
+    // ADR-0022 — acts 0–3 stay on the legacy menu flow; act-4 SUPPLY-mode
+    // opens TownHubScreenV2 directly via this gateway. The server sends it
+    // instead of the legacy sendTownHubPacket + openMenu pair when the town's
+    // hubMode() == SUPPLY. The client reads it from TownHubClientState and
+    // calls Minecraft.getInstance().setScreen(new TownHubScreenV2(...)).
+    public static BiConsumer<ServerPlayer, BlockPos> sendOpenTownHubV2Packet = (player, anchorPos) -> {};
 
     /**
      * Publishes "this villager is ours" to everyone who can see it.

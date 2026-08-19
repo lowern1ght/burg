@@ -72,18 +72,27 @@ public class TownAnchorBlock extends BaseEntityBlock {
                     }
                     return InteractionResult.FAIL;
                 }
-                net.minecraft.nbt.CompoundTag hubData = town.getHubData(pos);
-                hubData.putBoolean("ChatSubscribed", town.isChatSubscriber(player.getUUID()));
-                // ADR-0019 — log the hub mode at right-click. The widget
-                // set is unchanged in this carve; SUPPLY-mode UI lands in
-                // the act-4 follow-up PR. The log is the operator-visible
-                // signal that the derived predicate flipped, and the unit
-                // round-trip (Town#hubMode) covers the engine-edge check.
+                // ADR-0022 — branch on Town#hubMode() (derived from
+                // construction queue + acquisition; see Town#hubMode).
+                // SUPPLY-mode is the act-4 transition: the hub is a window,
+                // not a console. The V2 screen is NOT a menu screen (no
+                // AbstractContainerScreen), so it cannot ride the legacy
+                // openMenu(be) path — the server sends a small S2C
+                // gateway packet and the client calls
+                // Minecraft.getInstance().setScreen(new TownHubScreenV2(...)).
+                // CONSTRUCTION-mode is the acts 0–3 path: the legacy
+                // hub-packet + openMenu(be) flow stays untouched.
                 HubMode mode = town.hubMode();
                 if (mode == HubMode.SUPPLY) {
                     LOGGER.info("[OUAT-HUB] Town {} at {} opens in SUPPLY mode (act 4 transition)",
                         town.getName(), pos.toShortString());
+                    NetworkHelper.sendOpenTownHubV2Packet.accept((ServerPlayer) player, pos);
+                    return InteractionResult.SUCCESS;
                 }
+                // CONSTRUCTION (or any future mode that falls through to
+                // the legacy flow — the additive default for old saves).
+                net.minecraft.nbt.CompoundTag hubData = town.getHubData(pos);
+                hubData.putBoolean("ChatSubscribed", town.isChatSubscriber(player.getUUID()));
                 NetworkHelper.sendTownHubPacket.accept((ServerPlayer) player, hubData);
                 player.openMenu(be);
             }

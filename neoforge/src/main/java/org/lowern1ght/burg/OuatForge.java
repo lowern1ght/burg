@@ -57,6 +57,7 @@ import org.lowern1ght.burg.network.S2CBuildingListPacket;
 import org.lowern1ght.burg.network.S2CCitizenUpdatePacket;
 import org.lowern1ght.burg.network.S2CEraUpdatePacket;
 import org.lowern1ght.burg.network.S2CLogEntryPacket;
+import org.lowern1ght.burg.network.S2COpenTownHubV2Packet;
 import org.lowern1ght.burg.network.S2CQuestUpdatePacket;
 import org.lowern1ght.burg.network.S2CStockUpdatePacket;
 import org.lowern1ght.burg.network.S2CTownHubPacket;
@@ -199,6 +200,12 @@ public class OuatForge {
         NetworkHelper.sendEraUpdatePacket     = (player, data) -> PacketDistributor.sendToPlayer(player, new S2CEraUpdatePacket(data));
         NetworkHelper.sendCitizenUpdatePacket = (player, data) -> PacketDistributor.sendToPlayer(player, new S2CCitizenUpdatePacket(data));
         NetworkHelper.sendLogEntryPacket      = (player, data) -> PacketDistributor.sendToPlayer(player, new S2CLogEntryPacket(data));
+        // ADR-0022 — gate to the SUPPLY-mode TownHubScreenV2. The server sends
+        // this instead of the legacy sendTownHubPacket + openMenu(be) pair when
+        // Town#hubMode() == SUPPLY. The V2 screen is not a menu screen (no
+        // AbstractContainerScreen); the client opens it via
+        // Minecraft.getInstance().setScreen(new TownHubScreenV2(...)).
+        NetworkHelper.sendOpenTownHubV2Packet = (player, anchorPos) -> PacketDistributor.sendToPlayer(player, new S2COpenTownHubV2Packet(anchorPos));
 
         // Membership, the one fact about a citizen the client cannot derive from its UUID.
         NetworkHelper.broadcastVillagerIdentity = (villager, member) ->
@@ -253,8 +260,11 @@ public class OuatForge {
     private void onRegisterPayloadHandlers(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar(Constants.MOD_ID);
 
-        // S2C (server → client) — 8 payloads carrying CompoundTag snapshots/deltas
+        // S2C (server → client) — 9 payloads carrying CompoundTag snapshots/deltas
+        // + the ADR-0022 SUPPLY-mode open-gateway (no payload body for now; the
+        // intent list is the act-4 follow-up PR).
         registrar.playToClient(S2CTownHubPacket.TYPE,        S2CTownHubPacket.STREAM_CODEC,        S2CTownHubPacket::handle);
+        registrar.playToClient(S2COpenTownHubV2Packet.TYPE,  S2COpenTownHubV2Packet.STREAM_CODEC,  S2COpenTownHubV2Packet::handle);
         registrar.playToClient(S2CBuildingDefsPacket.TYPE,   S2CBuildingDefsPacket.STREAM_CODEC,   S2CBuildingDefsPacket::handle);
         registrar.playToClient(S2CStockUpdatePacket.TYPE,    S2CStockUpdatePacket.STREAM_CODEC,    S2CStockUpdatePacket::handle);
         registrar.playToClient(S2CBuildingListPacket.TYPE,   S2CBuildingListPacket.STREAM_CODEC,   S2CBuildingListPacket::handle);
