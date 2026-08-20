@@ -13,6 +13,7 @@ import org.lowern1ght.burg.domain.settlement.StockLedger;
 import org.lowern1ght.burg.domain.settlement.TransformationRule;
 import org.lowern1ght.burg.domain.shared.ItemId;
 import org.lowern1ght.burg.network.NetworkHelper;
+import org.lowern1ght.burg.people.BuildCadenceMultiplier;
 import org.lowern1ght.burg.town.BuildingDef;
 import org.lowern1ght.burg.town.ItemCost;
 import org.lowern1ght.burg.town.LevelTowns;
@@ -121,9 +122,17 @@ public class ProductionManager {
             }
             for (ProductionEntry entry : stats.production()) {
                 if (entry.everyTicks() <= 0) continue;
+                // ADR-0025 — global build-cadence multiplier. Folds the
+                // user's Cloth Config knob into the per-tick cadence check
+                // so the wire site (this loop) reads the same value the GUI
+                // writes. Per-building `totalCadenceMultiplier()` is the
+                // upgrade-driven adjustment; `BuildCadenceMultiplier.current()`
+                // is the global one. They multiply: a user on 2.0 with a
+                // +0.5 upgrade gets a 1.5× effective divisor (3× cadence).
                 int effectiveTicks = stats.totalCadenceMultiplier() > 0
-                    ? (int) Math.max(1, Math.round(entry.everyTicks() / (1.0 + stats.totalCadenceMultiplier())))
-                    : entry.everyTicks();
+                    ? (int) Math.max(1, Math.round(entry.everyTicks()
+                        / ((1.0 + stats.totalCadenceMultiplier()) * BuildCadenceMultiplier.current().value())))
+                    : Math.max(1, (int) Math.round(entry.everyTicks() / BuildCadenceMultiplier.current().value()));
                 if (gameTime % effectiveTicks != 0) continue;
                 int current = inv.getStock(entry.item());
                 int max = inv.getMaxStock(entry.item());

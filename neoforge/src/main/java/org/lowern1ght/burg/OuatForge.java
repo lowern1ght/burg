@@ -221,6 +221,7 @@ public class OuatForge {
         // fresh install). The ModConfigEvent.Reloading handler below
         // keeps it in sync after every edit.
         BurgConfig.refreshMultiplier();
+        BurgConfig.refreshBuildCadence();
     }
 
     /**
@@ -233,6 +234,7 @@ public class OuatForge {
     private void onModConfigReloading(ModConfigEvent.Reloading event) {
         if (event.getConfig().getSpec() != BurgConfig.SPEC) return;
         BurgConfig.refreshMultiplier();
+        BurgConfig.refreshBuildCadence();
     }
 
     /**

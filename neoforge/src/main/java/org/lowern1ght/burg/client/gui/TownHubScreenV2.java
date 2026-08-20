@@ -7,8 +7,10 @@ import net.minecraft.network.chat.Component;
 import org.lowern1ght.burg.client.ui.McDrawContext;
 import org.lowern1ght.burg.client.ui.McInputAdapter;
 import org.lowern1ght.burg.common.ui.InputField;
+import org.lowern1ght.burg.common.ui.Label;
 import org.lowern1ght.burg.common.ui.Rect;
 import org.lowern1ght.burg.common.ui.Root;
+import org.lowern1ght.burg.common.ui.TextStyle;
 import org.lowern1ght.burg.common.ui.UiEvent;
 import org.lowern1ght.burg.common.ui.Widget;
 import org.lowern1ght.burg.domain.shared.ItemId;
@@ -72,14 +74,36 @@ public class TownHubScreenV2 extends Screen {
      * construct the screen with {@link #withEmptyIntent()}.
      */
     private final BlockPos anchorPos;
+    /**
+     * Status-bar widget that reflects the most recent apply result.
+     * Empty text until the user fires one packet; the text is set by
+     * {@link #submitQuantity(int)} on a successful apply and cleared
+     * on a no-op (no selection / no anchor / non-positive quantity).
+     * Lives at the top of the bottom strip, above the input field, so
+     * the user's eye travels up to read it after pressing Enter.
+     */
+    private final Label statusLabel;
+    /**
+     * Last applied (itemId, quantity) — exposed for the test harness so
+     * a unit test can assert the label got set without needing a full
+     * Minecraft draw cycle. {@code null} until the first successful
+     * apply.
+     */
+    private AppliedSupply lastApplied = null;
+
+    /** Mutable record of one successful supply packet — what the status bar reads. */
+    public record AppliedSupply(ItemId itemId, int quantity) {}
 
     public TownHubScreenV2(SupplyIntentList data, BlockPos anchorPos) {
         super(Component.translatable("burg.hub.supply.title"));
         this.root = new Root();
         this.intentList = data.toWidget();
         this.quantityField = new InputField("Quantity", 80, 20);
+        this.statusLabel = new Label(new Rect(0, 0, 0, 0), "",
+            TextStyle.defaults());
         this.quantityField.onSubmit = quantity -> submitQuantity(quantity);
         this.root.add(intentList);
+        this.root.add(statusLabel);
         this.root.add(quantityField);
         this.anchorPos = anchorPos;
     }
@@ -138,6 +162,16 @@ public class TownHubScreenV2 extends Screen {
         return pendingSupplyItem;
     }
 
+    /** Returns the most recent successful apply — test harness. {@code null} until the first submit. */
+    public AppliedSupply lastApplied() {
+        return lastApplied;
+    }
+
+    /** Returns the status-bar widget — test harness. */
+    public Label statusLabel() {
+        return statusLabel;
+    }
+
     @Override
     protected void init() {
         super.init();
@@ -154,6 +188,16 @@ public class TownHubScreenV2 extends Screen {
             0, 0, this.width, Math.max(0, this.height - FIELD_STRIP_HEIGHT)
         ));
         intentList.layout(this.width, Math.max(0, this.height - FIELD_STRIP_HEIGHT));
+        // The status bar sits in the same bottom strip as the input
+        // field, just above it. Width matches the input field so the
+        // text wraps inside the strip; height is one row.
+        int statusStripTop = this.height - FIELD_STRIP_HEIGHT - 14;
+        statusLabel.setBounds(new Rect(
+            FIELD_MARGIN_X,
+            Math.max(0, statusStripTop),
+            fieldWidth,
+            12
+        ));
         quantityField.setBounds(new Rect(
             FIELD_MARGIN_X,
             this.height - FIELD_STRIP_HEIGHT + 4,
@@ -178,6 +222,7 @@ public class TownHubScreenV2 extends Screen {
             mouseY
         );
         intentList.draw(ctx);
+        statusLabel.draw(ctx);
         quantityField.draw(ctx);
     }
 
@@ -218,6 +263,14 @@ public class TownHubScreenV2 extends Screen {
      * missing selection ({@link #pendingSupplyItem} == {@link ItemId#EMPTY})
      * is ignored so the user can't fire a packet for an unselected item;
      * a missing anchor (legacy construction path) is ignored.
+     *
+     * <p>On a successful submit the status-bar {@link #statusLabel} is
+     * updated to read {@code "last supplied: <itemId> ×<qty>"} so the user
+     * sees confirmation without waiting for the server's stock-update
+     * round-trip. The label is the single source of truth on the client
+     * for "what did I just fire?"; the server's stock-update packet
+     * overwrites the reserve on the next render but doesn't reach the
+     * intent-list gap until then.
      */
     private void submitQuantity(int quantity) {
         if (quantity <= 0) return;
@@ -228,6 +281,8 @@ public class TownHubScreenV2 extends Screen {
             pendingSupplyItem.value(),
             quantity
         );
+        lastApplied = new AppliedSupply(pendingSupplyItem, quantity);
+        statusLabel.setText("last supplied: " + pendingSupplyItem.value() + " x" + quantity);
         quantityField.clear();
     }
 
