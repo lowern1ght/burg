@@ -103,9 +103,40 @@ public class Town implements BuildExecutor {
     private final Map<Integer, UUID> queueIndexClaims = new HashMap<>();
     private long nextEntryId = 0L;
     private String name = "Unknown Town";
-    private final List<Quest> activeQuests = new ArrayList<>();
-    // Tracks when each TASK quest def was last completed (def id -> game time).
-    private final Map<String, Long> questDefLastCompleted = new HashMap<>();
+    // -------------------------------------------------------------------------
+    // ADR-0028 — quest log flip (the SoT promotion).
+    //
+    // Before this carve the MC `List<Quest> activeQuests` + `Map<String, Long>
+    // questDefLastCompleted` pair was the SoT; `QuestLog` (the immutable
+    // domain value object) was a cached projection rebuilt at every mutation
+    // site (ADR-0012 + ADR-0016). The flip: `questLog` is the primary state
+    // on `Town` and the MC legacy fields are now a derived view materialised
+    // on demand — `getActiveQuests()` reads from `activeQuestMap` (the
+    // engine-tick's cache of rich `Quest` data) and `getQuestDefLastCompleted()`
+    // reads from `questLog.lastCompleted()`. NBT keys `ActiveQuests` and
+    // `QuestDefLastCompleted` stay byte-identical: `toNbt` materialises the
+    // legacy compound shapes from the SoT, `fromNbt` reads them back into a
+    // fresh `QuestLog`. Worlds saved before this carve load unchanged.
+    //
+    // Why keep `activeQuestMap` at all (it is the engine tick's view, not the
+    // SoT): the MC `Quest` carries conditions, rewards and the `questId`
+    // the contribute packet addresses — `QuestRef` cannot carry any of that.
+    // So `QuestLog` holds the SoT's roll + completion map (Minecraft-free,
+    // bare-JVM testable), and `activeQuestMap` holds the rich `Quest` data
+    // the engine tick needs (`TickScheduler.tickQuests`,
+    // `QuestManager.isAlreadyActive`, `TownHubDataBuilder.buildQuestsTag`,
+    // `C2SContributeQuestPacket.handle`). The two are kept consistent by
+    // every mutator on `Town` — `addQuest`, `removeQuest` and
+    // `cleanupOrphanedQuestData` mutate both; the SoT (`questLog`) is the
+    // persisted field and `activeQuestMap` is the derived view the engine
+    // tick reads.
+    //
+    // LinkedHashMap so the `ActiveQuests` NBT list preserves legacy insertion
+    // order — `TickScheduler.tickQuests` adds in `QuestDataHandler.getAll()`
+    // order and the NBT contract is byte-identical.
+    // -------------------------------------------------------------------------
+    private QuestLog questLog = QuestLog.EMPTY;
+    private final Map<String, Quest> activeQuestMap = new LinkedHashMap<>();
 
     // Sliding window of the last 20 activity events; persisted to NBT.
     private final ArrayDeque<TownLogEntry> activityLog = new ArrayDeque<>();
@@ -1285,157 +1316,175 @@ public class Town implements BuildExecutor {
     }
 
     // -------------------------------------------------------------------------
-    // ADR-0012 + ADR-0016 — dual-write strangler facade for the quest log.
+    // ADR-0028 — promote `QuestLog` to the source of truth (flip the
+    // dual-write). ADR-0012 + ADR-0016 had `activeQuests` +
+    // `questDefLastCompleted` as the SoT and `questLog()` as a cached
+    // rebuild synced at every mutation site. The flip: `questLog` is
+    // now the SoT and the primary state on `Town`; the MC legacy
+    // fields (`activeQuests` + `questDefLastCompleted`) are gone, and
+    // the read paths (`getActiveQuests`, `getQuestDefLastCompleted`,
+    // `questLog`) read straight from `questLog` and the derived
+    // `activeQuestMap`. NBT keys `ActiveQuests` and
+    // `QuestDefLastCompleted` are unchanged: `toNbt` materialises the
+    // legacy compound shapes from the SoT, `fromNbt` reads them back
+    // into a fresh `QuestLog` plus the derived map. Format is
+    // byte-identical, so worlds saved before this carve load unchanged.
     //
-    // `activeQuests` + `questDefLastCompleted` remain the SoT and the NBT
-    // owner; ADR-0012 exposed them through `questLog()` as a read-only
-    // rebuild. ADR-0016 caches that rebuild in a `questLogDomain` field
-    // synced at every known mutation site (addQuest, removeQuest,
-    // cleanupOrphanedQuestData, stampQuestCompletion, fromNbt), with a
-    // rebuild fallback when the cache disagrees with the legacy state.
-    // NBT keys `ActiveQuests` and `QuestDefLastCompleted` are unchanged.
+    // The sync helper `syncQuestLogFromLegacy` and the cache
+    // consistency check `questLogCacheIsConsistent` are gone — there is
+    // no second copy to fall out of sync, the SoT and the projection
+    // are the same field. (`syncConstructionQueueFromLegacy` and
+    // `constructionQueueCacheIsConsistent` were removed by ADR-0027
+    // for the same reason.)
     //
     // No `applyQuestLog` write path this PR: `QuestRef` carries only
     // `(defId, type, status)`, while the MC `Quest` carries conditions,
-    // rewards, and the full TaskDef binding. A domain→legacy apply would
+    // rewards and the full TaskDef binding. A domain→legacy apply would
     // silently drop the rich per-quest data the engine needs to run the
-    // quest tick. Sync-from-legacy covers the read direction; the write
-    // side stays a future carve.
+    // quest tick. The `activeQuestMap` derived field carries that
+    // rich data; the SoT on `questLog` carries the Minecraft-free
+    // shape that the application layer can reason about without
+    // `net.minecraft` on the classpath.
     // -------------------------------------------------------------------------
 
     /**
-     * Cached Minecraft-free view of the legacy `activeQuests` +
-     * `questDefLastCompleted` pair. Mirrors {@link #stockLedger}:
-     * synced at every known mutation site, with a rebuild fallback in
-     * {@link #questLog()} when the cache disagrees with the legacy state.
-     */
-    private QuestLog questLogDomain = QuestLog.EMPTY;
-
-    /**
-     * Rebuilds {@link #questLogDomain} from `activeQuests` +
-     * `questDefLastCompleted`. Idempotent; same discipline
-     * {@link #syncStockLedgerFromReserve()} uses. (The construction
-     * queue used to have its own sync helper,
-     * {@code syncConstructionQueueFromLegacy} — ADR-0027 promoted the
-     * domain queue to the SoT and removed it.) Malformed entries
-     * (null `defId`, empty `defId`) are dropped at the edge so the
-     * domain view stays clean.
-     */
-    private void syncQuestLogFromLegacy() {
-        if (activeQuests.isEmpty() && questDefLastCompleted.isEmpty()) {
-            questLogDomain = QuestLog.EMPTY;
-            return;
-        }
-
-        List<QuestRef> refs = new ArrayList<>(activeQuests.size());
-        for (Quest q : activeQuests) {
-            if (q == null || q.defId == null || q.defId.isEmpty()) continue;
-            String type = q.questType != null ? q.questType : QuestRef.TYPE_TASK;
-            if (QuestRef.TYPE_TASK.equals(type)) {
-                refs.add(QuestRef.of(q.defId, type, QuestRef.STATUS_ACTIVE));
-            } else {
-                refs.add(QuestRef.ofUnstatused(q.defId, type));
-            }
-        }
-
-        if (!questDefLastCompleted.isEmpty()) {
-            for (Map.Entry<String, Long> e : questDefLastCompleted.entrySet()) {
-                String defId = e.getKey();
-                if (defId == null || defId.isEmpty()) continue;
-                boolean alreadyActive = false;
-                for (QuestRef ref : refs) {
-                    if (defId.equals(ref.defId())) { alreadyActive = true; break; }
-                }
-                if (alreadyActive) continue;
-                refs.add(QuestRef.of(defId, QuestRef.TYPE_TASK, QuestRef.STATUS_COMPLETED));
-            }
-        }
-
-        Map<String, Long> completed = questDefLastCompleted.isEmpty()
-            ? Map.of()
-            : new LinkedHashMap<>(questDefLastCompleted);
-
-        questLogDomain = QuestLog.of(refs, completed);
-    }
-
-    /**
-     * Cheap consistency check between {@link #questLogDomain} and the
-     * legacy state: same emptiness on both sides, and when non-empty, the
-     * roll size and completion-map size match. Mirrors
-     * {@link #stockLedgerCacheIsConsistent()}. (The construction queue
-     * had a similar helper, {@code constructionQueueCacheIsConsistent} —
-     * ADR-0027 promoted the domain queue to the SoT and removed it.)
-     */
-    private boolean questLogCacheIsConsistent() {
-        boolean legacyEmpty = activeQuests.isEmpty() && questDefLastCompleted.isEmpty();
-        if (legacyEmpty) return questLogDomain.isEmpty();
-        return questLogDomain.size() == activeQuests.size()
-            && questLogDomain.lastCompleted().size() == questDefLastCompleted.size();
-    }
-
-    /**
-     * Returns the town's quest log as a Minecraft-free
-     * {@link QuestLog}. Returns the cached {@link #questLogDomain} field
-     * on the fast path; falls back to a full rebuild via
-     * {@link #syncQuestLogFromLegacy()} when the cache disagrees with
-     * the legacy state (the "missed a sync" safety net — mirrors
-     * {@link #stockLedger()} and {@link #constructionQueueView()}).
+     * Returns the town's quest log as a Minecraft-free {@link QuestLog}.
+     * This is the SoT (ADR-0028): the field itself, not a derived view.
+     * The legacy `getActiveQuests()` / `getQuestDefLastCompleted()`
+     * accessors return MC-typed projections for callers that still need
+     * them (`TickScheduler.tickQuests`, `QuestManager.isAlreadyActive`,
+     * `Settlers.tick`).
      */
     public QuestLog questLog() {
-        if (questLogCacheIsConsistent()) return questLogDomain;
-        syncQuestLogFromLegacy();
-        return questLogDomain;
-    }
-
-    public List<Quest> getActiveQuests() { return Collections.unmodifiableList(activeQuests); }
-
-    public void addQuest(Quest q) {
-        activeQuests.add(q);
-        syncQuestLogFromLegacy();
-    }
-
-    public void removeQuest(String questId) {
-        activeQuests.removeIf(q -> q.questId.equals(questId));
-        syncQuestLogFromLegacy();
+        return questLog;
     }
 
     /**
-     * Read-only view of the quest completion map. The map itself is the
-     * SoT and the NBT owner; callers must NOT mutate it directly. Use
-     * {@link #stampQuestCompletion(String, long)} to record a completion
-     * tick — that path keeps the {@link #questLogDomain} cache in sync.
+     * Read-only view of the rich per-quest state the engine tick needs —
+     * `Quest` objects with conditions, rewards, and the {@code questId}
+     * the contribute packet addresses. Backed by the derived
+     * {@link #activeQuestMap} (LinkedHashMap preserves insertion order
+     * so the NBT `ActiveQuests` list round-trips byte-for-byte). The
+     * SoT is {@link #questLog}; this accessor stays MC-typed for the
+     * `TickScheduler.tickQuests` /
+     * `QuestManager.isAlreadyActive(def, List<Quest>)` /
+     * `TownHubDataBuilder.buildQuestsTag` /
+     * `C2SContributeQuestPacket.handle` consumers.
      */
-    public Map<String, Long> getQuestDefLastCompleted() { return questDefLastCompleted; }
+    public List<Quest> getActiveQuests() {
+        return List.copyOf(activeQuestMap.values());
+    }
 
     /**
-     * Records the completion tick for a quest def. ADR-0016 — this is
-     * the only sanctioned write path into the completion map; it keeps
-     * {@link #questLogDomain} in sync so {@link #questLog()} stays on
-     * the cache fast path. Replaces the previous
-     * {@code getQuestDefLastCompleted().put(...)} idiom at call sites.
+     * Appends a quest to the town's log. Mutates both the SoT
+     * ({@link #questLog} gains a STATUS_ACTIVE ref for the def) and
+     * the derived {@link #activeQuestMap} (the rich `Quest` keyed by
+     * {@code questId}). Replacing a defId already on the roll is a
+     * no-op at the SoT — `QuestLog.withAdded` replaces by defId, so a
+     * second {@code addQuest} with the same defId swaps the existing
+     * ref for the new one (the engine treats defId as the primary key).
+     */
+    public void addQuest(Quest q) {
+        Objects.requireNonNull(q, "q");
+        if (q.defId == null || q.defId.isEmpty()) return;
+        if (q.questId == null || q.questId.isEmpty()) return;
+        String type = q.questType != null ? q.questType : QuestRef.TYPE_TASK;
+        activeQuestMap.put(q.questId, q);
+        questLog = questLog.withAdded(QuestRef.of(q.defId, type, QuestRef.STATUS_ACTIVE));
+    }
+
+    /**
+     * Drops the active quest with the given {@code questId} from both
+     * the SoT (its defId ref is removed) and the derived map. No-op
+     * when the questId is unknown — the SoT stays untouched.
+     */
+    public void removeQuest(String questId) {
+        if (questId == null) return;
+        Quest removed = activeQuestMap.remove(questId);
+        if (removed == null) return;
+        questLog = questLog.withRemoved(removed.defId);
+    }
+
+    /**
+     * Read-only view of the {@code defId → tick} completion map.
+     * Derived from {@link #questLog#lastCompleted()} — the SoT. Callers
+     * MUST NOT mutate the returned map; use
+     * {@link #stampQuestCompletion(String, long)} to record a completion
+     * tick.
+     */
+    public Map<String, Long> getQuestDefLastCompleted() {
+        return questLog.lastCompleted();
+    }
+
+    /**
+     * Records the completion tick for a quest def. ADR-0028 — this is
+     * the only sanctioned write path into the completion map. It
+     * mutates the SoT {@link #questLog} so {@link #questLog()} stays
+     * on the fast path. Negative ticks and empty defIds are dropped
+     * silently (the engine never goes back in time and a defId is
+     * always set).
+     *
+     * <p>If no ref with this defId is currently on the roll (the
+     * engine already removed the active quest via
+     * {@link #removeQuest(String)}), a STATUS_COMPLETED ref is appended
+     * so the SoT matches the legacy semantic — `questLog.findById`
+     * returns the completed ref, and {@link #getActiveQuests()} (which
+     * filters by `activeQuestMap`) stays empty for this defId. This is
+     * what {@code C2SContributeQuestPacket.handle} drives: the player
+     * completes a quest → {@code removeQuest} drops the active ref →
+     * {@code stampQuestCompletion} appends the completed ref + tick.
      */
     public void stampQuestCompletion(String defId, long gameTime) {
         if (defId == null || defId.isEmpty()) return;
         if (gameTime < 0L) return;
-        questDefLastCompleted.put(defId, gameTime);
-        syncQuestLogFromLegacy();
+        questLog = questLog.withCompleted(defId, gameTime);
+        if (questLog.findById(defId) == null) {
+            questLog = questLog.withAdded(
+                QuestRef.of(defId, QuestRef.TYPE_TASK, QuestRef.STATUS_COMPLETED));
+        }
     }
 
-    // Removes activeQuests and questDefLastCompleted entries whose definition no longer exists.
-    // Called at world load after datapacks have been read. Returns true if anything was removed.
+    /**
+     * Removes {@link #activeQuestMap} and {@link #questLog} entries
+     * whose {@code defId} no longer appears in {@code validDefIds}.
+     * Called at world load after datapacks have been read. Returns
+     * {@code true} if either map shrank.
+     *
+     * <p>Mutation paths: the derived map loses every quest whose defId
+     * is stale (logged at WARN — the same level the legacy code
+     * used); the SoT's roll and completion map are both filtered by
+     * the same defId set, then collapsed back into a fresh
+     * {@link QuestLog} via {@link QuestLog#of(List, Map)} (which
+     * defensively drops malformed entries).
+     */
     public boolean cleanupOrphanedQuestData(Set<String> validDefIds) {
-        boolean changed = activeQuests.removeIf(q -> {
-            if (validDefIds.contains(q.defId)) return false;
-            LOGGER.warn("[OUAT] Removing orphaned quest {}", q.defId);
+        boolean changedActive = activeQuestMap.entrySet().removeIf(e -> {
+            if (validDefIds.contains(e.getValue().defId)) return false;
+            LOGGER.warn("[OUAT] Removing orphaned quest {}", e.getValue().defId);
             return true;
         });
-        int sizeBefore = questDefLastCompleted.size();
-        questDefLastCompleted.keySet().retainAll(validDefIds);
-        boolean completedChanged = questDefLastCompleted.size() != sizeBefore;
-        if (changed || completedChanged) {
-            syncQuestLogFromLegacy();
+        List<QuestRef> filteredRefs = new ArrayList<>(questLog.entries().size());
+        boolean refsChanged = false;
+        for (QuestRef ref : questLog.entries()) {
+            if (validDefIds.contains(ref.defId())) {
+                filteredRefs.add(ref);
+            } else {
+                refsChanged = true;
+            }
         }
-        return changed || completedChanged;
+        Map<String, Long> filteredCompleted = new LinkedHashMap<>();
+        boolean completedChanged = false;
+        for (Map.Entry<String, Long> e : questLog.lastCompleted().entrySet()) {
+            if (validDefIds.contains(e.getKey())) {
+                filteredCompleted.put(e.getKey(), e.getValue());
+            } else {
+                completedChanged = true;
+            }
+        }
+        if (refsChanged || completedChanged) {
+            questLog = QuestLog.of(filteredRefs, filteredCompleted);
+        }
+        return changedActive || refsChanged || completedChanged;
     }
 
     // Tries to add item to town stock without checking the accepted set.
@@ -1783,12 +1832,20 @@ public class Town implements BuildExecutor {
         tag.put("UnlockedBuildingIds", unlockedTag);
         tag.putInt("ActiveResidents", activeResidents);
         tag.putInt("CurrentMaxWeight", currentMaxWeight);
+        // ADR-0028 — quest log SoT flip. The SoT is `questLog`; the legacy
+        // NBT shape is `ActiveQuests` (a list of MC `Quest` compounds) +
+        // `QuestDefLastCompleted` (a defId → tick compound). The active list
+        // is read from the derived `activeQuestMap` (preserves LinkedHashMap
+        // insertion order so the list stays byte-identical to pre-ADR-0028
+        // saves); the completion map is read straight from `questLog`.
         ListTag activeQuestsTag = new ListTag();
-        activeQuests.forEach(q -> activeQuestsTag.add(q.toNbt()));
+        for (Quest q : activeQuestMap.values()) {
+            activeQuestsTag.add(q.toNbt());
+        }
         tag.put("ActiveQuests", activeQuestsTag);
-        if (!questDefLastCompleted.isEmpty()) {
+        if (!questLog.lastCompleted().isEmpty()) {
             CompoundTag qdlcTag = new CompoundTag();
-            questDefLastCompleted.forEach(qdlcTag::putLong);
+            questLog.lastCompleted().forEach(qdlcTag::putLong);
             tag.put("QuestDefLastCompleted", qdlcTag);
         }
         if (!activityLog.isEmpty()) {
@@ -1952,24 +2009,45 @@ public class Town implements BuildExecutor {
         town.currentMaxWeight = tag.contains("CurrentMaxWeight")
             ? tag.getInt("CurrentMaxWeight")
             : 20 + town.currentEra * 10;
+        // ADR-0028 — quest log SoT flip. Read the legacy NBT into the
+        // derived `activeQuestMap` (LinkedHashMap preserves insertion
+        // order) and the completion map, then collapse both into the SoT
+        // `questLog` so the post-load state is exactly what `toNbt`
+        // would write for the same input. A pre-ADR-0012 world
+        // (no `ActiveQuests`, no `QuestDefLastCompleted`) produces
+        // QuestLog.EMPTY; a post-ADR-0028 world populates `questLog`
+        // straight from the loops below — no sync helper, no cache
+        // fallback, the SoT is the field the load writes into.
         if (tag.contains("ActiveQuests")) {
             tag.getList("ActiveQuests", Tag.TAG_COMPOUND)
-                .forEach(t -> town.activeQuests.add(Quest.fromNbt((CompoundTag) t)));
+                .forEach(t -> {
+                    Quest q = Quest.fromNbt((CompoundTag) t);
+                    if (q == null || q.questId == null || q.questId.isEmpty()
+                        || q.defId == null || q.defId.isEmpty()) {
+                        return;
+                    }
+                    town.activeQuestMap.put(q.questId, q);
+                });
         }
+        Map<String, Long> completed = new LinkedHashMap<>();
         if (tag.contains("QuestDefLastCompleted")) {
             CompoundTag qdlcTag = tag.getCompound("QuestDefLastCompleted");
             for (String key : qdlcTag.getAllKeys()) {
-                town.questDefLastCompleted.put(key, qdlcTag.getLong(key));
+                completed.put(key, qdlcTag.getLong(key));
             }
         }
-        // ADR-0016 — sync the quest log cache after the additive NBT load
-        // (mirrors the stock sync above). A pre-ADR-0012 world produces
-        // an EMPTY log; a post-ADR-0012 world has activeQuests +
-        // questDefLastCompleted populated by the loops above and the
-        // rebuild hits the cache. The construction-queue sync is gone
-        // as of ADR-0027: the domain `ConstructionQueue` is the SoT, so
-        // the additive load writes straight into it.
-        town.syncQuestLogFromLegacy();
+        List<QuestRef> entries = new ArrayList<>(town.activeQuestMap.size() + completed.size());
+        Set<String> activeDefIds = new HashSet<>();
+        for (Quest q : town.activeQuestMap.values()) {
+            String type = q.questType != null ? q.questType : QuestRef.TYPE_TASK;
+            entries.add(QuestRef.of(q.defId, type, QuestRef.STATUS_ACTIVE));
+            activeDefIds.add(q.defId);
+        }
+        for (Map.Entry<String, Long> e : completed.entrySet()) {
+            if (activeDefIds.contains(e.getKey())) continue;
+            entries.add(QuestRef.of(e.getKey(), QuestRef.TYPE_TASK, QuestRef.STATUS_COMPLETED));
+        }
+        town.questLog = QuestLog.of(entries, completed);
         if (tag.contains("ActivityLog")) {
             tag.getList("ActivityLog", Tag.TAG_COMPOUND).forEach(t -> {
                 CompoundTag lt = (CompoundTag) t;
