@@ -2,6 +2,7 @@ package org.lowern1ght.burg.town;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import org.lowern1ght.burg.domain.settlement.ConstructionIntent;
 
 /**
  * A single entry in the player construction queue.
@@ -43,5 +44,44 @@ public sealed interface QueueEntry permits QueueEntry.NewBuild, QueueEntry.Upgra
             return new Upgrade(entryId, defId, BlockPos.of(tag.getLong("BuildingWorldPos")), tag.getInt("FromLevel"));
         }
         return new NewBuild(entryId, defId);
+    }
+
+    /**
+     * MC-typed → domain boundary. Used by the {@code Town} facade when a
+     * legacy queue entry needs to live in the {@link
+     * org.lowern1ght.burg.domain.settlement.ConstructionQueue} value
+     * object (e.g. {@code fromNbt} load, refund cost lookup). The
+     * {@code BlockPos} is reduced to its long handle and stringified —
+     * the same discipline {@code ConstructionIntent.Upgrade} uses
+     * internally to stay Minecraft-free.
+     */
+    static ConstructionIntent toIntent(QueueEntry entry) {
+        if (entry instanceof Upgrade u) {
+            return new ConstructionIntent.Upgrade(
+                u.entryId(),
+                u.defId(),
+                Long.toString(u.buildingWorldPos().asLong()),
+                u.fromLevel());
+        }
+        return new ConstructionIntent.NewBuild(entry.entryId(), entry.defId());
+    }
+
+    /**
+     * Domain → MC-typed boundary. The inverse of {@link #toIntent}.
+     * Used wherever a Minecraft-aware consumer (NBT serialize, the
+     * {@code TownHubDataBuilder} S2C packet, the {@code SimpleStateMachine}
+     * builder NPC) needs a {@link QueueEntry} for a {@link
+     * ConstructionIntent}. Stringified {@code worldPosKey} decodes back
+     * to a {@code BlockPos} via {@code BlockPos.of(Long.parseLong(...))}.
+     */
+    static QueueEntry fromIntent(ConstructionIntent intent) {
+        if (intent instanceof ConstructionIntent.Upgrade u) {
+            return new Upgrade(
+                u.entryId(),
+                u.buildingDefId(),
+                BlockPos.of(Long.parseLong(u.worldPosKey())),
+                u.fromLevel());
+        }
+        return new NewBuild(intent.entryId(), intent.buildingDefId());
     }
 }

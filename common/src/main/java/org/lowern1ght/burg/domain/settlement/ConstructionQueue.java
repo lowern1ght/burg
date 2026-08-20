@@ -93,6 +93,27 @@ public final class ConstructionQueue {
     }
 
     /**
+     * Returns a new queue with the entry at {@code index} removed. An
+     * out-of-range index ({@code < 0} or {@code >= size()}) is a
+     * no-op — the receiver is returned unchanged. The no-op discipline
+     * mirrors {@link QuestLog#withRemoved(String)} (an unknown defId
+     * returns {@code this}) and matches the bounds-check the
+     * {@code Town} facade performs before delegating here. A removal
+     * that drains the queue to zero entries collapses to {@link #EMPTY}
+     * for the same referential-stability reason {@link #dequeue} does.
+     */
+    public ConstructionQueue without(int index) {
+        if (index < 0 || index >= entries.size()) return this;
+        List<ConstructionIntent> next = new ArrayList<>(entries.size() - 1);
+        for (int i = 0; i < entries.size(); i++) {
+            if (i == index) continue;
+            next.add(entries.get(i));
+        }
+        if (next.isEmpty()) return EMPTY;
+        return new ConstructionQueue(Collections.unmodifiableList(next), capacity);
+    }
+
+    /**
      * Returns the head {@link ConstructionIntent} without removing it,
      * or {@code null} when the queue is empty. The same null-on-miss
      * convention {@code Collection.peek}-style queues use; callers that

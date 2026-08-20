@@ -20,8 +20,11 @@ import java.util.Objects;
  * accessor is derived per call (no cache) while the predicate is a
  * one-liner over {@code constructionQueueView().isEmpty()} and
  * {@code getAcquisition()}; the cached-field discipline {@code stockLedger}
- * and {@code constructionQueueDomain} use is reserved for the act-4 PR
- * where the predicate stops being free.
+ * uses is reserved for the act-4 PR where the predicate stops being free.
+ * (The construction queue was a cached field under
+ * {@code constructionQueueDomain} until ADR-0027 promoted the domain
+ * type to the SoT; the discipline that other dual-write fields use
+ * still applies to {@code stockLedger} alone.)
  *
  * <p>No Minecraft imports. The view is built and consumed entirely on
  * the bare-JVM domain side; the engine edge ({@code TownAnchorBlock})
