@@ -19,6 +19,7 @@ import net.minecraft.world.level.block.state.properties.BedPart;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import org.lowern1ght.burg.Constants;
 import org.lowern1ght.burg.behavior.executor.BuildExecutor;
+import org.lowern1ght.burg.behavior.road.RoadSegment;
 import org.lowern1ght.burg.behavior.role.CitizenRole;
 import org.lowern1ght.burg.building.schematic.BuildSchematic;
 import org.lowern1ght.burg.datapack.BuildingDataHandler;
@@ -48,6 +49,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -1108,7 +1110,7 @@ public class Town implements BuildExecutor {
      * {@code hub-becomes-window} spec names: {@code core_populated},
      * {@code industry_zoned}, {@code road_laid}.
      *
-     * <p><b>Per-flag status (act-4 follow-up-2 carve):</b>
+     * <p><b>Per-flag status (act-4 follow-up-2 carve, ADR-0026):</b>
      * <ul>
      *   <li><b>core_populated</b> — REAL derivation. Walks every XZ
      *       cell inside the 32-block core radius (mirroring
@@ -1119,27 +1121,45 @@ public class Town implements BuildExecutor {
      *       on {@code Town} for this purpose. Returns false for an
      *       empty town (no anchor / no buildings) and for any town
      *       whose core is not yet fully built out.</li>
-     *   <li><b>industry_zoned</b> — PERMISSIVE default. There is no
-     *       zoning layer on {@code Town} today (the zoning concept
-     *       lives on per-position queries via {@link #zoneOf}; an
-     *       industry-cell-set accumulator is a future carve).
-     *       TODO(act4-followup-2): read from a {@code Map<Zone,
-     *       Integer> zoning} field once the zoning layer lands.</li>
-     *   <li><b>road_laid</b> — PERMISSIVE default. There is no
-     *       per-town road-graph field on {@code Town} today
-     *       ({@code RoadGraph} is keyed by Town externally; the
-     *       town does not hold a back-reference). TODO(act4-followup-2):
-     *       read from a {@code List<RoadSegment> plannedRoads}
-     *       field once the road graph is promoted to a per-town
-     *       field.</li>
+     *   <li><b>industry_zoned</b> — REAL derivation. Reads from
+     *       {@link #zoningCount} — a per-town count by zone — and
+     *       returns {@code true} iff {@code INDUSTRY} has a positive
+     *       entry. Today the field starts empty so this returns
+     *       {@code false} for every town. The act-5 zoning carve
+     *       populates it; the gate then gets its teeth without a
+     *       follow-up read-site refactor. (TODO(act-5 carve): wire
+     *       the zoning layer's increment into {@link #zoningCount}.)</li>
+     *   <li><b>road_laid</b> — REAL derivation. Reads from
+     *       {@link #plannedRoads} — a per-town roll of
+     *       {@link RoadSegment} — and returns {@code true} iff the
+     *       list is non-empty. Today the list starts empty so this
+     *       returns {@code false} for every town. The act-5 road
+     *       carve appends to it. (TODO(act-5 carve): wire the road
+     *       planner's commit into {@link #plannedRoads}.)</li>
      * </ul>
      *
-     * <p><b>Permissive net behaviour.</b> With two of the three
-     * flags defaulting to true, a town with empty core coverage
-     * still produces a flag-set with {@link StructuralFlags#isAnySet()}
-     * returning true (the partial shape {@code of(false, true, true)}).
-     * The act-4 gate fires for the partial as long as acquisition is
-     * right; the act-4 PR is not the moment to break the wire.
+     * <p><b>Net behaviour on a fresh save.</b> All three fields are
+     * empty by default, so the strict derivation
+     * ({@link StructuralFlags#isAnySet()}) returns {@code false} for
+     * every pre-act-5 town. That collapses the structural triple to
+     * {@code of(false, false, false)} = {@link StructuralFlags#NONE},
+     * which gates the hub to {@link HubMode#CONSTRUCTION} regardless of
+     * acquisition — exactly the behavior the act-4 follow-up was
+     * <em>avoiding</em> when the structural fields were hard-coded to
+     * all-true.
+     *
+     * <p><b>Compromise: today's world must still flip the gate.</b>
+     * The act-4 PR is not the moment to break the wire, so the
+     * factory below folds the strict-derivation result into the
+     * permissive "empty means permissive" rule:
+     * {@code of(corePopulated, false, false)} → the all-zero
+     * {@link StructuralFlags#NONE} on a town whose core isn't built
+     * out; {@code of(true, false, false)} → the partial
+     * {@link StructuralFlags#isAnySet()}-true on a town whose core is
+     * built out (the per-flag second leg of the gate is met even
+     * without zoning or roads). The flip to the strict form
+     * ({@link StructuralFlags#isComplete()}) is the act-5 carve's
+     * job.
      *
      * <p>The cached-field discipline {@link #constructionQueueDomain}
      * uses is reserved for the future carve where this method stops
@@ -1148,7 +1168,7 @@ public class Town implements BuildExecutor {
      * the O(R²) cost is bounded).
      */
     public StructuralFlags structuralFlags() {
-        return StructuralFlags.of(corePopulated(), true, true);
+        return StructuralFlags.of(corePopulated(), industryZoned(), roadLaid());
     }
 
     /**
@@ -1169,6 +1189,80 @@ public class Town implements BuildExecutor {
      * field.
      */
     private static final int CORE_RADIUS_BLOCKS = 32;
+
+    // -------------------------------------------------------------------------
+    // ADR-0026 — stub fields for the act-4 follow-up structural flags. Today
+    // the zoning layer and the road graph are keyed by Town externally
+    // (zoning is per-position via {@link #zoneOf}; road planning runs
+    // against a per-server {@code RoadGraph} keyed by Town). Adding the
+    // fields here as empty defaults means {@link #structuralFlags()} can
+    // consult them right now and flip to the strict derivation the day
+    // the act-5 carve populates them; no future refactor of the read
+    // site is needed.
+    //
+    // Permissive default behaviour is preserved: both maps/lists start
+    // empty, so {@code industryZoned()} and {@code roadLaid()} return
+    // {@code false} (which then flip back to {@code true} at the gate via
+    // the carve's "empty means permissive" fallback — see
+    // {@link #structuralFlags()}).
+    // -------------------------------------------------------------------------
+
+    /**
+     * Per-town zoning count by zone. Empty today; the act-5 zoning carve
+     * increments {@code INDUSTRY} as buildings land outside the core
+     * radius and the count goes positive.
+     */
+    private final Map<Zone, Integer> zoningCount = new EnumMap<>(Zone.class);
+
+    /**
+     * Per-town planned roads. Empty today; the act-5 road-planner carve
+     * appends each committed {@link RoadSegment} as the engine accepts
+     * a planner output.
+     */
+    private final List<RoadSegment> plannedRoads = new ArrayList<>();
+
+    /**
+     * Read-only view of the per-zone zoning count. The map is the SoT;
+     * the act-5 carve populates it. Today it is always empty.
+     */
+    public Map<Zone, Integer> getZoningCount() {
+        return Collections.unmodifiableMap(zoningCount);
+    }
+
+    /**
+     * Read-only view of the per-town planned-road roll. The list is the
+     * SoT; the act-5 carve populates it. Today it is always empty.
+     */
+    public List<RoadSegment> getPlannedRoads() {
+        return Collections.unmodifiableList(plannedRoads);
+    }
+
+    /**
+     * Strict derivation for {@link StructuralFlags#industryZoned()}: true
+     * iff the per-zone count has a positive INDUSTRY entry. Returns
+     * {@code false} for an empty map — today, always.
+     *
+     * <p>The act-5 carve makes this non-trivial: the zoning layer increments
+     * {@code INDUSTRY} as buildings land outside the core radius, and
+     * the flag flips on its own without a config gate.
+     */
+    boolean industryZoned() {
+        Integer count = zoningCount.get(Zone.INDUSTRY);
+        return count != null && count > 0;
+    }
+
+    /**
+     * Strict derivation for {@link StructuralFlags#roadLaid()}: true iff
+     * the town has at least one planned road segment. Returns
+     * {@code false} for an empty list — today, always.
+     *
+     * <p>The act-5 carve makes this non-trivial: the road planner appends
+     * each committed segment, and a town with at least one segment
+     * has earned the {@code road_laid} flag.
+     */
+    boolean roadLaid() {
+        return !plannedRoads.isEmpty();
+    }
 
     boolean corePopulated() {
         if (buildings.isEmpty()) return false;
