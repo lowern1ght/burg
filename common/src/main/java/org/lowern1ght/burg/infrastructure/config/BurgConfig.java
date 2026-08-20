@@ -3,6 +3,7 @@ package org.lowern1ght.burg.infrastructure.config;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import org.lowern1ght.burg.people.BuildCadenceMultiplier;
 import org.lowern1ght.burg.people.GrowthMultiplier;
+import org.lowern1ght.burg.people.RaidConfig;
 
 /**
  * Configuration data for the mod, expressed as a NeoForge {@link ModConfigSpec}
@@ -169,12 +170,27 @@ public final class BurgConfig {
      *
      * <p>Used as the {@code setSaveConsumer} of the Cloth Config entry, so
      * the {@link net.neoforged.neoforge.common.IConfigSpec} holds the
-     * canonical value and {@link BuildCadenceMultiplier#current()} mirrors
-     * it for the production tick.
+     * canonical value and {@link BuildCadenceMultiplier#current()} mirrors it
+     * for the production tick.
      */
     public static void refreshBuildCadence(double value) {
         BUILD_CADENCE_MULTIPLIER.set(value);
         BuildCadenceMultiplier.setCurrent(new BuildCadenceMultiplier(value));
+    }
+
+    /**
+     * Push the spec's current value into the bare-JVM simulation.
+     *
+     * <p>Mirrors {@link #refreshMultiplier()} for the raid-cooldown knob.
+     * Called once on {@code FMLCommonSetupEvent} and again on every
+     * {@code ModConfigEvent.Reloading} so user edits in the GUI take
+     * effect on the next {@code RaidManager.tick} without a world
+     * reload. The wire site {@code RaidManager.tick(previousFire, gameTime)}
+     * reads {@link RaidConfig#current()} per call, so the live value is
+     * observed on the very next raid-cadence decision.
+     */
+    public static void refreshRaidConfig() {
+        RaidConfig.setCurrent(new RaidConfig(RAID_COOLDOWN_SECONDS.get()));
     }
 
     private BurgConfig() {}

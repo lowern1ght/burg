@@ -86,6 +86,47 @@ public final class StandingBook {
         return Collections.unmodifiableMap(entries);
     }
 
+    /**
+     * The highest standing score on the roll, or {@link Standing#DEFAULT}
+     * (zero) when the book is empty. The "best standing any citizen has
+     * earned" reading — used by {@code Town.hubMode()} for the act-4
+     * gate's third leg: the town crosses {@code BurgConfig.ACT_THRESHOLD}
+     * when at least one citizen's standing has. An empty book reads as
+     * zero, never as "absent" — the same additive discipline
+     * {@link #standingFor(CitizenId)} applies to a single citizen.
+     *
+     * <p>Single linear scan; the roll is sparse (a town with a few dozen
+     * citizens and a handful of non-zero entries is the steady state) so
+     * the O(N) cost is bounded and the per-call cache discipline
+     * {@link #standingFor(CitizenId)} uses is not worth duplicating here.
+     */
+    public int highestStanding() {
+        int max = Standing.DEFAULT;
+        for (Standing s : entries.values()) {
+            if (s.value() > max) max = s.value();
+        }
+        return max;
+    }
+
+    /**
+     * Static helper for the third leg of the act-4 hub-mode gate:
+     * {@code standing >= threshold}. Lives here (not on {@code Town}) so
+     * the bare-JVM test classpath can exercise it without constructing a
+     * {@code Town} (which references {@code net.minecraft.*} on its
+     * god-object fields and cannot be loaded by the bare-JVM test
+     * classpath). The {@code Town}-side {@code hubMode()} method
+     * delegates; this is the one truth.
+     *
+     * <p>The {@code int} standing parameter accepts the result of
+     * {@link #highestStanding()} (or any other standing reading — the
+     * helper is content-free about its source). The {@code double}
+     * threshold matches the {@code BurgConfig.ACT_THRESHOLD} spec's
+     * {@code DoubleValue} type.
+     */
+    public static boolean meetsActThreshold(int standing, double threshold) {
+        return standing >= threshold;
+    }
+
     /** Builds an empty book. */
     public static StandingBook empty() {
         return EMPTY;
