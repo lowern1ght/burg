@@ -4,6 +4,7 @@ import me.shedaniel.clothconfig2.api.ConfigBuilder;
 import me.shedaniel.clothconfig2.api.ConfigCategory;
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
 import me.shedaniel.clothconfig2.gui.entries.DoubleListEntry;
+import me.shedaniel.clothconfig2.gui.entries.IntegerListEntry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
@@ -84,6 +85,14 @@ public class OuatForgeClient {
      * {@link BurgConfig#refreshMultiplier()} (already wired to the
      * ModConfigEvent.Reloading listener in {@code OuatForge}) so the next
      * {@code DaySim.tickDay} sees the new value without a world reload.
+     *
+     * <p>ADR-0025 — three more knobs ship alongside the growth multiplier:
+     * {@link org.lowern1ght.burg.people.BuildCadenceMultiplier} (global
+     * cadence), {@link BurgConfig#RAID_COOLDOWN_SECONDS}, and
+     * {@link BurgConfig#ACT_THRESHOLD}. Each entry has its own
+     * {@code setSaveConsumer} that pushes the spec's value into the bare-JVM
+     * simulation; the Cloth Config entry is the editor and the spec is the
+     * single source of truth.
      */
     private static Screen buildConfigScreen(Screen parent) {
         ConfigBuilder builder = ConfigBuilder.create()
@@ -92,7 +101,7 @@ public class OuatForgeClient {
         ConfigEntryBuilder entryBuilder = builder.entryBuilder();
         ConfigCategory general = builder.getOrCreateCategory(Component.literal("general"));
 
-        DoubleListEntry entry = entryBuilder
+        DoubleListEntry growthEntry = entryBuilder
             .startDoubleField(
                 Component.literal("Villager Growth Multiplier"),
                 BurgConfig.VILLAGER_GROWTH_MULTIPLIER.get())
@@ -103,7 +112,45 @@ public class OuatForgeClient {
                 "Scales how quickly new villagers join established towns. 1.0 = default. Higher = faster growth."))
             .setSaveConsumer(BurgConfig::refreshMultiplier)
             .build();
-        general.addEntry(entry);
+        general.addEntry(growthEntry);
+
+        DoubleListEntry cadenceEntry = entryBuilder
+            .startDoubleField(
+                Component.literal("Build Cadence Multiplier"),
+                BurgConfig.BUILD_CADENCE_MULTIPLIER.get())
+            .setDefaultValue(org.lowern1ght.burg.people.BuildCadenceMultiplier.DEFAULT_VALUE)
+            .setMin(org.lowern1ght.burg.people.BuildCadenceMultiplier.MIN)
+            .setMax(org.lowern1ght.burg.people.BuildCadenceMultiplier.MAX)
+            .setTooltip(Component.literal(
+                "Scales how often placed buildings fire their production rule. "
+                    + "1.0 = default. Higher = faster production."))
+            .setSaveConsumer(BurgConfig::refreshBuildCadence)
+            .build();
+        general.addEntry(cadenceEntry);
+
+        IntegerListEntry raidEntry = entryBuilder
+            .startIntField(
+                Component.literal("Raid Cooldown (seconds)"),
+                BurgConfig.RAID_COOLDOWN_SECONDS.get())
+            .setDefaultValue(600)
+            .setMin(60)
+            .setMax(86_400)
+            .setTooltip(Component.literal(
+                "Cooldown between raids in seconds. Default 600 (10 minutes)."))
+            .build();
+        general.addEntry(raidEntry);
+
+        DoubleListEntry actEntry = entryBuilder
+            .startDoubleField(
+                Component.literal("Act Threshold (standing)"),
+                BurgConfig.ACT_THRESHOLD.get())
+            .setDefaultValue(50.0)
+            .setMin(0.0)
+            .setMax(100.0)
+            .setTooltip(Component.literal(
+                "Standing threshold the CONSTRUCTION -> SUPPLY transition fires at. Default 50."))
+            .build();
+        general.addEntry(actEntry);
 
         return builder.build();
     }
