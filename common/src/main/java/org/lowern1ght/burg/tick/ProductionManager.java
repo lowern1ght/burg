@@ -2,11 +2,15 @@ package org.lowern1ght.burg.tick;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.item.Item;
 import org.lowern1ght.burg.datapack.BuildingDataHandler;
 import org.lowern1ght.burg.datapack.SettlerJobsDataHandler;
 import org.lowern1ght.burg.domain.settlement.ProductionPlan;
 import org.lowern1ght.burg.domain.settlement.ProductionRule;
+import org.lowern1ght.burg.domain.settlement.StockLedger;
+import org.lowern1ght.burg.domain.settlement.TransformationRule;
 import org.lowern1ght.burg.domain.shared.ItemId;
 import org.lowern1ght.burg.network.NetworkHelper;
 import org.lowern1ght.burg.town.BuildingDef;
@@ -20,6 +24,7 @@ import org.lowern1ght.burg.town.TransformationRecipe;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -153,65 +158,216 @@ public class ProductionManager {
         return changed;
     }
 
+    /**
+     * Result of one transformer pass: the resulting budget ledger (kept pure
+     * for transparency / testing), per-rule fire counts, and the per-item
+     * total inputs the pass actually consumed (the wire the upstream write
+     * back to {@link TownInventory} uses).
+     *
+     * <p>Package-private, allocation-cheap (an immutable record + two maps
+     * only ever filled by the helper that produced this). Used only by
+     * {@link #tickTransformer} and its bare-JVM tests today; a future carve
+     * may fold this into {@code ProductionManager}'s public shape if
+     * {@code Town} starts producing passes for telemetry.
+     */
+    record TransformerBudgetPass(
+        StockLedger nextBudget,
+        Map<TransformationRule, Integer> appliedPerRule,
+        Map<ItemId, Integer> consumedPerItem
+    ) {}
+
     private static boolean tickTransformer(PlacedBuilding building, BuildingDef def, TownInventory inv) {
+        // The transformer pass has TWO halves, and this carve only rewires one:
+        //
+        //   BUDGET half — pure-domain. The multi-pass loop, the
+        //   per-input-ratio budget, the canApply/apply parity, and the
+        //   per-item consumed totals all live on a StockLedger now and run
+        //   through the domain TransformationRule. `runTransformerBudget`
+        //   below is the carved helper; its signature is bare-JVM
+        //   (List<TransformationRule>, StockLedger, int[]) so the contract
+        //   is testable without Minecraft, which the
+        //   `ProductionManagerTransformerTest` covers.
+        //
+        //   OUTPUT half — MC-typed. Each fired rule increments the
+        //   building's per-instance stock (`PlacedBuilding.stock`,
+        //   `building.forceAdd`), and the consumed totals drain back to the
+        //   town via `TownInventory.removeStock` with MC-typed ItemCost.
+        //   The per-instance cap is enforced by the `remaining` array
+        //   below; the writing path itself stays MC.
+        //
+        // The output half is deliberately not migrated here. Migrating it
+        // would mean either (a) redirecting the output into the town's
+        // reserve StockLedger instead of the per-building stock (a real
+        // behavioural change — the cap ceiling disappears), or (b) moving
+        // `PlacedBuilding.stock` itself to a domain ledger (out of scope
+        // for a budget-only carve). The act-5 follow-up owns the choice;
+        // this carve only proves the budget half can be route-tested on a
+        // bare JVM.
         int buildingLevel = building.getUpgradeLevel();
-        Map<net.minecraft.world.item.Item, Integer> budget = new HashMap<>();
+
+        Map<Item, Integer> budgetSourceByItem = new HashMap<>();
         for (TransformationRecipe recipe : def.transformations) {
             if (!recipe.isActive(buildingLevel)) continue;
             for (ItemCost input : recipe.inputs()) {
-                budget.computeIfAbsent(input.item(), item -> (int)(inv.getStock(item) * def.transformInputRatio));
+                budgetSourceByItem.computeIfAbsent(input.item(),
+                    item -> (int) (inv.getStock(item) * def.transformInputRatio));
             }
         }
+        Map<ItemId, Integer> budgetSource = new LinkedHashMap<>();
+        for (Map.Entry<Item, Integer> e : budgetSourceByItem.entrySet()) {
+            budgetSource.put(itemIdOf(e.getKey()), e.getValue());
+        }
+        StockLedger initialBudget = StockLedger.of(budgetSource);
 
-        Map<net.minecraft.world.item.Item, Integer> consumed = new HashMap<>();
-        boolean anyProduced = false;
-        boolean passProduced;
-        do {
-            passProduced = false;
-            for (TransformationRecipe recipe : def.transformations) {
-                if (!recipe.isActive(buildingLevel)) continue;
-                boolean canAfford = recipe.inputs().stream()
-                    .allMatch(input -> budget.getOrDefault(input.item(), 0) >= input.amount());
-                int currentOutput = building.getStock(recipe.outputItem());
-                if (!canAfford || currentOutput + recipe.outputAmount() > recipe.outputCapacityItems()) continue;
-                for (ItemCost input : recipe.inputs()) {
-                    budget.merge(input.item(), -input.amount(), Integer::sum);
-                    consumed.merge(input.item(), input.amount(), Integer::sum);
-                }
-                building.forceAdd(recipe.outputItem(), recipe.outputAmount());
-                passProduced = true;
-                anyProduced = true;
-            }
-        } while (passProduced);
+        // Pair each active recipe with its domain rule. The pair order
+        // (`activeRules` and `outputItems` share indices) lets `remaining`
+        // and the post-pass `forceAdd` loop both refer back to the right
+        // MC `Item` without going through `ItemId` again on the way out.
+        List<TransformationRule> activeRules = new ArrayList<>();
+        List<Item> outputItems = new ArrayList<>();
+        for (TransformationRecipe recipe : def.transformations) {
+            if (!recipe.isActive(buildingLevel)) continue;
+            activeRules.add(toDomainRule(recipe));
+            outputItems.add(recipe.outputItem());
+        }
+        int[] remaining = new int[activeRules.size()];
+        for (int i = 0; i < activeRules.size(); i++) {
+            TransformationRule r = activeRules.get(i);
+            int currentOutput = building.getStock(outputItems.get(i));
+            // Floored to >= 0 so a fully-capped rule just sits at zero
+            // rather than overflowing on the subtraction.
+            remaining[i] = Math.max(0, (r.outputCapacityItems() - currentOutput) / r.outputAmount());
+        }
 
-        if (!consumed.isEmpty()) {
+        TransformerBudgetPass pass = runTransformerBudget(activeRules, initialBudget, remaining);
+
+        // Apply outputs (legacy MC-typed sink: per-instance stock).
+        for (Map.Entry<TransformationRule, Integer> e : pass.appliedPerRule().entrySet()) {
+            int idx = activeRules.indexOf(e.getKey());
+            if (idx < 0 || e.getValue() <= 0) continue;
+            building.forceAdd(outputItems.get(idx),
+                activeRules.get(idx).outputAmount() * e.getValue());
+        }
+
+        if (!pass.consumedPerItem().isEmpty()) {
             List<ItemCost> costs = new ArrayList<>();
-            consumed.forEach((item, amount) -> costs.add(new ItemCost(item, amount)));
+            for (Map.Entry<ItemId, Integer> e : pass.consumedPerItem().entrySet()) {
+                costs.add(new ItemCost(itemOf(e.getKey()), e.getValue()));
+            }
             inv.removeStock(costs);
         }
 
-        return anyProduced;
+        int totalApplied = pass.appliedPerRule().values().stream().mapToInt(Integer::intValue).sum();
+        return totalApplied > 0;
     }
 
-    // TODO(act4-followup-1): route the transformer loop through the domain
-    // TransformationRule (domain/settlement/TransformationRule.java) once the
-    // budget and reserve-stock write paths are themselves domain-typed.
-    //
-    // The clean shape would be: pre-build one TransformationRule per active
-    // TransformationRecipe (Item → ItemId via BuiltInRegistries), snapshot the
-    // MC budget as a StockLedger (Item → ItemId translation), call
-    // rule.canApply(snapshot) for the affordance pre-check, and use
-    // rule.inputTotals() for the multi-pass budget drain. The output side
-    // stays a `building.forceAdd` call — rule.apply(stock) puts the output
-    // into StockLedger (reserve), but the legacy behaviour adds the output
-    // to PlacedBuilding.stock (a per-instance cap, not a reserve value), so
-    // the rewrite would have to also redirect the output. That's a real
-    // behavioural change, not a refactor.
-    //
-    // Today the MC-typed path here works correctly: the multi-pass loop,
-    // the per-input-ratio budget, the per-building output capacity, and the
-    // final `inv.removeStock` are all wired and tested through the existing
-    // transformer datapacks. Leaving this carve for the future follow-up so
-    // the wiring lands in one focused PR with the behavioural change
-    // spelled out, not bolted onto a no-op refactor.
+    /**
+     * Pure-domain transformer pass: for each rule whose per-tick capacity
+     * has not been used up and whose {@link TransformationRule#inputTotals()
+     * input totals} the current {@code budget} covers, drain the inputs
+     * (via {@link TransformationRule#apply(StockLedger)}) and credit the
+     * count. The loop iterates until a full pass yields no applies — the
+     * exact multi-pass shape the legacy MC loop had, only on a
+     * {@code StockLedger} instead of a {@code Map<Item, Integer>}.
+     *
+     * <p><b>The pre-check uses {@code inputTotals()}, not
+     * {@code canApply()}.</b> {@code canApply} walks the rule's input lines
+     * one at a time and returns {@code true} when each line is covered
+     * individually, even for a rule with duplicate lines for the same item
+     * whose sum the budget can't cover; {@code apply} drains sequentially
+     * and would throw {@code IllegalStateException} on the second drain.
+     * {@link TransformationRuleMutationTest} pins that known gap. The
+     * summed view {@code inputTotals()} restores parity and is what this
+     * helper uses as the pre-check, so {@code apply} only runs when it is
+     * guaranteed not to throw.
+     *
+     * <p>Package-private so the bare-JVM test in this package can drive it
+     * directly with constructed rules and a {@link StockLedger} budget —
+     * the seam between the MC-typed {@code tickTransformer} shell and the
+     * pure-domain budget half.
+     */
+    static TransformerBudgetPass runTransformerBudget(
+        List<TransformationRule> rules,
+        StockLedger initialBudget,
+        int[] remainingFiresPerRule
+    ) {
+        if (rules.size() != remainingFiresPerRule.length) {
+            throw new IllegalArgumentException(
+                "rules.size() must equal remainingFiresPerRule.length ("
+                    + rules.size() + " vs " + remainingFiresPerRule.length + ")");
+        }
+        StockLedger budget = initialBudget;
+        Map<TransformationRule, Integer> appliedPerRule = new LinkedHashMap<>();
+        Map<ItemId, Integer> consumedPerItem = new LinkedHashMap<>();
+        boolean passProduced;
+        do {
+            passProduced = false;
+            for (int i = 0; i < rules.size(); i++) {
+                TransformationRule rule = rules.get(i);
+                int appliedSoFar = appliedPerRule.getOrDefault(rule, 0);
+                if (appliedSoFar >= remainingFiresPerRule[i]) continue;
+
+                // Per-item sum pre-check — see the javadoc on the
+                // duplicate-line gap above.
+                Map<ItemId, Integer> totals = rule.inputTotals();
+                boolean budgetOk = true;
+                for (Map.Entry<ItemId, Integer> t : totals.entrySet()) {
+                    if (budget.get(t.getKey()) < t.getValue()) {
+                        budgetOk = false;
+                        break;
+                    }
+                }
+                if (!budgetOk) continue;
+
+                budget = rule.apply(budget);
+                appliedPerRule.merge(rule, 1, Integer::sum);
+                for (Map.Entry<ItemId, Integer> t : totals.entrySet()) {
+                    consumedPerItem.merge(t.getKey(), t.getValue(), Integer::sum);
+                }
+                passProduced = true;
+            }
+        } while (passProduced);
+        return new TransformerBudgetPass(budget, appliedPerRule, consumedPerItem);
+    }
+
+    /**
+     * Translates a Minecraft {@code Item} into its domain {@link ItemId}
+     * using the registry key the {@code Town} facade already uses for
+     * {@code reserveStock} NBT round-tripping. Package-private so the
+     * direct-from-domain test path can convert rules back if it ever
+     * needs to; today only the {@link #tickTransformer} shell reaches
+     * into MC.
+     */
+    static ItemId itemIdOf(Item item) {
+        return ItemId.of(BuiltInRegistries.ITEM.getKey(item).toString());
+    }
+
+    /**
+     * Reverse translation from domain {@link ItemId} back to the MC
+     * {@code Item} used by {@link TownInventory#removeStock}. Used only on
+     * the way out of the budget pass; bare-JVM tests do not touch this
+     * path. {@code BuiltInRegistries.ITEM.get} accepts the canonical
+     * {@code "namespace:path"} form {@link ItemId#value} carries.
+     */
+    private static Item itemOf(ItemId id) {
+        return BuiltInRegistries.ITEM.get(ResourceLocation.parse(id.value()));
+    }
+
+    /**
+     * Builds a domain {@link TransformationRule} from the MC-typed
+     * recipe. Same shape — list of {@code StockCost}, output, amount, cap.
+     * Package-private so the seam is verifiable from tests if we ever
+     * grow one; today the only consumer is {@link #tickTransformer}.
+     */
+    static TransformationRule toDomainRule(TransformationRecipe recipe) {
+        List<TransformationRule.StockCost> inputs = new ArrayList<>(recipe.inputs().size());
+        for (ItemCost ic : recipe.inputs()) {
+            inputs.add(new TransformationRule.StockCost(itemIdOf(ic.item()), ic.amount()));
+        }
+        return new TransformationRule(
+            inputs,
+            itemIdOf(recipe.outputItem()),
+            recipe.outputAmount(),
+            recipe.outputCapacityItems());
+    }
 }
