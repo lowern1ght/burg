@@ -1059,29 +1059,101 @@ public class Town implements BuildExecutor {
      * {@code hub-becomes-window} spec names: {@code core_populated},
      * {@code industry_zoned}, {@code road_laid}.
      *
-     * <p><b>Permissive default.</b> Today the underlying fields are not
-     * modeled on {@code Town} — there is no zoning layer yet, no road
-     * graph keyed by town, no "every footprint inside the core radius is
-     * occupied" walk. So this method returns
-     * {@code StructuralFlags.of(true, true, true)} (the structural triple
-     * is fully satisfied). The predicate stays non-zero and the existing
-     * SUPPLY transition keeps firing; the act-4 PR is not the moment to
-     * break the wire. When the underlying fields land, this method
-     * flips to {@code StructuralFlags.of(corePopulated, industryZoned,
-     * roadLaid)} derived from real state and the act-4 gate gets its
-     * teeth.
+     * <p><b>Per-flag status (act-4 follow-up-2 carve):</b>
+     * <ul>
+     *   <li><b>core_populated</b> — REAL derivation. Walks every XZ
+     *       cell inside the 32-block core radius (mirroring
+     *       {@link Zone#CORE} from {@link #zoneOf(BlockPos)}) and
+     *       verifies each is covered by at least one placed
+     *       building's bounding box. The 32-block radius is the
+     *       existing zoneOf constant — no new field is fabricated
+     *       on {@code Town} for this purpose. Returns false for an
+     *       empty town (no anchor / no buildings) and for any town
+     *       whose core is not yet fully built out.</li>
+     *   <li><b>industry_zoned</b> — PERMISSIVE default. There is no
+     *       zoning layer on {@code Town} today (the zoning concept
+     *       lives on per-position queries via {@link #zoneOf}; an
+     *       industry-cell-set accumulator is a future carve).
+     *       TODO(act4-followup-2): read from a {@code Map<Zone,
+     *       Integer> zoning} field once the zoning layer lands.</li>
+     *   <li><b>road_laid</b> — PERMISSIVE default. There is no
+     *       per-town road-graph field on {@code Town} today
+     *       ({@code RoadGraph} is keyed by Town externally; the
+     *       town does not hold a back-reference). TODO(act4-followup-2):
+     *       read from a {@code List<RoadSegment> plannedRoads}
+     *       field once the road graph is promoted to a per-town
+     *       field.</li>
+     * </ul>
      *
-     * <p>Cheap today (one factory call returning a referentially-stable
-     * {@link StructuralFlags#NONE}-collapsed or fresh record). The
-     * cached-field discipline {@link #constructionQueueDomain} uses is
-     * reserved for the future carve where this method stops being
-     * free.
+     * <p><b>Permissive net behaviour.</b> With two of the three
+     * flags defaulting to true, a town with empty core coverage
+     * still produces a flag-set with {@link StructuralFlags#isAnySet()}
+     * returning true (the partial shape {@code of(false, true, true)}).
+     * The act-4 gate fires for the partial as long as acquisition is
+     * right; the act-4 PR is not the moment to break the wire.
+     *
+     * <p>The cached-field discipline {@link #constructionQueueDomain}
+     * uses is reserved for the future carve where this method stops
+     * being free (today the {@code core_populated} walk is
+     * user-initiated via {@link #hubMode()} on anchor right-click, so
+     * the O(R²) cost is bounded).
      */
     public StructuralFlags structuralFlags() {
-        // Permissive: roads / zoning layers not yet modeled on Town.
-        // See the Javadoc above and the "hub-becomes-window" tasks.md
-        // §1.2 / §1.3 for the residual gaps.
-        return StructuralFlags.of(true, true, true);
+        return StructuralFlags.of(corePopulated(), true, true);
+    }
+
+    /**
+     * Real derivation for {@link StructuralFlags#corePopulated()}: walks
+     * every XZ cell inside the 32-block core radius (the same constant
+     * {@link #zoneOf(BlockPos)} uses for {@link Zone#CORE}) and verifies
+     * each is covered by at least one placed building's bounding box.
+     *
+     * <p>Returns false for an empty town (no buildings, or buildings
+     * whose {@link PlacedBuilding#bb} is {@code null} — pre-BB saves).
+     * Returns true only when every cell of the core radius is
+     * covered by at least one building with a non-null bb.
+     *
+     * <p>The 32-block radius is hard-coded to match {@link Zone#CORE};
+     * we deliberately do not add a per-town radius field — that would
+     * fabricate state the spec specifically asked us not to. If a
+     * per-town radius ever lands, the constant moves to the new
+     * field.
+     */
+    private static final int CORE_RADIUS_BLOCKS = 32;
+
+    boolean corePopulated() {
+        if (buildings.isEmpty()) return false;
+        BlockPos anchor = getAnchorPos();
+        long rSq = (long) CORE_RADIUS_BLOCKS * CORE_RADIUS_BLOCKS;
+        for (int dx = -CORE_RADIUS_BLOCKS; dx <= CORE_RADIUS_BLOCKS; dx++) {
+            for (int dz = -CORE_RADIUS_BLOCKS; dz <= CORE_RADIUS_BLOCKS; dz++) {
+                if ((long) dx * dx + (long) dz * dz > rSq) continue;   // outside the circle
+                int wx = anchor.getX() + dx;
+                int wz = anchor.getZ() + dz;
+                if (!cellCoveredByBuilding(wx, wz)) return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * True iff at least one placed building's bounding box covers the
+     * (worldX, worldZ) cell. Buildings without a bounding box (saves
+     * predating {@link PlacedBuilding#bb} tracking) contribute nothing
+     * — they neither help nor hinder coverage. The walk's correctness
+     * depends on at least one building having a non-null bb; if none do,
+     * the walk fails closed (returns false for every cell).
+     */
+    private boolean cellCoveredByBuilding(int worldX, int worldZ) {
+        for (PlacedBuilding b : buildings) {
+            BoundingBox bb = b.bb;
+            if (bb == null) continue;
+            if (bb.minX() <= worldX && worldX <= bb.maxX()
+                && bb.minZ() <= worldZ && worldZ <= bb.maxZ()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // -------------------------------------------------------------------------
