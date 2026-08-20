@@ -13,6 +13,7 @@ import org.lowern1ght.burg.domain.shared.ItemId;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class PlacedBuilding {
     public final String defId;
@@ -43,16 +44,19 @@ public class PlacedBuilding {
         this.rotation = rotation;
     }
 
-    // Called by TickScheduler - respects the per-item capacity cap
+    // Called by TickScheduler - the per-instance output cap is gone
+    // (ADR-0024 candidate). Per-instance output now accumulates indefinitely
+    // until TownInventory removes it; the cap is a gameplay knob the user
+    // can re-introduce via Cloth Config if unbounded output becomes a
+    // balance issue. The shape of the legacy write-through
+    // (ledger-first, then the MC map) matches {@link #forceAdd}.
     public void produce(ProductionEntry entry) {
         ItemId id = ItemId.parseOrEmpty(BuiltInRegistries.ITEM.getKey(entry.item()).toString());
         int current = outputLedger.get(id);
-        if (current < entry.capacityItems()) {
-            int add = Math.min(entry.amount(), entry.capacityItems() - current);
-            if (add > 0) {
-                outputLedger = outputLedger.add(id, add);
-                stock.put(entry.item(), current + add);
-            }
+        int add = Math.min(entry.amount(), Integer.MAX_VALUE - current);
+        if (add > 0) {
+            outputLedger = outputLedger.add(id, add);
+            stock.put(entry.item(), current + add);
         }
     }
 
@@ -68,18 +72,74 @@ public class PlacedBuilding {
         return taken;
     }
 
-    // Called by Town.addStock() (player command) - bypasses capacity cap intentionally.
-    // Also used by ProductionManager.tickTransformer's write-through to the
-    // legacy MC stock map; the transformer pass now accumulates into
-    // {@link #outputLedger} first (see applyTransformerOutputs) and routes
-    // its MC write through this method so the ledger and the map stay in
-    // lockstep. Ledger first, MC write-through — the discipline
+    // Called by Town.addStock() (player command) and by
+    // ProductionManager.tickTransformer's write-through to the
+    // legacy MC stock map. The per-instance output cap is gone
+    // (ADR-0024 candidate); the transformer's per-rule cap is also
+    // gone (PR #46 carve). Both paths accumulate into
+    // {@link #outputLedger} first (the source of truth) and then
+    // mirror into the legacy {@code Map<Item, Integer>} stock map
+    // (the visual side: TownInventory, HUD, town-hub stock list).
+    // Ledger first, MC write-through — the discipline
     // Town.stockLedger reserves for its mirror.
     public void forceAdd(Item item, int quantity) {
         if (quantity <= 0) return;
         ItemId id = ItemId.parseOrEmpty(BuiltInRegistries.ITEM.getKey(item).toString());
         outputLedger = outputLedger.add(id, quantity);
         stock.merge(item, quantity, Integer::sum);
+    }
+
+    /**
+     * Wire-side helper for the {@link StockLedger} → {@code Map<Item, Integer>}
+     * apply path. The instance method ({@link #outputLedger()}) returns the
+     * SoT directly; this static helper is the bridge a serialiser / NBT
+     * writer / test fixture uses to (re)build an MC-typed target map from
+     * a wire-format ledger without constructing a {@code PlacedBuilding}
+     * (which would require a Minecraft world) and without paying for the
+     * ledger-write side.
+     *
+     * <p>Same edge discipline as the mirror {@link Town#applyStockToReserve}:
+     * the target map is cleared before the merge, zero and negative
+     * quantities drop silently at the wire (no entry survives on the
+     * target), unparseable {@link ItemId}s and unregistered {@link Item}s
+     * bump the skipped counter, and duplicate wire entries sum onto the
+     * existing quantity via {@link Map#merge}.
+     *
+     * <p>Static, no {@code this}-state — the carve that exposes the
+     * helper also wants callers that batch across multiple buildings
+     * (e.g. a future sync-from-server pass) to reach the same clear-and-merge
+     * body without instantiating one {@code PlacedBuilding} per building.
+     *
+     * @param wire   the source-of-truth ledger (read-only; not mutated)
+     * @param target the MC-typed view the helper populates (cleared first)
+     * @return the number of dropped entries: unparseable ItemIds + unregistered
+     *         Items + zero/negative quantities. A caller that wires a brand-new
+     *         target from a possibly-dirty wire can surface the partial-apply
+     *         count to a log line or chat warning.
+     */
+    public static int applyOutputToLedger(StockLedger wire, Map<Item, Integer> target) {
+        Objects.requireNonNull(wire, "wire");
+        Objects.requireNonNull(target, "target");
+        target.clear();
+        int skipped = 0;
+        for (Map.Entry<ItemId, Integer> e : wire.entries().entrySet()) {
+            if (e.getValue() == null || e.getValue() <= 0) {
+                // drop zero/negative quantities silently — same edge discipline as StockLedger.of
+                continue;
+            }
+            ResourceLocation rl = ResourceLocation.tryParse(e.getKey().value());
+            if (rl == null) {
+                skipped++;
+                continue;
+            }
+            Item item = BuiltInRegistries.ITEM.get(rl);
+            if (item == null) {
+                skipped++;
+                continue;
+            }
+            target.merge(item, e.getValue(), Integer::sum);
+        }
+        return skipped;
     }
 
     public int getStock(Item item) { return stock.getOrDefault(item, 0); }
