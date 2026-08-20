@@ -222,6 +222,7 @@ public class OuatForge {
         // keeps it in sync after every edit.
         BurgConfig.refreshMultiplier();
         BurgConfig.refreshBuildCadence();
+        BurgConfig.refreshRaidConfig();
     }
 
     /**
@@ -235,6 +236,7 @@ public class OuatForge {
         if (event.getConfig().getSpec() != BurgConfig.SPEC) return;
         BurgConfig.refreshMultiplier();
         BurgConfig.refreshBuildCadence();
+        BurgConfig.refreshRaidConfig();
     }
 
     /**

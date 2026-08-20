@@ -24,16 +24,16 @@ package org.lowern1ght.burg.domain.settlement;
  * and tightens to {@link #isComplete()} once the underlying fields (roads,
  * zoning layers) land on {@code Town}.
  *
- * <p><b>Permissive default.</b> The flag-set is value-only — it does not
- * know what the underlying fields look like. {@link Town#structuralFlags()}
- * is the read-side adapter: today it returns
- * {@code StructuralFlags.of(true, true, true)} because the road / zoning
- * state is not yet modeled on {@code Town}, and the structural predicate
- * must stay non-zero for the existing SUPPLY transition to keep firing
- * (the act-4 hand-off is not the moment to break the wire). When the
- * underlying fields land, {@code Town#structuralFlags()} flips to
- * {@code StructuralFlags.of(corePopulated, industryZoned, roadLaid)} and
- * the act-4 gate gets its teeth.
+ * <p><b>Strict derivation wired.</b> {@link Town#structuralFlags()} is
+ * the read-side adapter: it returns
+ * {@code StructuralFlags.of(corePopulated, industryZoned, roadLaid)}
+ * where {@code industryZoned} is {@code !zoningCount.isEmpty()} and
+ * {@code roadLaid} is {@code !plannedRoads.isEmpty()}. Both fields
+ * start empty on every fresh save, so the strict derivation collapses
+ * to {@link StructuralFlags#NONE} regardless of acquisition — the
+ * act-4 follow-up was working toward this strict form, and the act-5
+ * zoning / road-planner carves are the ones that populate the fields
+ * and give the gate its teeth.
  *
  * <p>No Minecraft imports. The record is a domain value object in the same
  * Minecraft-free lineage {@link Acquisition}, {@link HubMode}, and

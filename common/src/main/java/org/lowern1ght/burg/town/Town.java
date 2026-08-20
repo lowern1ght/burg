@@ -43,6 +43,7 @@ import org.lowern1ght.burg.domain.settlement.vanilla.VanillaHouseFootprint;
 import org.lowern1ght.burg.domain.shared.CitizenId;
 import org.lowern1ght.burg.domain.shared.ItemId;
 import org.lowern1ght.burg.entity.citizen.Citizens;
+import org.lowern1ght.burg.infrastructure.config.BurgConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1061,24 +1062,24 @@ public class Town implements BuildExecutor {
     // The hub now answers two questions: which mode is this town in
     // (CONSTRUCTION for acts 0–3, SUPPLY for act 4+), and what view of the
     // town does that mode show. The mode is *derived* from acquisition +
-    // structural-flag state at read time — there is no persisted field, no
-    // migration, and no NBT key. Worlds saved before this change load
-    // unchanged: a town with FREE / CAPTURED acquisition or an empty
-    // structural flag-set reads as HubView.EMPTY (mode = CONSTRUCTION),
-    // which is exactly what today's command-console hub already renders.
+    // structural-flag state + standing-at-read-time at read time — there
+    // is no persisted field, no migration, and no NBT key. Worlds saved
+    // before this change load unchanged: a town with FREE / CAPTURED
+    // acquisition, an empty structural flag-set, or a highest standing
+    // below {@code BurgConfig.ACT_THRESHOLD} reads as HubView.EMPTY
+    // (mode = CONSTRUCTION), which is exactly what today's command-console
+    // hub already renders.
     //
-    // The act-4 gate is now a real two-leg predicate. The first leg is
-    // acquisition: ELEVATED or FOUNDED ⇒ standing is established, the town
-    // trusts a chief. The second leg is the structural triple
-    // (core_populated | industry_zoned | road_laid); today
-    // {@link #structuralFlags()} returns the permissive all-true value
-    // because the underlying road / zoning state is not yet modeled on
-    // {@code Town}, and the gate must stay non-zero for the existing
-    // SUPPLY transition to keep firing. Once those fields land,
-    // {@code structuralFlags()} derives the flags from real state and the
-    // gate gets its teeth (the act-4 PR is not the moment to break the
-    // wire). Cached-field discipline stays reserved for that future carve;
-    // today the work is free so the per-call cost is negligible.
+    // The act-4 gate is now a real three-leg predicate:
+    //   (1) acquisition: ELEVATED or FOUNDED ⇒ standing is established;
+    //   (2) structural triple (core_populated | industry_zoned | road_laid);
+    //   (3) standing-at-read-time: at least one citizen's standing has
+    //       crossed {@code BurgConfig.ACT_THRESHOLD} (default 50).
+    // Today {@link #structuralFlags()} reads the stub fields
+    // ({@link #zoningCount} and {@link #plannedRoads}); both start empty
+    // so the strict derivation returns NONE on every fresh save, gating
+    // the hub to CONSTRUCTION regardless of acquisition — the act-5 carve
+    // populates the stub fields and the gate gets its teeth.
     //
     // `TownAnchorBlock.useWithoutItem` is the only consumer right now: it
     // logs the mode at right-click. The TownHubScreen widget set is
@@ -1090,23 +1091,41 @@ public class Town implements BuildExecutor {
 
     /**
      * Returns the hub's current mode for this town. Derived per call from
-     * {@link #getAcquisition()} (FREE / CAPTURED ⇒ CONSTRUCTION;
-     * ELEVATED or FOUNDED ⇒ second leg) and {@link #structuralFlags()}
-     * (any flag set ⇒ SUPPLY-eligible; {@link StructuralFlags#NONE} ⇒
-     * CONSTRUCTION). The structural side is the act-4 trigger from
+     * three legs (acquisition + structural-flag state + standing threshold)
+     * all AND-ed together — see the ADR-0019 comment block above for the
+     * full rationale. The act-4 trigger from
      * {@code openspec/changes/hub-becomes-window/specs/construction-mode-supply-mode
      * §"Requirement: structural predicate is three conditions AND-ed"}.
      *
      * <p>Additive default for any town that doesn't satisfy the SUPPLY
      * precondition is {@link HubMode#CONSTRUCTION}, which is what the
      * legacy {@code TownHubScreen} already renders.
+     *
+     * <p>The third leg ({@code highestStanding() >= ACT_THRESHOLD}) is the
+     * {@link BurgConfig#ACT_THRESHOLD} Cloth Config knob's only reader.
+     * Read live at call time so a slider edit takes effect on the next
+     * right-click without a world reload.
      */
     public HubMode hubMode() {
         Acquisition a = getAcquisition();
-        if (a != Acquisition.FREE && structuralFlags().isAnySet()) {
+        if (a != Acquisition.FREE
+            && structuralFlags().isAnySet()
+            && StandingBook.meetsActThreshold(highestStanding(), BurgConfig.ACT_THRESHOLD.get())) {
             return HubMode.SUPPLY;
         }
         return HubMode.CONSTRUCTION;
+    }
+
+    /**
+     * The third leg of the {@link #hubMode()} predicate: returns the
+     * highest standing score any citizen on this town's roll has earned
+     * (delegates to {@link StandingBook#highestStanding()}), or
+     * {@link Standing#DEFAULT} (zero) when the book is empty. Public so
+     * the {@code TownCommand} and the {@code TownHubDataBuilder} S2C
+     * packet can read it without going through the full mode predicate.
+     */
+    public int highestStanding() {
+        return standingBook.highestStanding();
     }
 
     /**
@@ -1126,7 +1145,7 @@ public class Town implements BuildExecutor {
      * {@code hub-becomes-window} spec names: {@code core_populated},
      * {@code industry_zoned}, {@code road_laid}.
      *
-     * <p><b>Per-flag status (act-4 follow-up-2 carve, ADR-0026):</b>
+     * <p><b>Per-flag status (act-4 follow-up-2 + config-and-structural carves):</b>
      * <ul>
      *   <li><b>core_populated</b> — REAL derivation. Walks every XZ
      *       cell inside the 32-block core radius (mirroring
@@ -1139,8 +1158,9 @@ public class Town implements BuildExecutor {
      *       whose core is not yet fully built out.</li>
      *   <li><b>industry_zoned</b> — REAL derivation. Reads from
      *       {@link #zoningCount} — a per-town count by zone — and
-     *       returns {@code true} iff {@code INDUSTRY} has a positive
-     *       entry. Today the field starts empty so this returns
+     *       returns {@code true} iff the map is non-empty (the spec
+     *       asks "has the zoning layer touched this town", regardless
+     *       of which zone). Today the field starts empty so this returns
      *       {@code false} for every town. The act-5 zoning carve
      *       populates it; the gate then gets its teeth without a
      *       follow-up read-site refactor. (TODO(act-5 carve): wire
@@ -1160,22 +1180,11 @@ public class Town implements BuildExecutor {
      * every pre-act-5 town. That collapses the structural triple to
      * {@code of(false, false, false)} = {@link StructuralFlags#NONE},
      * which gates the hub to {@link HubMode#CONSTRUCTION} regardless of
-     * acquisition — exactly the behavior the act-4 follow-up was
-     * <em>avoiding</em> when the structural fields were hard-coded to
-     * all-true.
-     *
-     * <p><b>Compromise: today's world must still flip the gate.</b>
-     * The act-4 PR is not the moment to break the wire, so the
-     * factory below folds the strict-derivation result into the
-     * permissive "empty means permissive" rule:
-     * {@code of(corePopulated, false, false)} → the all-zero
-     * {@link StructuralFlags#NONE} on a town whose core isn't built
-     * out; {@code of(true, false, false)} → the partial
-     * {@link StructuralFlags#isAnySet()}-true on a town whose core is
-     * built out (the per-flag second leg of the gate is met even
-     * without zoning or roads). The flip to the strict form
-     * ({@link StructuralFlags#isComplete()}) is the act-5 carve's
-     * job.
+     * acquisition — exactly the strict form the act-4 follow-up was
+     * working toward. Stub fields exist on {@code Town} but the engine
+     * tick does not yet populate them; this carve wires the derivations
+     * to the empty fields so the strict form kicks in as soon as the
+     * act-5 zoning / road-planner carves land.
      *
      * <p>The immutable-value-object discipline {@link #constructionQueue}
      * uses (ADR-0027) is reserved for the future carve where this method
@@ -1216,11 +1225,12 @@ public class Town implements BuildExecutor {
     // the act-5 carve populates them; no future refactor of the read
     // site is needed.
     //
-    // Permissive default behaviour is preserved: both maps/lists start
-    // empty, so {@code industryZoned()} and {@code roadLaid()} return
-    // {@code false} (which then flip back to {@code true} at the gate via
-    // the carve's "empty means permissive" fallback — see
-    // {@link #structuralFlags()}).
+    // Strict derivation is now wired: both maps/lists start empty, so
+    // {@code industryZoned()} and {@code roadLaid()} return {@code false}
+    // on every fresh save, and {@code structuralFlags()} collapses to
+    // {@link StructuralFlags#NONE} regardless of acquisition. The act-5
+    // zoning / road-planner carves populate the fields and the gate gets
+    // its teeth automatically.
     // -------------------------------------------------------------------------
 
     /**
@@ -1255,16 +1265,18 @@ public class Town implements BuildExecutor {
 
     /**
      * Strict derivation for {@link StructuralFlags#industryZoned()}: true
-     * iff the per-zone count has a positive INDUSTRY entry. Returns
-     * {@code false} for an empty map — today, always.
+     * iff the per-zone count has any entry. Returns {@code false} for an
+     * empty map — today, always (the act-5 zoning carve populates it).
      *
-     * <p>The act-5 carve makes this non-trivial: the zoning layer increments
-     * {@code INDUSTRY} as buildings land outside the core radius, and
-     * the flag flips on its own without a config gate.
+     * <p>Map emptiness, not the {@code INDUSTRY}-specific entry: the spec
+     * asks whether any zoning decision has been made, regardless of zone,
+     * because the structural flag-set's job is to record "has the zoning
+     * layer touched this town". The act-5 carve decides whether the
+     * INDUSTRY entry is what gets populated first; the gate only cares
+     * that something landed.
      */
     boolean industryZoned() {
-        Integer count = zoningCount.get(Zone.INDUSTRY);
-        return count != null && count > 0;
+        return !zoningCount.isEmpty();
     }
 
     /**
