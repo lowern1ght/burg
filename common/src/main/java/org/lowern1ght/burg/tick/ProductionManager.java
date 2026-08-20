@@ -177,7 +177,7 @@ public class ProductionManager {
     ) {}
 
     private static boolean tickTransformer(PlacedBuilding building, BuildingDef def, TownInventory inv) {
-        // The transformer pass has TWO halves, and this carve only rewires one:
+        // The transformer pass has THREE concerns and this carve rewires all of them:
         //
         //   BUDGET half — pure-domain. The multi-pass loop, the
         //   per-input-ratio budget, the canApply/apply parity, and the
@@ -188,21 +188,28 @@ public class ProductionManager {
         //   is testable without Minecraft, which the
         //   `ProductionManagerTransformerTest` covers.
         //
-        //   OUTPUT half — MC-typed. Each fired rule increments the
-        //   building's per-instance stock (`PlacedBuilding.stock`,
-        //   `building.forceAdd`), and the consumed totals drain back to the
-        //   town via `TownInventory.removeStock` with MC-typed ItemCost.
-        //   The per-instance cap is enforced by the `remaining` array
-        //   below; the writing path itself stays MC.
+        //   OUTPUT half — pure-domain accumulator + MC write-through. The
+        //   accumulator (`applyTransformerOutputs` below) folds every fired
+        //   rule's `outputAmount * fires` into a per-instance
+        //   {@link StockLedger}; the MC `building.forceAdd` call is now a
+        //   write-through to the legacy `Map<Item, Integer>` stock map for
+        //   the visual side (TownInventory, HUD, hub stock list). The
+        //   ledger is the new source of truth; the MC map is the mirror.
         //
-        // The output half is deliberately not migrated here. Migrating it
-        // would mean either (a) redirecting the output into the town's
-        // reserve StockLedger instead of the per-building stock (a real
-        // behavioural change — the cap ceiling disappears), or (b) moving
-        // `PlacedBuilding.stock` itself to a domain ledger (out of scope
-        // for a budget-only carve). The act-5 follow-up owns the choice;
-        // this carve only proves the budget half can be route-tested on a
-        // bare JVM.
+        //   PER-ITEM CAP ceiling — REMOVED. The old
+        //   `(outputCapacityItems - currentOutput) / outputAmount`
+        //   ceiling that capped the per-tick fires is gone: the budget
+        //   ledger is now the only ceiling. Behaviour change: a single
+        //   fully-funded tick can drain an arbitrarily large input reserve
+        //   into the per-instance output stock; the output side has no
+        //   cap. The MC map is updated in lockstep with the ledger (the
+        //   `forceAdd` rewrite on PlacedBuilding keeps them in sync), so
+        //   the visual side is consistent. The TownInventory.removeStock
+        //   path still drains the per-instance stock on the way out; a
+        //   workshop that never gets drained can accumulate indefinitely.
+        //   This is the act-4 follow-up-1 carve; the act-5 follow-up may
+        //   add a cap back at the town level if unbounded output becomes
+        //   a balance issue. ADR-0024 (pending) will document.
         int buildingLevel = building.getUpgradeLevel();
 
         Map<Item, Integer> budgetSourceByItem = new HashMap<>();
@@ -220,9 +227,10 @@ public class ProductionManager {
         StockLedger initialBudget = StockLedger.of(budgetSource);
 
         // Pair each active recipe with its domain rule. The pair order
-        // (`activeRules` and `outputItems` share indices) lets `remaining`
-        // and the post-pass `forceAdd` loop both refer back to the right
-        // MC `Item` without going through `ItemId` again on the way out.
+        // (`activeRules` and `outputItems` share indices) lets the
+        // budget pass and the post-pass `forceAdd` loop both refer back
+        // to the right MC `Item` without going through `ItemId` again on
+        // the way out.
         List<TransformationRule> activeRules = new ArrayList<>();
         List<Item> outputItems = new ArrayList<>();
         for (TransformationRecipe recipe : def.transformations) {
@@ -230,18 +238,27 @@ public class ProductionManager {
             activeRules.add(toDomainRule(recipe));
             outputItems.add(recipe.outputItem());
         }
+        // Per-tick ceiling removed: every rule is allowed to fire as many
+        // times as the budget covers (Integer.MAX_VALUE means
+        // `runTransformerBudget`'s `appliedSoFar >= remainingFiresPerRule[i]`
+        // check never trips). The MC write-through to per-instance stock
+        // accumulates indefinitely until TownInventory.removeStock drains
+        // it. See the carve notes above.
         int[] remaining = new int[activeRules.size()];
         for (int i = 0; i < activeRules.size(); i++) {
-            TransformationRule r = activeRules.get(i);
-            int currentOutput = building.getStock(outputItems.get(i));
-            // Floored to >= 0 so a fully-capped rule just sits at zero
-            // rather than overflowing on the subtraction.
-            remaining[i] = Math.max(0, (r.outputCapacityItems() - currentOutput) / r.outputAmount());
+            remaining[i] = Integer.MAX_VALUE;
         }
 
         TransformerBudgetPass pass = runTransformerBudget(activeRules, initialBudget, remaining);
 
-        // Apply outputs (legacy MC-typed sink: per-instance stock).
+        // Apply outputs. The per-instance StockLedger accumulator
+        // (pure-domain helper) is the bare-JVM contract for the
+        // arithmetic — pinned in ProductionManagerTransformerTest. The
+        // production path is `building.forceAdd`, which now updates both
+        // the new StockLedger (the source of truth) and the legacy MC
+        // stock map (the visual mirror) in one call. The two paths agree
+        // by construction: both produce the same final state from the
+        // same budget pass.
         for (Map.Entry<TransformationRule, Integer> e : pass.appliedPerRule().entrySet()) {
             int idx = activeRules.indexOf(e.getKey());
             if (idx < 0 || e.getValue() <= 0) continue;
@@ -328,6 +345,52 @@ public class ProductionManager {
             }
         } while (passProduced);
         return new TransformerBudgetPass(budget, appliedPerRule, consumedPerItem);
+    }
+
+    /**
+     * Pure-domain output accumulator: folds the {@link TransformerBudgetPass}
+     * into a per-instance {@link StockLedger}. Each fired rule adds
+     * {@code outputAmount * fires} to the ledger for the rule's output
+     * {@link ItemId}. The accumulator never drops entries (StockLedger's
+     * sparse discipline applies: a zero-qty entry is dropped, a positive
+     * one is kept).
+     *
+     * <p>This helper is the bare-JVM contract for the output half of the
+     * transformer pass — same role {@link #runTransformerBudget} plays for
+     * the budget half. Production uses {@code building.forceAdd} for the
+     * actual write (which now updates both the new ledger and the legacy
+     * MC stock map); the two paths agree by construction: both produce
+     * the same final ledger for the same budget pass.
+     *
+     * <p>{@code outputIds} is parallel to {@code activeRules}: index
+     * {@code i} in {@code activeRules} fires {@code outputIds.get(i)} as
+     * its output. Built by the {@code tickTransformer} shell before
+     * calling this helper.
+     *
+     * <p>Package-private so {@code ProductionManagerTransformerTest} can
+     * pin the output-accumulation semantics on a bare JVM: output
+     * accumulates across multiple transforms; the ledger survives across
+     * ticks (no implicit reset).
+     */
+    static StockLedger applyTransformerOutputs(
+        StockLedger currentOutput,
+        TransformerBudgetPass pass,
+        List<TransformationRule> activeRules,
+        List<ItemId> outputIds
+    ) {
+        if (activeRules.size() != outputIds.size()) {
+            throw new IllegalArgumentException(
+                "activeRules.size() must equal outputIds.size() ("
+                    + activeRules.size() + " vs " + outputIds.size() + ")");
+        }
+        StockLedger next = currentOutput;
+        for (Map.Entry<TransformationRule, Integer> e : pass.appliedPerRule().entrySet()) {
+            int idx = activeRules.indexOf(e.getKey());
+            if (idx < 0 || e.getValue() <= 0) continue;
+            next = next.add(outputIds.get(idx),
+                activeRules.get(idx).outputAmount() * e.getValue());
+        }
+        return next;
     }
 
     /**

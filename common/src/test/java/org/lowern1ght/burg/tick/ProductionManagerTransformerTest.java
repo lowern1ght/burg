@@ -7,7 +7,9 @@ import org.lowern1ght.burg.domain.settlement.TransformationRule;
 import org.lowern1ght.burg.domain.settlement.TransformationRule.StockCost;
 import org.lowern1ght.burg.domain.shared.ItemId;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -274,6 +276,159 @@ class ProductionManagerTransformerTest {
                 () -> ProductionManager.runTransformerBudget(
                     List.of(r, r), StockLedger.EMPTY, new int[]{1}),
                 "remainingFiresPerRule shorter than rules is rejected")
+        );
+    }
+
+    // ------------------------------------------------------------------------
+    // Output-accumulator helper (act-4 follow-up-1 carve).
+    //
+    // The output half of tickTransformer is now a pure-domain
+    // accumulator: `applyTransformerOutputs` folds a TransformerBudgetPass
+    // into a per-instance StockLedger by adding `outputAmount * fires` for
+    // each fired rule. Production goes through `building.forceAdd`, which
+    // keeps the new ledger and the legacy MC stock map in lockstep; the
+    // helper below pins the arithmetic on a bare JVM so the contract is
+    // testable without Minecraft.
+    //
+    // Two invariants pinned here:
+    //   (1) output accumulates across multiple transforms — running the
+    //       accumulator twice with the same rule produces strictly more
+    //       output the second time, never resets;
+    //   (2) the ledger survives across ticks — starting from a non-empty
+    //       ledger and running the accumulator again grows the existing
+    //       entries (the sparse discipline: zero-qty entries drop, positive
+    //       entries are kept).
+    // ------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("output accumulates across multiple transforms — running the accumulator twice grows the ledger")
+    void outputAccumulatesAcrossMultipleTransforms() {
+        // Two budget passes with the same rule: the first pass drains the
+        // first budget, the second drains the second. The ledger after
+        // pass-1 carries its output into pass-2; pass-2 adds on top, never
+        // resets. The accumulator must agree with the legacy
+        // `building.forceAdd` arithmetic by construction — both produce
+        // `outputAmount * fires` per rule.
+        TransformationRule wheatToFlour = rule(
+            List.of(new StockCost(WHEAT, 1)), FLOUR, 1, 64);
+
+        StockLedger budget1 = StockLedger.EMPTY.add(WHEAT, 3);
+        StockLedger budget2 = StockLedger.EMPTY.add(WHEAT, 5);
+
+        ProductionManager.TransformerBudgetPass pass1 =
+            ProductionManager.runTransformerBudget(
+                List.of(wheatToFlour), budget1, new int[]{Integer.MAX_VALUE});
+        StockLedger afterPass1 = ProductionManager.applyTransformerOutputs(
+            StockLedger.EMPTY, pass1, List.of(wheatToFlour), List.of(FLOUR));
+
+        ProductionManager.TransformerBudgetPass pass2 =
+            ProductionManager.runTransformerBudget(
+                List.of(wheatToFlour), budget2, new int[]{Integer.MAX_VALUE});
+        StockLedger afterPass2 = ProductionManager.applyTransformerOutputs(
+            afterPass1, pass2, List.of(wheatToFlour), List.of(FLOUR));
+
+        assertAll(
+            () -> assertEquals(3, pass1.appliedPerRule().get(wheatToFlour),
+                "first budget of 3 wheat fires the rule 3 times"),
+            () -> assertEquals(3, afterPass1.get(FLOUR),
+                "first pass adds 3 flour (3 fires × outputAmount=1)"),
+            () -> assertEquals(5, pass2.appliedPerRule().get(wheatToFlour),
+                "second budget of 5 wheat fires the rule 5 times"),
+            () -> assertEquals(8, afterPass2.get(FLOUR),
+                "second pass adds 5 flour on top of the existing 3 — no implicit reset")
+        );
+    }
+
+    @Test
+    @DisplayName("output ledger survives across ticks — same rule, different budget, ledger only grows")
+    void outputLedgerSurvivesAcrossTicks() {
+        // Tick-1 budget = 4 wheat, tick-2 budget = 7 wheat. Per-instance
+        // cap is removed (Integer.MAX_VALUE remaining fires), so the rule
+        // fires until the budget dies each tick. The ledger after tick-1
+        // has 4 flour; tick-2 adds 7 to produce 11. The sparse discipline
+        // applies: the input ledger (wheat) is irrelevant here — only the
+        // output ledger is the test surface.
+        TransformationRule wheatToFlour = rule(
+            List.of(new StockCost(WHEAT, 1)), FLOUR, 1, 64);
+
+        StockLedger ledgerBefore = StockLedger.EMPTY.add(FLOUR, 6);
+        // Simulate "the building already has 6 flour from a previous tick" —
+        // a non-empty starting ledger. This is the exact shape the
+        // accumulator receives on tick-2: whatever the building's ledger
+        // already holds, plus whatever the budget pass fires this tick.
+
+        StockLedger tick1Budget = StockLedger.EMPTY.add(WHEAT, 4);
+        ProductionManager.TransformerBudgetPass tick1Pass =
+            ProductionManager.runTransformerBudget(
+                List.of(wheatToFlour), tick1Budget, new int[]{Integer.MAX_VALUE});
+        StockLedger afterTick1 = ProductionManager.applyTransformerOutputs(
+            ledgerBefore, tick1Pass, List.of(wheatToFlour), List.of(FLOUR));
+
+        StockLedger tick2Budget = StockLedger.EMPTY.add(WHEAT, 7);
+        ProductionManager.TransformerBudgetPass tick2Pass =
+            ProductionManager.runTransformerBudget(
+                List.of(wheatToFlour), tick2Budget, new int[]{Integer.MAX_VALUE});
+        StockLedger afterTick2 = ProductionManager.applyTransformerOutputs(
+            afterTick1, tick2Pass, List.of(wheatToFlour), List.of(FLOUR));
+
+        assertAll(
+            () -> assertEquals(6, ledgerBefore.get(FLOUR),
+                "starting ledger carries 6 flour — the previous tick's accumulation"),
+            () -> assertEquals(4, tick1Pass.appliedPerRule().get(wheatToFlour),
+                "tick-1 fires 4 times on its 4-wheat budget"),
+            () -> assertEquals(10, afterTick1.get(FLOUR),
+                "tick-1 adds 4 flour to the existing 6 — survives, accumulates"),
+            () -> assertEquals(7, tick2Pass.appliedPerRule().get(wheatToFlour),
+                "tick-2 fires 7 times on its 7-wheat budget"),
+            () -> assertEquals(17, afterTick2.get(FLOUR),
+                "tick-2 adds 7 flour to the existing 10 — survives, accumulates")
+        );
+    }
+
+    @Test
+    @DisplayName("applyTransformerOutputs is a no-op when the budget pass fired nothing")
+    void applyTransformerOutputsNoOpOnEmptyPass() {
+        // A budget pass that fired no rules leaves the ledger untouched —
+        // the accumulator returns the same instance (StockLedger's
+        // `add(item, 0)` is a no-op and the loop body never fires for an
+        // empty appliedPerRule). The starting ledger's pre-existing entries
+        // survive untouched.
+        StockLedger ledgerBefore = StockLedger.EMPTY.add(FLOUR, 12);
+        ProductionManager.TransformerBudgetPass emptyPass =
+            new ProductionManager.TransformerBudgetPass(
+                StockLedger.EMPTY, new LinkedHashMap<>(), new LinkedHashMap<>());
+
+        StockLedger after = ProductionManager.applyTransformerOutputs(
+            ledgerBefore, emptyPass, List.of(), List.of());
+
+        assertAll(
+            () -> assertEquals(12, after.get(FLOUR),
+                "empty pass leaves the existing ledger entry untouched"),
+            () -> assertEquals(1, after.size(),
+                "no new entries appear; the empty pass adds nothing")
+        );
+    }
+
+    @Test
+    @DisplayName("activeRules.size() must equal outputIds.size() — mismatch is rejected up front")
+    void outputIdsSizeMismatchRejected() {
+        TransformationRule r = rule(
+            List.of(new StockCost(WHEAT, 1)), FLOUR, 1, 64);
+        ProductionManager.TransformerBudgetPass pass =
+            new ProductionManager.TransformerBudgetPass(
+                StockLedger.EMPTY,
+                new LinkedHashMap<>(Map.of(r, 1)),
+                new LinkedHashMap<>());
+
+        assertAll(
+            () -> assertThrows(IllegalArgumentException.class,
+                () -> ProductionManager.applyTransformerOutputs(
+                    StockLedger.EMPTY, pass, List.of(r), List.of()),
+                "outputIds shorter than activeRules is rejected"),
+            () -> assertThrows(IllegalArgumentException.class,
+                () -> ProductionManager.applyTransformerOutputs(
+                    StockLedger.EMPTY, pass, List.of(r, r), List.of(FLOUR)),
+                "outputIds longer than activeRules is rejected")
         );
     }
 }
