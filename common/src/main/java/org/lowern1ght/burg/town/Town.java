@@ -906,6 +906,55 @@ public class Town implements BuildExecutor {
         return skipped;
     }
 
+    /**
+     * Pure-domain wire→reserve helper: clears {@code reserve}, then merges every
+     * {@code wire} entry whose quantity is positive, whose {@link ItemId} parses as
+     * a {@link ResourceLocation}, and whose {@link Item} is registered in the live
+     * item registry. Returns the number of dropped entries (unparseable ItemIds +
+     * unregistered Items + zero/negative quantities).
+     *
+     * <p><b>Static on purpose.</b> No {@code this} state is read or mutated — the
+     * helper is a pure function over its arguments, so the bare-JVM test exercises
+     * it without constructing a {@code Town} (which would require a Minecraft world).
+     * The instance method {@link #applyStockLedger(StockLedger)} delegates to the
+     * same body on {@code this.reserveStock} and then runs the cache sync; this
+     * carve splits the wire-side body out so callers that don't want the cache
+     * update (e.g. one-off test fixtures, batch apply across multiple towns) can
+     * reach the same logic without paying for {@code syncStockLedgerFromReserve}.
+     *
+     * <p>The {@code wire} entries are iterated in insertion order so the merge
+     * is deterministic — {@link StockLedger} already preserves insertion order on
+     * the read path. Same edge discipline as the instance method: zero and
+     * negative quantities drop silently at the wire (no entry survives on the
+     * reserve), unparseable and unregistered ItemIds bump the skipped counter,
+     * duplicate wire entries sum onto the existing quantity via
+     * {@link Map#merge}.
+     */
+    public static int applyStockToReserve(StockLedger wire, Map<Item, Integer> reserve) {
+        Objects.requireNonNull(wire, "wire");
+        Objects.requireNonNull(reserve, "reserve");
+        reserve.clear();
+        int skipped = 0;
+        for (Map.Entry<ItemId, Integer> e : wire.entries().entrySet()) {
+            if (e.getValue() == null || e.getValue() <= 0) {
+                // drop zero-quantity entries silently — same discipline as StockLedger.of
+                continue;
+            }
+            ResourceLocation rl = ResourceLocation.tryParse(e.getKey().value());
+            if (rl == null) {
+                skipped++;
+                continue;
+            }
+            Item item = BuiltInRegistries.ITEM.get(rl);
+            if (item == null) {
+                skipped++;
+                continue;
+            }
+            reserve.merge(item, e.getValue(), Integer::sum);
+        }
+        return skipped;
+    }
+
     // -------------------------------------------------------------------------
     // ADR-0011 + ADR-0016 — dual-write strangler facade for the construction queue.
     //
