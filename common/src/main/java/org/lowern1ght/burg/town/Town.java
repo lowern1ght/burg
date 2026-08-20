@@ -132,7 +132,15 @@ public class Town implements BuildExecutor {
 
     // Player-ordered queue of construction tasks (new builds and upgrades).
     // Resources are pre-reserved in queueReservedStock when an entry is added.
-    private final List<QueueEntry> constructionQueue = new ArrayList<>();
+    // ADR-0027 — domain type is the SoT. The MC `List<QueueEntry>` view that
+    // older call sites used to read is now derived on demand via
+    // {@link #getConstructionQueue()}; mutations go through the immutable
+    // `ConstructionQueue` value object so the cache and the source are the
+    // same thing. NBT keys `ConstructionQueue` and `QueueReservedStock` stay
+    // byte-identical: `toNbt` materializes a list of `QueueEntry` from the
+    // domain via `QueueEntry.fromIntent`, `fromNbt` reads the same NBT into
+    // a fresh domain queue via `QueueEntry.toIntent`.
+    private ConstructionQueue constructionQueue = ConstructionQueue.EMPTY;
     // Resources deducted from town stock when buildings are added to the queue.
     // Released back to reserveStock on removal, or cleared when NPC places the building.
     private final Map<Item, Integer> queueReservedStock = new HashMap<>();
@@ -251,9 +259,9 @@ public class Town implements BuildExecutor {
             if (def == null) continue;
             total += def.weight;
         }
-        for (QueueEntry entry : constructionQueue) {
-            if (entry instanceof QueueEntry.NewBuild nb) {
-                BuildingDef def = BuildingDataHandler.get(nb.defId()).orElse(null);
+        for (ConstructionIntent intent : constructionQueue.entries()) {
+            if (intent instanceof ConstructionIntent.NewBuild nb) {
+                BuildingDef def = BuildingDataHandler.get(nb.buildingDefId()).orElse(null);
                 if (def != null) total += def.weight;
             }
         }
@@ -460,17 +468,33 @@ public class Town implements BuildExecutor {
 
     // -------------------------------------------------------------------------
     // Player construction queue
+    //
+    // ADR-0027 — the immutable domain type {@link ConstructionQueue} is the
+    // SoT; this block mutates it via {@code enqueue} / {@code without} and
+    // surfaces a derived MC-typed view through {@link #getConstructionQueue()}
+    // for callers that still need a {@link QueueEntry} (the
+    // {@code TownHubDataBuilder} S2C packet, the {@code SimpleStateMachine}
+    // builder NPC, the GameTest). The derived list is rebuilt on every
+    // read — the queue is bounded at {@link #QUEUE_CAPACITY} entries so
+    // the O(N) materialization cost is negligible, and the per-mutation
+    // savings (no cache rebuild, no consistency check) outweigh the
+    // per-read cost by a lot.
     // -------------------------------------------------------------------------
 
     public List<QueueEntry> getConstructionQueue() {
-        return Collections.unmodifiableList(constructionQueue);
+        List<ConstructionIntent> intents = constructionQueue.entries();
+        List<QueueEntry> derived = new ArrayList<>(intents.size());
+        for (ConstructionIntent intent : intents) {
+            derived.add(QueueEntry.fromIntent(intent));
+        }
+        return Collections.unmodifiableList(derived);
     }
 
     // Checks affordability (available stock minus already-reserved amounts), reserves resources,
     // and appends a NewBuild entry to the queue. Returns false if unaffordable or queue is full.
     public boolean tryAddToConstructionQueue(String defId) {
         BuildingDef def = BuildingDataHandler.get(defId).orElse(null);
-        if (def == null || constructionQueue.size() >= QUEUE_CAPACITY) return false;
+        if (def == null || !constructionQueue.hasCapacity()) return false;
         // Weight cap: block new builds (not upgrades) that would exceed the era limit.
         if (getCurrentWeight() + def.weight > getCurrentMaxWeight()) return false;
         TownInventory inv = getTownInventory();
@@ -481,8 +505,8 @@ public class Town implements BuildExecutor {
         for (ItemCost cost : def.constructionCost) {
             queueReservedStock.merge(cost.item(), cost.amount(), Integer::sum);
         }
-        constructionQueue.add(new QueueEntry.NewBuild(nextEntryId++, defId));
-        syncConstructionQueueFromLegacy();
+        constructionQueue = constructionQueue.enqueue(
+            new ConstructionIntent.NewBuild(nextEntryId++, defId));
         return true;
     }
 
@@ -500,8 +524,9 @@ public class Town implements BuildExecutor {
         if (def == null || (def.upgrades.isEmpty() && def.nbtLevels.isEmpty())) return false;
 
         // Block if an upgrade for this building is already pending in the queue.
-        for (QueueEntry entry : constructionQueue) {
-            if (entry instanceof QueueEntry.Upgrade u && u.buildingWorldPos().equals(worldPos)) {
+        for (ConstructionIntent intent : constructionQueue.entries()) {
+            if (intent instanceof ConstructionIntent.Upgrade u
+                && BlockPos.of(Long.parseLong(u.worldPosKey())).equals(worldPos)) {
                 return false;
             }
         }
@@ -509,7 +534,7 @@ public class Town implements BuildExecutor {
         int effectiveLevel = building.getUpgradeLevel();
         int maxLevel = Math.max(def.upgrades.size(), def.nbtLevels.size());
         if (effectiveLevel >= maxLevel) return false;
-        if (constructionQueue.size() >= QUEUE_CAPACITY) return false;
+        if (!constructionQueue.hasCapacity()) return false;
 
         // Visual-only upgrades (nbt_levels only, no stat upgrades) are free -- cost already paid by era advance.
         List<ItemCost> cost = effectiveLevel < def.upgrades.size()
@@ -522,8 +547,12 @@ public class Town implements BuildExecutor {
         for (ItemCost c : cost) {
             queueReservedStock.merge(c.item(), c.amount(), Integer::sum);
         }
-        constructionQueue.add(new QueueEntry.Upgrade(nextEntryId++, building.defId, worldPos, effectiveLevel));
-        syncConstructionQueueFromLegacy();
+        constructionQueue = constructionQueue.enqueue(
+            new ConstructionIntent.Upgrade(
+                nextEntryId++,
+                building.defId,
+                Long.toString(worldPos.asLong()),
+                effectiveLevel));
         return true;
     }
 
@@ -540,18 +569,23 @@ public class Town implements BuildExecutor {
         if (def == null || (def.upgrades.isEmpty() && def.nbtLevels.isEmpty())) return false;
 
         int effectiveLevel = building.getUpgradeLevel();
-        for (QueueEntry entry : constructionQueue) {
-            if (entry instanceof QueueEntry.Upgrade u && u.buildingWorldPos().equals(worldPos)) {
+        for (ConstructionIntent intent : constructionQueue.entries()) {
+            if (intent instanceof ConstructionIntent.Upgrade u
+                && BlockPos.of(Long.parseLong(u.worldPosKey())).equals(worldPos)) {
                 effectiveLevel++;
             }
         }
 
         int maxLevel = Math.max(def.upgrades.size(), def.nbtLevels.size());
         if (effectiveLevel >= maxLevel) return false;
-        if (constructionQueue.size() >= QUEUE_CAPACITY) return false;
+        if (!constructionQueue.hasCapacity()) return false;
 
-        constructionQueue.add(new QueueEntry.Upgrade(nextEntryId++, building.defId, worldPos, effectiveLevel));
-        syncConstructionQueueFromLegacy();
+        constructionQueue = constructionQueue.enqueue(
+            new ConstructionIntent.Upgrade(
+                nextEntryId++,
+                building.defId,
+                Long.toString(worldPos.asLong()),
+                effectiveLevel));
         return true;
     }
 
@@ -586,7 +620,7 @@ public class Town implements BuildExecutor {
     // Removes entry at index, restoring its reserved resources to the floating reserve.
     public boolean removeFromConstructionQueue(int index) {
         if (index < 0 || index >= constructionQueue.size()) return false;
-        QueueEntry entry = constructionQueue.get(index);
+        QueueEntry entry = QueueEntry.fromIntent(constructionQueue.entries().get(index));
         List<ItemCost> costToRefund = getEntryCost(entry);
         for (ItemCost cost : costToRefund) {
             int reserved = queueReservedStock.getOrDefault(cost.item(), 0);
@@ -596,38 +630,33 @@ public class Town implements BuildExecutor {
                 reserveStock.merge(cost.item(), toRestore, Integer::sum);
             }
         }
-        constructionQueue.remove(index);
+        constructionQueue = constructionQueue.without(index);
         shiftClaimsAfter(index);
         syncStockLedgerFromReserve();
-        syncConstructionQueueFromLegacy();
         return true;
     }
 
     // Called by NPC after successfully processing a queued entry.
     // Removes the entry from the queue and clears its resource reservation.
     public int findQueueIndex(long entryId) {
-        for (int i = 0; i < constructionQueue.size(); i++) {
-            if (constructionQueue.get(i).entryId() == entryId) return i;
+        List<ConstructionIntent> intents = constructionQueue.entries();
+        for (int i = 0; i < intents.size(); i++) {
+            if (intents.get(i).entryId() == entryId) return i;
         }
         return -1;
     }
 
     public void consumeQueueEntry(QueueEntry entry) {
         int idx = findQueueIndex(entry.entryId());
-        boolean changed = false;
         if (idx >= 0) {
-            constructionQueue.remove(idx);
+            constructionQueue = constructionQueue.without(idx);
             shiftClaimsAfter(idx);
-            changed = true;
         }
         // Always drain the reservation even if entry was already removed by the player.
         List<ItemCost> cost = getEntryCost(entry);
         for (ItemCost c : cost) {
             int reserved = queueReservedStock.getOrDefault(c.item(), 0);
             queueReservedStock.put(c.item(), Math.max(0, reserved - c.amount()));
-        }
-        if (changed) {
-            syncConstructionQueueFromLegacy();
         }
     }
 
@@ -958,85 +987,41 @@ public class Town implements BuildExecutor {
     }
 
     // -------------------------------------------------------------------------
-    // ADR-0011 + ADR-0016 — dual-write strangler facade for the construction queue.
+    // ADR-0027 — promote ConstructionQueue to the SoT (flip the dual-write).
     //
-    // The MC `List<QueueEntry> constructionQueue` remains the SoT and the NBT
-    // owner; ADR-0011 exposed it as a read-only `ConstructionQueueView()` that
-    // rebuilt on every call. ADR-0016 caches that rebuild in a
-    // `constructionQueueDomain` field synced at every known mutation site
-    // (tryAddToConstructionQueue, tryQueueUpgrade, forceQueueUpgrade,
-    // removeFromConstructionQueue, consumeQueueEntry, fromNbt), with a
-    // rebuild fallback when the cache disagrees with the legacy list. NBT
-    // keys `ConstructionQueue` and `QueueReservedStock` are unchanged.
+    // ADR-0011 + ADR-0016 had the MC `List<QueueEntry> constructionQueue`
+    // as the SoT and a cached `ConstructionQueue` derived from it at every
+    // mutation site, with a rebuild fallback when the two disagreed. The
+    // flip: the immutable `ConstructionQueue` is now the SoT and the
+    // primary state on `Town`. The MC list that older call sites read via
+    // {@link #getConstructionQueue()} is now a derived view materialized
+    // on demand — the queue is bounded at `QUEUE_CAPACITY` (54), so the
+    // O(N) per-read cost is negligible, and the per-mutation savings
+    // (no cache rebuild, no consistency check, no sync helper) outweigh
+    // the per-read cost by a lot.
     //
-    // No `applyConstructionQueue` write path this PR: a domain→legacy write
-    // would have to also re-price `queueReservedStock` from each entry's
-    // building def, which needs `BuildingDataHandler` lookups and a refund
-    // cycle for whatever the legacy reserve currently holds. That's a real
-    // change, not a symmetric mirror of `applyStockLedger`. Sync-from-legacy
-    // covers the read direction; the write side stays a future carve.
+    // `constructionQueueView()` returns the SoT directly — the "missed a
+    // sync" safety net is gone because the SoT and the cache are the
+    // same field now. Burg's act-5 SUPPLY-mode loop reads
+    // `constructionQueueView()` on every idle tick per builder per town;
+    // the flip makes the read a plain field read and the write a
+    // single immutable replacement.
+    //
+    // NBT keys `ConstructionQueue` and `QueueReservedStock` are unchanged:
+    // `toNbt` materializes a list of `QueueEntry` from the domain via
+    // {@link QueueEntry#fromIntent}; `fromNbt` reads the same NBT list
+    // into a fresh domain queue via {@link QueueEntry#toIntent}. Format
+    // is byte-identical, so worlds saved before the flip load unchanged.
     // -------------------------------------------------------------------------
 
     /**
-     * Cached Minecraft-free view of {@code constructionQueue}. Mirrors the
-     * {@link #stockLedger} discipline: kept in sync at every known
-     * mutation site, with a rebuild fallback in
-     * {@link #constructionQueueView()} when the cache disagrees with the
-     * legacy list.
-     */
-    private ConstructionQueue constructionQueueDomain = ConstructionQueue.EMPTY;
-
-    /**
-     * Rebuilds {@link #constructionQueueDomain} from the MC
-     * {@code constructionQueue} list. Idempotent; same discipline
-     * {@link #syncStockLedgerFromReserve()} uses for the reserve mirror.
-     */
-    private void syncConstructionQueueFromLegacy() {
-        if (constructionQueue.isEmpty()) {
-            constructionQueueDomain = ConstructionQueue.EMPTY;
-            return;
-        }
-        List<ConstructionIntent> intents = new ArrayList<>(constructionQueue.size());
-        for (QueueEntry e : constructionQueue) {
-            if (e instanceof QueueEntry.NewBuild nb) {
-                intents.add(new ConstructionIntent.NewBuild(nb.entryId(), nb.defId()));
-            } else if (e instanceof QueueEntry.Upgrade u) {
-                intents.add(new ConstructionIntent.Upgrade(
-                    u.entryId(),
-                    u.defId(),
-                    Long.toString(u.buildingWorldPos().asLong()),
-                    u.fromLevel()));
-            }
-        }
-        constructionQueueDomain = ConstructionQueue.of(intents);
-    }
-
-    /**
-     * Cheap consistency check between {@link #constructionQueueDomain} and
-     * {@code constructionQueue}: same emptiness on both sides and, when
-     * non-empty, the same entry count. Same shape as
-     * {@link #stockLedgerCacheIsConsistent()} — sufficient to detect the
-     * "cache is empty because someone forgot to sync" case without paying
-     * for a content-equality walk on every read.
-     */
-    private boolean constructionQueueCacheIsConsistent() {
-        if (constructionQueue.isEmpty()) return constructionQueueDomain.isEmpty();
-        return constructionQueueDomain.size() == constructionQueue.size();
-    }
-
-    /**
      * Returns the town's construction queue as a Minecraft-free
-     * {@link ConstructionQueue}. Returns the cached
-     * {@link #constructionQueueDomain} field on the fast path; falls back
-     * to a full rebuild via
-     * {@link #syncConstructionQueueFromLegacy()} when the cache disagrees
-     * with {@code constructionQueue} (the "missed a sync" safety net —
-     * mirrors {@link #stockLedger()}).
+     * {@link ConstructionQueue}. This is the SoT (ADR-0027): the field
+     * itself, not a derived view. The legacy MC-typed read path is
+     * {@link #getConstructionQueue()}.
      */
     public ConstructionQueue constructionQueueView() {
-        if (constructionQueueCacheIsConsistent()) return constructionQueueDomain;
-        syncConstructionQueueFromLegacy();
-        return constructionQueueDomain;
+        return constructionQueue;
     }
 
     // -------------------------------------------------------------------------
@@ -1161,9 +1146,9 @@ public class Town implements BuildExecutor {
      * ({@link StructuralFlags#isComplete()}) is the act-5 carve's
      * job.
      *
-     * <p>The cached-field discipline {@link #constructionQueueDomain}
-     * uses is reserved for the future carve where this method stops
-     * being free (today the {@code core_populated} walk is
+     * <p>The immutable-value-object discipline {@link #constructionQueue}
+     * uses (ADR-0027) is reserved for the future carve where this method
+     * stops being free (today the {@code core_populated} walk is
      * user-initiated via {@link #hubMode()} on anchor right-click, so
      * the O(R²) cost is bounded).
      */
@@ -1329,8 +1314,10 @@ public class Town implements BuildExecutor {
     /**
      * Rebuilds {@link #questLogDomain} from `activeQuests` +
      * `questDefLastCompleted`. Idempotent; same discipline
-     * {@link #syncStockLedgerFromReserve()} and
-     * {@link #syncConstructionQueueFromLegacy()} use. Malformed entries
+     * {@link #syncStockLedgerFromReserve()} uses. (The construction
+     * queue used to have its own sync helper,
+     * {@code syncConstructionQueueFromLegacy} — ADR-0027 promoted the
+     * domain queue to the SoT and removed it.) Malformed entries
      * (null `defId`, empty `defId`) are dropped at the edge so the
      * domain view stays clean.
      */
@@ -1375,8 +1362,9 @@ public class Town implements BuildExecutor {
      * Cheap consistency check between {@link #questLogDomain} and the
      * legacy state: same emptiness on both sides, and when non-empty, the
      * roll size and completion-map size match. Mirrors
-     * {@link #stockLedgerCacheIsConsistent()} and
-     * {@link #constructionQueueCacheIsConsistent()}.
+     * {@link #stockLedgerCacheIsConsistent()}. (The construction queue
+     * had a similar helper, {@code constructionQueueCacheIsConsistent} —
+     * ADR-0027 promoted the domain queue to the SoT and removed it.)
      */
     private boolean questLogCacheIsConsistent() {
         boolean legacyEmpty = activeQuests.isEmpty() && questDefLastCompleted.isEmpty();
@@ -1776,7 +1764,12 @@ public class Town implements BuildExecutor {
         }
         tag.put("BlockedZones", zonesTag);
         ListTag cqTag = new ListTag();
-        constructionQueue.forEach(e -> cqTag.add(QueueEntry.serialize(e)));
+        // ADR-0027 — the SoT is the domain `ConstructionQueue`; serialize
+        // each intent into the legacy `QueueEntry` NBT shape so the wire
+        // format is byte-identical to pre-ADR-0027 saves.
+        for (ConstructionIntent intent : constructionQueue.entries()) {
+            cqTag.add(QueueEntry.serialize(QueueEntry.fromIntent(intent)));
+        }
         tag.put("ConstructionQueue", cqTag);
         CompoundTag qrTag = new CompoundTag();
         queueReservedStock.forEach((item, qty) ->
@@ -1891,15 +1884,27 @@ public class Town implements BuildExecutor {
             ));
         });
         // BootstrapQueue: silently ignored - bootstrap system removed.
+        // ADR-0027 — the legacy list was the SoT; after the flip the
+        // domain `ConstructionQueue` is. We read the NBT into a local
+        // list of `QueueEntry` first (so the NextEntryId restamp path
+        // can mutate it freely), then collapse it into a fresh
+        // domain queue at the end. The NBT shape is unchanged:
+        // `ConstructionQueue` compounds deserialize via
+        // `QueueEntry.deserialize`; legacy plain-string entries
+        // deserialize as `NewBuild(0L, defId)` for backward compat.
+        List<QueueEntry> legacyQueue = new ArrayList<>();
         if (tag.contains("ConstructionQueue")) {
             ListTag cqTagCompound = tag.getList("ConstructionQueue", Tag.TAG_COMPOUND);
             if (!cqTagCompound.isEmpty()) {
                 // New format: compound tags with Type/DefId/etc fields
-                cqTagCompound.forEach(t -> town.constructionQueue.add(QueueEntry.deserialize((CompoundTag) t)));
+                for (Tag t : cqTagCompound) {
+                    legacyQueue.add(QueueEntry.deserialize((CompoundTag) t));
+                }
             } else {
                 // Backward compat: old saves stored plain string defIds
-                tag.getList("ConstructionQueue", Tag.TAG_STRING)
-                    .forEach(t -> town.constructionQueue.add(new QueueEntry.NewBuild(0L, t.getAsString())));
+                for (Tag t : tag.getList("ConstructionQueue", Tag.TAG_STRING)) {
+                    legacyQueue.add(new QueueEntry.NewBuild(0L, t.getAsString()));
+                }
             }
         }
         // Backward compat: old saves have no NextEntryId -- reassign sequential IDs to all entries.
@@ -1907,17 +1912,26 @@ public class Town implements BuildExecutor {
             town.nextEntryId = tag.getLong("NextEntryId");
         } else {
             long seq = 0L;
-            List<QueueEntry> restamped = new ArrayList<>();
-            for (QueueEntry e : town.constructionQueue) {
+            List<QueueEntry> restamped = new ArrayList<>(legacyQueue.size());
+            for (QueueEntry e : legacyQueue) {
                 if (e instanceof QueueEntry.NewBuild nb)
                     restamped.add(new QueueEntry.NewBuild(seq++, nb.defId()));
                 else if (e instanceof QueueEntry.Upgrade u)
                     restamped.add(new QueueEntry.Upgrade(seq++, u.defId(), u.buildingWorldPos(), u.fromLevel()));
                 else restamped.add(e);
             }
-            town.constructionQueue.clear();
-            town.constructionQueue.addAll(restamped);
+            legacyQueue = restamped;
             town.nextEntryId = seq;
+        }
+        // Collapse the legacy list into a fresh domain queue. Empty
+        // legacy yields the EMPTY sentinel; otherwise `ConstructionQueue.of`
+        // defensively copies and clips to capacity.
+        if (legacyQueue.isEmpty()) {
+            town.constructionQueue = ConstructionQueue.EMPTY;
+        } else {
+            List<ConstructionIntent> intents = new ArrayList<>(legacyQueue.size());
+            for (QueueEntry e : legacyQueue) intents.add(QueueEntry.toIntent(e));
+            town.constructionQueue = ConstructionQueue.of(intents);
         }
         if (tag.contains("QueueReservedStock")) {
             CompoundTag qrTag = tag.getCompound("QueueReservedStock");
@@ -1948,13 +1962,13 @@ public class Town implements BuildExecutor {
                 town.questDefLastCompleted.put(key, qdlcTag.getLong(key));
             }
         }
-        // ADR-0016 — sync the construction queue + quest log caches after
-        // the additive NBT load. Mirrors the stock sync above. A
-        // pre-ADR-0011 / pre-ADR-0012 world produces EMPTY sentinels; a
-        // post-ADR-0011 world has constructionQueue populated by the
-        // loop above, and a post-ADR-0012 world has activeQuests +
-        // questDefLastCompleted populated — both rebuilds hit the cache.
-        town.syncConstructionQueueFromLegacy();
+        // ADR-0016 — sync the quest log cache after the additive NBT load
+        // (mirrors the stock sync above). A pre-ADR-0012 world produces
+        // an EMPTY log; a post-ADR-0012 world has activeQuests +
+        // questDefLastCompleted populated by the loops above and the
+        // rebuild hits the cache. The construction-queue sync is gone
+        // as of ADR-0027: the domain `ConstructionQueue` is the SoT, so
+        // the additive load writes straight into it.
         town.syncQuestLogFromLegacy();
         if (tag.contains("ActivityLog")) {
             tag.getList("ActivityLog", Tag.TAG_COMPOUND).forEach(t -> {
