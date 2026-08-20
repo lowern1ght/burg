@@ -7,8 +7,11 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import org.lowern1ght.burg.domain.settlement.StockLedger;
+import org.lowern1ght.burg.domain.shared.ItemId;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class PlacedBuilding {
@@ -24,6 +27,14 @@ public class PlacedBuilding {
     // Default true: safe on first load, updated each dawn by FoodManager.
     private boolean herdFed = true;
     private final Map<Item, Integer> stock = new HashMap<>();
+    // Per-instance output ledger (act-4 follow-up-1 carve). The new source of
+    // truth for what this building has produced; the MC `stock` map is the
+    // legacy write-through mirror for the visual side (TownInventory, HUD,
+    // town-hub stock list). Mutators below update both — ledger first,
+    // then the MC map — so any divergence is detectable as a
+    // ledger-vs-map mismatch. Same discipline `Town.stockLedger` uses for
+    // its reserve mirror.
+    private StockLedger outputLedger = StockLedger.EMPTY;
 
     public PlacedBuilding(String defId, BlockPos worldPos, BoundingBox bb, Rotation rotation) {
         this.defId = defId;
@@ -34,28 +45,72 @@ public class PlacedBuilding {
 
     // Called by TickScheduler - respects the per-item capacity cap
     public void produce(ProductionEntry entry) {
-        int current = stock.getOrDefault(entry.item(), 0);
+        ItemId id = ItemId.parseOrEmpty(BuiltInRegistries.ITEM.getKey(entry.item()).toString());
+        int current = outputLedger.get(id);
         if (current < entry.capacityItems()) {
-            stock.put(entry.item(), Math.min(current + entry.amount(), entry.capacityItems()));
+            int add = Math.min(entry.amount(), entry.capacityItems() - current);
+            if (add > 0) {
+                outputLedger = outputLedger.add(id, add);
+                stock.put(entry.item(), current + add);
+            }
         }
     }
 
     // Called by TownInventory.removeStock() - drains up to requested amount
     public int drain(Item item, int requested) {
-        int available = stock.getOrDefault(item, 0);
+        ItemId id = ItemId.parseOrEmpty(BuiltInRegistries.ITEM.getKey(item).toString());
+        int available = outputLedger.get(id);
         int taken = Math.min(available, requested);
-        stock.put(item, available - taken);
+        if (taken > 0) {
+            outputLedger = outputLedger.take(id, taken);
+            stock.put(item, available - taken);
+        }
         return taken;
     }
 
-    // Called by Town.addStock() (player command) - bypasses capacity cap intentionally
+    // Called by Town.addStock() (player command) - bypasses capacity cap intentionally.
+    // Also used by ProductionManager.tickTransformer's write-through to the
+    // legacy MC stock map; the transformer pass now accumulates into
+    // {@link #outputLedger} first (see applyTransformerOutputs) and routes
+    // its MC write through this method so the ledger and the map stay in
+    // lockstep. Ledger first, MC write-through — the discipline
+    // Town.stockLedger reserves for its mirror.
     public void forceAdd(Item item, int quantity) {
+        if (quantity <= 0) return;
+        ItemId id = ItemId.parseOrEmpty(BuiltInRegistries.ITEM.getKey(item).toString());
+        outputLedger = outputLedger.add(id, quantity);
         stock.merge(item, quantity, Integer::sum);
     }
 
     public int getStock(Item item) { return stock.getOrDefault(item, 0); }
     public java.util.Set<Item> getStockedItems() { return stock.keySet(); }
     public String getDefId() { return defId; }
+
+    // Per-instance output ledger (the new source of truth for what this
+    // building has produced). Read-only view; the ledger itself is mutated
+    // through produce/drain/forceAdd above.
+    public StockLedger outputLedger() {
+        return outputLedger;
+    }
+
+    // Rebuilds the output ledger from the MC stock map. Called by fromNbt
+    // after the additive load of the StockTag; the legacy map and the
+    // ledger are byte-for-byte equivalent on disk, so the rebuild mirrors
+    // the NBT exactly. Idempotent — safe to call from any sync point.
+    private void syncOutputLedgerFromStock() {
+        if (stock.isEmpty()) {
+            outputLedger = StockLedger.EMPTY;
+            return;
+        }
+        Map<ItemId, Integer> entries = new LinkedHashMap<>(stock.size());
+        stock.forEach((item, qty) -> {
+            if (item == null || qty == null || qty <= 0) return;
+            ResourceLocation key = BuiltInRegistries.ITEM.getKey(item);
+            if (key == null) return;
+            entries.put(ItemId.parseOrEmpty(key.toString()), qty);
+        });
+        outputLedger = entries.isEmpty() ? StockLedger.EMPTY : StockLedger.of(entries);
+    }
 
     public double getInstanceProductionMultiplier() { return instanceProductionMultiplier; }
     public void setInstanceProductionMultiplier(double value) { this.instanceProductionMultiplier = value; }
@@ -173,6 +228,7 @@ public class PlacedBuilding {
             Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(key));
             b.stock.put(item, stockTag.getInt(key));
         }
+        b.syncOutputLedgerFromStock();
         return b;
     }
 }
