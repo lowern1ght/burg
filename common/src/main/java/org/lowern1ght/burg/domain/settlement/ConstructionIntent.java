@@ -42,6 +42,9 @@ public sealed interface ConstructionIntent
      * A new building to construct from a free connection point. No world
      * coordinate — the builder NPC picks the slot when the entry reaches
      * the head of the queue.
+     *
+     * @param entryId monotonic id minted at enqueue time
+     * @param buildingDefId canonical {@code building_def_id} for the queue entry; never null
      */
     record NewBuild(long entryId, String buildingDefId) implements ConstructionIntent {
         public NewBuild {
@@ -57,6 +60,11 @@ public sealed interface ConstructionIntent
      * accept a {@code BlockPos} in domain signatures.
      * {@code fromLevel} is the building's upgrade level when this task was
      * enqueued.
+     *
+     * @param entryId monotonic id minted at enqueue time
+     * @param buildingDefId canonical {@code building_def_id} for the queue entry; never null
+     * @param worldPosKey stringified form of {@code BlockPos.asLong()}; never null
+     * @param fromLevel the building's upgrade level when this task was enqueued
      */
     record Upgrade(
         long entryId,

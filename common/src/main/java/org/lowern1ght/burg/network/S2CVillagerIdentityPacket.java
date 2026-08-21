@@ -13,6 +13,9 @@ import java.util.UUID;
 /**
  * Tells the client that one villager is (or is no longer) a town's.
  *
+ * @param villager the villager's UUID; never null
+ * @param member {@code true} iff the villager is now a town member (a {@code false} packet is the "departed" half of the membership toggle)
+ *
  * <p>The whole payload is one UUID and one bit, and that is the point. Everything else the
  * client needs about a citizen — its name, its face, its clothing tint — is a pure function
  * of that UUID, so publishing membership publishes the citizen. The alternative was syncing

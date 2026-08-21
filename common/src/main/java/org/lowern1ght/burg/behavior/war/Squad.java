@@ -12,6 +12,12 @@ import java.util.UUID;
  * "scale problem": war-scale combat is NPC-vs-NPC at 60+ bodies, not
  * vanilla 1v1).
  *
+ * @param id immutable id used by {@link org.lowern1ght.burg.behavior.BattleDriver} to key per-squad state; never null
+ * @param name display name (debug aid); never null
+ * @param members roster of NPCs (non-null; an empty roster is meaningful for the first-slice stub squad); never null, defensively copied
+ * @param goal what the squad is trying to do; never null
+ * @param targetPosition where the squad is heading (the defender's anchor for ATTACK squads, the town's own anchor for DEFEND squads); never null
+ *
  * <p>The squad carries:
  * <ul>
  *   <li>An immutable id used by {@link org.lowern1ght.burg.behavior.BattleDriver}

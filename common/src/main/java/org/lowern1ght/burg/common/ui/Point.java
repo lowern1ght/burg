@@ -6,6 +6,9 @@ import java.util.Objects;
  * A two-dimensional integer point — the engine's bare-JVM {@code x, y} pair.
  * Immutable value type. Equality follows the two components.
  *
+ * @param x the horizontal coordinate
+ * @param y the vertical coordinate
+ *
  * <p>No {@code net.minecraft} import. The whole {@code common.ui} package is
  * deliberately Minecraft-free so the engine can be unit-tested on a bare JVM
  * and so the {@code DomainPurityTest} import fence can extend cleanly into

@@ -15,4 +15,9 @@ public class AttachmentRegistry {
 
     /** Town membership and identity on a vanilla villager. See {@link CitizenData}. */
     public static AttachmentType<CitizenData> CITIZEN;
+
+    /** Holder class — never instantiated. */
+    public AttachmentRegistry() {
+        // no instances
+    }
 }

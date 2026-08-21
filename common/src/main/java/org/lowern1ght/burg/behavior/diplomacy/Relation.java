@@ -5,6 +5,11 @@ import org.lowern1ght.burg.town.Town;
 /**
  * One direction of a bilateral relation between two towns.
  *
+ * @param from the town holding the relation; never null
+ * @param to the related town; never null
+ * @param status the diplomatic status from {@code from}'s perspective
+ * @param lastUpdated the registry-clock tick when this edge was last re-stated; non-negative
+ *
  * <p>A relation is stored as a directed edge ({@code from -> to}). The
  * {@link DiplomaticRegistry} keeps the reverse edge in sync, so a
  * {@code between(a, b)} lookup returns the same {@link DiplomaticStatus}

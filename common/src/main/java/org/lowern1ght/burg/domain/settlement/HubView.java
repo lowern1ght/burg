@@ -7,6 +7,8 @@ import java.util.Objects;
  * around a single {@link HubMode} that gives the {@code Town} facade a
  * referentially-stable handle to hand back from {@code Town#hubView()}.
  *
+ * @param mode the hub mode (CONSTRUCTION or SUPPLY); never null
+ *
  * <p>Today the view carries only the mode (acquisition + structural
  * predicates will fold into a richer value object in the act-4 PR that
  * also lands the supply-mode widget set). The record shape is kept so the

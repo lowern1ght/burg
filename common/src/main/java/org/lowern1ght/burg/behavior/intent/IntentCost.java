@@ -7,6 +7,8 @@ import java.util.List;
 /**
  * The resource cost of executing a {@link TownIntent}.
  *
+ * @param entries the {@code (item, amount)} pairs that make up the cost; never null, defensively-copied
+ *
  * <p>Stored as a list of {@link Entry} pairs — {@code (item id, amount)} — rather than as
  * {@code ItemStack[]}, deliberately. The reason is testability and decoupling: an intent is a
  * declaration, not a placed inventory, and treating its cost as raw data keeps it free of the

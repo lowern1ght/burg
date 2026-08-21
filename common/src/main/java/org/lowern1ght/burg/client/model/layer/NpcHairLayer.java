@@ -71,6 +71,19 @@ import org.lowern1ght.burg.client.model.NpcModel;
  * and 23 of 31 references paint down to that course; jaw-length is both the rig's limit and the
  * corpus's habit.
  */
+/**
+ * @param <T> the mob type rendered by this layer; bound by {@link NpcHairLayer}'s caller
+ * @param <M> the model type, an {@link NpcModel} parameterised on {@code T}
+ */
+/**
+ * Hair, beard and headwear — <b>painted</b>, on the head's own second-layer cube.
+ * (The block-long rationale that used to live here is split into
+ * {@code docs/04-engineering/clientside-rendering.md}; this summary is the
+ * contract for callers.)
+ *
+ * @param <T> the mob type rendered by this layer; bound by {@link NpcHairLayer}'s caller
+ * @param <M> the model type, an {@link NpcModel} parameterised on {@code T}
+ */
 public class NpcHairLayer<T extends Mob, M extends NpcModel<T>> extends RenderLayer<T, M> {
 
     public NpcHairLayer(RenderLayerParent<T, M> renderer) {

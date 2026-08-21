@@ -6,6 +6,11 @@ import java.util.Objects;
  * An axis-aligned integer rectangle: {@code (x, y)} top-left + {@code (w, h)}.
  * The engine's layout primitive — every {@link Widget} carries one.
  *
+ * @param x the left edge coordinate (the smaller x of the rect)
+ * @param y the top edge coordinate (the smaller y of the rect)
+ * @param w the width; may be zero or negative (treated as empty)
+ * @param h the height; may be zero or negative (treated as empty)
+ *
  * <p>No {@code net.minecraft} import. {@link Rect} is a bare-JVM value type
  * the UI tests can construct on any JVM (ADR-0022 §"Three rules").
  *

@@ -8,6 +8,12 @@ import org.lowern1ght.burg.behavior.morale.MoraleState;
 /**
  * What a {@link CitizenTask} sees when its {@code tick} method is called.
  *
+ * @param level the live {@link ServerLevel}; never null
+ * @param gameTick the current engine tick (monotonic, non-negative)
+ * @param npcSupplier engine's NPC lookup seam; never null
+ * @param executor engine's {@link BuildExecutor} seam; never null
+ * @param morale engine's {@link MoraleState} view; never null
+ *
  * <p>Passes the world, the current tick, the engine's NPC lookup, the engine's
  * {@link BuildExecutor} seam (so a task can query placement / queue new builds
  * without holding the seam as its own field), and the engine's {@link MoraleState}

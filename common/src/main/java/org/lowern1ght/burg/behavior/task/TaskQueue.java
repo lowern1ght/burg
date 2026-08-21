@@ -28,7 +28,12 @@ import java.util.UUID;
  */
 public final class TaskQueue {
 
-    /** The key the queue looks up by. NPC -> UUID conversion goes through {@link Npc#getUUID()}. */
+    /**
+     * The key the queue looks up by. NPC -> UUID conversion goes through {@link Npc#getUUID()}.
+     *
+     * @param npcId the citizen's UUID; never null
+     * @param task the task currently assigned to that citizen; never null
+     */
     public record ActiveTask(UUID npcId, CitizenTask task) {}
 
     private final Map<UUID, ActiveTask> active = new HashMap<>();

@@ -12,6 +12,12 @@ import java.util.UUID;
 /**
  * An intent to upgrade a placed building to its next level.
  *
+ * @param buildingDefId the building definition id; never null
+ * @param buildingPos world position of the placed building; never null
+ * @param town the town that owns the building; never null
+ * @param priority base scheduling priority for this intent
+ * @param cost resource cost to begin the upgrade; never null (empty allowed)
+ *
  * <p>The target is identified by the building's def id and its world position. {@link
  * #canResolve} verifies that the building exists and has another level to reach; {@link
  * #isStillValid} returns false if the building is gone (demolished, the town lost its

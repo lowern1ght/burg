@@ -8,6 +8,11 @@ import java.util.UUID;
 /**
  * Stub intent for calling a citizen back from wherever they went — combat, a trade run, an
  * errand. Implemented in Phase BEHAVIOR-5.
+ *
+ * @param citizenId the citizen being recalled; never null
+ * @param town the town issuing the recall; never null
+ * @param priority base scheduling priority for this intent
+ * @param cost resource cost for the recall (typically empty); never null
  */
 public record RecallIntent(
         UUID citizenId,

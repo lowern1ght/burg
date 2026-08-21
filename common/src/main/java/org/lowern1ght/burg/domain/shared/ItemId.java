@@ -7,10 +7,14 @@ import java.util.Objects;
  * Canonical identity of a Minecraft {@code Item} inside the Settlement bounded
  * context. Minecraft delivers items as {@code net.minecraft.world.item.Item}
  * with a {@code ResourceLocation} key, but the domain layer is
- * Minecraft-free (ADR-0008). {@code ItemId} wraps the canonical string form
- * {@code "namespace:path"} the registry key already uses; {@link #of(String)}
- * is the strict factory at the Town facade edge and {@link #parseOrEmpty}
- * is the lenient converter used by the additive NBT load path.
+ * Minecraft-free (ADR-0008).
+ *
+ * @param value the canonical lowercase {@code "namespace:path"} form; never null
+ *
+ * <p>{@code ItemId} wraps the canonical string form the registry key already
+ * uses; {@link #of(String)} is the strict factory at the Town facade edge and
+ * {@link #parseOrEmpty} is the lenient converter used by the additive NBT
+ * load path.
  *
  * <p>Instances are immutable. Two {@code ItemId} values are equal iff their
  * canonical string forms are equal. The canonical form is lowercase

@@ -6,6 +6,10 @@ import org.lowern1ght.burg.town.Town;
  * An ongoing tribute payment: the {@code initiator} town pays the
  * {@code target} town {@code amountPerTick} of its production each tick.
  *
+ * @param initiator the town paying tribute; never null
+ * @param target the town receiving tribute; never null
+ * @param amountPerTick production units the {@code initiator} pays per tick; may be zero
+ *
  * <p>Tribute is an asymmetric arrangement and does not change the diplomatic
  * status — {@link #proposedStatus()} returns {@link DiplomaticStatus#NEUTRAL}.
  * A town can pay tribute to a rival it is at war with (extortion in

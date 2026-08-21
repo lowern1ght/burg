@@ -31,32 +31,73 @@ public sealed interface UiEvent
             UiEvent.KeyDown, UiEvent.KeyUp, UiEvent.CharTyped,
             UiEvent.Scroll, UiEvent.Resize {
 
-    /** Mouse cursor moved to {@code (x, y)} in GUI-space. */
+    /**
+     * Mouse cursor moved to {@code (x, y)} in GUI-space.
+     *
+     * @param x the new cursor x in GUI-space
+     * @param y the new cursor y in GUI-space
+     */
     record MouseMoved(int x, int y) implements UiEvent {}
 
-    /** Mouse button {@code button} went down at {@code (x, y)}. */
+    /**
+     * Mouse button {@code button} went down at {@code (x, y)}.
+     *
+     * @param x the press x in GUI-space
+     * @param y the press y in GUI-space
+     * @param button the mouse button (0 = left, 1 = right, 2 = middle)
+     */
     record MouseDown(int x, int y, int button) implements UiEvent {}
 
-    /** Mouse button {@code button} went up at {@code (x, y)}. */
+    /**
+     * Mouse button {@code button} went up at {@code (x, y)}.
+     *
+     * @param x the release x in GUI-space
+     * @param y the release y in GUI-space
+     * @param button the mouse button (0 = left, 1 = right, 2 = middle)
+     */
     record MouseUp(int x, int y, int button) implements UiEvent {}
 
     /**
      * Keyboard key {@code keyCode} / {@code scanCode} went down. {@code modifiers}
      * is the GLFW-style bit field; the engine does not interpret it — widgets
      * that care (e.g. ctrl+click) read it themselves.
+     *
+     * @param keyCode platform-specific key code passed through from the adapter
+     * @param scanCode raw scan code from the adapter
+     * @param modifiers GLFW-style bit field ({@code 1 = shift}, {@code 2 = ctrl}, {@code 4 = alt})
      */
     record KeyDown(int keyCode, int scanCode, int modifiers) implements UiEvent {}
 
-    /** Keyboard key released. Same encoding as {@link KeyDown}. */
+    /**
+     * Keyboard key released. Same encoding as {@link KeyDown}.
+     *
+     * @param keyCode platform-specific key code passed through from the adapter
+     * @param scanCode raw scan code from the adapter
+     * @param modifiers GLFW-style bit field ({@code 1 = shift}, {@code 2 = ctrl}, {@code 4 = alt})
+     */
     record KeyUp(int keyCode, int scanCode, int modifiers) implements UiEvent {}
 
-    /** A UTF-16 code unit was typed. The engine never sees raw key codes for typing. */
+    /**
+     * A UTF-16 code unit was typed. The engine never sees raw key codes for typing.
+     *
+     * @param ch the typed character
+     */
     record CharTyped(char ch) implements UiEvent {}
 
-    /** A scroll-wheel event. {@code deltaY > 0} means "scrolled up". */
+    /**
+     * A scroll-wheel event. {@code deltaY > 0} means "scrolled up".
+     *
+     * @param deltaX horizontal scroll delta (positive = right)
+     * @param deltaY vertical scroll delta (positive = up)
+     */
     record Scroll(double deltaX, double deltaY) implements UiEvent {}
 
-    /** The parent's size changed to {@code (w, h)}. */
+    /**
+     * The parent's size changed to {@code (w, h)}.
+     *
+     * @param w new width in pixels
+     * @param h new height in pixels
+     */
     record Resize(int w, int h) implements UiEvent {}
 
     /**

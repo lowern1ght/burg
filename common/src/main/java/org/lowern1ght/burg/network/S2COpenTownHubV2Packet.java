@@ -11,14 +11,16 @@ import org.lowern1ght.burg.client.TownHubClientState;
 
 /**
  * The act-4 SUPPLY-mode open-gateway. The server sends this so the
- * client opens {@link org.lowern1ght.burg.client.gui.TownHubScreenV2}
+ * client opens {@code org.lowern1ght.burg.client.gui.TownHubScreenV2}
  * directly, bypassing the legacy {@code TownHubMenu}/TownHubScreen
  * flow that ships with the CONSTRUCTION-mode CONSTRUCTION lump.
+ *
+ * @param anchorPos world position of the town anchor the client should centre on; never null
  *
  * <p>Carries only the anchor position for now — the wire-format
  * intent list is the act-4 follow-up PR. The client opens the V2
  * screen with an empty {@link org.lowern1ght.burg.settlement.ui.SupplyIntentList}
- * ({@link org.lowern1ght.burg.client.gui.TownHubScreenV2#withEmptyIntent}),
+ * ({@code org.lowern1ght.burg.client.gui.TownHubScreenV2#withEmptyIntent}),
  * which renders the
  * {@link org.lowern1ght.burg.settlement.ui.SupplyIntentListWidget#NO_INTENT_KEY}
  * placeholder.

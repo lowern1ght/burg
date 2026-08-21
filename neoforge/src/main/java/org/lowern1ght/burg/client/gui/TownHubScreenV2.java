@@ -91,7 +91,12 @@ public class TownHubScreenV2 extends Screen {
      */
     private AppliedSupply lastApplied = null;
 
-    /** Mutable record of one successful supply packet — what the status bar reads. */
+    /**
+     * Mutable record of one successful supply packet — what the status bar reads.
+     *
+     * @param itemId the item that was just supplied
+     * @param quantity how many of it were applied
+     */
     public record AppliedSupply(ItemId itemId, int quantity) {}
 
     public TownHubScreenV2(SupplyIntentList data, BlockPos anchorPos) {

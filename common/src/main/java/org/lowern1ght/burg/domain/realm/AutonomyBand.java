@@ -40,7 +40,11 @@ public enum AutonomyBand {
     /** Obeys only under garrison; starves and revolts if the garrison withdraws. */
     CAPTURED;
 
-    /** True iff orders to this town are refused outright (pillar 1 holds unqualified). */
+    /**
+     * True iff orders to this town are refused outright (pillar 1 holds unqualified).
+     *
+     * @return {@code true} iff this band is {@link #FREE}
+     */
     public boolean deafToOrders() {
         return this == FREE;
     }
@@ -50,6 +54,8 @@ public enum AutonomyBand {
      * production directives — soft orders; the builder still sleeps,
      * still has morale (VISION: "elevated/founded villages accept the
      * player's construction queue and production directives").
+     *
+     * @return {@code true} iff this band is {@link #ELEVATED} or {@link #FOUNDED}
      */
     public boolean acceptsSoftOrders() {
         return this == ELEVATED || this == FOUNDED;
@@ -58,6 +64,8 @@ public enum AutonomyBand {
     /**
      * True iff obedience runs on a garrison — the cost of the fast
      * path (VISION: "captured villages obey only under garrison").
+     *
+     * @return {@code true} iff this band is {@link #CAPTURED}
      */
     public boolean requiresGarrison() {
         return this == CAPTURED;
@@ -69,6 +77,9 @@ public enum AutonomyBand {
      * unknown values. Name-based on purpose: no cross-context import,
      * and the forward-compat default matches the additive-save rule
      * the settlement carve established (ADR-0009).
+     *
+     * @param raw the persisted acquisition name (may be null or empty)
+     * @return the matching {@link AutonomyBand}, or {@link #FREE} if unknown
      */
     public static AutonomyBand fromAcquisitionName(String raw) {
         if (raw == null || raw.isEmpty()) return FREE;

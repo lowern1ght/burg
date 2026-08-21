@@ -10,6 +10,11 @@ import java.util.Objects;
  * of {@code net.minecraft.world.item.Item}, so the domain can reason
  * about what a building produces without a Minecraft classpath.
  *
+ * @param output the produced item id; never null
+ * @param amount the quantity produced per cadence tick (strictly positive)
+ * @param everyTicks cadence in ticks (strictly positive)
+ * @param capacityItems max stockpile size for this output, in items (non-negative)
+ *
  * <p>The Minecraft-free shape is the second value object in the
  * Production carve (after {@code StockLedger}). The {@code Town} facade
  * keeps owning the {@code Item}-keyed {@code ProductionEntry} for NBT

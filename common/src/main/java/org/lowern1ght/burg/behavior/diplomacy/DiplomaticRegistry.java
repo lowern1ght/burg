@@ -36,7 +36,11 @@ public final class DiplomaticRegistry {
         clock++;
     }
 
-    /** The clock value the next stamped relation will carry. */
+    /**
+     * The clock value the next stamped relation will carry.
+     *
+     * @return the current registry clock (monotonically non-decreasing)
+     */
     public long clock() {
         return clock;
     }
@@ -45,6 +49,10 @@ public final class DiplomaticRegistry {
      * The relation from {@code a} to {@code b}, or a fresh NEUTRAL relation
      * (using the current clock) if no edge is recorded. Self-relations are an
      * error — a town is never its own diplomat.
+     *
+     * @param a one of the two towns; never null and distinct from {@code b}
+     * @param b the other town; never null and distinct from {@code a}
+     * @return the recorded {@code a -> b} edge, or a fresh NEUTRAL if none exists
      */
     public Relation between(Town a, Town b) {
         if (a.equals(b)) {
@@ -61,6 +69,10 @@ public final class DiplomaticRegistry {
     /**
      * Set the {@code a -> b} relation to {@code status} and mirror it in the
      * {@code b -> a} direction. Both edges carry the same clock value.
+     *
+     * @param a one of the two towns; never null and distinct from {@code b}
+     * @param b the other town; never null and distinct from {@code a}
+     * @param status the diplomatic status both edges should carry; never null
      */
     public void update(Town a, Town b, DiplomaticStatus status) {
         Relation ab = new Relation(a, b, status, clock);
