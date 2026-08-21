@@ -17,9 +17,9 @@ import org.lowern1ght.burg.common.ui.TextStyle;
  * <p>The constructor takes the GUI-space origin offset (top-left of the
  * parent screen inside the {@link GuiGraphics} coordinate space) so
  * widgets drawn at {@code (0, 0)} land at the parent's top-left. Mouse
- * coordinates come from {@link Screen#mouseX} / {@link Screen#mouseY}
- * already in GUI-space; the adapter subtracts the origin so the engine
- * sees consistent {@code (0, 0)}-rooted coordinates.
+ * coordinates come from the {@link Screen} render-loop parameters already
+ * in GUI-space; the adapter subtracts the origin so the engine sees
+ * consistent {@code (0, 0)}-rooted coordinates.
  *
  * <p>Clip-stack management: {@link GuiGraphics#enableScissor} uses
  * absolute screen-pixel coordinates; the adapter applies the origin
@@ -36,7 +36,9 @@ public final class McDrawContext extends DrawContext {
      * Constructs the context. {@code width} / {@code height} are the
      * parent's size in GUI-space; {@code originX} / {@code originY} are
      * the top-left of the parent inside {@code guiGraphics}' coordinate
-     * space (typically {@link Screen#leftPos} / {@link Screen#topPos}).
+     * space (typically {@code leftPos} / {@code topPos} for subclasses of
+     * {@code AbstractContainerScreen}, or {@code (0, 0)} for a top-level
+     * {@link Screen}).
      */
     public McDrawContext(
         GuiGraphics guiGraphics,

@@ -24,8 +24,9 @@ package org.lowern1ght.burg.domain.settlement;
  * and tightens to {@link #isComplete()} once the underlying fields (roads,
  * zoning layers) land on {@code Town}.
  *
- * <p><b>Strict derivation wired.</b> {@link Town#structuralFlags()} is
- * the read-side adapter: it returns
+ * <p><b>Strict derivation wired.</b>
+ * {@link org.lowern1ght.burg.town.Town#structuralFlags()} is the read-side
+ * adapter: it returns
  * {@code StructuralFlags.of(corePopulated, industryZoned, roadLaid)}
  * where {@code industryZoned} is {@code !zoningCount.isEmpty()} and
  * {@code roadLaid} is {@code !plannedRoads.isEmpty()}. Both fields
@@ -79,8 +80,9 @@ public record StructuralFlags(boolean corePopulated, boolean industryZoned, bool
      * structural triple qualifies a town for SUPPLY mode once
      * acquisition is right. The strict form is {@link #isComplete()},
      * which becomes the gate once the underlying fields (roads,
-     * zoning layers) land on {@code Town} and {@link Town#structuralFlags()}
-     * is no longer hard-coded to all-true.
+     * zoning layers) land on {@code Town} and
+     * {@link org.lowern1ght.burg.town.Town#structuralFlags()} is no longer
+     * hard-coded to all-true.
      */
     public boolean isAnySet() {
         return corePopulated || industryZoned || roadLaid;
