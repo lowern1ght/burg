@@ -187,14 +187,17 @@ public class Town implements BuildExecutor {
 
     // Player-ordered queue of construction tasks (new builds and upgrades).
     // Resources are pre-reserved in queueReservedStock when an entry is added.
-    // ADR-0027 — domain type is the SoT. The MC `List<QueueEntry>` view that
-    // older call sites used to read is now derived on demand via
-    // {@link #getConstructionQueue()}; mutations go through the immutable
+    // ADR-0027 — domain type is the SoT. Mutations go through the immutable
     // `ConstructionQueue` value object so the cache and the source are the
-    // same thing. NBT keys `ConstructionQueue` and `QueueReservedStock` stay
-    // byte-identical: `toNbt` materializes a list of `QueueEntry` from the
-    // domain via `QueueEntry.fromIntent`, `fromNbt` reads the same NBT into
-    // a fresh domain queue via `QueueEntry.toIntent`.
+    // same field. The SoT accessor is {@link #constructionQueueView()}; the
+    // legacy {@code getConstructionQueue()} projection (O(N) rebuild of
+    // MC-typed `List<QueueEntry>`) was removed by the queue-consumer
+    // migration — callers that need a `QueueEntry` map the SoT's
+    // `entries()` through `QueueEntry.fromIntent` locally. NBT keys
+    // `ConstructionQueue` and `QueueReservedStock` stay byte-identical:
+    // `toNbt` materializes a list of `QueueEntry` from the domain via
+    // `QueueEntry.fromIntent`, `fromNbt` reads the same NBT into a fresh
+    // domain queue via `QueueEntry.toIntent`.
     private ConstructionQueue constructionQueue = ConstructionQueue.EMPTY;
     // Resources deducted from town stock when buildings are added to the queue.
     // Released back to reserveStock on removal, or cleared when NPC places the building.
@@ -525,27 +528,18 @@ public class Town implements BuildExecutor {
     // Player construction queue
     //
     // ADR-0027 — the immutable domain type {@link ConstructionQueue} is the
-    // SoT; this block mutates it via {@code enqueue} / {@code without} and
-    // surfaces a derived MC-typed view through {@link #getConstructionQueue()}
-    // for callers that still need a {@link QueueEntry} (the
-    // {@code TownHubDataBuilder} S2C packet, the {@code SimpleStateMachine}
-    // builder NPC, the GameTest). The derived list is rebuilt on every
-    // read — the queue is bounded at {@link #QUEUE_CAPACITY} entries so
-    // the O(N) materialization cost is negligible, and the per-mutation
-    // savings (no cache rebuild, no consistency check) outweigh the
-    // per-read cost by a lot.
+    // SoT; this block mutates it via {@code enqueue} / {@code without}.
+    // The legacy {@code getConstructionQueue()} projection (O(N) rebuild
+    // of a {@code List<QueueEntry>}) was removed by the queue-consumer
+    // migration: callers that still need an MC-typed {@link QueueEntry}
+    // adapt locally at the call site by mapping
+    // {@link ConstructionQueue#entries()} through
+    // {@link QueueEntry#fromIntent}. The single SoT accessor is
+    // {@link #constructionQueueView()} — see the ADR-0027 header comment
+    // for the rationale.
     // -------------------------------------------------------------------------
 
-    public List<QueueEntry> getConstructionQueue() {
-        List<ConstructionIntent> intents = constructionQueue.entries();
-        List<QueueEntry> derived = new ArrayList<>(intents.size());
-        for (ConstructionIntent intent : intents) {
-            derived.add(QueueEntry.fromIntent(intent));
-        }
-        return Collections.unmodifiableList(derived);
-    }
-
-    // Checks affordability (available stock minus already-reserved amounts), reserves resources,
+    // Checks affordability (available stock minus already-reserved amounts),
     // and appends a NewBuild entry to the queue. Returns false if unaffordable or queue is full.
     public boolean tryAddToConstructionQueue(String defId) {
         BuildingDef def = BuildingDataHandler.get(defId).orElse(null);
@@ -1048,12 +1042,9 @@ public class Town implements BuildExecutor {
     // as the SoT and a cached `ConstructionQueue` derived from it at every
     // mutation site, with a rebuild fallback when the two disagreed. The
     // flip: the immutable `ConstructionQueue` is now the SoT and the
-    // primary state on `Town`. The MC list that older call sites read via
-    // {@link #getConstructionQueue()} is now a derived view materialized
-    // on demand — the queue is bounded at `QUEUE_CAPACITY` (54), so the
-    // O(N) per-read cost is negligible, and the per-mutation savings
-    // (no cache rebuild, no consistency check, no sync helper) outweigh
-    // the per-read cost by a lot.
+    // primary state on `Town`. The legacy `getConstructionQueue()` projection
+    // (O(N) rebuild of MC-typed `List<QueueEntry>`) was removed by the
+    // queue-consumer migration — only the SoT accessor below remains.
     //
     // `constructionQueueView()` returns the SoT directly — the "missed a
     // sync" safety net is gone because the SoT and the cache are the
@@ -1072,8 +1063,12 @@ public class Town implements BuildExecutor {
     /**
      * Returns the town's construction queue as a Minecraft-free
      * {@link ConstructionQueue}. This is the SoT (ADR-0027): the field
-     * itself, not a derived view. The legacy MC-typed read path is
-     * {@link #getConstructionQueue()}.
+     * itself, not a derived view. Callers that need a Minecraft-typed
+     * {@link QueueEntry} (the S2C packet, the builder NPC's scan loop)
+     * map the SoT's {@link ConstructionQueue#entries()} through
+     * {@link QueueEntry#fromIntent} at the call site — the legacy
+     * `getConstructionQueue()` projection was removed by the
+     * queue-consumer migration.
      */
     public ConstructionQueue constructionQueueView() {
         return constructionQueue;

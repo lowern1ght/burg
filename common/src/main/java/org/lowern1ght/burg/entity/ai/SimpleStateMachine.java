@@ -17,6 +17,7 @@ import org.lowern1ght.burg.building.schematic.BuildSchematic;
 import org.lowern1ght.burg.building.schematic.JigsawConnector;
 import org.lowern1ght.burg.datapack.BuilderConfigDataHandler;
 import org.lowern1ght.burg.datapack.BuildingDataHandler;
+import org.lowern1ght.burg.domain.settlement.ConstructionIntent;
 import org.lowern1ght.burg.entity.Npc;
 import org.lowern1ght.burg.network.NetworkHelper;
 import org.lowern1ght.burg.town.ActiveBuildState;
@@ -96,7 +97,10 @@ public class SimpleStateMachine {
      * (computed a ConnectionPoint, a final position, a rotation, etc.) and wants the NPC
      * to execute a one-off action without going through the player's GUI queue. The legacy
      * queue path is unchanged: {@link #tickPlayerQueue} still scans
-     * {@code town.getConstructionQueue()} on every idle tick.
+     * {@code town.constructionQueueView()} on every idle tick and maps each
+     * {@link ConstructionIntent} to a {@link QueueEntry} locally at the call site
+     * (the legacy {@code Town.getConstructionQueue()} projection was removed by
+     * the queue-consumer migration).
      *
      * <p>Behavior-engine queued builds are normally handled by the existing Town pipeline
      * (engine enqueues via {@code BuildExecutor.tryQueueNewBuild}, the NPC's normal idle
@@ -165,7 +169,7 @@ public class SimpleStateMachine {
         Town town = findTown(serverLevel);
         if (town == null) return;
 
-        if (town.getConstructionQueue().isEmpty()) {
+        if (town.constructionQueueView().isEmpty()) {
             tryStartActivity(town);
             return;
         }
@@ -192,8 +196,16 @@ public class SimpleStateMachine {
     // so the caller can trigger road expansion exactly when the village needs it.
     private QueueScanResult tickPlayerQueue(ServerLevel serverLevel, Town town,
                                              List<ConnectionPoint> freePoints, List<BoundingBox> occupied) {
-        List<QueueEntry> queue = town.getConstructionQueue();
-        if (queue.isEmpty()) return QueueScanResult.EMPTY;
+        // Queue-consumer migration — the domain `ConstructionQueue` is the SoT;
+        // map its `ConstructionIntent` entries to MC-typed `QueueEntry` locally
+        // for the scan loop. The list is bounded at Town.QUEUE_CAPACITY (54) so
+        // the per-tick allocation is negligible.
+        List<ConstructionIntent> intents = town.constructionQueueView().entries();
+        if (intents.isEmpty()) return QueueScanResult.EMPTY;
+        List<QueueEntry> queue = new ArrayList<>(intents.size());
+        for (ConstructionIntent intent : intents) {
+            queue.add(QueueEntry.fromIntent(intent));
+        }
 
         UUID myId = npc.getUUID();
         boolean anyUnclaimed = false;
@@ -551,9 +563,16 @@ public class SimpleStateMachine {
         }
         // Only interrupt activity when there is unclaimed work available for this builder.
         // If every queued entry is held by another builder, keep doing the activity.
-        if (!town.getConstructionQueue().isEmpty()) {
+        // Queue-consumer migration — read the SoT directly and map intents to
+        // QueueEntry locally; the legacy `getConstructionQueue()` projection
+        // was removed.
+        if (!town.constructionQueueView().isEmpty()) {
             UUID myId = npc.getUUID();
-            List<QueueEntry> queue = town.getConstructionQueue();
+            List<ConstructionIntent> intents = town.constructionQueueView().entries();
+            List<QueueEntry> queue = new ArrayList<>(intents.size());
+            for (ConstructionIntent intent : intents) {
+                queue.add(QueueEntry.fromIntent(intent));
+            }
             boolean hasUnclaimedWork = false;
             for (int i = 0; i < queue.size(); i++) {
                 if (!town.isQueueEntryClaimedByOther(i, myId)) {
