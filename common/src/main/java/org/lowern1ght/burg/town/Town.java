@@ -1546,7 +1546,7 @@ public class Town implements BuildExecutor {
 
     /**
      * Read-only view of the {@code defId → tick} completion map.
-     * Derived from {@link #questLog#lastCompleted()} — the SoT. Callers
+     * Derived from {@code questLog.lastCompleted()} — the SoT. Callers
      * MUST NOT mutate the returned map; use
      * {@link #stampQuestCompletion(String, long)} to record a completion
      * tick.

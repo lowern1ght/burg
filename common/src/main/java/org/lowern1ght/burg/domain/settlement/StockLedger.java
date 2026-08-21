@@ -16,9 +16,9 @@ import java.util.Objects;
  * import on the classpath.
  *
  * <p>The {@code Town} facade still owns {@code Map<Item, Integer>
- * reserveStock} for NBT round-tripping; {@link #stockLedger()} is the
- * read-only domain view rebuilt from that map at the edge. This is the
- * strangler pattern ADR-0008 / ADR-0009 set up: additive, no behavior
+ * reserveStock} for NBT round-tripping; {@link org.lowern1ght.burg.town.Town#stockLedger()}
+ * is the read-only domain view rebuilt from that map at the edge. This is
+ * the strangler pattern ADR-0008 / ADR-0009 set up: additive, no behavior
  * change, no rename of existing fields.
  *
  * <p>Mutators ({@link #add}, {@link #take}, {@link #merge}) return a new

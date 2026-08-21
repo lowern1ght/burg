@@ -1,5 +1,6 @@
 package org.lowern1ght.burg.behavior.war;
 
+import org.lowern1ght.burg.infrastructure.config.BurgConfig;
 import org.lowern1ght.burg.people.RaidConfig;
 
 /**

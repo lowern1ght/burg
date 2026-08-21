@@ -181,7 +181,7 @@ public class OuatForgeClient {
      * {@code S2COpenTownHubV2Packet.handle} runs on the network thread,
      * and {@link Minecraft#setScreen} must execute on the client thread.
      *
-     * <p>Registered on the GAME bus via {@link NeoForge#EVENT_BUS#addListener}
+     * <p>Registered on the GAME bus via {@code NeoForge.EVENT_BUS.addListener}
      * in the static block — the class-level {@code @EventBusSubscriber(Bus.MOD)}
      * only handles setup events. Same pattern as
      * {@code OuatForge#onServerTick}.

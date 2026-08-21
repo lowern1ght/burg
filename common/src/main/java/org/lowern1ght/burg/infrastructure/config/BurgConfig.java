@@ -143,7 +143,7 @@ public final class BurgConfig {
      * bare-JVM simulation.
      *
      * <p>Used as the {@code setSaveConsumer} of the Cloth Config entry, so
-     * the {@link net.neoforged.neoforge.common.IConfigSpec} holds the
+     * the {@link net.neoforged.fml.config.IConfigSpec} holds the
      * canonical value and {@link GrowthMultiplier#current()} mirrors it
      * for the simulation.
      */
@@ -169,7 +169,7 @@ public final class BurgConfig {
      * bare-JVM simulation.
      *
      * <p>Used as the {@code setSaveConsumer} of the Cloth Config entry, so
-     * the {@link net.neoforged.neoforge.common.IConfigSpec} holds the
+     * the {@link net.neoforged.fml.config.IConfigSpec} holds the
      * canonical value and {@link BuildCadenceMultiplier#current()} mirrors it
      * for the production tick.
      */
