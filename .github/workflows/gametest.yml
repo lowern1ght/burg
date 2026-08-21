@@ -1,0 +1,66 @@
+name: gametest
+
+# Workflow: run the NeoForge GameTest framework against the `burg:empty5x5`
+# fixture on every PR.
+#
+# What it runs:
+#   - :neoforge:runGameTestServer (boots a real Minecraft dedicated server in
+#     gametest mode via ModLauncher and runs every @GameTest method).
+#
+# The {@code BurgGameTests.addZoningFlipsIndustryZonedOnLiveServer} test
+# (PR #64 + the {@code burggametests.empty5x5.nbt} fixture committed in
+# this branch) is what this workflow exists to gate. Today the test passes;
+# the run-level non-zero exit comes from {@code placetownanchor_registerstown}
+# — a pre-existing environmental failure (the test expects manual Town
+# Anchor placement to register a Town, but registration is worldgen-only).
+# That test is unrelated to the gametest surface and is tracked outside
+# this PR's scope.
+#
+# TODO(flipping `continue-on-error: true` off): once `placetownanchor_registerstown`
+# is fixed (or relaxed to `required = false` on the @GameTest method so the
+# gametest framework's overall exit code is not tripped), drop
+# `continue-on-error: true` so this workflow gates PRs on the gametest
+# surface. Until then, the workflow is informational — it still exercises
+# the gametest end-to-end on every PR and surfaces failures in the
+# workflow logs, but a non-zero exit does not block merge.
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  run-gametest:
+    runs-on: ubuntu-latest
+    continue-on-error: true   # see TODO above — drop once placetownanchor_registerstown is fixed
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Grant execute permission to gradlew
+        run: chmod +x gradlew
+
+      - name: Run :neoforge:runGameTestServer
+        # `--no-daemon` matches the local validation command (see
+        # tools/.githooks/pre-commit and the agent-runtime-safety rule).
+        # `-i` keeps stdin open so the Gradle daemon's exit is captured
+        # cleanly on CI runners that close tty early.
+        run: ./gradlew :neoforge:runGameTestServer --no-daemon -i
+
+      - name: Upload gametest report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gametest-report
+          path: |
+            neoforge/run/logs/
+            neoforge/run/crash-reports/
+          if-no-files-found: ignore
+          retention-days: 7

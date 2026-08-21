@@ -177,7 +177,14 @@ public class OuatForge {
         NeoForge.EVENT_BUS.addListener(this::onStartTracking);
         NeoForge.EVENT_BUS.addListener(this::onChunkLoad);
         NeoForge.EVENT_BUS.addListener(this::onEntityJoin);
-        NeoForge.EVENT_BUS.addListener(this::onModConfigReloading);
+        // ModConfigEvent is an IModBusEvent in NeoForge 21.x — must be on
+        // the mod bus, not NeoForge.EVENT_BUS. Registering it on the common
+        // bus crashes mod load with "Listener for event class
+        // ModConfigEvent$Reloading takes an argument that is not valid for
+        // this bus", which is the failure mode the runGameTestServer
+        // surface and the :neoforge:test JUnit target both hit before
+        // any test code runs.
+        modBus.addListener(this::onModConfigReloading);
     }
 
     // Populate the common static fields after all DeferredRegister suppliers have run
@@ -227,9 +234,9 @@ public class OuatForge {
     }
 
     /**
-     * Fires on {@code NeoForge.EVENT_BUS} (not the mod bus) every time the
-     * common config reloads — either from disk at startup or after the user
-     * saves in the Cloth screen. Pushes the new value into the bare-JVM
+     * Fires on the mod bus every time the common config reloads — either
+     * from disk at startup or after the user saves in the Cloth screen.
+     * Pushes the new value into the bare-JVM
      * {@link org.lowern1ght.burg.people.GrowthMultiplier} so the next
      * {@code DaySim.tickDay} sees it.
      */

@@ -39,24 +39,25 @@ import org.lowern1ght.burg.town.Town;
  * <p><b>Residual — what this PR does NOT do.</b>
  *
  * <ol>
- *   <li><b>No {@code data/burg/structure/empty5x5.snbt} structure
- *       fixture.</b> The {@code @GameTest(template = "empty5x5")}
- *       reference names the MC default empty 5×5×5 structure; the
- *       {@code GameTest} framework reads it from
- *       {@code data/<namespace>/structure/<template>.snbt} at server
- *       startup. The template is missing today — see the
- *       {@code PORT-STATUS.md} "Game-test structure {@code empty5x5}
- *       is reported missing" entry, which is exactly this gap. Adding
- *       the structure file is the next iteration's work; for now the
- *       gametest compiles but {@code runGameTestServer} would fail at
- *       template-lookup time.</li>
- *   <li><b>No CI invocation of {@code :neoforge:runGameTestServer}.</b>
- *       The {@code gameTestServer} run configuration boots a real
- *       Minecraft dedicated server via ModLauncher; it is not wired
- *       into the existing CI surface (which runs {@code :neoforge:test}
- *       only). Bringing up the server takes a few minutes and produces
- *       a per-tick log; that belongs in a separate change that scopes
- *       the gametest workflow, not in this PR.</li>
+ *   <li><b>{@code data/burg/structure/empty5x5.nbt} fixture ships
+ *       with the mod.</b> The {@code @GameTest(template = "empty5x5")}
+ *       reference is resolved by
+ *       {@code new FileToIdConverter("structure", ".nbt").idToFile(...)}
+ *       — {@code data/burg/structure/empty5x5.nbt}, gzip-compressed
+ *       NBT. The empty-fixture PR (commit 55b3ee5) shipped an early
+ *       {@code .snbt} variant (raw deflate + int palette IDs); the
+ *       generator at {@code tools/generate_empty5x5.py} now produces
+ *       the canonical {@code .nbt} shape ({@code gzip} compression,
+ *       {@code BlockState} NBT palette entries, {@code state} as a
+ *       palette index). See {@code EmptyFixtureTest} for the byte
+ *       count and round-trip pins.</li>
+ *   <li><b>CI invocation of {@code :neoforge:runGameTestServer} is
+ *       out of scope for the {@code @GameTestHolder} wiring PR</b>
+ *       (the residual here is the same one as the first point — the
+ *       fixture). The {@code gameTestServer} run configuration boots a
+ *       real Minecraft dedicated server via ModLauncher and is wired
+ *       up by the {@code gametest-run} PR alongside the
+ *       {@code .github/workflows/} job that runs it on PRs.</li>
  * </ol>
  *
  * <p>What this PR DOES do: it adds the {@code gametest} source set to
@@ -70,7 +71,7 @@ import org.lowern1ght.burg.town.Town;
  * discover them by running the build.
  */
 @GameTestHolder("burg")
-final class BurgGameTests {
+public final class BurgGameTests {
 
     /**
      * Act-5 mutator seam under a live GameTestHelper: the same {@code Town}
