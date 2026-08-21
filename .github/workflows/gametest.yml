@@ -8,21 +8,17 @@ name: gametest
 #     gametest mode via ModLauncher and runs every @GameTest method).
 #
 # The {@code BurgGameTests.addZoningFlipsIndustryZonedOnLiveServer} test
-# (PR #64 + the {@code burggametests.empty5x5.nbt} fixture committed in
-# this branch) is what this workflow exists to gate. Today the test passes;
-# the run-level non-zero exit comes from {@code placetownanchor_registerstown}
-# — a pre-existing environmental failure (the test expects manual Town
-# Anchor placement to register a Town, but registration is worldgen-only).
-# That test is unrelated to the gametest surface and is tracked outside
-# this PR's scope.
+# (PR #64 + the {@code burggametests.empty5x5.nbt} fixture) is what this
+# workflow exists to gate, alongside the live `PlacedBuilding` forceAdd
+# tests added in this branch (PR `feature/placedbuilding-live`). All
+# required tests pass; the workflow is now a hard PR gate (no
+# `continue-on-error`).
 #
-# TODO(flipping `continue-on-error: true` off): once `placetownanchor_registerstown`
-# is fixed (or relaxed to `required = false` on the @GameTest method so the
-# gametest framework's overall exit code is not tripped), drop
-# `continue-on-error: true` so this workflow gates PRs on the gametest
-# surface. Until then, the workflow is informational — it still exercises
-# the gametest end-to-end on every PR and surfaces failures in the
-# workflow logs, but a non-zero exit does not block merge.
+# Historical note: the pre-fix `placetownanchor_registerstown` was a
+# deliberate diagnostic that failed on the worldgen-only contract (`Town`
+# registration goes through `ChunkGeneratorMixin.onStructurePlaced`, never
+# on anchor placement). The fix inverted the assertion to document the
+# contract; the test now succeeds when the contract holds.
 
 on:
   pull_request:
@@ -32,7 +28,6 @@ on:
 jobs:
   run-gametest:
     runs-on: ubuntu-latest
-    continue-on-error: true   # see TODO above — drop once placetownanchor_registerstown is fixed
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
