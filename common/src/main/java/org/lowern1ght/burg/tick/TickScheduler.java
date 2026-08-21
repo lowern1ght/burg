@@ -5,6 +5,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import org.lowern1ght.burg.behavior.BehaviorEngine;
+import org.lowern1ght.burg.behavior.war.RaidManager;
 import org.lowern1ght.burg.network.NetworkHelper;
 import net.minecraft.world.level.levelgen.Heightmap;
 import org.lowern1ght.burg.entity.Npc;
@@ -58,6 +59,13 @@ public class TickScheduler {
                 Embodiment.tick(level, town, BlockPos.of(anchorKey), gameTime);
                 Homes.tick(level, town, gameTime);
                 tickQuests(town, level, gameTime, anchorKey);
+                // Raid-cadence wire-up: gate via RaidManager.tick(previousFire, gameTime)
+                // and stamp town.setLastRaidFireTick(gameTime) on fire so the next call
+                // reads the fresh anchor. See tickRaids — extracted as a static helper so
+                // :neoforge:test can exercise the wire-up without a MinecraftServer.
+                if (tickRaids(town, gameTime)) {
+                    LevelTowns.get(level).markDirty();
+                }
                 EraManager.tick(town, level, gameTime, anchorKey);
             }
 
@@ -155,6 +163,43 @@ public class TickScheduler {
             LevelTowns.get(level).markDirty();
             NetworkHelper.pushQuestUpdateToWatchers(level, town, anchorPos);
         }
+    }
+
+    /**
+     * Cooldown-gated raid tick. Returns true iff a raid may fire at {@code gameTime},
+     * and stamps {@link Town#setLastRaidFireTick(long)} to {@code gameTime} so the
+     * next call's previousFire is the firing gameTime.
+     *
+     * <p>Extracted as a package-private static helper so {@code :neoforge:test} can
+     * exercise the wire-up without spinning up a {@code MinecraftServer}. The
+     * caller ({@link #tick(MinecraftServer)}) wraps the boolean with a
+     * {@link LevelTowns#markDirty()} so the fire-tick stamp persists on the next
+     * chunk save.
+     *
+     * <p>The cooldown gate lives on {@link RaidManager#tick(long, long)} and reads
+     * {@link org.lowern1ght.burg.people.RaidConfig#current()} for the cooldown —
+     * the live reader {@link org.lowern1ght.burg.infrastructure.config.BurgConfig#refreshRaidConfig()}
+     * pushes into on mod-bus init and on every config reload. The Cloth
+     * {@code raidCooldownSeconds} knob therefore reaches the gate with no further
+     * wiring: a config-screen edit takes effect on the very next raid-cadence
+     * decision, no world reload.
+     *
+     * <p>{@code previousFire == 0L} is the additive default for a town whose first
+     * raid has not yet fired; the gate sees {@code gameTime >= cooldownTicks()} from
+     * that starting point, so the first raid fires at the cooldown boundary rather
+     * than at {@code gameTime=0}. The cooldown counts from town registration, not
+     * from world load — worlds saved before this carve load with the additive
+     * default and the first post-load fire is the same boundary from world load,
+     * not from when the town would have last fired (the cooldown has been earned,
+     * not reset).
+     */
+    static boolean tickRaids(Town town, long gameTime) {
+        long previousFire = town.getLastRaidFireTick();
+        if (RaidManager.tick(previousFire, gameTime)) {
+            town.setLastRaidFireTick(gameTime);
+            return true;
+        }
+        return false;
     }
 
     private static boolean prerequisitesMet(QuestDef.Prerequisites prereqs, Town town, TownInventory inventory) {
