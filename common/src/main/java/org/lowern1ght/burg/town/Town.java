@@ -92,6 +92,14 @@ public class Town implements BuildExecutor {
     // Game time of the last arrival, so word of the town spreads at a pace rather than in a
     // burst the moment a house goes up. Persisted: without it, a reload readmits immediately.
     private long lastSettlerArrival = 0L;
+    // Game time of the last raid fire, the per-town anchor the TickScheduler's raid tick
+    // reads and stamps. The gate itself lives on RaidManager.tick(previousFire, gameTime)
+    // and reads RaidConfig.current().cooldownTicks() for the cooldown; this field is the
+    // town's slot in the wire site. Persisted: without it, a reload resets every town's
+    // cooldown to the additive default (0L) and the first raid after restart fires at
+    // the cooldown boundary from world load, not from when the town last fired — wrong
+    // for towns that have already earned their first reprieve.
+    private long lastRaidFireTick = 0L;
     // Which settler holds the trade at which building. Persisted, unlike the builder's queue
     // claims: a settler must keep the same trade across a reload or it is not a trade, it is a
     // thing it happens to be doing. Deriving "is this taken" by scanning for other settlers
@@ -1568,6 +1576,23 @@ public class Town implements BuildExecutor {
 
     public void setLastSettlerArrival(long gameTime) { this.lastSettlerArrival = gameTime; }
 
+    /**
+     * The gameTime of the town's last raid fire — the per-town anchor the
+     * {@link org.lowern1ght.burg.tick.TickScheduler#tickRaids} gate reads on
+     * every server tick. Returns {@code 0L} for a town that has never fired
+     * (the additive default); the gate treats {@code 0L} as
+     * "first-ever-fire-from-zero" and the cooldown counts from there
+     * (see {@link org.lowern1ght.burg.behavior.war.RaidManager#tick}).
+     */
+    public long getLastRaidFireTick() { return lastRaidFireTick; }
+
+    /**
+     * Stamps the raid-fire tick. Called by {@code TickScheduler.tickRaids}
+     * after a successful gate fire, so the next call's
+     * {@code previousFire} is the firing gameTime.
+     */
+    public void setLastRaidFireTick(long gameTime) { this.lastRaidFireTick = gameTime; }
+
     /** Who works at this building, or null. */
     public UUID getJobHolder(BlockPos buildingPos) { return jobClaims.get(buildingPos); }
 
@@ -1796,6 +1821,7 @@ public class Town implements BuildExecutor {
         }
         tag.put("ResidentNpcIds", residentIdsTag);
         tag.putLong("LastSettlerArrival", lastSettlerArrival);
+        tag.putLong("LastRaidFireTick", lastRaidFireTick);
         ListTag jobClaimsTag = new ListTag();
         jobClaims.forEach((pos, id) -> {
             CompoundTag c = new CompoundTag();
@@ -1908,6 +1934,10 @@ public class Town implements BuildExecutor {
             town.builderNpcIds.add(tag.getUUID("BuilderNpcId"));
         }
         town.lastSettlerArrival = tag.getLong("LastSettlerArrival");
+        // Additive: pre-raid-tick saves have no LastRaidFireTick key, default 0L
+        // (the "never fired" sentinel the gate reads).
+        town.lastRaidFireTick = tag.contains("LastRaidFireTick")
+            ? tag.getLong("LastRaidFireTick") : 0L;
         if (tag.contains("People")) town.people = PopulationNbt.load(tag.getCompound("People"));
         if (tag.contains("JobClaims")) {
             tag.getList("JobClaims", Tag.TAG_COMPOUND).forEach(t -> {
