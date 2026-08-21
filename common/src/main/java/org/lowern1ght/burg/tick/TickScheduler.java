@@ -156,14 +156,27 @@ public class TickScheduler {
         return true;
     }
 
-    private static void tickQuests(Town town, ServerLevel level, long gameTime, long anchorKey) {
-        BlockPos anchorPos = BlockPos.of(anchorKey);
+    /**
+     * ADR-0029 — pure-logic quest tick. Iterates {@link QuestDataHandler},
+     * checks presence via the defId-keyed {@link Town#findQuestDef} port
+     * (through {@link QuestManager#isAlreadyActive}), respects the TASK
+     * refresh-interval cooldown, and verifies {@link QuestDef#prerequisites()}
+     * before spawning a fresh {@link Quest}. Returns true iff at least one
+     * quest was spawned on this call.
+     *
+     * <p>Extracted as a package-private static helper so {@code :neoforge:test}
+     * can drive the wire-up without spinning up a {@code MinecraftServer}.
+     * The MC-typed orchestrator below calls this helper and only handles the
+     * side effects (dirty mark + watcher push) when this helper reports a
+     * change.
+     */
+    static boolean tickQuests(Town town, long gameTime) {
         boolean changed = false;
         TownInventory inventory = town.getTownInventory();
         Map<String, Long> lastCompleted = town.getQuestDefLastCompleted();
 
         for (QuestDef def : QuestDataHandler.getAll()) {
-            if (QuestManager.isAlreadyActive(def, town.getActiveQuests())) continue;
+            if (QuestManager.isAlreadyActive(town, def.id())) continue;
 
             if ("TASK".equals(def.type())) {
                 long lastTime = lastCompleted.getOrDefault(def.id(), 0L);
@@ -177,7 +190,12 @@ public class TickScheduler {
             changed = true;
         }
 
-        if (changed) {
+        return changed;
+    }
+
+    private static void tickQuests(Town town, ServerLevel level, long gameTime, long anchorKey) {
+        BlockPos anchorPos = BlockPos.of(anchorKey);
+        if (tickQuests(town, gameTime)) {
             LevelTowns.get(level).markDirty();
             NetworkHelper.pushQuestUpdateToWatchers(level, town, anchorPos);
         }

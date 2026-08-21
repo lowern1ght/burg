@@ -17,7 +17,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Signature / discipline pin for ADR-0028 — the quest log SoT flip.
+ * Signature / discipline pin for ADR-0028 + ADR-0029 — the quest log SoT
+ * flip and the engine-tick defId-port carve.
  *
  * <p>The behavior cases that would normally live here
  * ({@code addQuest} adds a STATUS_ACTIVE ref to the SoT,
@@ -27,10 +28,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * {@link org.lowern1ght.burg.domain.settlement.QuestLogTest} /
  * {@link org.lowern1ght.burg.domain.settlement.QuestLogMutationTest}
  * suite on the value object the {@code Town} facade mutates, plus the
- * simulation tests in {@code QuestLogTownFlowTest}. A future carve
- * that adds an MC-aware test target (a {@code :neoforge} test source
- * set with its own {@code gradle test} task) is the right place for
- * the full behavior tests against {@code new Town()}.
+ * simulation tests in {@code QuestLogTownFlowTest}. The MC-aware
+ * {@code :neoforge:test} target carries the carve's behavior tests
+ * against {@code new Town()} — see
+ * {@code org.lowern1ght.burg.tick.TickSchedulerQuestTickPortTest} for
+ * the {@code findQuestDef} wire-up end to end.
  *
  * <p>What this test pins (the discipline that makes the dual-write
  * helper unnecessary):
@@ -51,11 +53,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *       field read) — no rebuild fallback, no consistency check.</li>
  *   <li>The legacy MC read path {@link Town#getActiveQuests()} and
  *       {@link Town#getQuestDefLastCompleted()} stay MC-typed so the
- *       {@code TickScheduler.tickQuests} /
- *       {@code QuestManager.isAlreadyActive(def, List<Quest>)} /
- *       {@code TownHubDataBuilder.buildQuestsTag} /
- *       {@code C2SContributeQuestPacket.handle} consumers continue
- *       to work without an API change.</li>
+ *       {@code TownHubDataBuilder.buildQuestsTag} consumer (which
+ *       iterates every active quest) continues to work without an
+ *       API change.</li>
+ *   <li>ADR-0029 — the engine tick is on the defId-keyed
+ *       {@link Town#findQuestDef} port. The legacy MC questId-keyed
+ *       {@code activeQuestMap} field is gone; {@code questDefIndex}
+ *       (LinkedHashMap keyed by defId) is the rich-quest cache the
+ *       engine reads. {@code removeQuest(String)} takes a defId (the
+ *       wire payload from {@code C2SContributeQuestPacket} is now
+ *       defId-keyed).</li>
  *   <li>The four mutators
  *       ({@code addQuest}, {@code removeQuest},
  *       {@code stampQuestCompletion},
@@ -80,6 +87,22 @@ class TownQuestLogSotTest {
             () -> assertTrue(Modifier.isStatic(field.getModifiers()) == false,
                 "the SoT field is per-instance (Town state) — not a static cache")
         );
+    }
+
+    @Test
+    @DisplayName("the legacy MC questId-keyed activeQuestMap field is gone")
+    void legacyActiveQuestMapFieldIsGone() {
+        NoSuchFieldException thrown = null;
+        try {
+            Town.class.getDeclaredField("activeQuestMap");
+        } catch (NoSuchFieldException expected) {
+            thrown = expected;
+        }
+        assertNotNull(thrown,
+            "activeQuestMap was the legacy MC questId-keyed rich-quest cache."
+                + " ADR-0029 replaced it with the defId-keyed questDefIndex;"
+                + " its return would re-introduce the linear-scan lookup by questId"
+                + " the carve collapsed onto the defId port.");
     }
 
     @Test
@@ -171,18 +194,33 @@ class TownQuestLogSotTest {
     }
 
     @Test
-    @DisplayName("Town.getActiveQuests() stays MC-typed for the engine tick")
+    @DisplayName("Town.findQuestDef(String) is the ADR-0029 defId-keyed engine port")
+    void findQuestDefPortSignature() throws Exception {
+        Method port = Town.class.getMethod("findQuestDef", String.class);
+
+        assertNotNull(port, "Town.findQuestDef(String) must exist — ADR-0029 carve");
+        assertAll(
+            () -> assertTrue(Modifier.isPublic(port.getModifiers()),
+                "the port is public so the engine tick, contribute packet,"
+                    + " and QuestManager.isAlreadyActive can reach it"),
+            () -> assertEquals(java.util.Optional.class, port.getReturnType(),
+                "the port returns Optional<Quest> — empty when no quest with"
+                    + " the defId is active, present otherwise")
+        );
+    }
+
+    @Test
+    @DisplayName("Town.getActiveQuests() stays MC-typed for the hub builder iteration")
     void legacyActiveQuestsReadPathStaysMcTyped() throws Exception {
         Method getter = Town.class.getMethod("getActiveQuests");
 
-        assertNotNull(getter, "the legacy getActiveQuests() accessor must still exist");
+        assertNotNull(getter, "the getActiveQuests() accessor must still exist");
         assertAll(
             () -> assertTrue(Modifier.isPublic(getter.getModifiers())),
             () -> assertEquals(List.class, getter.getReturnType(),
-                "the legacy read path returns List<Quest> (raw List at the JVM level"
-                    + " via type erasure) so TickScheduler.tickQuests, QuestManager.isAlreadyActive,"
-                    + " TownHubDataBuilder.buildQuestsTag, and C2SContributeQuestPacket.handle"
-                    + " keep working without an API change")
+                "the read path returns List<Quest> (raw List at the JVM level"
+                    + " via type erasure) so TownHubDataBuilder.buildQuestsTag can"
+                    + " iterate every active quest without a per-defId lookup")
         );
     }
 
@@ -207,7 +245,8 @@ class TownQuestLogSotTest {
             () -> assertNotNull(Town.class.getMethod("addQuest", Quest.class),
                 "addQuest(Quest) is the entry point the engine tick calls"),
             () -> assertNotNull(Town.class.getMethod("removeQuest", String.class),
-                "removeQuest(String questId) is the entry point C2SContributeQuestPacket calls"),
+                "removeQuest(String) is the entry point C2SContributeQuestPacket calls"
+                    + " — the parameter is now the defId (ADR-0029), not the per-spawn questId"),
             () -> assertNotNull(Town.class.getMethod("stampQuestCompletion", String.class, long.class),
                 "stampQuestCompletion(String, long) is the sanctioned write path"
                     + " into the completion map"),

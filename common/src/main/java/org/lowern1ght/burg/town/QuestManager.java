@@ -3,7 +3,6 @@ package org.lowern1ght.burg.town;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 
-import java.util.List;
 import java.util.UUID;
 
 public class QuestManager {
@@ -32,11 +31,12 @@ public class QuestManager {
         return q;
     }
 
-    // Returns true if the given def already has an active quest instance in this town.
-    public static boolean isAlreadyActive(QuestDef def, List<Quest> activeQuests) {
-        for (Quest q : activeQuests) {
-            if (q.defId.equals(def.id())) return true;
-        }
-        return false;
+    // ADR-0029 — engine tick reads through {@link Town#findQuestDef} instead
+    // of scanning the legacy {@code getActiveQuests()} list. The engine
+    // primary key is defId, so the defId-keyed port returns the same answer
+    // as the old linear scan in O(1) and the call site no longer needs to
+    // thread the active-quest list through.
+    public static boolean isAlreadyActive(Town town, String defId) {
+        return town.findQuestDef(defId).isPresent();
     }
 }

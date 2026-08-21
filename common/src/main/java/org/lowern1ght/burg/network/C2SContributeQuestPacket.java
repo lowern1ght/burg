@@ -19,7 +19,14 @@ import org.lowern1ght.burg.town.Town;
 
 // Sent when the player clicks the Contribute button on a TASK quest.
 // The server validates inventory, takes all required items, and grants the reward atomically.
-public record C2SContributeQuestPacket(BlockPos anchorPos, String questId) implements CustomPacketPayload {
+//
+// ADR-0029 — wire payload carries the quest {@code defId} (not the per-spawn
+// {@code questId}). The engine primary key is defId, so the lookup goes
+// through {@link Town#findQuestDef} directly. The client renders the
+// active quest set from the hub data (which still includes the
+// per-spawn {@code QuestId} for client-side identity), and the player
+// click forwards {@code qr.defId()} rather than the unstable instance id.
+public record C2SContributeQuestPacket(BlockPos anchorPos, String defId) implements CustomPacketPayload {
 
     public static final Type<C2SContributeQuestPacket> TYPE = new Type<>(
         ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "c2s_contribute_quest"));
@@ -33,7 +40,7 @@ public record C2SContributeQuestPacket(BlockPos anchorPos, String questId) imple
 
     private static void write(FriendlyByteBuf buf, C2SContributeQuestPacket packet) {
         buf.writeBlockPos(packet.anchorPos());
-        buf.writeUtf(packet.questId(), 64);
+        buf.writeUtf(packet.defId(), 64);
     }
 
     @Override
@@ -51,10 +58,7 @@ public record C2SContributeQuestPacket(BlockPos anchorPos, String questId) imple
             Town town = LevelTowns.get(level).getTownAt(packet.anchorPos()).orElse(null);
             if (town == null) return;
 
-            Quest quest = null;
-            for (Quest q : town.getActiveQuests()) {
-                if (q.questId.equals(packet.questId())) { quest = q; break; }
-            }
+            Quest quest = town.findQuestDef(packet.defId()).orElse(null);
             if (quest == null) return;
 
             // Validate player has all required items before taking anything
@@ -92,10 +96,8 @@ public record C2SContributeQuestPacket(BlockPos anchorPos, String questId) imple
                 }
             }
 
-            town.removeQuest(packet.questId());
-            // ADR-0016 — use the sanctioned write path so questLogDomain
-            // stays in sync. Direct puts on the returned map silently drift
-            // the cache; stampQuestCompletion rebuilds it.
+            town.removeQuest(packet.defId());
+            // ADR-0028 — use the sanctioned write path so questLog stays in sync.
             town.stampQuestCompletion(quest.defId, level.getGameTime());
             LevelTowns.get(level).markDirty();
             NetworkHelper.pushQuestUpdateToWatchers(level, town, packet.anchorPos());
