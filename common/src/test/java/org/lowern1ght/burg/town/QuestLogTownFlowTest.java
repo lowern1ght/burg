@@ -137,7 +137,7 @@ class QuestLogTownFlowTest {
         QuestLog beforeContribute = QuestLog.EMPTY.withAdded(activeRef("gather_wood"));
 
         // C2SContributeQuestPacket.handle drives this sequence:
-        //   town.removeQuest(packet.questId());
+        //   town.removeQuest(packet.defId());
         //   town.stampQuestCompletion(quest.defId, level.getGameTime());
         QuestLog afterRemove = beforeContribute.withRemoved("gather_wood");
 

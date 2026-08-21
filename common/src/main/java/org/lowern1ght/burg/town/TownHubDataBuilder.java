@@ -468,6 +468,14 @@ public class TownHubDataBuilder {
         return tag;
     }
 
+    // ADR-0029 — `getActiveQuests()` is now backed by the defId-keyed
+    // `questDefIndex` (rather than the legacy questId-keyed
+    // `activeQuestMap`). Both yielded the same `Quest` objects in the
+    // same insertion order, so the wire payload is byte-identical; the
+    // carve only collapses the engine tick onto the defId port. The
+    // client receives the same `QuestId` (per-spawn UUID-8-char) and
+    // `DefId` per quest as before — the wire field is unchanged, only
+    // the engine lookup is now O(1) by defId.
     private ListTag buildQuestsTag() {
         ListTag questsTag = new ListTag();
         for (Quest q : town.getActiveQuests()) {

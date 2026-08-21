@@ -57,6 +57,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -120,32 +121,46 @@ public class Town implements BuildExecutor {
     // domain value object) was a cached projection rebuilt at every mutation
     // site (ADR-0012 + ADR-0016). The flip: `questLog` is the primary state
     // on `Town` and the MC legacy fields are now a derived view materialised
-    // on demand — `getActiveQuests()` reads from `activeQuestMap` (the
-    // engine-tick's cache of rich `Quest` data) and `getQuestDefLastCompleted()`
-    // reads from `questLog.lastCompleted()`. NBT keys `ActiveQuests` and
-    // `QuestDefLastCompleted` stay byte-identical: `toNbt` materialises the
-    // legacy compound shapes from the SoT, `fromNbt` reads them back into a
-    // fresh `QuestLog`. Worlds saved before this carve load unchanged.
+    // on demand — `getActiveQuests()` reads from `questDefIndex` (the
+    // engine-tick's cache of rich `Quest` data, keyed by defId) and
+    // `getQuestDefLastCompleted()` reads from `questLog.lastCompleted()`.
+    // NBT keys `ActiveQuests` and `QuestDefLastCompleted` stay byte-identical:
+    // `toNbt` materialises the legacy compound shapes from the SoT, `fromNbt`
+    // reads them back into a fresh `QuestLog` plus the derived map. Worlds
+    // saved before this carve load unchanged.
     //
-    // Why keep `activeQuestMap` at all (it is the engine tick's view, not the
+    // Why keep `questDefIndex` at all (it is the engine tick's view, not the
     // SoT): the MC `Quest` carries conditions, rewards and the `questId`
     // the contribute packet addresses — `QuestRef` cannot carry any of that.
     // So `QuestLog` holds the SoT's roll + completion map (Minecraft-free,
-    // bare-JVM testable), and `activeQuestMap` holds the rich `Quest` data
+    // bare-JVM testable), and `questDefIndex` holds the rich `Quest` data
     // the engine tick needs (`TickScheduler.tickQuests`,
     // `QuestManager.isAlreadyActive`, `TownHubDataBuilder.buildQuestsTag`,
     // `C2SContributeQuestPacket.handle`). The two are kept consistent by
     // every mutator on `Town` — `addQuest`, `removeQuest` and
     // `cleanupOrphanedQuestData` mutate both; the SoT (`questLog`) is the
-    // persisted field and `activeQuestMap` is the derived view the engine
-    // tick reads.
+    // persisted field and `questDefIndex` is the derived view the engine
+    // tick reads through the `findQuestDef(defId)` port.
+    //
+    // ADR-0029 — promote `questDefIndex` from `activeQuestMap`-by-questId to
+    // a defId-keyed engine port. Before this carve `activeQuestMap` was the
+    // sole rich-quest cache and was keyed by the per-spawn `questId` (the
+    // UUID-8-char `QuestManager.buildFromDef` mints on every spawn). The
+    // engine tick read it via `getActiveQuests().stream().filter(q -> q.defId.equals(defId))`
+    // — a linear scan keyed off the wrong axis (the engine primary key is
+    // defId, not questId). The flip: `questDefIndex` (LinkedHashMap keyed
+    // by defId) holds the same `Quest` objects, and `findQuestDef(defId)`
+    // is the O(1) port the four read sites use. The per-spawn `questId`
+    // stays on `Quest` (the contribute packet still calls `removeQuest`
+    // by questId — see `C2SContributeQuestPacket.handle`), but the engine
+    // primary key is defId and the lookup is now defId-keyed.
     //
     // LinkedHashMap so the `ActiveQuests` NBT list preserves legacy insertion
     // order — `TickScheduler.tickQuests` adds in `QuestDataHandler.getAll()`
     // order and the NBT contract is byte-identical.
     // -------------------------------------------------------------------------
     private QuestLog questLog = QuestLog.EMPTY;
-    private final Map<String, Quest> activeQuestMap = new LinkedHashMap<>();
+    private final Map<String, Quest> questDefIndex = new LinkedHashMap<>();
 
     // Sliding window of the last 20 activity events; persisted to NBT.
     private final ArrayDeque<TownLogEntry> activityLog = new ArrayDeque<>();
@@ -1394,13 +1409,14 @@ public class Town implements BuildExecutor {
     // rebuild synced at every mutation site. The flip: `questLog` is
     // now the SoT and the primary state on `Town`; the MC legacy
     // fields (`activeQuests` + `questDefLastCompleted`) are gone, and
-    // the read paths (`getActiveQuests`, `getQuestDefLastCompleted`,
-    // `questLog`) read straight from `questLog` and the derived
-    // `activeQuestMap`. NBT keys `ActiveQuests` and
-    // `QuestDefLastCompleted` are unchanged: `toNbt` materialises the
-    // legacy compound shapes from the SoT, `fromNbt` reads them back
-    // into a fresh `QuestLog` plus the derived map. Format is
-    // byte-identical, so worlds saved before this carve load unchanged.
+    // the read paths (`findQuestDef`, `getActiveQuests`,
+    // `getQuestDefLastCompleted`, `questLog`) read straight from
+    // `questLog` and the derived `questDefIndex`. NBT keys
+    // `ActiveQuests` and `QuestDefLastCompleted` are unchanged:
+    // `toNbt` materialises the legacy compound shapes from the SoT,
+    // `fromNbt` reads them back into a fresh `QuestLog` plus the
+    // derived map. Format is byte-identical, so worlds saved before
+    // this carve load unchanged.
     //
     // The sync helper `syncQuestLogFromLegacy` and the cache
     // consistency check `questLogCacheIsConsistent` are gone — there is
@@ -1413,10 +1429,23 @@ public class Town implements BuildExecutor {
     // `(defId, type, status)`, while the MC `Quest` carries conditions,
     // rewards and the full TaskDef binding. A domain→legacy apply would
     // silently drop the rich per-quest data the engine needs to run the
-    // quest tick. The `activeQuestMap` derived field carries that
-    // rich data; the SoT on `questLog` carries the Minecraft-free
-    // shape that the application layer can reason about without
-    // `net.minecraft` on the classpath.
+    // quest tick. The `questDefIndex` derived field carries that rich
+    // data; the SoT on `questLog` carries the Minecraft-free shape that
+    // the application layer can reason about without `net.minecraft`
+    // on the classpath.
+    //
+    // ADR-0029 — promote the rich-quest cache from questId-keyed to
+    // defId-keyed. The legacy `activeQuestMap` was keyed by the
+    // per-spawn `questId`, so the engine tick read it via
+    // `getActiveQuests().stream().filter(q -> q.defId.equals(defId))`
+    // — a linear scan keyed off the wrong axis (the engine primary key
+    // is defId). The flip: `questDefIndex` is the derived cache, keyed
+    // by defId, and `findQuestDef(defId)` is the O(1) port the four
+    // engine sites (TickScheduler, QuestManager, the hub builder, the
+    // contribute packet) use. The per-spawn `questId` stays on
+    // `Quest` (the contribute packet still surfaces it to the client
+    // for display); the engine primary key is defId and the lookup is
+    // now defId-keyed end-to-end.
     // -------------------------------------------------------------------------
 
     /**
@@ -1432,47 +1461,85 @@ public class Town implements BuildExecutor {
     }
 
     /**
+     * ADR-0029 — defId-keyed engine port for the rich per-quest state.
+     * Returns the {@link Quest} the engine tick needs (conditions,
+     * rewards, the per-spawn {@code questId}) for the given
+     * {@code defId}, or {@link Optional#empty} when no quest with that
+     * defId is currently active on this town.
+     *
+     * <p>This is the read path the four engine sites use after the
+     * carve: {@code TickScheduler.tickQuests} checks
+     * {@link QuestManager#isAlreadyActive(Town, String)} (which calls
+     * this), {@code C2SContributeQuestPacket.handle} resolves the
+     * wire-payload {@code defId} via this port before consuming the
+     * quest, and {@code TownHubDataBuilder.buildQuestsTag} iterates the
+     * defId-keyed values via {@link #getActiveQuests()}.
+     *
+     * <p>Backed by the derived {@link #questDefIndex} (LinkedHashMap
+     * preserves insertion order so the NBT `ActiveQuests` list
+     * round-trips byte-for-byte). The SoT is {@link #questLog}; this
+     * accessor stays MC-typed because the engine's per-quest shape
+     * (conditions, rewards, questId) cannot be expressed in the
+     * Minecraft-free {@link QuestRef}.
+     *
+     * <p>No-op when {@code defId} is null or empty — returns
+     * {@link Optional#empty} so callers can chain a single
+     * {@code .orElse(null)} without a guard.
+     */
+    public Optional<Quest> findQuestDef(String defId) {
+        if (defId == null || defId.isEmpty()) return Optional.empty();
+        return Optional.ofNullable(questDefIndex.get(defId));
+    }
+
+    /**
      * Read-only view of the rich per-quest state the engine tick needs —
      * `Quest` objects with conditions, rewards, and the {@code questId}
      * the contribute packet addresses. Backed by the derived
-     * {@link #activeQuestMap} (LinkedHashMap preserves insertion order
+     * {@link #questDefIndex} (LinkedHashMap preserves insertion order
      * so the NBT `ActiveQuests` list round-trips byte-for-byte). The
      * SoT is {@link #questLog}; this accessor stays MC-typed for the
-     * `TickScheduler.tickQuests` /
-     * `QuestManager.isAlreadyActive(def, List<Quest>)` /
-     * `TownHubDataBuilder.buildQuestsTag` /
-     * `C2SContributeQuestPacket.handle` consumers.
+     * {@code TownHubDataBuilder.buildQuestsTag} consumer (which
+     * iterates every active quest) and any other caller that wants
+     * the full active set without going defId-by-defId through
+     * {@link #findQuestDef(String)}.
      */
     public List<Quest> getActiveQuests() {
-        return List.copyOf(activeQuestMap.values());
+        return List.copyOf(questDefIndex.values());
     }
 
     /**
      * Appends a quest to the town's log. Mutates both the SoT
      * ({@link #questLog} gains a STATUS_ACTIVE ref for the def) and
-     * the derived {@link #activeQuestMap} (the rich `Quest` keyed by
-     * {@code questId}). Replacing a defId already on the roll is a
-     * no-op at the SoT — `QuestLog.withAdded` replaces by defId, so a
-     * second {@code addQuest} with the same defId swaps the existing
-     * ref for the new one (the engine treats defId as the primary key).
+     * the derived {@link #questDefIndex} (the rich `Quest` keyed by
+     * {@code defId}). The engine primary key is defId — see
+     * {@link QuestManager#isAlreadyActive(Town, String)} — so a second
+     * {@code addQuest} with the same defId swaps the derived map's
+     * entry (and the SoT's ref via {@link QuestLog#withAdded}).
      */
     public void addQuest(Quest q) {
         Objects.requireNonNull(q, "q");
         if (q.defId == null || q.defId.isEmpty()) return;
         if (q.questId == null || q.questId.isEmpty()) return;
         String type = q.questType != null ? q.questType : QuestRef.TYPE_TASK;
-        activeQuestMap.put(q.questId, q);
+        questDefIndex.put(q.defId, q);
         questLog = questLog.withAdded(QuestRef.of(q.defId, type, QuestRef.STATUS_ACTIVE));
     }
 
     /**
-     * Drops the active quest with the given {@code questId} from both
-     * the SoT (its defId ref is removed) and the derived map. No-op
-     * when the questId is unknown — the SoT stays untouched.
+     * Drops the active quest with the given {@code defId} from both
+     * the SoT (its defId ref is removed via {@link QuestLog#withRemoved})
+     * and the derived {@link #questDefIndex}. No-op when the defId is
+     * unknown — the SoT and the derived map both stay untouched.
+     *
+     * <p>ADR-0029 — this is the defId-keyed sibling of the legacy
+     * questId-keyed {@code removeQuest} that the carve replaced. The
+     * engine primary key is defId; the wire payload from
+     * {@code C2SContributeQuestPacket} is now defId too, so the
+     * packet's handle calls this directly without a questId lookup.
      */
-    public void removeQuest(String questId) {
-        if (questId == null) return;
-        Quest removed = activeQuestMap.remove(questId);
+    public void removeQuest(String defId) {
+        if (defId == null || defId.isEmpty()) return;
+        Quest removed = questDefIndex.remove(defId);
         if (removed == null) return;
         questLog = questLog.withRemoved(removed.defId);
     }
@@ -1501,7 +1568,7 @@ public class Town implements BuildExecutor {
      * {@link #removeQuest(String)}), a STATUS_COMPLETED ref is appended
      * so the SoT matches the legacy semantic — `questLog.findById`
      * returns the completed ref, and {@link #getActiveQuests()} (which
-     * filters by `activeQuestMap`) stays empty for this defId. This is
+     * filters by `questDefIndex`) stays empty for this defId. This is
      * what {@code C2SContributeQuestPacket.handle} drives: the player
      * completes a quest → {@code removeQuest} drops the active ref →
      * {@code stampQuestCompletion} appends the completed ref + tick.
@@ -1517,7 +1584,7 @@ public class Town implements BuildExecutor {
     }
 
     /**
-     * Removes {@link #activeQuestMap} and {@link #questLog} entries
+     * Removes {@link #questDefIndex} and {@link #questLog} entries
      * whose {@code defId} no longer appears in {@code validDefIds}.
      * Called at world load after datapacks have been read. Returns
      * {@code true} if either map shrank.
@@ -1530,9 +1597,9 @@ public class Town implements BuildExecutor {
      * defensively drops malformed entries).
      */
     public boolean cleanupOrphanedQuestData(Set<String> validDefIds) {
-        boolean changedActive = activeQuestMap.entrySet().removeIf(e -> {
-            if (validDefIds.contains(e.getValue().defId)) return false;
-            LOGGER.warn("[OUAT] Removing orphaned quest {}", e.getValue().defId);
+        boolean changedActive = questDefIndex.entrySet().removeIf(e -> {
+            if (validDefIds.contains(e.getKey())) return false;
+            LOGGER.warn("[OUAT] Removing orphaned quest {}", e.getKey());
             return true;
         });
         List<QuestRef> filteredRefs = new ArrayList<>(questLog.entries().size());
@@ -1925,11 +1992,11 @@ public class Town implements BuildExecutor {
         // ADR-0028 — quest log SoT flip. The SoT is `questLog`; the legacy
         // NBT shape is `ActiveQuests` (a list of MC `Quest` compounds) +
         // `QuestDefLastCompleted` (a defId → tick compound). The active list
-        // is read from the derived `activeQuestMap` (preserves LinkedHashMap
+        // is read from the derived `questDefIndex` (preserves LinkedHashMap
         // insertion order so the list stays byte-identical to pre-ADR-0028
         // saves); the completion map is read straight from `questLog`.
         ListTag activeQuestsTag = new ListTag();
-        for (Quest q : activeQuestMap.values()) {
+        for (Quest q : questDefIndex.values()) {
             activeQuestsTag.add(q.toNbt());
         }
         tag.put("ActiveQuests", activeQuestsTag);
@@ -2104,7 +2171,7 @@ public class Town implements BuildExecutor {
             ? tag.getInt("CurrentMaxWeight")
             : 20 + town.currentEra * 10;
         // ADR-0028 — quest log SoT flip. Read the legacy NBT into the
-        // derived `activeQuestMap` (LinkedHashMap preserves insertion
+        // derived `questDefIndex` (LinkedHashMap preserves insertion
         // order) and the completion map, then collapse both into the SoT
         // `questLog` so the post-load state is exactly what `toNbt`
         // would write for the same input. A pre-ADR-0012 world
@@ -2120,7 +2187,7 @@ public class Town implements BuildExecutor {
                         || q.defId == null || q.defId.isEmpty()) {
                         return;
                     }
-                    town.activeQuestMap.put(q.questId, q);
+                    town.questDefIndex.put(q.defId, q);
                 });
         }
         Map<String, Long> completed = new LinkedHashMap<>();
@@ -2130,9 +2197,9 @@ public class Town implements BuildExecutor {
                 completed.put(key, qdlcTag.getLong(key));
             }
         }
-        List<QuestRef> entries = new ArrayList<>(town.activeQuestMap.size() + completed.size());
+        List<QuestRef> entries = new ArrayList<>(town.questDefIndex.size() + completed.size());
         Set<String> activeDefIds = new HashSet<>();
-        for (Quest q : town.activeQuestMap.values()) {
+        for (Quest q : town.questDefIndex.values()) {
             String type = q.questType != null ? q.questType : QuestRef.TYPE_TASK;
             entries.add(QuestRef.of(q.defId, type, QuestRef.STATUS_ACTIVE));
             activeDefIds.add(q.defId);

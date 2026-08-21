@@ -63,7 +63,10 @@ public class NetworkHelper {
     public static BiConsumer<BlockPos, Long>    sendUpgradeBuildingPacket      = (pos, worldPos)  -> {};
     public static BiConsumer<BlockPos, String>  sendAdvanceEraPacket           = (pos, pathId)    -> {};
     public static Consumer<BlockPos>            sendDepositPacket              = pos              -> {};
-    public static BiConsumer<BlockPos, String>  sendContributeQuestPacket      = (pos, questId)   -> {};
+    // ADR-0029 — second arg is the quest defId (the engine primary key),
+    // forwarded to C2SContributeQuestPacket. The legacy per-spawn questId
+    // is no longer what the wire carries.
+    public static BiConsumer<BlockPos, String>  sendContributeQuestPacket      = (pos, defId)     -> {};
     public static Consumer<BlockPos>            sendRequestStockPacket         = pos              -> {};
     // Carries requested items for BUY mode: List<(itemId, count)> encoded via C2SBuyPacket
     public static BiConsumer<BlockPos, List<C2SBuyPacket.Entry>> sendBuyPacket = (pos, items) -> {};

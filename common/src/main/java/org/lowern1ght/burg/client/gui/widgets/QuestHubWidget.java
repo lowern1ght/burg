@@ -67,7 +67,10 @@ public class QuestHubWidget extends DraggableWidget {
     }
 
     private record QuestRow(
-        String questId,
+        // ADR-0029 — wire field is now the quest defId (the engine primary
+        // key), not the per-spawn QuestId. The contribute packet resolves
+        // via Town.findQuestDef(defId) on the server side.
+        String defId,
         String questType,
         String titleKey,
         String descKey,
@@ -107,7 +110,7 @@ public class QuestHubWidget extends DraggableWidget {
                 ));
             });
             QuestRow row = new QuestRow(
-                tag.getString("QuestId"),
+                tag.getString("DefId"),
                 questType,
                 tag.getString("TitleKey"),
                 tag.getString("DescKey"),
@@ -371,7 +374,7 @@ public class QuestHubWidget extends DraggableWidget {
                 if (mouseX >= x + CARD_MARGIN + PAD && mouseX < x + CARD_MARGIN + PAD + btnW
                         && mouseY >= btnY && mouseY < btnY + BTN_H) {
                     boolean allMet = qr.conditions().stream().allMatch(CondRow::isMet);
-                    if (allMet) NetworkHelper.sendContributeQuestPacket.accept(anchorPos, qr.questId());
+                    if (allMet) NetworkHelper.sendContributeQuestPacket.accept(anchorPos, qr.defId());
                     return true;
                 }
             }

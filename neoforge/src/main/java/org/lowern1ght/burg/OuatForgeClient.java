@@ -251,7 +251,7 @@ public class OuatForgeClient {
             NetworkHelper.sendRemoveQueuedBuildingPacket = (pos, index)     -> PacketDistributor.sendToServer(new C2SRemoveQueuedBuildingPacket(pos, index));
             NetworkHelper.sendUpgradeBuildingPacket      = (pos, worldPos)  -> PacketDistributor.sendToServer(new C2SUpgradeBuildingPacket(pos, worldPos));
             NetworkHelper.sendAdvanceEraPacket           = (pos, pathId)    -> PacketDistributor.sendToServer(new C2SAdvanceEraPacket(pos, pathId));
-            NetworkHelper.sendContributeQuestPacket      = (pos, questId)   -> PacketDistributor.sendToServer(new C2SContributeQuestPacket(pos, questId));
+            NetworkHelper.sendContributeQuestPacket      = (pos, defId)     -> PacketDistributor.sendToServer(new C2SContributeQuestPacket(pos, defId));
             NetworkHelper.sendRequestStockPacket         = pos              -> PacketDistributor.sendToServer(new C2SRequestStockPacket(pos));
             NetworkHelper.sendToggleChatBroadcastPacket  = pos              -> PacketDistributor.sendToServer(new C2SToggleChatBroadcastPacket(pos));
             NetworkHelper.sendBuyPacket                  = (pos, items)     -> PacketDistributor.sendToServer(new C2SBuyPacket(pos, items));
