@@ -1219,14 +1219,29 @@ public class Town implements BuildExecutor {
 
     /**
      * Real derivation for {@link StructuralFlags#corePopulated()}: walks
-     * every XZ cell inside the 32-block core radius (the same constant
-     * {@link #zoneOf(BlockPos)} uses for {@link Zone#CORE}) and verifies
-     * each is covered by at least one placed building's bounding box.
+     * the town's placed buildings and verifies every non-null building
+     * bounding box fits inside the 32-block core radius (the same
+     * constant {@link #zoneOf(BlockPos)} uses for {@link Zone#CORE}).
      *
-     * <p>Returns false for an empty town (no buildings, or buildings
-     * whose {@link PlacedBuilding#bb} is {@code null} — pre-BB saves).
-     * Returns true only when every cell of the core radius is
-     * covered by at least one building with a non-null bb.
+     * <p>Returns true only when at least one building is placed and
+     * every building's {@link PlacedBuilding#bb} fits inside the core
+     * radius from the town's {@linkplain #getAnchorPos() anchor}.
+     * Returns false when the town has no buildings (the additive
+     * default for a fresh save) or when at least one building's bb
+     * extends past the 32-block radius.
+     *
+     * <p><b>Why this changed.</b> The legacy derivation walked every
+     * XZ cell inside the 32-block circle and required at least one
+     * building to cover each cell — a vanilla-village-footprint
+     * contract that fails closed on any town whose buildings do not
+     * fully carpet the core, and on every pre-BB save (buildings
+     * without a tracking {@code bb} contribute nothing to coverage, so
+     * the walk returned false regardless of how many buildings the
+     * town actually had). The new contract is the natural dual: walk
+     * the buildings, verify each one fits. A pre-BB building (null bb)
+     * is treated as compatible, not as an instant failure — see
+     * {@link #buildingInsideRadius(BoundingBox, int, int, int)} for
+     * the discipline.
      *
      * <p>The 32-block radius is hard-coded to match {@link Zone#CORE};
      * we deliberately do not add a per-town radius field — that would
@@ -1363,38 +1378,51 @@ public class Town implements BuildExecutor {
     }
 
     boolean corePopulated() {
+        List<PlacedBuilding> buildings = getBuildings();
         if (buildings.isEmpty()) return false;
         BlockPos anchor = getAnchorPos();
-        long rSq = (long) CORE_RADIUS_BLOCKS * CORE_RADIUS_BLOCKS;
-        for (int dx = -CORE_RADIUS_BLOCKS; dx <= CORE_RADIUS_BLOCKS; dx++) {
-            for (int dz = -CORE_RADIUS_BLOCKS; dz <= CORE_RADIUS_BLOCKS; dz++) {
-                if ((long) dx * dx + (long) dz * dz > rSq) continue;   // outside the circle
-                int wx = anchor.getX() + dx;
-                int wz = anchor.getZ() + dz;
-                if (!cellCoveredByBuilding(wx, wz)) return false;
-            }
+        int ax = anchor.getX();
+        int az = anchor.getZ();
+        for (PlacedBuilding b : buildings) {
+            if (!buildingInsideRadius(b.bb, ax, az, CORE_RADIUS_BLOCKS)) return false;
         }
         return true;
     }
 
     /**
-     * True iff at least one placed building's bounding box covers the
-     * (worldX, worldZ) cell. Buildings without a bounding box (saves
-     * predating {@link PlacedBuilding#bb} tracking) contribute nothing
-     * — they neither help nor hinder coverage. The walk's correctness
-     * depends on at least one building having a non-null bb; if none do,
-     * the walk fails closed (returns false for every cell).
+     * True iff every XZ cell of {@code bb} is within {@code radiusBlocks}
+     * (inclusive) of {@code (anchorX, anchorZ)}. The worst-case XZ
+     * distance for any cell in the bb from the anchor is the distance
+     * to one of the four XZ corners — computing the maximum corner
+     * distance and comparing it to {@code radius²} is therefore exact:
+     * the bb fits inside the radius iff the furthest corner does.
+     *
+     * <p>{@code null bb} returns true: pre-BB saves (older
+     * {@link PlacedBuilding}s without a tracking bb) are not
+     * instant rejections. The legacy cell-walk treated null bb as
+     * "no contribution to coverage" and therefore failed closed on
+     * any save whose buildings predated BB tracking; the new
+     * building-walk treats null bb as compatible (we lack the
+     * information to reject, so we don't), so a town whose buildings
+     * genuinely fit inside the core radius returns {@code true}
+     * regardless of how its saves predate the BB field.
+     *
+     * <p>This thin MC-typed shim delegates to {@link CoreRadiusCheck}
+     * for the actual corner-distance math, with a null-bb short-circuit
+     * to handle pre-BB saves. {@link CoreRadiusCheck} lives in its own
+     * class so the bare-JVM test exercises the algorithm directly with
+     * raw int coordinates — the bare-JVM classpath does not carry
+     * {@link BoundingBox} (whose static init pulls in
+     * {@code com.mojang.logging.LogUtils}), and the {@code :common:test}
+     * test target cannot touch {@code Town.class} at all (Town's
+     * own {@code <clinit>} pulls in {@code ResourceLocation} /
+     * Netty, neither of which the bare-JVM classpath carries).
      */
-    private boolean cellCoveredByBuilding(int worldX, int worldZ) {
-        for (PlacedBuilding b : buildings) {
-            BoundingBox bb = b.bb;
-            if (bb == null) continue;
-            if (bb.minX() <= worldX && worldX <= bb.maxX()
-                && bb.minZ() <= worldZ && worldZ <= bb.maxZ()) {
-                return true;
-            }
-        }
-        return false;
+    static boolean buildingInsideRadius(BoundingBox bb, int anchorX, int anchorZ, int radiusBlocks) {
+        if (bb == null) return true;
+        return CoreRadiusCheck.bbFitsInRadius(
+            bb.minX(), bb.maxX(), bb.minZ(), bb.maxZ(),
+            anchorX, anchorZ, radiusBlocks);
     }
 
     // -------------------------------------------------------------------------
