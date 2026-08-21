@@ -386,9 +386,9 @@ public class BehaviorEngineGameTest {
         helper.assertTrue(afterTick1.state() == TaskState.IN_PROGRESS,
             "after the first tick the task has transitioned to IN_PROGRESS via"
                 + " Town.tryAddToConstructionQueue (was " + afterTick1.state() + ")");
-        helper.assertTrue(!town.getConstructionQueue().isEmpty(),
+        helper.assertTrue(!town.constructionQueueView().isEmpty(),
             "BuildTask delegated to Town.tryAddToConstructionQueue, queue now has"
-                + " " + town.getConstructionQueue().size() + " entry/ies");
+                + " " + town.constructionQueueView().size() + " entry/ies");
 
         // Ticks 2..N: progress advances each tick. At neutral morale (50 -> multiplier
         // 1.0) with INITIAL_BUMP=0.05 and BASE_RATE=0.1, the task reaches DONE on the
@@ -434,9 +434,9 @@ public class BehaviorEngineGameTest {
             "no pairings when the scheduler has no intents");
         helper.assertTrue(engine.tasks().allActive().isEmpty(),
             "no tasks assigned when no intents were enqueued");
-        helper.assertTrue(town.getConstructionQueue().isEmpty(),
-            "the legacy construction queue is untouched (was "
-                + town.getConstructionQueue().size() + ")");
+        helper.assertTrue(town.constructionQueueView().isEmpty(),
+            "the construction queue is untouched (was "
+                + town.constructionQueueView().size() + ")");
         helper.succeed();
     }
 
@@ -522,9 +522,9 @@ public class BehaviorEngineGameTest {
             helper.assertTrue(fake.getNewBuildCalls().size() == 1,
                 "the executor was called exactly once before the task failed (calls="
                     + fake.getNewBuildCalls().size() + ")");
-            helper.assertTrue(town.getConstructionQueue().isEmpty(),
+            helper.assertTrue(town.constructionQueueView().isEmpty(),
                 "no construction queue entry was added (executor rejected) (queue size="
-                    + town.getConstructionQueue().size() + ")");
+                    + town.constructionQueueView().size() + ")");
             helper.assertTrue(engine.tasks().allActive().isEmpty(),
                 "the BuildTask is no longer active (terminalized and removed) (active="
                     + engine.tasks().allActive().size() + ")");

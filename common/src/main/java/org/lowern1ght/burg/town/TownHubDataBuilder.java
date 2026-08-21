@@ -15,6 +15,7 @@ import org.lowern1ght.burg.datapack.EraTransitionDataHandler;
 import org.lowern1ght.burg.datapack.EraTransitionDef;
 import org.lowern1ght.burg.datapack.QuestDataHandler;
 import org.lowern1ght.burg.datapack.TradePriceDataHandler;
+import org.lowern1ght.burg.domain.settlement.ConstructionIntent;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -57,7 +58,14 @@ public class TownHubDataBuilder {
         hub.put("BoostedBuildings", boostedTag);
 
         ListTag cqTag = new ListTag();
-        town.getConstructionQueue().forEach(e -> cqTag.add(QueueEntry.serialize(e)));
+        // ADR-0027 + queue-consumer migration — the SoT is the domain
+        // `ConstructionQueue`; serialize each intent into the legacy
+        // `QueueEntry` NBT shape so the wire format is byte-identical.
+        // The legacy `getConstructionQueue()` projection was removed;
+        // the local mapping happens at the call site.
+        for (ConstructionIntent intent : town.constructionQueueView().entries()) {
+            cqTag.add(QueueEntry.serialize(QueueEntry.fromIntent(intent)));
+        }
         hub.put("ConstructionQueue", cqTag);
 
         TownInventory inv = town.getTownInventory();
@@ -154,7 +162,13 @@ public class TownHubDataBuilder {
         tag.putInt("CurrentWeight", town.getCurrentWeight());
         tag.putInt("MaxWeight", town.getCurrentMaxWeight());
         ListTag cqTag = new ListTag();
-        town.getConstructionQueue().forEach(e -> cqTag.add(QueueEntry.serialize(e)));
+        // ADR-0027 + queue-consumer migration — see the duplicate comment
+        // in buildHubData: the SoT is the domain `ConstructionQueue`, and
+        // this packet renders each intent into the legacy `QueueEntry`
+        // NBT shape so the wire format is byte-identical.
+        for (ConstructionIntent intent : town.constructionQueueView().entries()) {
+            cqTag.add(QueueEntry.serialize(QueueEntry.fromIntent(intent)));
+        }
         tag.put("ConstructionQueue", cqTag);
         tag.put("UpgradeBuildings", buildUpgradeBuildingsTag());
         CompoundTag buildingCountsTag = new CompoundTag();

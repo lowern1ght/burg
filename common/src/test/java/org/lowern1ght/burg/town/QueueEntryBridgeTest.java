@@ -97,7 +97,7 @@ class QueueEntryBridgeTest {
     @Test
     @DisplayName("the boundary converters compose with a ConstructionQueue.enqueue on a NewBuild flow")
     void boundaryComposesWithNewBuildQueue() {
-        // This is the path Town.toNbt / fromNbt / getConstructionQueue
+        // This is the path Town.toNbt / fromNbt / constructionQueueView()
         // all use for the NewBuild shape: domain intents flow through
         // fromIntent, get serialized to NBT (not exercised here), get
         // deserialized back to QueueEntry (not exercised here), get
