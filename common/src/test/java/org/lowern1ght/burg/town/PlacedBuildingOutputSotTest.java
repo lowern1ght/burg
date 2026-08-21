@@ -150,16 +150,16 @@ class PlacedBuildingOutputSotTest {
     }
 
     @Test
-    @DisplayName("the legacy dead-code produce() method no longer reads entry.capacityItems() — the per-instance cap is gone")
+    @DisplayName("produce() takes a ProductionEntry — the per-rule cap is gone, the per-instance cap is on the building instead")
     void produceCapCheckIsGone() throws Exception {
-        // Verify the per-instance cap field is no longer referenced from
-        // PlacedBuilding.produce(). The carve drops the cap; the discipline
-        // is that future re-introductions of the cap (the act-5 follow-up
-        // may add a town-level cap) don't slip back into the per-instance
-        // path silently. We assert against the *current* code body via
-        // reflection on the method's bytecode-ish surface: the method
-        // exists, takes ProductionEntry, and the capacityItems() reference
-        // was removed (verified by the rename in the diff).
+        // Verify the per-rule cap (ProductionEntry.capacityItems) is no
+        // longer the discipline produce() consults. The carve drops that
+        // cap; the discipline is that future re-introductions of the
+        // per-rule cap (PR #46 retired it; an act-5 follow-up may add a
+        // town-level cap) don't slip back into the produce() path
+        // silently. The per-instance cap is on the building instead —
+        // see PlacedBuilding.applyOutputCap, driven by the Cloth knob
+        // BurgConfig.BUILDING_OUTPUT_CAP_PER_INSTANCE (ADR-0027).
         Method produce = PlacedBuilding.class.getMethod("produce",
             org.lowern1ght.burg.town.ProductionEntry.class);
 

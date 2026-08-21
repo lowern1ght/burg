@@ -9,6 +9,7 @@ import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import org.lowern1ght.burg.domain.settlement.StockLedger;
 import org.lowern1ght.burg.domain.shared.ItemId;
+import org.lowern1ght.burg.infrastructure.config.BuildingOutputCap;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -44,18 +45,19 @@ public class PlacedBuilding {
         this.rotation = rotation;
     }
 
-    // Called by TickScheduler - the per-instance output cap is gone
-    // (ADR-0024 candidate). Per-instance output now accumulates indefinitely
-    // until TownInventory removes it; the cap is a gameplay knob the user
-    // can re-introduce via Cloth Config if unbounded output becomes a
-    // balance issue. The shape of the legacy write-through
+    // Called by TickScheduler - the per-rule cap was retired (PR #46 carve)
+    // but the per-instance output cap is back as a Cloth knob (ADR-0027).
+    // Each production tick adds to the SoT ledger first (subject to the
+    // FIFO cap), then mirrors to the MC `stock` map (also draining any
+    // FIFO-dropped ItemIds). The legacy write-through shape
     // (ledger-first, then the MC map) matches {@link #forceAdd}.
     public void produce(ProductionEntry entry) {
         ItemId id = ItemId.parseOrEmpty(BuiltInRegistries.ITEM.getKey(entry.item()).toString());
         int current = outputLedger.get(id);
         int add = Math.min(entry.amount(), Integer.MAX_VALUE - current);
         if (add > 0) {
-            outputLedger = outputLedger.add(id, add);
+            StockLedger capped = applyOutputCap(outputLedger.add(id, add), this::mirrorFifoDropToStock);
+            outputLedger = capped;
             stock.put(entry.item(), current + add);
         }
     }
@@ -74,18 +76,21 @@ public class PlacedBuilding {
 
     // Called by Town.addStock() (player command) and by
     // ProductionManager.tickTransformer's write-through to the
-    // legacy MC stock map. The per-instance output cap is gone
-    // (ADR-0024 candidate); the transformer's per-rule cap is also
-    // gone (PR #46 carve). Both paths accumulate into
-    // {@link #outputLedger} first (the source of truth) and then
-    // mirror into the legacy {@code Map<Item, Integer>} stock map
-    // (the visual side: TownInventory, HUD, town-hub stock list).
-    // Ledger first, MC write-through — the discipline
-    // Town.stockLedger reserves for its mirror.
+    // legacy MC stock map. The per-rule cap is gone (PR #46 carve)
+    // but the per-instance output cap is back (ADR-0027, driven by
+    // {@link org.lowern1ght.burg.infrastructure.config.BuildingOutputCap}).
+    // Both paths accumulate into {@link #outputLedger} first (the
+    // source of truth, FIFO-capped at the edge) and then mirror into
+    // the legacy {@code Map<Item, Integer>} stock map (the visual
+    // side: TownInventory, HUD, town-hub stock list). Any entries
+    // the FIFO drained leave both sides. Ledger first, MC
+    // write-through — the discipline Town.stockLedger reserves for
+    // its mirror.
     public void forceAdd(Item item, int quantity) {
         if (quantity <= 0) return;
         ItemId id = ItemId.parseOrEmpty(BuiltInRegistries.ITEM.getKey(item).toString());
-        outputLedger = outputLedger.add(id, quantity);
+        StockLedger capped = applyOutputCap(outputLedger.add(id, quantity), this::mirrorFifoDropToStock);
+        outputLedger = capped;
         stock.merge(item, quantity, Integer::sum);
     }
 
@@ -146,6 +151,65 @@ public class PlacedBuilding {
     public java.util.Set<Item> getStockedItems() { return stock.keySet(); }
     public String getDefId() { return defId; }
 
+    /**
+     * FIFO-cap the candidate ledger at the per-instance cap
+     * {@link BuildingOutputCap#current()} exposes. Drains oldest
+     * {@link ItemId} entries (insertion order — see
+     * {@link StockLedger#entries()}) one at a time until the ledger is at
+     * most {@code cap} entries; each drain is a full
+     * {@link StockLedger#take} of the current quantity so zero-quantity
+     * drops do not survive the edge.
+     *
+     * <p>Static, no {@code this}-state — the bare-JVM FIFO test exercises
+     * the SoT-level discipline directly without instantiating a
+     * {@code PlacedBuilding} or loading the MC registry. The
+     * {@code onDrop} hook lets the instance mutators mirror each
+     * FIFO-dropped {@link ItemId} onto the legacy {@code stock} map so
+     * the SoT and the visual side stay in lockstep.
+     *
+     * <p>The {@link Integer#MAX_VALUE} sentinel on
+     * {@link BuildingOutputCap#items()} is the documented "no cap" value;
+     * the helper is a pass-through in that case. The spec clamps the
+     * value to {@code [16, 4096]} so the sentinel only fires for a
+     * caller that explicitly bypasses the spec (e.g. a future admin
+     * command), which is the right place to opt out.
+     *
+     * @param candidate the post-add but pre-cap ledger (already
+     *                  accumulated, not yet committed to {@link #outputLedger})
+     * @param onDrop    invoked once per FIFO-dropped ItemId, oldest first;
+     *                  may be {@code null} when the caller only needs the
+     *                  SoT-level result (the bare-JVM test path)
+     * @return the FIFO-capped ledger
+     */
+    static StockLedger applyOutputCap(StockLedger candidate, java.util.function.Consumer<ItemId> onDrop) {
+        int cap = BuildingOutputCap.current().items();
+        if (cap == Integer.MAX_VALUE) return candidate;
+        StockLedger next = candidate;
+        while (next.size() > cap) {
+            ItemId oldest = next.entries().keySet().iterator().next();
+            int qty = next.get(oldest);
+            next = next.take(oldest, qty);
+            if (onDrop != null) onDrop.accept(oldest);
+        }
+        return next;
+    }
+
+    /**
+     * Mirror a FIFO-dropped {@link ItemId} onto the legacy {@code stock}
+     * map. Best-effort: the {@link BuiltInRegistries#ITEM} lookup may
+     * return {@code null} (e.g. an unparseable {@link ResourceLocation}
+     * or an Item not registered in this world), in which case the drop
+     * is ledger-only — the SoT-level FIFO discipline is preserved even
+     * when the MC mirror cannot resolve the dropped key.
+     */
+    private void mirrorFifoDropToStock(ItemId droppedId) {
+        ResourceLocation rl = ResourceLocation.tryParse(droppedId.value());
+        if (rl == null) return;
+        Item droppedItem = BuiltInRegistries.ITEM.get(rl);
+        if (droppedItem == null) return;
+        stock.remove(droppedItem);
+    }
+
     // Per-instance output ledger (the new source of truth for what this
     // building has produced). Read-only view; the ledger itself is mutated
     // through produce/drain/forceAdd above.
@@ -157,6 +221,13 @@ public class PlacedBuilding {
     // after the additive load of the StockTag; the legacy map and the
     // ledger are byte-for-byte equivalent on disk, so the rebuild mirrors
     // the NBT exactly. Idempotent — safe to call from any sync point.
+    //
+    // The cap is enforced on the rebuilt ledger too: a save that pre-dates
+    // the cap, or a save where the user has since lowered the cap, comes
+    // into compliance at load time. We do NOT mirror the FIFO drops back
+    // to the `stock` map here — the rebuilt ledger is the authoritative
+    // side after fromNbt, and the next write through forceAdd / produce
+    // resyncs the mirror.
     private void syncOutputLedgerFromStock() {
         if (stock.isEmpty()) {
             outputLedger = StockLedger.EMPTY;
@@ -169,7 +240,11 @@ public class PlacedBuilding {
             if (key == null) return;
             entries.put(ItemId.parseOrEmpty(key.toString()), qty);
         });
-        outputLedger = entries.isEmpty() ? StockLedger.EMPTY : StockLedger.of(entries);
+        if (entries.isEmpty()) {
+            outputLedger = StockLedger.EMPTY;
+            return;
+        }
+        outputLedger = applyOutputCap(StockLedger.of(entries), null);
     }
 
     public double getInstanceProductionMultiplier() { return instanceProductionMultiplier; }

@@ -148,9 +148,24 @@ public class OuatForgeClient {
             .setMin(0.0)
             .setMax(100.0)
             .setTooltip(Component.literal(
-                "Standing threshold the CONSTRUCTION -> SUPPLY transition fires at. Default 50."))
+                "Act threshold the CONSTRUCTION -> SUPPLY transition fires at. Default 50."))
             .build();
         general.addEntry(actEntry);
+
+        IntegerListEntry capEntry = entryBuilder
+            .startIntField(
+                Component.literal("Per-building output cap (distinct items)"),
+                BurgConfig.BUILDING_OUTPUT_CAP_PER_INSTANCE.get())
+            .setDefaultValue(256)
+            .setMin(16)
+            .setMax(4096)
+            .setTooltip(Component.literal(
+                "Cap on the per-instance output ledger (distinct items per PlacedBuilding). "
+                    + "When the ledger would exceed this cap, oldest entries are FIFO-dropped. "
+                    + "Default 256."))
+            .setSaveConsumer(BurgConfig::refreshBuildingOutputCap)
+            .build();
+        general.addEntry(capEntry);
 
         return builder.build();
     }

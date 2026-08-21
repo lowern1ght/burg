@@ -223,6 +223,7 @@ public class OuatForge {
         BurgConfig.refreshMultiplier();
         BurgConfig.refreshBuildCadence();
         BurgConfig.refreshRaidConfig();
+        BurgConfig.refreshBuildingOutputCap();
     }
 
     /**
@@ -237,6 +238,7 @@ public class OuatForge {
         BurgConfig.refreshMultiplier();
         BurgConfig.refreshBuildCadence();
         BurgConfig.refreshRaidConfig();
+        BurgConfig.refreshBuildingOutputCap();
     }
 
     /**

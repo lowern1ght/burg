@@ -72,6 +72,22 @@ public final class BurgConfig {
      */
     public static final ModConfigSpec.DoubleValue ACT_THRESHOLD;
 
+    /**
+     * Cap on the per-instance output ledger (in distinct items). When a
+     * {@link org.lowern1ght.burg.town.PlacedBuilding}'s ledger would grow
+     * past this cap, the oldest entries are FIFO-dropped at the edge so
+     * the ledger never carries more than {@code cap} distinct items.
+     * Default 256 — comfortably above any realistic per-building variety;
+     * range {@code [16, 4096]} keeps a misconfigured value from
+     * crippling variety (16) or pinning accumulation forever (4096).
+     *
+     * <p>The wire site is {@code PlacedBuilding.applyOutputCap} — a
+     * package-private static helper the {@code forceAdd} / {@code produce}
+     * mutators and the {@code syncOutputLedgerFromStock} load path wrap
+     * every write through, so the cap applies to every growth edge.
+     */
+    public static final ModConfigSpec.IntValue BUILDING_OUTPUT_CAP_PER_INSTANCE;
+
     /** The spec, registered with NeoForge at mod construction. */
     public static final ModConfigSpec SPEC;
 
@@ -123,6 +139,18 @@ public final class BurgConfig {
                 50.0,
                 0.0,
                 100.0
+            );
+        BUILDING_OUTPUT_CAP_PER_INSTANCE = builder
+            .comment(
+                "Cap on the per-instance output ledger (distinct items per PlacedBuilding). "
+                    + "When the ledger would exceed this cap, oldest entries are FIFO-dropped. "
+                    + "Default 256. Range: 16 .. 4096."
+            )
+            .defineInRange(
+                "buildingOutputCapPerInstance",
+                256,
+                16,
+                4096
             );
         SPEC = builder.build();
     }
@@ -191,6 +219,36 @@ public final class BurgConfig {
      */
     public static void refreshRaidConfig() {
         RaidConfig.setCurrent(new RaidConfig(RAID_COOLDOWN_SECONDS.get()));
+    }
+
+    /**
+     * Push the spec's current value into the bare-JVM simulation.
+     *
+     * <p>Mirrors {@link #refreshRaidConfig()} for the per-instance output
+     * cap knob. Called once on {@code FMLCommonSetupEvent} and again on
+     * every {@code ModConfigEvent.Reloading} so user edits in the GUI
+     * take effect on the next {@code PlacedBuilding.forceAdd} / {@code produce}
+     * call without a world reload. The wire site
+     * {@link org.lowern1ght.burg.town.PlacedBuilding#applyOutputCap}
+     * reads {@link BuildingOutputCap#current()} per write, so the live
+     * value is observed on the very next growth edge.
+     */
+    public static void refreshBuildingOutputCap() {
+        BuildingOutputCap.setCurrent(new BuildingOutputCap(BUILDING_OUTPUT_CAP_PER_INSTANCE.get()));
+    }
+
+    /**
+     * Set the spec's value to the given cap, then push it into the
+     * bare-JVM simulation.
+     *
+     * <p>Used as the {@code setSaveConsumer} of the Cloth Config entry, so
+     * the {@link net.neoforged.fml.config.IConfigSpec} holds the
+     * canonical value and {@link BuildingOutputCap#current()} mirrors it
+     * for the next {@code PlacedBuilding} write.
+     */
+    public static void refreshBuildingOutputCap(int value) {
+        BUILDING_OUTPUT_CAP_PER_INSTANCE.set(value);
+        BuildingOutputCap.setCurrent(new BuildingOutputCap(value));
     }
 
     private BurgConfig() {}
