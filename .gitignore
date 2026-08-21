@@ -18,6 +18,17 @@ out
 build
 .gradle
 
+# minecraft runtime artifacts — created when NeoForge boots the game
+# (runClient / runServer / gameTestServer). Not produced by `:neoforge:test`
+# (plain JUnit, no Minecraft boot), but `runClient` / `gameTestServer` both
+# write debug.log, latest.log, and crash-reports to a top-level `logs/` /
+# `crash-reports/` next to the module. `saves/` is the world directory, and
+# `caches/` is NeoForge's resource-cache scratch.
+logs
+crash-reports
+saves
+caches
+
 # other
 eclipse
 run
