@@ -24,6 +24,8 @@ import java.util.List;
  * A villager-shaped mesh on a HumanoidModel base: vanilla's look with vanilla's arm
  * poses and armour layer, which VillagerModel does not have.
  *
+ * @param <T> the mob type this model renders; bound by {@link NpcModel}'s caller
+ *
  * <p>Typed on plain {@link Mob}, not on {@code Mob & TownNpc}. It has to be: the cast this rig
  * now carries includes {@code minecraft:villager} itself, and a vanilla class cannot be made
  * to implement our interface without a mixin. The three things the rig actually wanted off

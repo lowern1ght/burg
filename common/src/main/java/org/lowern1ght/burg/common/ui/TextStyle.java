@@ -8,6 +8,10 @@ import java.util.Objects;
  * stays engine-internal; concrete flag constants live as {@code public static
  * final int} on this class so every reader can find them.
  *
+ * @param fill the background colour drawn behind the text; never null
+ * @param text the glyph colour; never null
+ * @param flags bit field of {@link #BOLD} and friends; open for future extensions
+ *
  * <p>No {@code net.minecraft} import. {@link TextStyle} is a POJO value
  * type the adapter translates into a Minecraft {@code Font} rendering call.
  *

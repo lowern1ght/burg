@@ -5,6 +5,10 @@ import java.util.Objects;
 /**
  * A vanilla house position, projected into the Settlement bounded context.
  *
+ * @param x the X coordinate (world block)
+ * @param y the Y coordinate (world block)
+ * @param z the Z coordinate (world block)
+ *
  * <p>The {@code BlockPos} a Minecraft {@code POI} manager hands us lives in
  * {@code net.minecraft.core}, which the domain layer is forbidden to import
  * (ADR-0008 §"Layers inside each context"). {@code VanillaHouseFootprint}

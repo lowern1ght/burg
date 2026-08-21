@@ -3,6 +3,12 @@ package org.lowern1ght.burg.behavior.role;
 /**
  * Quotas the {@link RoleAssigner} uses when distributing roles across a town's citizens.
  *
+ * @param maxBuilders maximum number of citizens with the {@link CitizenRole#BUILDER} role
+ * @param maxRoadBuilders maximum number of citizens with the {@link CitizenRole#ROAD_BUILDER} role
+ * @param maxFarmers maximum number of citizens with the {@link CitizenRole#FARMER} role
+ * @param maxGuards maximum number of citizens with the {@link CitizenRole#GUARD} role
+ * @param maxMerchants maximum number of citizens with the {@link CitizenRole#MERCHANT} role
+ *
  * <p>Each field is the maximum number of citizens that may hold that role at once; the assigner
  * stops handing out a role once its quota is full and gives unassigned citizens the next
  * priority role, falling back to {@link CitizenRole#IDLE}.

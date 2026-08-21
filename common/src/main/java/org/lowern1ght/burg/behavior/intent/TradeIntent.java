@@ -6,6 +6,11 @@ import org.lowern1ght.burg.town.Town;
 /**
  * Stub intent for sending a citizen to a trade job at a particular building.
  *
+ * @param jobId the trade job identifier (e.g. building-def + slot); never null
+ * @param town the town sponsoring the trade run; never null
+ * @param priority base scheduling priority for this intent
+ * @param cost resource cost (typically empty); never null
+ *
  * <p>Implemented in Phase BEHAVIOR-2. Returns false from both canResolve and isStillValid
  * so the scheduler will never assign it.
  */

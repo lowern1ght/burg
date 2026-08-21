@@ -13,12 +13,22 @@ public sealed interface QueueEntry permits QueueEntry.NewBuild, QueueEntry.Upgra
     long entryId();
     String defId();
 
-    /** A new building to construct from a connection point. */
+    /**
+     * A new building to construct from a connection point.
+     *
+     * @param entryId monotonic id minted at enqueue time
+     * @param defId canonical {@code building_def_id} for the queue entry
+     */
     record NewBuild(long entryId, String defId) implements QueueEntry {}
 
     /**
      * An upgrade task for a building already placed in the world.
-     * fromLevel is the building's upgrade level when this task was enqueued.
+     * {@code fromLevel} is the building's upgrade level when this task was enqueued.
+     *
+     * @param entryId monotonic id minted at enqueue time
+     * @param defId canonical {@code building_def_id} for the queue entry
+     * @param buildingWorldPos world position of the building being upgraded
+     * @param fromLevel the building's upgrade level when this task was enqueued
      */
     record Upgrade(long entryId, String defId, BlockPos buildingWorldPos, int fromLevel) implements QueueEntry {}
 

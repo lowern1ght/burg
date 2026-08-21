@@ -8,6 +8,11 @@ import java.util.List;
  * A planned road: a sequence of waypoints from {@code start} to {@code end},
  * classified by what kind of piece it is.
  *
+ * @param start first waypoint of the segment; never null
+ * @param end last waypoint of the segment; never null
+ * @param waypoints the intermediate waypoints between {@code start} and {@code end}; never null, defensively copied
+ * @param type classification of the road piece (dirt path, cobbled street, bridge, …); never null
+ *
  * <p>Planning-only — this record is the planner's output, not a placement
  * command. A future phase will hand the {@link #waypoints()} to a placer
  * that walks the sequence and drops the resolved NBT piece at each step.

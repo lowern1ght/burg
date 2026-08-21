@@ -39,6 +39,9 @@ public sealed interface VanillaBindingDecision
     /**
      * The conversion does NOT apply at this position. {@code reasonCode}
      * is one of the {@code Skip.REASON_*} constants.
+     *
+     * @param reasonCode stable reason code (e.g. {@link Skip#REASON_NO_FOOTPRINTS}); never blank
+     * @param detail human-readable explanation of the skip; never null
      */
     record Skip(String reasonCode, String detail) implements VanillaBindingDecision {
 
@@ -72,6 +75,8 @@ public sealed interface VanillaBindingDecision
      * set the facade will register as blocked zones; the {@code town}
      * keeps the set around to make sure subsequent growth never lands a
      * Burg building on top of an existing vanilla house.
+     *
+     * @param footprints the blocked-zone set (non-empty, defensively copied); never null
      */
     record Bind(Set<VanillaHouseFootprint> footprints) implements VanillaBindingDecision {
 

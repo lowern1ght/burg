@@ -5,6 +5,8 @@ import java.util.Objects;
 /**
  * Canonical identity of a realm inside the Realm bounded context.
  *
+ * @param value the canonical (trimmed, non-blank) realm id string; never null
+ *
  * <p>The realm layer sits above {@code Town} (VISION §"The immediate
  * architecture consequence"): a metropolis plus its colonies plus foreign
  * holdings. Its identity is a plain string today — the storage

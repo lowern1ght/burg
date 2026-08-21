@@ -15,6 +15,9 @@ import org.lowern1ght.burg.client.model.NpcModel;
  * named one builder outfit as a constant, so every town NPC sharing this rig would have worn
  * the builder's clothes whatever job it held.
  *
+ * @param <T> the mob type rendered by this layer; bound by {@link NpcClothesLayer}'s caller
+ * @param <M> the model type, an {@link NpcModel} parameterised on {@code T}
+ *
  * <p><b>This layer survived the move to hand-drawn bodies, and it is the reason those bodies are
  * UNDERCLOTHES.</b> One tunic file per trade over any body is what makes a farmer distinguishable
  * from a smith, and it multiplies: 7 garments x N bodies x the head outlines. Draw finished

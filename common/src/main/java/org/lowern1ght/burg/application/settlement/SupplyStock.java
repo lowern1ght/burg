@@ -8,6 +8,9 @@ import java.util.Objects;
 /**
  * Use case: supply items into a town's stock (ADR-0014).
  *
+ * @param item the item being supplied; never null
+ * @param quantity strictly positive number of units (enforced by the compact constructor)
+ *
  * <p>The command is an immutable record over domain types only; the
  * {@link Handler} orchestrates through {@link TownStockPort} and never
  * touches {@code Town} or any Minecraft type. This is the application-layer

@@ -7,6 +7,10 @@ package org.lowern1ght.burg.domain.settlement;
  * {@code openspec/changes/hub-becomes-window/specs/construction-mode-supply-mode}
  * names as the act-4 trigger:
  *
+ * @param corePopulated every footprint inside the core radius is occupied
+ * @param industryZoned the zoning layer has at least one industry cell outside the core radius
+ * @param roadLaid the road planner has at least one path from the core to the industry zone
+ *
  * <ul>
  *   <li>{@link #corePopulated} — every footprint inside the core radius is occupied.</li>
  *   <li>{@link #industryZoned} — the zoning layer has at least one industry cell outside the core radius.</li>

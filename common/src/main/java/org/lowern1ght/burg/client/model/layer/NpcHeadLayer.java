@@ -33,6 +33,9 @@ import org.lowern1ght.burg.client.model.NpcModel;
 /**
  * Hair, beard and headwear, drawn on the head.
  *
+ * @param <T> the mob type rendered by this layer; bound by {@link NpcHeadLayer}'s caller
+ * @param <M> the model type, an {@link NpcModel} parameterised on {@code T}
+ *
  * <p>Three cubes' worth of geometry rather than paint, because a texture cannot change a
  * silhouette on this rig — the twelve skins the mod shipped had three distinct alpha masks
  * between them and the six men shared one. See {@link CitizenLook} for the full reasoning.

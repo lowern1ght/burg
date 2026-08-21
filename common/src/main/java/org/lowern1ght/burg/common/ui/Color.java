@@ -7,6 +7,8 @@ import java.util.Objects;
  * pack as {@code 0xAARRGGBB} so {@link #argb} can be passed straight to
  * Minecraft's {@code GuiGraphics.fill(...)} through the adapter.
  *
+ * @param argb the packed 32-bit ARGB value (alpha in the high byte)
+ *
  * <p>No {@code net.minecraft} import. {@link Color} is a value type the
  * UI tests can construct and assert against on a bare JVM (ADR-0022).
  *

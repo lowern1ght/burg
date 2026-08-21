@@ -7,6 +7,11 @@ import org.lowern1ght.burg.town.Town;
  * Stub intent for stationing a citizen at the town's defence — manning a wall, patrolling
  * the perimeter, retaliating against a raid.
  *
+ * @param siteId the defence site id (wall segment, gate, patrol route); never null
+ * @param town the town being defended; never null
+ * @param priority base scheduling priority for this intent
+ * @param cost resource cost to mount the defence; never null (empty allowed)
+ *
  * <p>Implemented in Phase BEHAVIOR-5. Returns false from both canResolve and isStillValid
  * so the scheduler will never assign it.
  */

@@ -13,6 +13,12 @@ import java.util.Set;
 /**
  * An intent to construct a new building of the given def in the town.
  *
+ * @param buildingDefId the building definition id; never null
+ * @param town the town that wants the building; never null
+ * @param priority base scheduling priority for this intent
+ * @param cost resource cost to begin construction; never null (empty allowed)
+ * @param requiredZone zone the building must live in (DIST-1 zoning); never null
+ *
  * <p>The most common intent. Once {@link #canResolve} returns true the scheduler pairs this
  * intent with a free builder citizen and the citizen's task queue carries a
  * {@link org.lowern1ght.burg.behavior.task.BuildTask}.

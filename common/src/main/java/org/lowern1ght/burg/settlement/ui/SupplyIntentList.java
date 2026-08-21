@@ -22,6 +22,9 @@ import java.util.Objects;
  * the pending construction intents and the stock-gap roll that aggregates
  * what the town is short of. The widget renders them top-to-bottom.
  *
+ * @param items the intent rows; never null, defensively copied
+ * @param gaps the stock-gap rows; never null, defensively copied
+ *
  * <p>No Minecraft imports. The whole class lives on a bare JVM and the
  * engine renders it without ever touching a Minecraft client. The
  * {@code TownHubScreenV2} (in {@code neoforge/.../client/gui/}) is the
@@ -43,6 +46,9 @@ public record SupplyIntentList(List<IntentItem> items, List<StockGapItem> gaps) 
     /**
      * One row of the intent list. {@code inputsMissing} is sparse —
      * items the intent does not need are absent, not zero.
+     *
+     * @param buildingDefId canonical building def id this row represents; never null
+     * @param inputsMissing sparse map of item id → quantity the intent is short of; never null, defensively copied
      */
     public record IntentItem(String buildingDefId, Map<ItemId, Integer> inputsMissing) {
         public IntentItem {
@@ -55,6 +61,10 @@ public record SupplyIntentList(List<IntentItem> items, List<StockGapItem> gaps) 
      * One row of the gap roll. {@code missing} is how many of {@code item}
      * the town is short of to satisfy every intent that needs it;
      * {@code onHand} is how many it already holds.
+     *
+     * @param item the item id this row is short of; never null
+     * @param missing how many more the town needs across all matching intents (clamped to non-negative)
+     * @param onHand how many the town already holds (informational; may exceed {@code missing + held})
      */
     public record StockGapItem(ItemId item, int missing, int onHand) {
         public StockGapItem {

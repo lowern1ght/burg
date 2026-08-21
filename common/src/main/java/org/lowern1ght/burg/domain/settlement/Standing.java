@@ -9,6 +9,9 @@ import java.util.Objects;
  * score. Immutable; mutations are produced by {@link #withDelta(int)} and
  * applied to a {@link StandingBook} entry.
  *
+ * @param citizen the citizen whose standing this entry records; never null
+ * @param value the standing score; may be negative or positive
+ *
  * <p>The score is intentionally an {@code int}, not a bucketed enum: the
  * {@code earned-crown-trajectory} (VISION.md) and the act-4 standing
  * threshold (50 in the shipped builder datapack) are continuous numbers,

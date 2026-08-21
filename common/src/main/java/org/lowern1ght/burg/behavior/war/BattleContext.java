@@ -7,6 +7,14 @@ import org.lowern1ght.burg.town.Town;
  * The read-only inputs the {@link BattleStateMachine} needs to make a
  * transition decision for a single squad on a single tick.
  *
+ * @param level the live {@link ServerLevel}; never null
+ * @param gameTick the current engine tick (for logging / diagnostics); non-negative
+ * @param attacker the attacking town; never null
+ * @param defender the defending town; never null
+ * @param attackerSquad the attacking squad; never null
+ * @param defenderSquad the defending squad; never null
+ * @param casualties the casualty model shared across both squads; never null
+ *
  * <p>The context is the value object the driver hands the state machine
  * — it carries the level (in case the machine ever needs to look at
  * the world), the current game tick (for logging/diagnostics), the two
@@ -27,6 +35,7 @@ public record BattleContext(
     Squad defenderSquad,
     CasualtyModel casualties
 ) {
+    /** Compact constructor — validates every component is non-null. */
     public BattleContext {
         if (level == null) throw new IllegalArgumentException("level must be non-null");
         if (attacker == null) throw new IllegalArgumentException("attacker must be non-null");

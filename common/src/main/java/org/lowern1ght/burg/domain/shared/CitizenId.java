@@ -7,6 +7,8 @@ import java.util.UUID;
  * Canonical identity of a citizen (player or NPC) inside the Settlement
  * bounded context.
  *
+ * @param value the canonical (UUID {@link UUID#toString()} form) identity string; never null
+ *
  * <p>Minecraft delivers player and entity identities as {@link UUID}, but the
  * domain layer is Minecraft-free (ADR-0008). {@code CitizenId} wraps the
  * canonical string form of the UUID; {@link #of(UUID)} and {@link #toUuid()}

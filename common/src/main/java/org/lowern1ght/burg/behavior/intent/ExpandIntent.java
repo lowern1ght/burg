@@ -11,6 +11,12 @@ import java.util.Set;
 /**
  * Intent to lay a road (or extend the network) between two world positions.
  *
+ * @param from one endpoint of the desired road segment; never null
+ * @param to the other endpoint; never null and distinct from {@code from}
+ * @param town the town that wants the road; never null
+ * @param priority base scheduling priority for this intent
+ * @param cost resource cost to begin laying the road; never null (empty allowed)
+ *
  * <p>{@code from} and {@code to} are the endpoints of the desired road
  * segment. The planner fills in the waypoints between them; the engine
  * never sees the waypoints at the intent layer.

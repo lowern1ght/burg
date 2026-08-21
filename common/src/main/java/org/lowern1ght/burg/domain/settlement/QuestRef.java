@@ -7,6 +7,10 @@ import java.util.Objects;
  * projection of {@code town.Quest} that the domain layer can reason about
  * without a {@code net.minecraft} import on the classpath.
  *
+ * @param defId the quest definition id; never null
+ * @param type the quest kind (e.g. {@link #TYPE_TASK} or {@link #TYPE_NOTE}); never null
+ * @param status optional status string (ACTIVE / COMPLETED for TASK; null for NOTE); nullable by design
+ *
  * <p>Two strings identify the quest on the wire:
  * <ul>
  *   <li>{@code defId} — the quest definition id (the {@code id} field of

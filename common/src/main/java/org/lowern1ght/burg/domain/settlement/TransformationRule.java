@@ -13,6 +13,11 @@ import java.util.Objects;
  * transformation pass: a list of input item costs, the output
  * (item + amount), and a per-output capacity.
  *
+ * @param inputs the input costs that must be drained before the rule fires; never null, defensively copied
+ * @param output the item produced by this rule; never null
+ * @param outputAmount the quantity produced per successful apply (strictly positive)
+ * @param outputCapacityItems the per-building output cap, in items (non-negative)
+ *
  * <p>Mirrors the shape of {@code town.TransformationRecipe} but with
  * {@link ItemId} in place of {@code net.minecraft.world.item.Item}.
  * Like {@link ProductionRule} and {@code StockLedger}, this is a
@@ -41,9 +46,10 @@ public record TransformationRule(
 
     /**
      * One input line of a {@link TransformationRule}: a required
-     * {@link ItemId} and a positive amount. {@code amount} is
-     * checked at construction time so the apply path can rely on
-     * every input being drainable.
+     * {@link ItemId} and a positive amount.
+     *
+     * @param item the consumed item id; never null
+     * @param amount the consumed quantity (strictly positive, enforced at construction)
      */
     public record StockCost(ItemId item, int amount) {
         public StockCost {

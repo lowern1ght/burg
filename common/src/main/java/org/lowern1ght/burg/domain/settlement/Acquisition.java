@@ -33,6 +33,9 @@ public enum Acquisition {
      * Returns the Acquisition for a stored NBT string, or {@link #FREE} for
      * an absent / unrecognized value. Used at the Town facade edge when
      * additive NBT is missing or was written by an older build.
+     *
+     * @param raw the persisted NBT string (may be null or empty)
+     * @return the matching {@link Acquisition}, or {@link #FREE} if unknown
      */
     public static Acquisition fromNbtOrDefault(String raw) {
         if (raw == null || raw.isEmpty()) return FREE;
@@ -43,22 +46,39 @@ public enum Acquisition {
         }
     }
 
-    /** Stable NBT form — the {@link #name()} of the enum, uppercase. */
+    /**
+     * Stable NBT form — the {@link #name()} of the enum, uppercase.
+     *
+     * @return the uppercase {@link #name()} for persistence
+     */
     public String toNbt() {
         return name();
     }
 
-    /** True iff this is the additive default for old saves. */
+    /**
+     * True iff this is the additive default for old saves.
+     *
+     * @return {@code true} iff this band is {@link #FREE}
+     */
     public boolean isDefault() {
         return this == FREE;
     }
 
-    /** Monotonic-rank for callers that want to test progression. */
+    /**
+     * Monotonic-rank for callers that want to test progression.
+     *
+     * @return the {@link #ordinal()} along the FREE→CAPTURED ladder
+     */
     public int rank() {
         return ordinal();
     }
 
-    /** True iff {@code other} is strictly later on the ladder. */
+    /**
+     * True iff {@code other} is strictly later on the ladder.
+     *
+     * @param other the comparison target; never null
+     * @return {@code true} iff this step is strictly earlier than {@code other}
+     */
     public boolean precedes(Acquisition other) {
         Objects.requireNonNull(other, "other");
         return ordinal() < other.ordinal();
