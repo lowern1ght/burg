@@ -1086,8 +1086,10 @@ public class Town implements BuildExecutor {
     // Today {@link #structuralFlags()} reads the stub fields
     // ({@link #zoningCount} and {@link #plannedRoads}); both start empty
     // so the strict derivation returns NONE on every fresh save, gating
-    // the hub to CONSTRUCTION regardless of acquisition — the act-5 carve
-    // populates the stub fields and the gate gets its teeth.
+    // the hub to CONSTRUCTION regardless of acquisition. The mutators
+    // ({@link #addZoning(Zone, int)} / {@link #addRoadSegment(RoadSegment)})
+    // land the first increment; the act-5 zoning / road-planner carves
+    // wire the production call sites and the gate gets its teeth.
     //
     // `TownAnchorBlock.useWithoutItem` is the only consumer right now: it
     // logs the mode at right-click. The TownHubScreen widget set is
@@ -1153,7 +1155,7 @@ public class Town implements BuildExecutor {
      * {@code hub-becomes-window} spec names: {@code core_populated},
      * {@code industry_zoned}, {@code road_laid}.
      *
-     * <p><b>Per-flag status (act-4 follow-up-2 + config-and-structural carves):</b>
+     * <p><b>Per-flag status (act-4 follow-up-2 + config-and-structural + structural-fields carves):</b>
      * <ul>
      *   <li><b>core_populated</b> — REAL derivation. Walks every XZ
      *       cell inside the 32-block core radius (mirroring
@@ -1168,31 +1170,32 @@ public class Town implements BuildExecutor {
      *       {@link #zoningCount} — a per-town count by zone — and
      *       returns {@code true} iff the map is non-empty (the spec
      *       asks "has the zoning layer touched this town", regardless
-     *       of which zone). Today the field starts empty so this returns
-     *       {@code false} for every town. The act-5 zoning carve
-     *       populates it; the gate then gets its teeth without a
-     *       follow-up read-site refactor. (TODO(act-5 carve): wire
-     *       the zoning layer's increment into {@link #zoningCount}.)</li>
+     *       of which zone). The field starts empty on a fresh save, so
+     *       this returns {@code false} until the zoning layer calls
+     *       {@link #addZoning(Zone, int)} at least once. The mutator
+     *       is the seam — wiring it into the production zoning tick
+     *       is the act-5 zoning carve's only remaining work.</li>
      *   <li><b>road_laid</b> — REAL derivation. Reads from
      *       {@link #plannedRoads} — a per-town roll of
      *       {@link RoadSegment} — and returns {@code true} iff the
-     *       list is non-empty. Today the list starts empty so this
-     *       returns {@code false} for every town. The act-5 road
-     *       carve appends to it. (TODO(act-5 carve): wire the road
-     *       planner's commit into {@link #plannedRoads}.)</li>
+     *       list is non-empty. The list starts empty on a fresh save, so
+     *       this returns {@code false} until the road planner calls
+     *       {@link #addRoadSegment(RoadSegment)} at least once. The
+     *       mutator is the seam — wiring it into the road planner's
+     *       commit path is the act-5 road carve's only remaining
+     *       work.</li>
      * </ul>
      *
      * <p><b>Net behaviour on a fresh save.</b> All three fields are
      * empty by default, so the strict derivation
      * ({@link StructuralFlags#isAnySet()}) returns {@code false} for
-     * every pre-act-5 town. That collapses the structural triple to
+     * every fresh save. That collapses the structural triple to
      * {@code of(false, false, false)} = {@link StructuralFlags#NONE},
      * which gates the hub to {@link HubMode#CONSTRUCTION} regardless of
      * acquisition — exactly the strict form the act-4 follow-up was
-     * working toward. Stub fields exist on {@code Town} but the engine
-     * tick does not yet populate them; this carve wires the derivations
-     * to the empty fields so the strict form kicks in as soon as the
-     * act-5 zoning / road-planner carves land.
+     * working toward. The mutators land the moment the zoning layer /
+     * road planner commit their first call; the read site does not
+     * change.
      *
      * <p>The immutable-value-object discipline {@link #constructionQueue}
      * uses (ADR-0027) is reserved for the future carve where this method
@@ -1224,64 +1227,115 @@ public class Town implements BuildExecutor {
     private static final int CORE_RADIUS_BLOCKS = 32;
 
     // -------------------------------------------------------------------------
-    // ADR-0026 — stub fields for the act-4 follow-up structural flags. Today
-    // the zoning layer and the road graph are keyed by Town externally
-    // (zoning is per-position via {@link #zoneOf}; road planning runs
-    // against a per-server {@code RoadGraph} keyed by Town). Adding the
-    // fields here as empty defaults means {@link #structuralFlags()} can
-    // consult them right now and flip to the strict derivation the day
-    // the act-5 carve populates them; no future refactor of the read
-    // site is needed.
+    // ADR-0026 — structural flags' source of truth. Today the zoning layer
+    // and the road graph are keyed by Town externally (zoning is per-
+    // position via {@link #zoneOf}; road planning runs against a per-
+    // server {@code RoadGraph} keyed by Town). Adding the fields here
+    // means {@link #structuralFlags()} consults them right now and flips
+    // the gate to its teeth the moment the zoning layer / road planner
+    // calls {@link #addZoning(Zone, int)} / {@link #addRoadSegment(RoadSegment)}
+    // for the first time; no future refactor of the read site is needed.
     //
-    // Strict derivation is now wired: both maps/lists start empty, so
+    // Strict derivation is wired: both maps/lists start empty, so
     // {@code industryZoned()} and {@code roadLaid()} return {@code false}
     // on every fresh save, and {@code structuralFlags()} collapses to
-    // {@link StructuralFlags#NONE} regardless of acquisition. The act-5
-    // zoning / road-planner carves populate the fields and the gate gets
-    // its teeth automatically.
+    // {@link StructuralFlags#NONE} regardless of acquisition. The mutators
+    // are the seam: a production zoning tick calls {@code addZoning} as it
+    // places cells, and the road planner's commit path calls
+    // {@code addRoadSegment}; both populate the SoT and the gate gets its
+    // teeth automatically.
     // -------------------------------------------------------------------------
 
     /**
-     * Per-town zoning count by zone. Empty today; the act-5 zoning carve
-     * increments {@code INDUSTRY} as buildings land outside the core
-     * radius and the count goes positive.
+     * Per-town zoning count by zone. Empty until the zoning layer's
+     * {@link #addZoning(Zone, int)} mutator lands the first increment;
+     * the field stays empty on a fresh save so {@link #industryZoned()}
+     * collapses to {@code false} regardless of acquisition.
      */
     private final Map<Zone, Integer> zoningCount = new EnumMap<>(Zone.class);
 
     /**
-     * Per-town planned roads. Empty today; the act-5 road-planner carve
-     * appends each committed {@link RoadSegment} as the engine accepts
-     * a planner output.
+     * Per-town planned roads. Empty until the road planner's
+     * {@link #addRoadSegment(RoadSegment)} mutator appends the first
+     * segment; the field stays empty on a fresh save so
+     * {@link #roadLaid()} collapses to {@code false} regardless of
+     * acquisition.
      */
     private final List<RoadSegment> plannedRoads = new ArrayList<>();
 
     /**
      * Read-only view of the per-zone zoning count. The map is the SoT;
-     * the act-5 carve populates it. Today it is always empty.
+     * the zoning layer mutates it via {@link #addZoning(Zone, int)}.
      */
     public Map<Zone, Integer> getZoningCount() {
         return Collections.unmodifiableMap(zoningCount);
     }
 
     /**
+     * Records a zoning decision for this town. The layer responsible
+     * for placing cells into a {@link Zone} calls this once per
+     * committed decision (one placement = one call), passing the zone
+     * and the number of cells the decision covers. Multiple calls for
+     * the same zone merge via {@link Map#merge}, so a layer that emits
+     * decisions incrementally accumulates naturally.
+     *
+     * <p>Negative {@code cells} and {@code null} {@code zone} are
+     * dropped silently at the edge: the structural flag-set's job is
+     * to record "has the zoning layer touched this town", and a
+     * negative count is never a meaningful answer to that question.
+     *
+     * <p>Once this returns the field has at least one entry, so
+     * {@link #industryZoned()} flips to {@code true} on the next call
+     * to {@link #structuralFlags()}. The hub-mode gate's structural
+     * leg goes from "always false" to "true once the zoning layer
+     * commits a decision".
+     */
+    public void addZoning(Zone zone, int cells) {
+        if (zone == null || cells <= 0) return;
+        zoningCount.merge(zone, cells, Integer::sum);
+    }
+
+    /**
      * Read-only view of the per-town planned-road roll. The list is the
-     * SoT; the act-5 carve populates it. Today it is always empty.
+     * SoT; the road planner mutates it via {@link #addRoadSegment(RoadSegment)}.
      */
     public List<RoadSegment> getPlannedRoads() {
         return Collections.unmodifiableList(plannedRoads);
     }
 
     /**
+     * Records a committed road segment for this town. The road planner
+     * (or any caller that has produced a {@link RoadSegment} the engine
+     * has accepted) calls this once per committed segment; the segment
+     * is appended to the per-town roll in emission order.
+     *
+     * <p>{@code null} segments are dropped silently at the edge — the
+     * structural flag-set's job is to record "has a road segment been
+     * committed for this town", and a null segment is never a
+     * meaningful answer to that question.
+     *
+     * <p>Once this returns the list has at least one entry, so
+     * {@link #roadLaid()} flips to {@code true} on the next call to
+     * {@link #structuralFlags()}. The hub-mode gate's structural leg
+     * goes from "always false" to "true once the road planner commits
+     * a segment".
+     */
+    public void addRoadSegment(RoadSegment segment) {
+        if (segment == null) return;
+        plannedRoads.add(segment);
+    }
+
+    /**
      * Strict derivation for {@link StructuralFlags#industryZoned()}: true
      * iff the per-zone count has any entry. Returns {@code false} for an
-     * empty map — today, always (the act-5 zoning carve populates it).
+     * empty map — true on a fresh save, until the zoning layer calls
+     * {@link #addZoning(Zone, int)} at least once.
      *
      * <p>Map emptiness, not the {@code INDUSTRY}-specific entry: the spec
      * asks whether any zoning decision has been made, regardless of zone,
      * because the structural flag-set's job is to record "has the zoning
-     * layer touched this town". The act-5 carve decides whether the
-     * INDUSTRY entry is what gets populated first; the gate only cares
-     * that something landed.
+     * layer touched this town". The zone the layer increments first is
+     * its call; the gate only cares that something landed.
      */
     boolean industryZoned() {
         return !zoningCount.isEmpty();
@@ -1290,11 +1344,9 @@ public class Town implements BuildExecutor {
     /**
      * Strict derivation for {@link StructuralFlags#roadLaid()}: true iff
      * the town has at least one planned road segment. Returns
-     * {@code false} for an empty list — today, always.
-     *
-     * <p>The act-5 carve makes this non-trivial: the road planner appends
-     * each committed segment, and a town with at least one segment
-     * has earned the {@code road_laid} flag.
+     * {@code false} for an empty list — true on a fresh save, until the
+     * road planner calls {@link #addRoadSegment(RoadSegment)} at least
+     * once.
      */
     boolean roadLaid() {
         return !plannedRoads.isEmpty();
