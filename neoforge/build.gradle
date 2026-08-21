@@ -58,6 +58,16 @@ neoForge {
     mods {
         register("${mod_id}") {
             sourceSet(sourceSets.main)
+            // The `gametest` source set is added here so the
+            // `runGameTestServer` task can discover @GameTestHolder classes
+            // at server runtime. Without this registration the gametest
+            // classes would still compile (they're wired via
+            // `compileGametestJava` further down), but the live MC server
+            // would never see them and no tests would run. The published
+            // mod JAR does NOT pick these classes up — it only sources
+            // `sourceSets.main` — so the gametest code stays dev-only even
+            // though it is registered as a mod source set.
+            sourceSet(sourceSets.gametest)
         }
     }
 
@@ -68,15 +78,47 @@ neoForge {
     // listeners are wired for the NeoForge event bus, not for the
     // junituserdev bus, and the test would fail at ModLoadingException
     // ("Listener for event class ModConfigEvent$Reloading takes an argument
-    // that is not valid for this bus") before any @Test method runs. Full
-    // server-in-a-test-vm tests are deferred to a future `gametest` source
-    // set; the `:neoforge:test` target we want here is the cheap
+    // that is not valid for this bus") before any @Test method runs. The
+    // `:neoforge:test` target we want here is the cheap
     // static-initialisation path (Town, RaidManager, BuiltInRegistries),
     // which is wired by the explicit `testImplementation files(...)` carve
     // below — the same shape `:common:test` uses for its MC-typed tests.
+    //
+    // The full server-in-a-test-vm path lives in the `gametest` source set
+    // declared further down in this file. It targets the
+    // `runGameTestServer` task (already configured above) which boots a
+    // real Minecraft server in a test JVM via ModLauncher and runs the
+    // @GameTest / @GameTestHolder methods through the gametest framework.
+    // Today the gametest task graph is wired so `compileGametestJava` and
+    // `processGametestResources` both succeed; running the gametest against
+    // a live server is a separate problem — see ADR-style TODO at the top
+    // of `BurgGameTests.java` for the residual.
 }
 
 sourceSets.main.resources.srcDir 'src/generated/resources'
+
+// `gametest` source set — Burg's path for live-Minecraft behavior tests.
+// Lives next to `src/test/` but uses a separate Gradle source set so:
+//   1. The cheap `:neoforge:test` JUnit target stays a plain JUnit run
+//      (the merged-JAR + SLF4J + MC transitives carve-out only, no
+//      ModLauncher, no GametestRegistry scan, no `Bootstrap.run()`).
+//   2. The `runGameTestServer` task gets a dedicated compiled class
+//      directory to scan for @GameTestHolder classes at server runtime.
+//   3. The compile vs run lifecycle is independent — `compileGametestJava`
+//      succeeds on a plain JUnit checkout (no real MC needed); running
+//      the gametest against a live MC server requires the
+//      `runGameTestServer` runtime, which the next iteration will wire.
+// The classpath mirror is identical to `testImplementation` (ModDev
+// merged JAR + SLF4J + brigadier/datafixerupper/authlib) because the
+// gametest code path touches the same MC types (`new Town()` pulls in
+// ServerLevel + Vec3 at static init, see the comment on
+// `testImplementation` below for the full transitive story).
+def gametest = sourceSets.maybeCreate('gametest')
+gametest.java.srcDirs = ['src/gametest/java']
+gametest.resources.srcDirs = ['src/gametest/resources']
+gametest.compileClasspath += sourceSets.main.output
+gametest.runtimeClasspath += gametest.output
+gametest.runtimeClasspath += sourceSets.main.output
 
 dependencies {
     compileOnly project(":common")
@@ -144,6 +186,26 @@ dependencies {
     testImplementation platform('org.junit:junit-bom:5.10.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // Gametest dependencies for the `gametest` source set. Mirrors the
+    // `testImplementation` carve-out (merged JAR + SLF4J + the four MC
+    // transitives Town's static init pulls in) so the gametest code can
+    // resolve the same MC types the unit test code uses. The merged JAR
+    // already carries `net.minecraft.gametest.framework.{GameTest,
+    // GameTestHolder, GameTestHelper}` and
+    // `net.neoforged.neoforge.gametest.GameTestHolder` — no extra
+    // `net.neoforged:testframework` dep is needed for compile-time
+    // resolution of the @GameTestHolder surface. The runtime side picks
+    // that artifact up via `testLibraries` from the userdev config once
+    // `runGameTestServer` is invoked; today's PR only ships the
+    // compile-time wire (the residual is documented at the top of
+    // `BurgGameTests.java`).
+    gametestImplementation files(layout.buildDirectory.file('moddev/artifacts/neoforge-' + project.neoforge_version + '-minecraft-merged.jar'))
+    gametestImplementation 'org.slf4j:slf4j-api:2.0.9'
+    gametestImplementation 'org.slf4j:slf4j-simple:2.0.9'
+    gametestImplementation 'com.mojang:brigadier:1.3.10'
+    gametestImplementation 'com.mojang:datafixerupper:8.0.16'
+    gametestImplementation 'com.mojang:authlib:6.0.54'
 }
 
 // Wire the ModDev writer task into the `:neoforge:test` task graph and
