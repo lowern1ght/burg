@@ -5,8 +5,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import org.lowern1ght.burg.behavior.BehaviorEngine;
-import org.lowern1ght.burg.behavior.road.RoadSegment;
-import org.lowern1ght.burg.behavior.road.RoadType;
 import org.lowern1ght.burg.behavior.war.RaidManager;
 import org.lowern1ght.burg.network.NetworkHelper;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -68,16 +66,13 @@ public class TickScheduler {
                 if (tickRaids(town, gameTime)) {
                     LevelTowns.get(level).markDirty();
                 }
-                // Structural-flags SoT wire-up (act-5 follow-up to the structural-fields
-                // carve): lands the first zoning decision and the first planned road
-                // segment on each town so {@link Town#structuralFlags()} flips from
-                // NONE to non-NONE the moment the tick path runs. Both helpers are
-                // idempotent (they guard on the SoT's emptiness), so calling them every
-                // tick is safe and cheap once each lands its first write. The real
-                // zoning layer / road planner replace these minimal writes with
-                // planner-driven output in their respective carves — the helpers exist
-                // so the gate has teeth today and the seam is in place for the
-                // planner-driven path tomorrow.
+                // Structural-flags SoT wire-up seams — both helpers are now no-op
+                // stubs (the synthetic first-increment writes that previously flipped
+                // {@link Town#structuralFlags()} from NONE to non-NONE on every
+                // tick have been removed; see their javadoc for the rationale).
+                // The call sites stay so the seam the (future) production zoning
+                // layer / road planner wire into is already in place — the next
+                // carve just replaces the helper bodies with planner-driven output.
                 if (tickZoning(town, gameTime)) {
                     LevelTowns.get(level).markDirty();
                 }
@@ -239,52 +234,72 @@ public class TickScheduler {
     }
 
     /**
-     * Structural-flags wire-up: lands the first zoning decision on a town so
-     * {@link Town#structuralFlags()} flips from {@code NONE} to non-{@code NONE}.
+     * Structural-flags wire-up — no-op stub for the zoning seam.
      *
-     * <p>Idempotent — guards on {@link Town#getZoningCount()} emptiness, so
-     * repeated calls are cheap no-ops once the first cell lands. The structural
-     * flag-set's {@code industryZoned} leg only needs the map to be non-empty,
-     * regardless of which zone the layer increments first or how many cells it
-     * commits, so a single {@code addZoning(CORE, 1)} is enough to flip the
-     * gate today. The production zoning layer (a future carve) replaces this
-     * minimal write with planner-driven output; this helper exists so the
-     * structural SoT is populated from the production tick path the moment
-     * the tick runs, not from a test-only seam.
+     * <p>The earlier PR #56 implementation wrote the first zoning increment
+     * (a synthetic {@code addZoning(CORE, 1)}) the moment the tick path
+     * ran, so {@link Town#structuralFlags()} flipped from {@code NONE} to
+     * non-{@code NONE} for every town that ticked — even ones whose
+     * (future) production zoning layer had no real work to do. That
+     * synthetic write made the hub-mode gate's structural triple fire
+     * spuriously on every save. The helper now returns {@code false} on
+     * every call and never mutates the SoT; the structural gate stays on
+     * the {@link org.lowern1ght.burg.domain.settlement.StructuralFlags#NONE}
+     * floor until the (future) production zoning layer calls
+     * {@link Town#addZoning(org.lowern1ght.burg.town.Town.Zone, int)} on
+     * the planning path.
      *
-     * <p>Extracted as a package-private static helper so {@code :neoforge:test}
-     * can exercise the wire-up without spinning up a {@code MinecraftServer}.
-     * Returns {@code true} iff the first zoning increment landed on this call.
+     * <p>The method signature is preserved (package-private, static,
+     * {@code boolean}, {@code (Town, long)}) so the seam the planner / future
+     * zoning layer wire into is already in place — the next carve just has
+     * to replace the body with real output. The cheap {@code :common:test}
+     * signature pin ({@link TickSchedulerStructuralWireTest}) still pins the
+     * helper's shape; the no-op behaviour is pinned by
+     * {@code :neoforge:test}'s {@code TickSchedulerStructuralFlagsPostTickNoneTest}.
+     *
+     * <p>TODO(act5): real zoning layer writes {@code Town.addZoning(zone, cells)}
+     * from its planning path; this helper then either disappears or becomes
+     * the rate-limited dispatch wrapper the future seam describes.
      */
     static boolean tickZoning(Town town, long gameTime) {
-        if (!town.getZoningCount().isEmpty()) return false;
-        town.addZoning(Town.Zone.CORE, 1);
-        return true;
+        // No-op: the synthetic write has been removed. The structural SoT
+        // stays empty until the production zoning layer runs.
+        return false;
     }
 
     /**
-     * Structural-flags wire-up: lands the first planned road segment on a town
-     * so {@link Town#structuralFlags()} flips from {@code NONE} to non-{@code NONE}.
+     * Structural-flags wire-up — no-op stub for the road-segment seam.
      *
-     * <p>Idempotent — guards on {@link Town#getPlannedRoads()} emptiness, so
-     * repeated calls are cheap no-ops once the first segment lands. The
-     * structural flag-set's {@code roadLaid} leg only needs the list to be
-     * non-empty, so a single one-cell segment at the origin is enough to
-     * flip the gate today. The production road planner (the
-     * {@code RoadBuilder.planTasks} commit path, a future carve) replaces this
-     * minimal write with the planner's real segment output; this helper
-     * exists so the structural SoT is populated from the production tick
-     * path the moment the tick runs, not from a test-only seam.
+     * <p>The earlier PR #56 implementation appended a synthetic one-cell
+     * segment at {@link BlockPos#ZERO} on every town's first tick, so
+     * {@link Town#structuralFlags()} flipped on the {@code road_laid} leg
+     * for every town that ticked — even ones whose (future) production
+     * road planner had no real work to do. That synthetic write made the
+     * hub-mode gate's structural triple fire spuriously on every save. The
+     * helper now returns {@code false} on every call and never mutates the
+     * SoT; the structural gate stays on the
+     * {@link org.lowern1ght.burg.domain.settlement.StructuralFlags#NONE}
+     * floor until the (future) production road planner calls
+     * {@link Town#addRoadSegment(org.lowern1ght.burg.behavior.road.RoadSegment)}
+     * from the {@code RoadBuilder.planTasks} commit path.
      *
-     * <p>Extracted as a package-private static helper so {@code :neoforge:test}
-     * can exercise the wire-up without spinning up a {@code MinecraftServer}.
-     * Returns {@code true} iff the first segment landed on this call.
+     * <p>The method signature is preserved (package-private, static,
+     * {@code boolean}, {@code (Town, long)}) so the seam the road planner
+     * wires into is already in place — the next carve just has to replace
+     * the body with the planner's real output. The cheap {@code :common:test}
+     * signature pin ({@link TickSchedulerStructuralWireTest}) still pins the
+     * helper's shape; the no-op behaviour is pinned by
+     * {@code :neoforge:test}'s {@code TickSchedulerStructuralFlagsPostTickNoneTest}.
+     *
+     * <p>TODO(act5): real road planner's commit path calls
+     * {@code Town.addRoadSegment(segment)} from {@code RoadBuilder.planTasks};
+     * this helper then either disappears or becomes the rate-limited
+     * dispatch wrapper the future seam describes.
      */
     static boolean tickRoadPlans(Town town, long gameTime) {
-        if (!town.getPlannedRoads().isEmpty()) return false;
-        BlockPos origin = BlockPos.ZERO;
-        town.addRoadSegment(new RoadSegment(origin, origin, List.of(origin), RoadType.STREET));
-        return true;
+        // No-op: the synthetic write has been removed. The structural SoT
+        // stays empty until the production road planner commits.
+        return false;
     }
 
     private static boolean prerequisitesMet(QuestDef.Prerequisites prereqs, Town town, TownInventory inventory) {

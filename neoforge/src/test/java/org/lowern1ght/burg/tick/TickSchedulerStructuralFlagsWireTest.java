@@ -1,93 +1,109 @@
 package org.lowern1ght.burg.tick;
 
-import net.minecraft.core.BlockPos;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.lowern1ght.burg.behavior.road.RoadSegment;
-import org.lowern1ght.burg.behavior.road.RoadType;
 import org.lowern1ght.burg.domain.settlement.StructuralFlags;
 import org.lowern1ght.burg.town.Town;
-
-import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * MC-aware behavior test for the structural-flags SoT wire-up helpers in
- * {@link TickScheduler}.
+ * MC-aware behaviour pin for the structural-flags SoT wire-up helpers in
+ * {@link TickScheduler} once they have been retired to no-op stubs.
  *
- * <p>The act-5 follow-up to the structural-fields carve lands the first
- * increment on the per-town SoTs ({@code zoningCount} and
+ * <p>The act-5 follow-up to the structural-fields carve originally landed
+ * two synthetic-write helpers — {@link TickScheduler#tickZoning(Town, long)}
+ * and {@link TickScheduler#tickRoadPlans(Town, long)} — that wrote the
+ * first increment on the per-town SoTs ({@code zoningCount} and
  * {@code plannedRoads}) from the production tick path so
- * {@link Town#structuralFlags()} flips from {@link StructuralFlags#NONE}
- * to non-{@code NONE} the moment a town ticks. The two helpers,
- * {@link TickScheduler#tickZoning(Town, long)} and
- * {@link TickScheduler#tickRoadPlans(Town, long)}, are the seam; this
- * test exercises them on a bare {@code new Town()} (no MinecraftServer
- * required) and asserts the gate's behavior end to end.
+ * {@link Town#structuralFlags()} flipped from {@link StructuralFlags#NONE}
+ * to non-{@code NONE} the moment a town ticked. Both helpers were
+ * package-private (no {@code public} modifier) on purpose: they existed
+ * as the seam the production tick path read, not as a public API
+ * surface for outside callers.
  *
- * <p><b>What this pins.</b> Four claims about the wire-up that the
+ * <p>The synthetic writes were misleading on a pre-act-5 codebase — there
+ * was no real zoning layer or road planner to back them — so every town
+ * the tick loop touched had its structural triple flipped to a
+ * synthetic value, and the hub-mode gate's structural leg fired
+ * spuriously on every save. The helper bodies have been retired to
+ * no-op stubs (return {@code false}, never mutate the SoT); the method
+ * signatures are preserved so the seam the future production zoning
+ * layer / road planner wire into is already in place.
+ *
+ * <p><b>What this pins.</b> Five claims about the no-op wire that the
  * production tick path relies on:
  *
  * <ol>
  *   <li><b>Fresh-town collapse.</b> A {@code new Town()} with no helper
  *       calls reports {@code structuralFlags() == NONE}, exactly the
  *       no-progress floor the act-4 follow-up landed.</li>
- *   <li><b>Zoning leg flips on the first call.</b>
- *       {@link TickScheduler#tickZoning(Town, long)} populates the
- *       zoningCount map (one cell, CORE zone); the helper returns
- *       {@code true} once. {@code structuralFlags().isAnySet()} flips
- *       to {@code true} and the gate moves off the NONE floor.</li>
- *   <li><b>Road leg flips on the first call.</b>
- *       {@link TickScheduler#tickRoadPlans(Town, long)} appends a
- *       one-cell segment at the origin; the helper returns
- *       {@code true} once. {@code structuralFlags().isAnySet()} is
- *       still {@code true} and the road_laid leg now contributes.</li>
- *   <li><b>Idempotent.</b> A second call to either helper returns
- *       {@code false} and does not mutate the SoT — repeated ticks
- *       from the production loop are no-ops once the first increment
- *       lands.</li>
+ *   <li><b>Helpers never flip the gate.</b> Calling
+ *       {@link TickScheduler#tickZoning(Town, long)} or
+ *       {@link TickScheduler#tickRoadPlans(Town, long)} on a fresh town
+ *       returns {@code false} and does not mutate the SoT — the helper
+ *       is a no-op stub, not a synthetic write site.</li>
+ *   <li><b>Zoning leg stays on the floor.</b> Even after
+ *       {@link TickScheduler#tickZoning(Town, long)} runs, the
+ *       {@code industryZoned} leg of the gate is still {@code false};
+ *       the (future) production zoning layer is the only sanctioned
+ *       writer via {@link Town#addZoning(org.lowern1ght.burg.town.Town.Zone, int)}.</li>
+ *   <li><b>Road leg stays on the floor.</b> Even after
+ *       {@link TickScheduler#tickRoadPlans(Town, long)} runs, the
+ *       {@code roadLaid} leg of the gate is still {@code false}; the
+ *       (future) production road planner's commit path is the only
+ *       sanctioned writer via
+ *       {@link Town#addRoadSegment(org.lowern1ght.burg.behavior.road.RoadSegment)}.</li>
+ *   <li><b>SoT stays empty.</b> Calling both helpers in sequence does
+ *       not populate either map; the hub-mode gate's structural triple
+ *       collapses to {@link StructuralFlags#NONE} forever unless a real
+ *       mutator runs.</li>
  * </ol>
  *
- * <p>The bare-JVM signature pin lives in
- * {@code :common:test}'s {@code TickSchedulerStructuralWireTest}; the
- * gate's other derivations ({@code corePopulated()} from placed
- * buildings) are pinned by {@code :neoforge:test}'s
- * {@code TownStructuralFlagsRealDerivationsTest}.
+ * <p>The bare-JVM signature pin lives in {@code :common:test}'s
+ * {@link TickSchedulerStructuralWireTest}; the post-tick no-op pin (a
+ * fresh town stays at {@code-NONE} after the bare-JVM tick helpers run)
+ * lives in {@code :neoforge:test}'s
+ * {@link TickSchedulerStructuralFlagsPostTickNoneTest}. This file holds
+ * the per-helper pin for the no-op stub bodies.
  */
 class TickSchedulerStructuralFlagsWireTest {
 
     @Test
-    @DisplayName("fresh town — first tickZoning/tickRoadPlans calls land the SoT; subsequent calls are idempotent no-ops")
-    void freshTownHelpersFireOnceThenAreNoOps() {
+    @DisplayName("fresh town — tickZoning and tickRoadPlans are no-op stubs: both return false on every call, neither writes the SoT")
+    void freshTownHelpersAreNoOps() {
         Town town = new Town();
 
         assertAll(
-            () -> assertTrue(TickScheduler.tickZoning(town, 0L),
-                "first tickZoning call lands the first cell — returns true on the SoT write"),
-            () -> assertEquals(Map.of(Town.Zone.CORE, 1), town.getZoningCount(),
-                "after the first tickZoning call, getZoningCount observes the CORE=1 increment"),
             () -> assertFalse(TickScheduler.tickZoning(town, 0L),
-                "second tickZoning call returns false — the helper is idempotent once"
-                    + " zoningCount is non-empty"),
-            () -> assertEquals(Map.of(Town.Zone.CORE, 1), town.getZoningCount(),
-                "second tickZoning is a no-op — zoningCount is unchanged"),
-            () -> assertTrue(TickScheduler.tickRoadPlans(town, 0L),
-                "first tickRoadPlans call lands the first segment (returns true)"),
-            () -> assertEquals(1, town.getPlannedRoads().size(),
-                "after the first tickRoadPlans call, getPlannedRoads has exactly one segment"),
+                "first tickZoning call returns false — the synthetic first-cell write has"
+                    + " been removed; the helper is a no-op stub until the production zoning"
+                    + " layer (a future carve) takes over the seam"),
+            () -> assertEquals(0, town.getZoningCount().size(),
+                "after tickZoning, getZoningCount is still empty — the no-op stub never"
+                    + " calls Town.addZoning; the SoT stays on the empty-map floor"),
+            () -> assertFalse(TickScheduler.tickZoning(town, 0L),
+                "second tickZoning call also returns false — the helper is no-op on every call,"
+                    + " not just the first; idempotence is implicit because there is no write"),
+            () -> assertEquals(0, town.getZoningCount().size(),
+                "second tickZoning is a no-op — zoningCount stays empty regardless of how many"
+                    + " ticks pass"),
             () -> assertFalse(TickScheduler.tickRoadPlans(town, 0L),
-                "second tickRoadPlans call returns false — the helper is idempotent once"
-                    + " plannedRoads is non-empty"),
-            () -> assertEquals(1, town.getPlannedRoads().size(),
-                "second tickRoadPlans is a no-op — plannedRoads size is unchanged")
+                "first tickRoadPlans call returns false — the synthetic one-cell segment at"
+                    + " BlockPos.ZERO has been removed; the helper is a no-op stub until the"
+                    + " production road planner (a future carve) takes over the seam"),
+            () -> assertEquals(0, town.getPlannedRoads().size(),
+                "after tickRoadPlans, getPlannedRoads is still empty — the no-op stub never"
+                    + " calls Town.addRoadSegment; the SoT stays on the empty-list floor"),
+            () -> assertFalse(TickScheduler.tickRoadPlans(town, 0L),
+                "second tickRoadPlans call also returns false — the helper is no-op on every call"),
+            () -> assertEquals(0, town.getPlannedRoads().size(),
+                "second tickRoadPlans is a no-op — plannedRoads stays empty regardless of how many"
+                    + " ticks pass")
         );
     }
 
@@ -98,74 +114,81 @@ class TickSchedulerStructuralFlagsWireTest {
 
         assertSame(StructuralFlags.NONE, town.structuralFlags(),
             "a fresh town (no zoning, no roads, no buildings) reports structuralFlags() == NONE;"
-                + " the act-4 gate's structural leg is off the floor until the tick path lands"
-                + " its first write");
+                + " the act-4 gate's structural leg is off the floor until the production"
+                + " zoning layer / road planner writes the SoT through Town.addZoning /"
+                + " Town.addRoadSegment");
     }
 
     @Test
-    @DisplayName("after tickZoning — structuralFlags flips from NONE to non-NONE on the industry_zoned leg")
-    void tickZoningFlipsStructuralFlags() {
+    @DisplayName("after tickZoning — structuralFlags stays NONE; the helper does NOT flip the industry_zoned leg")
+    void tickZoningDoesNotFlipStructuralFlags() {
         Town town = new Town();
 
-        // Pre-condition: NONE floor
+        // Pre-condition: NONE floor.
         assertSame(StructuralFlags.NONE, town.structuralFlags(),
             "before the helper call, the gate is on the NONE floor");
 
-        assertTrue(TickScheduler.tickZoning(town, 0L),
-            "the first tickZoning call lands the first cell — returns true");
+        assertFalse(TickScheduler.tickZoning(town, 0L),
+            "the tickZoning helper is a no-op stub — it returns false instead of landing"
+                + " the synthetic addZoning(CORE, 1) write");
 
-        // Post-condition: structural flags flip on industry_zoned alone
+        // Post-condition: structural triple still NONE — no synthetic flip.
         StructuralFlags observed = town.structuralFlags();
         assertAll(
-            () -> assertNotEquals(StructuralFlags.NONE, observed,
-                "after tickZoning, structuralFlags() is no longer NONE — the industry_zoned"
-                    + " leg flipped, the gate's structural triple has a non-zero entry"),
-            () -> assertTrue(observed.isAnySet(),
-                "structuralFlags().isAnySet() flips to true on the first increment"),
-            () -> assertTrue(observed.industryZoned(),
-                "structuralFlags().industryZoned() is true — the zoningCount map is non-empty"),
-            () -> assertFalse(observed.roadLaid(),
-                "structuralFlags().roadLaid() is still false — only tickZoning ran; plannedRoads"
-                    + " is still empty, the road leg is independent of the zoning leg"),
-            () -> assertEquals(StructuralFlags.of(false, true, false), observed,
-                "structuralFlags() returns the zoning-only partial shape — record-equality,"
-                    + " industryZoned=true alone, the other two legs still on the floor")
-        );
-    }
-
-    @Test
-    @DisplayName("after tickRoadPlans — structuralFlags flips on the road_laid leg, distinct from industry_zoned")
-    void tickRoadPlansFlipsStructuralFlags() {
-        Town town = new Town();
-
-        // Pre-condition: NONE floor
-        assertSame(StructuralFlags.NONE, town.structuralFlags(),
-            "before the helper call, the gate is on the NONE floor");
-
-        assertTrue(TickScheduler.tickRoadPlans(town, 0L),
-            "the first tickRoadPlans call lands the first segment — returns true");
-
-        StructuralFlags observed = town.structuralFlags();
-        assertAll(
-            () -> assertNotEquals(StructuralFlags.NONE, observed,
-                "after tickRoadPlans, structuralFlags() is no longer NONE — the road_laid leg"
-                    + " flipped, the gate's structural triple has a non-zero entry"),
-            () -> assertTrue(observed.isAnySet(),
-                "structuralFlags().isAnySet() flips to true on the first append"),
+            () -> assertSame(StructuralFlags.NONE, observed,
+                "after tickZoning, structuralFlags() is still NONE — the no-op stub never"
+                    + " writes the zoning SoT; the structural triple's industry_zoned leg"
+                    + " stays on the empty-map floor"),
+            () -> assertFalse(observed.isAnySet(),
+                "structuralFlags().isAnySet() stays false after tickZoning — the gate's"
+                    + " permissive form does not fire on a town the zoning layer has not"
+                    + " touched"),
             () -> assertFalse(observed.industryZoned(),
-                "structuralFlags().industryZoned() is still false — only tickRoadPlans ran;"
-                    + " zoningCount is still empty, the zoning leg is independent of the road leg"),
-            () -> assertTrue(observed.roadLaid(),
-                "structuralFlags().roadLaid() is true — the plannedRoads list is non-empty"),
-            () -> assertEquals(StructuralFlags.of(false, false, true), observed,
-                "structuralFlags() returns the road-only partial shape — record-equality,"
-                    + " roadLaid=true alone, the other two legs still on the floor")
+                "structuralFlags().industryZoned() is false — the no-op helper never writes"
+                    + " Town.addZoning; the (future) zoning layer is the only sanctioned"
+                    + " writer for this leg"),
+            () -> assertFalse(observed.roadLaid(),
+                "structuralFlags().roadLaid() is still false — tickZoning does not touch the"
+                    + " road SoT either; the legs are independent")
         );
     }
 
     @Test
-    @DisplayName("tickZoning then tickRoadPlans — structuralFlags flips both industry_zoned and road_laid, gate is fully open on the structural triple")
-    void bothHelpersTogetherOpenBothLegs() {
+    @DisplayName("after tickRoadPlans — structuralFlags stays NONE; the helper does NOT flip the road_laid leg")
+    void tickRoadPlansDoesNotFlipStructuralFlags() {
+        Town town = new Town();
+
+        // Pre-condition: NONE floor.
+        assertSame(StructuralFlags.NONE, town.structuralFlags(),
+            "before the helper call, the gate is on the NONE floor");
+
+        assertFalse(TickScheduler.tickRoadPlans(town, 0L),
+            "the tickRoadPlans helper is a no-op stub — it returns false instead of appending"
+                + " the synthetic one-cell segment at BlockPos.ZERO");
+
+        StructuralFlags observed = town.structuralFlags();
+        assertAll(
+            () -> assertSame(StructuralFlags.NONE, observed,
+                "after tickRoadPlans, structuralFlags() is still NONE — the no-op stub never"
+                    + " writes the planned-roads SoT; the structural triple's road_laid leg"
+                    + " stays on the empty-list floor"),
+            () -> assertFalse(observed.isAnySet(),
+                "structuralFlags().isAnySet() stays false after tickRoadPlans — the gate's"
+                    + " permissive form does not fire on a town the road planner has not"
+                    + " committed"),
+            () -> assertFalse(observed.roadLaid(),
+                "structuralFlags().roadLaid() is false — the no-op helper never writes"
+                    + " Town.addRoadSegment; the (future) road planner is the only sanctioned"
+                    + " writer for this leg"),
+            () -> assertFalse(observed.industryZoned(),
+                "structuralFlags().industryZoned() is still false — tickRoadPlans does not"
+                    + " touch the zoning SoT either; the legs are independent")
+        );
+    }
+
+    @Test
+    @DisplayName("tickZoning then tickRoadPlans — structuralFlags stays NONE; neither leg fires spuriously")
+    void bothHelpersTogetherKeepBothLegsOnTheFloor() {
         Town town = new Town();
 
         TickScheduler.tickZoning(town, 0L);
@@ -173,44 +196,46 @@ class TickSchedulerStructuralFlagsWireTest {
 
         StructuralFlags observed = town.structuralFlags();
         assertAll(
-            () -> assertTrue(observed.industryZoned(),
-                "industry_zoned is true — tickZoning ran first"),
-            () -> assertTrue(observed.roadLaid(),
-                "road_laid is true — tickRoadPlans ran second"),
+            () -> assertFalse(observed.industryZoned(),
+                "industry_zoned is false — tickZoning is a no-op, the zoning SoT stays empty"),
+            () -> assertFalse(observed.roadLaid(),
+                "road_laid is false — tickRoadPlans is a no-op, the planned-roads SoT stays"
+                    + " empty"),
             () -> assertFalse(observed.corePopulated(),
-                "core_populated is still false — no buildings have been placed, the real-derivation"
+                "core_populated is false — no buildings have been placed, the real-derivation"
                     + " leg is independent of the SoT-write legs"),
-            () -> assertTrue(observed.isAnySet(),
-                "structuralFlags().isAnySet() is true — the gate's permissive form fires once"
-                    + " any leg is set"),
-            () -> assertEquals(StructuralFlags.of(false, true, true), observed,
-                "structuralFlags() returns the zoning+road partial shape — both industry_zoned"
-                    + " and road_laid are true, core_populated still false, the gate's structural"
-                    + " triple has two non-zero entries")
+            () -> assertFalse(observed.isAnySet(),
+                "structuralFlags().isAnySet() is false — the gate's structural triple"
+                    + " collapses to NONE forever unless a real mutator runs"),
+            () -> assertSame(StructuralFlags.NONE, observed,
+                "structuralFlags() returns the NONE sentinel — record-equality; both no-op"
+                    + " helpers together cannot flip the gate; only the production zoning"
+                    + " layer / road planner writes the SoT")
         );
     }
 
     @Test
-    @DisplayName("the road segment the helper lands is a one-cell STREET at BlockPos.ZERO — the minimal valid segment")
-    void firstSegmentShape() {
+    @DisplayName("the no-op helpers do not append any segment to plannedRoads — there is no synthetic segment at BlockPos.ZERO")
+    void noSyntheticSegmentIsAppended() {
         Town town = new Town();
 
-        TickScheduler.tickRoadPlans(town, 0L);
+        // Even after multiple calls at multiple game times, the planned-roads
+        // list stays empty. The legacy synthetic write appended a one-cell
+        // STREET at BlockPos.ZERO on the first call; the no-op stub never
+        // produces a segment, so the SoT never sees a BlockPos.ZERO entry.
+        for (int i = 0; i < 3; i++) {
+            long gameTime = (long) (i + 1) * 100L;
+            TickScheduler.tickRoadPlans(town, gameTime);
+        }
 
-        RoadSegment first = town.getPlannedRoads().get(0);
-        assertAll(
-            () -> assertNotNull(first, "the first segment is non-null"),
-            () -> assertEquals(BlockPos.ZERO, first.start(),
-                "start is BlockPos.ZERO — the minimal coordinate"),
-            () -> assertEquals(BlockPos.ZERO, first.end(),
-                "end is BlockPos.ZERO — the single-cell segment degenerates to a point"),
-            () -> assertEquals(List.of(BlockPos.ZERO), first.waypoints(),
-                "waypoints is a single-element list with BlockPos.ZERO — defensively copied"
-                    + " via List.copyOf so the helper can't accidentally share state with the"
-                    + " planner's internal lists"),
-            () -> assertSame(RoadType.STREET, first.type(),
-                "type is STREET — the minimal default for non-water terrain; the production"
-                    + " road planner will replace this with the real classified type")
-        );
+        assertTrue(town.getPlannedRoads().isEmpty(),
+            "plannedRoads stays empty across 3 calls — the no-op stub does not append"
+                + " a synthetic segment; the SoT only grows when the (future) production"
+                + " road planner calls Town.addRoadSegment from RoadBuilder.planTasks");
+
+        assertEquals(0, town.getZoningCount().size(),
+            "zoningCount stays empty across 3 calls — the no-op stub does not write"
+                + " Town.addZoning; the SoT only grows when the (future) production"
+                + " zoning layer commits a decision");
     }
 }
