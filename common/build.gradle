@@ -5,6 +5,20 @@ plugins {
 
 neoForge {
     version = "${neoforge_version}"
+
+    // The ModDev plugin only registers the `writeServerLegacyClasspath`
+    // task once a `server` run is declared (the writer introspects the
+    // server run's classpath to build the legacy list). The `:neoforge`
+    // module declares a `server` run for its own use; for `:common:test`
+    // we don't actually need to run the server — only the writer — so
+    // declaring the run is the cheap way to register the task. The run
+    // itself is never executed (`gradle :common:runServer` would resolve
+    // the server mod, but we never invoke it).
+    runs {
+        server {
+            server()
+        }
+    }
 }
 
 dependencies {
@@ -36,6 +50,36 @@ dependencies {
     // classpaths. The MC libraries are pulled in via strict-version
     // constraints so a future MC bump that changes a transitive version
     // is caught here rather than masking a runtime crash.
+    //
+    // ADR-0031 — extension of the carve-out for behaviour-on-instance tests
+    // (`new Town()` directly, not just static-helper signature reachability).
+    // The bare-JVM discipline still holds for the bulk of the test code; the
+    // rare Town-side behaviour pin (e.g. the planner-population seam's
+    // `addRoadSegment` / `addZoning` mutators) needs `new Town()` to land
+    // assertions on the per-instance SoT reads (`getPlannedRoads()` /
+    // `getZoningCount()` / `structuralFlags()`). `new Town()` triggers Town's
+    // static init, which transitively resolves JOML (`org.joml.Vector3f`
+    // via MC's `ServerLevel` + `Vec3`), Netty
+    // (`io.netty.handler.codec.DecoderException` via MC's network stack),
+    // Mojang's logging facade (`com.mojang.logging.LogUtils`, referenced by
+    // `BlockPos.<clinit>`), and a stack of other transitive deps. The
+    // merged JAR alone is not enough — same NoClassDefFoundError chain the
+    // `:neoforge:test` writer/injection fixed for the MC-aware target.
+    //
+    // The fix mirrors the `:neoforge:test` block: the ModDev plugin writes
+    // `${buildDir}/moddev/serverLegacyClasspath.txt` listing every JAR the
+    // MC test JVM needs (minus the loader-specific pieces: Mixin's class
+    // transformer, ModLauncher, etc.). The `doFirst` hook below reads the
+    // file at test-execution time and appends every JAR to the test
+    // classpath before the test JVM forks. The writer is idempotent and
+    // UP-TO-DATE on subsequent runs — only the first invocation on a clean
+    // checkout pays the cost. Without the `doFirst` injection, the very
+    // first `new Town()` in a behaviour pin would crash with the
+    // NoClassDefFoundError chain (`BlockPos` → `com.mojang.logging.LogUtils`,
+    // `ResourceLocation` → `io.netty.handler.codec.DecoderException`, `Town`
+    // → both). The carve is scoped to `testImplementation` only — none of
+    // these JARs propagate to `:common`'s main or `apiElements` configurations,
+    // and none propagate to other modules' classpaths.
     testImplementation files(layout.buildDirectory.file('moddev/artifacts/neoforge-' + project.neoforge_version + '-minecraft-merged.jar'))
     testImplementation 'org.slf4j:slf4j-api:2.0.9'
     testImplementation 'org.slf4j:slf4j-simple:2.0.9'
@@ -47,7 +91,41 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
-tasks.named('test') {
+// Wire the ModDev writer task into the `:common:test` task graph and inject
+// the legacy classpath JARs into the test JVM at execution time. The writer
+// populates `${buildDir}/moddev/serverLegacyClasspath.txt`; the `doFirst`
+// hook reads it line-by-line and appends each JAR path to the test task's
+// `classpath` file collection before the test JVM forks. Same shape as
+// `:neoforge:test`; same rationale; one place this code lives.
+//
+// The writer populates the file by introspecting the ModDev plugin's
+// configured server run, which is normally only triggered transitively by
+// `runServer` / `prepareServerRun`. When only `:common:test` is invoked,
+// the file doesn't exist and the test JVM falls back to the merged JAR
+// alone, and transitive resolution surfaces a NoClassDefFoundError at
+// test time. The `dependsOn` directive forces the writer to run before
+// the test task graphs the fork; the `doFirst` reads the result and
+// mutates the classpath at execution time.
+tasks.named('test').configure {
+    dependsOn 'writeServerLegacyClasspath'
+    doFirst {
+        def file = layout.buildDirectory.file('moddev/serverLegacyClasspath.txt').get().asFile
+        if (!file.exists()) {
+            throw new GradleException(
+                "serverLegacyClasspath.txt missing at test execution time — " +
+                "writeServerLegacyClasspath should have populated it via dependsOn")
+        }
+        def jars = []
+        file.eachLine { line ->
+            if (line.trim() && new File(line).exists()) {
+                jars << line.trim()
+            }
+        }
+        classpath = files(classpath, files(jars))
+        logger.lifecycle(
+            ":common:test injected ${jars.size()} legacy classpath JAR(s) from " +
+            "${file.name} into the test classpath")
+    }
     useJUnitPlatform()
     testLogging {
         events 'passed', 'failed', 'skipped'
