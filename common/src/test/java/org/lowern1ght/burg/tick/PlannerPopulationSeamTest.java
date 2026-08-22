@@ -60,13 +60,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * through {@code RoadBuilder.planTasks(...)}, and no zoning-layer class
  * exists yet (a glob over any path matching
  * {@code *zoning&#47;*Planner*.java} returns no hits as of PR #71).
- * This file is the seam's <em>landing pad</em>: a next carve that
- * flips one of the assertions in
- * {@link TickSchedulerStructuralWireTest} /
- * {@code TickSchedulerStructuralFlagsWireTest} to {@code true} (or
- * replaces it with a positive observation) is the carve that retires
- * the no-op helpers and routes the real planner output through
- * {@link Town#addZoning} / {@link Town#addRoadSegment}.
+ *
+ * <p><b>Post-carve status.</b> The road planner wire-up is in place: the
+ * helper now delegates to a {@link org.lowern1ght.burg.behavior.road.RoadPlanSource}
+ * (defaulting to {@link org.lowern1ght.burg.behavior.road.RoadPlanSource#NONE}),
+ * and a real source routes its output through {@link Town#addRoadSegment}.
+ * The bare-JVM pin {@link TickSchedulerRoadPlanWireTest} exercises the
+ * wire with fake sources; the {@code RoadPlanTickGameTest} exercises it
+ * on a real MC server with a real {@code RoadBuilder}. The remaining
+ * work is the production caller (the act-4 transition owner) installing
+ * a source whose {@link org.lowern1ght.burg.behavior.road.RoadPlanSource#planFor}
+ * wraps {@code RoadBuilder.planTasks} per the act-4 owner's
+ * {@code ExpandIntent} ramp.
  */
 class PlannerPopulationSeamTest {
 

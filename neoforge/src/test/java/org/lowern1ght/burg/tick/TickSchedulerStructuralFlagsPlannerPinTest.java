@@ -37,7 +37,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *       still exist (the seam is preserved), and a direct call on a
  *       fresh town returns {@code false} without mutating the SoT. A
  *       regression that either re-introduced the synthetic write or
- *       removed the method signature would break this pin.</li>
+ *       removed the method signature would break this pin. Note that
+ *       {@code tickRoadPlans} is now wired to a
+ *       {@link org.lowern1ght.burg.behavior.road.RoadPlanSource} whose
+ *       default is {@link org.lowern1ght.burg.behavior.road.RoadPlanSource#NONE}
+ *       — the unset-source path still returns {@code false} and never
+ *       mutates the SoT, so this default-state pin continues to hold.</li>
  *   <li><b>Town-side mutator semantics drive the gate.</b> A direct
  *       {@link Town#addZoning(Town.Zone, int)} call on a fresh town
  *       flips the {@code industryZoned} leg of
@@ -123,16 +128,17 @@ class TickSchedulerStructuralFlagsPlannerPinTest {
     }
 
     @Test
-    @DisplayName("TickScheduler.tickRoadPlans(Town, long) exists as a no-op stub — the signature is preserved so the road planner's seam is already in place")
+    @DisplayName("TickScheduler.tickRoadPlans(Town, long) exists with the seam shape — the road planner's wire-up is in place")
     void tickRoadPlansIsNoOpStub() {
         // Reflection confirms the seam is preserved — the helper is still on the class,
         // package-private + static + boolean return + (Town, long) parameters.
         Method helper = findDeclaredMethod(TickScheduler.class, "tickRoadPlans", Town.class, long.class);
         assertAll(
             () -> assertNotNull(helper,
-                "tickRoadPlans must still exist on TickScheduler — the seam the (future)"
-                    + " road planner wires into is preserved; removing it would force the"
-                    + " next carve to re-introduce both the method and the call site"),
+                "tickRoadPlans must still exist on TickScheduler — the seam the production"
+                    + " road planner source wires into is preserved; removing it would"
+                    + " force the next carve to re-introduce both the method and the"
+                    + " call site"),
             () -> assertTrue(isPackagePrivate(helper.getModifiers()),
                 "tickRoadPlans is package-private — same visibility as tickRaids, the"
                     + " MC-aware test seam"),
@@ -140,8 +146,8 @@ class TickSchedulerStructuralFlagsPlannerPinTest {
                 "tickRoadPlans is static — :neoforge:test calls it without a TickScheduler"
                     + " instance, just like tickRaids"),
             () -> assertEquals(boolean.class, helper.getReturnType(),
-                "tickRoadPlans returns boolean — the dirty-mark contract; the no-op body"
-                    + " always returns false"),
+                "tickRoadPlans returns boolean — the dirty-mark contract; the unset-source"
+                    + " path always returns false"),
             () -> assertEquals(2, helper.getParameterCount(),
                 "tickRoadPlans takes exactly two parameters (Town town, long gameTime)"),
             () -> assertEquals(Town.class, helper.getParameterTypes()[0],
@@ -150,27 +156,32 @@ class TickSchedulerStructuralFlagsPlannerPinTest {
                 "second parameter is long — the current gameTime")
         );
 
-        // Behaviour: the body is `return false;` on every call. The structural SoT
-        // stays on the empty-list floor — no synthetic one-cell segment at
-        // BlockPos.ZERO races the (future) production road planner's commit path.
+        // Behaviour on the unset-source path: the helper resolves null to
+        // RoadPlanSource.NONE (empty list, no SoT mutation, returns false).
+        // The structural SoT stays on the empty-list floor — no synthetic
+        // one-cell segment at BlockPos.ZERO races the (future) production
+        // road planner source's commit path. A future carve that installs a
+        // source would route its output through the same helper and flip
+        // the structural triple; this test pins the default-state contract.
         Town town = new Town();
         assertAll(
             () -> assertFalse(TickScheduler.tickRoadPlans(town, 0L),
-                "tickRoadPlans(town, 0L) returns false — the no-op stub body is `return"
-                    + " false;`; the caller's `if (tickRoadPlans(...)) LevelTowns.markDirty()`"
-                    + " branch is never taken"),
+                "tickRoadPlans(town, 0L) returns false on the unset-source path — the"
+                    + " helper resolves the null source to RoadPlanSource.NONE; the"
+                    + " caller's `if (tickRoadPlans(...)) LevelTowns.markDirty()` branch"
+                    + " is skipped"),
             () -> assertEquals(0, town.getPlannedRoads().size(),
-                "after tickRoadPlans, getPlannedRoads is empty — the no-op stub never"
-                    + " calls Town.addRoadSegment; the structural SoT stays on the"
+                "after tickRoadPlans, getPlannedRoads is empty — the RoadPlanSource.NONE"
+                    + " default emits an empty list; the structural SoT stays on the"
                     + " empty-list floor"),
             () -> assertSame(StructuralFlags.NONE, town.structuralFlags(),
-                "structuralFlags() stays at NONE — the no-op stub never flips the"
-                    + " road_laid leg; the gate's structural triple stays at the"
+                "structuralFlags() stays at NONE — the unset-source path never flips"
+                    + " the road_laid leg; the gate's structural triple stays at the"
                     + " no-progress floor"),
             () -> assertFalse(TickScheduler.tickRoadPlans(town, 0L),
-                "a second tickRoadPlans call also returns false — the helper is no-op on"
-                    + " every call, not just the first; idempotence is implicit because"
-                    + " there is no write to be undone")
+                "a second tickRoadPlans call also returns false — the unset-source path"
+                    + " is no-op on every call, not just the first; idempotence is"
+                    + " implicit because the empty list never mutates the SoT")
         );
     }
 

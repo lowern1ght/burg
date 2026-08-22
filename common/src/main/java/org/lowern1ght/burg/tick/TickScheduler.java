@@ -20,16 +20,32 @@ import org.lowern1ght.burg.town.TownInventory;
 import org.lowern1ght.burg.town.Town;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import org.lowern1ght.burg.behavior.road.RoadPlanSource;
+import org.lowern1ght.burg.behavior.road.RoadSegment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 public class TickScheduler {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(TickScheduler.class);
+
     // Set true after BehaviorEngine.register(...) has been called with a real Town.
     // The first level to provide a Town wins the slot; subsequent levels don't overwrite it.
     // Multi-world setups (rare; not currently supported) would need per-world state here.
     private static boolean engineWired = false;
+
+    // The road-planner source the {@link #tickRoadPlans(Town, long)} helper delegates
+    // to. Default null = {@link RoadPlanSource#NONE} (empty list, no SoT mutation),
+    // preserving the pre-carve no-op stub behaviour until the production caller
+    // (the act-4 transition owner) wires its planning path in. See
+    // {@link RoadPlanSource} for the contract.
+    //
+    // Volatile because production tick threads and bare-JVM / :neoforge:test set-up
+    // can race; a stale read of the source pointer is recoverable on the next tick.
+    private static volatile RoadPlanSource roadPlanSource = null;
 
     // Called from OuatForge via TickEvent.ServerTickEvent (Phase.END)
     public static void tick(MinecraftServer server) {
@@ -282,67 +298,115 @@ public class TickScheduler {
     }
 
     /**
-     * Structural-flags wire-up — no-op stub for the road-segment seam.
+     * Road-segment wire-up. Calls the installed {@link RoadPlanSource}
+     * (if any), routes the returned {@link RoadSegment}s through
+     * {@link Town#addRoadSegment(RoadSegment)}, and returns {@code true}
+     * iff at least one segment landed on the SoT.
      *
-     * <p>The earlier PR #56 implementation appended a synthetic one-cell
-     * segment at {@link BlockPos#ZERO} on every town's first tick, so
-     * {@link Town#structuralFlags()} flipped on the {@code road_laid} leg
-     * for every town that ticked — even ones whose (future) production
-     * road planner had no real work to do. That synthetic write made the
-     * hub-mode gate's structural triple fire spuriously on every save. The
-     * helper now returns {@code false} on every call and never mutates the
-     * SoT; the structural gate stays on the
+     * <p><b>Wire path.</b> {@link TickScheduler#tick(MinecraftServer)} →
+     * {@code tickRoadPlans(town, gameTime)} →
+     * {@code roadPlanSource.planFor(town, gameTime)} →
+     * {@link Town#addRoadSegment(RoadSegment)} (one per non-null returned
+     * segment). The helper's boolean return is wrapped by the caller with
+     * {@code LevelTowns.markDirty()} so the SoT append persists on the
+     * next chunk save — same dirty-mark contract as {@link #tickRaids} and
+     * {@link #tickQuests}.
+     *
+     * <p><b>Default (no source installed).</b> {@link #roadPlanSource} is
+     * {@code null} by default, which the helper resolves to
+     * {@link RoadPlanSource#NONE} (empty list, no SoT mutation, returns
+     * {@code false}). This preserves the pre-carve no-op stub behaviour
+     * — the structural gate stays on the
      * {@link org.lowern1ght.burg.domain.settlement.StructuralFlags#NONE}
-     * floor until the (future) production road planner calls
-     * {@link Town#addRoadSegment(org.lowern1ght.burg.behavior.road.RoadSegment)}
-     * from the {@code RoadBuilder.planTasks} commit path.
+     * floor until the production caller (the act-4 transition owner)
+     * installs a source. No production caller exists yet (a glob over
+     * any path matching {@code *road/*Plan*.java} other than this seam
+     * still returns no hits as of this PR), so the seam's default is
+     * load-bearing: it keeps the structural gate honest until the
+     * production caller lands.
      *
-     * <p>The method signature is preserved (package-private, static,
-     * {@code boolean}, {@code (Town, long)}) so the seam the road planner
-     * wires into is already in place — the next carve just has to replace
-     * the body with the planner's real output. The cheap {@code :common:test}
-     * signature pin ({@link TickSchedulerStructuralWireTest}) still pins the
-     * helper's shape; the no-op behaviour is pinned by
-     * {@code :neoforge:test}'s {@code TickSchedulerStructuralFlagsPostTickNoneTest}.
-     *
-     * <p><b>Real-planner status (carved by this PR, end-state doc).</b>
-     * The road planner <i>does</i> exist: <code>org.lowern1ght.burg.behavior.road.RoadBuilder</code>
-     * (with the public method
-     * {@code RoadBuilder.planTasks(ExpandIntent, Town, ServerLevel)}) computes
-     * real A* (Dijkstra) routes through {@link org.lowern1ght.burg.behavior.road.RoadPlanner}
-     * and returns them as {@link org.lowern1ght.burg.behavior.road.RoadSegment}
-     * instances. <b>The seam is not wired yet</b>: no production caller
-     * routes an {@link org.lowern1ght.burg.behavior.intent.ExpandIntent} into
-     * {@code planTasks} (only {@link org.lowern1ght.burg.gametest.PathLayerGameTest}
-     * does so today), and {@code planTasks} itself does not call
-     * {@link Town#addRoadSegment(org.lowern1ght.burg.behavior.road.RoadSegment)}
-     * — that single call at the end of the planner's commit path is the only
-     * plumbing left to flip the {@code road_laid} leg via the real planner.
-     * This carve leaves the helper as a no-op rather than wire that call
-     * directly: there is no production driver feeding {@code planTasks}
-     * today, so flipping the call would record synthetic {@link BlockPos#ZERO}
-     * segments on every tick (the same mistake the PR #56 stub made).
-     *
-     * <p>TODO(act5): the production caller that owns the act-4 transition
+     * <p><b>Production caller (future).</b> The act-4 transition owner
      * (the strict reading of ruling 3 — supply steers what gets built —
-     * owns the ExpandIntent ramp, see <code>docs/01-vision/VISION.md</code>
-     * §"the hub is a window") fires an {@code ExpandIntent} per decided
-     * route; that intent flows into
-     * {@code RoadBuilder.planTasks(...).get(0)} and the resulting
-     * {@code RoadSegment} lands via {@link Town#addRoadSegment(RoadSegment)}.
-     * This helper then either disappears or becomes the rate-limited
-     * dispatch wrapper the future seam describes.
+     * owns the {@code ExpandIntent} ramp, see
+     * <code>docs/01-vision/VISION.md</code> §"the hub is a window") fires
+     * an {@code ExpandIntent} per decided route. That intent flows into
+     * {@code RoadBuilder.planTasks(...)}; the resulting {@link RoadTask}'s
+     * {@link RoadTask#segment()} lands on the SoT via
+     * {@link Town#addRoadSegment(RoadSegment)}. The production caller
+     * wraps that flow in a {@link RoadPlanSource} and installs it via
+     * {@link #setRoadPlanSource(RoadPlanSource)} during mod-bus init
+     * (one-time, like {@link BehaviorEngine#register}).
      *
-     * <p>Companion pin (no MinecraftServer required): {@code PlannerPopulationSeamTest}
-     * in {@code :common:test} bundles the seam view — Town mutators + the
-     * TickScheduler helpers + the {@code RoadBuilder} FQCN. That file is
-     * the seam's <em>landing pad</em>: a next carve flips its assertions
-     * when the production caller is in place.
+     * <p><b>Failure safety.</b> The {@code planFor} call is wrapped in
+     * {@code try/catch (Throwable)} so a buggy or throwing source cannot
+     * break the tick loop. The exception is logged via the
+     * {@link #LOGGER}, the helper returns {@code false}, the caller's
+     * {@code markDirty} branch is skipped, and the next tick retries with
+     * whatever state the source is in by then. The structural SoT is the
+     * most load-bearing invariant in the act-4 gate, so a partial / buggy
+     * source degrades to no-op rather than tearing the gate open on a
+     * stale write.
+     *
+     * <p><b>Pins.</b> The cheap {@code :common:test} signature pin
+     * ({@link TickSchedulerStructuralWireTest}) still pins the helper's
+     * shape. The bare-JVM wire pin
+     * ({@link TickSchedulerRoadPlanWireTest}) exercises the source-driven
+     * path with a fake source (one segment → SoT size 1; empty list →
+     * {@code NONE} flag). The MC gametest
+     * ({@code RoadPlanTickGameTest}) runs the wire on a real MC server
+     * with a real {@code RoadBuilder} + {@code ExpandIntent}, end-to-end.
      */
     static boolean tickRoadPlans(Town town, long gameTime) {
-        // No-op: the synthetic write has been removed. The structural SoT
-        // stays empty until the production road planner commits.
-        return false;
+        RoadPlanSource source = roadPlanSource;
+        if (source == null) source = RoadPlanSource.NONE;
+        try {
+            List<RoadSegment> segments = source.planFor(town, gameTime);
+            if (segments == null || segments.isEmpty()) {
+                return false;
+            }
+            boolean changed = false;
+            for (RoadSegment seg : segments) {
+                // Town.addRoadSegment drops null silently at the edge (see its
+                // javadoc), so the loop tolerates a null element without an
+                // extra guard. The `changed` flag flips for any non-null
+                // segment that lands — addRoadSegment's drop-on-null is what
+                // determines whether `changed` reflects what actually landed.
+                if (seg != null) {
+                    town.addRoadSegment(seg);
+                    changed = true;
+                }
+            }
+            return changed;
+        } catch (Throwable t) {
+            // The structural SoT is the load-bearing invariant of the act-4
+            // gate. A failing planner degrades to no-op (no SoT mutation, no
+            // markDirty) rather than tearing the gate open or breaking the
+            // tick loop. The next tick retries with whatever state the source
+            // is in by then.
+            LOGGER.error("[OUAT-TICK] tickRoadPlans failed for town; tick loop survives"
+                + " (segments-in-flight were dropped)", t);
+            return false;
+        }
+    }
+
+    /**
+     * Install (or reset, with {@code null}) the {@link RoadPlanSource} the
+     * {@link #tickRoadPlans(Town, long)} helper delegates to. Package-private
+     * on purpose: the production wire is one-time at mod-bus init (mirroring
+     * the {@link BehaviorEngine#register} discipline); the bare-JVM and
+     * {@code :neoforge:test} targets install fakes via this setter. A
+     * {@code null} argument resets to the {@link RoadPlanSource#NONE} default
+     * so a test that forgets to clean up does not leak a source into the
+     * next test in the same JVM.
+     *
+     * <p>Volatile read in {@link #tickRoadPlans} makes the install visible
+     * to the production tick thread without an explicit fence. The window
+     * between "source set" and "next tick observes it" is acceptable: a
+     * first tick that runs against the default {@link RoadPlanSource#NONE}
+     * is a single missed no-op tick, not a correctness gap.
+     */
+    static void setRoadPlanSource(RoadPlanSource source) {
+        roadPlanSource = source;
     }
 
     private static boolean prerequisitesMet(QuestDef.Prerequisites prereqs, Town town, TownInventory inventory) {
