@@ -3,14 +3,32 @@ package org.lowern1ght.burg.test;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.neoforged.neoforge.gametest.GameTestHolder;
+import org.lowern1ght.burg.town.Quest;
 import org.lowern1ght.burg.town.Town;
 
+import java.util.Optional;
+
 /**
- * Burg's first live-Minecraft behavior test. Targets the structural-flags
- * seam — {@link Town#addZoning(Town.Zone, int)} followed by
- * {@link Town#structuralFlags()} — that the cheap {@code :neoforge:test}
- * JUnit target already pins statically
- * ({@code TownStructuralFlagsRealDerivationsTest}, 7 cases).
+ * Burg's live-Minecraft behavior tests. Two pins, both under the
+ * {@code runGameTestServer} boot (a real MC dedicated server in
+ * gametest mode via ModLauncher):
+ *
+ * <ol>
+ *   <li>{@link #addZoningFlipsIndustryZonedOnLiveServer} — the
+ *       structural-flags seam {@link Town#addZoning(Town.Zone, int)} →
+ *       {@link Town#structuralFlags()}, mirrored from the cheap
+ *       {@code :neoforge:test} JUnit target
+ *       ({@code TownStructuralFlagsRealDerivationsTest}, 7 cases).</li>
+ *   <li>{@link #findQuestDefReturnsAddedQuestAndEmptyForUnknownDefOnLiveServer} —
+ *       the ADR-0029 defId-keyed engine port
+ *       {@link Town#findQuestDef(String)} (after
+ *       {@link Town#addQuest(org.lowern1ght.burg.town.Quest)}). The
+ *       static signature lives in
+ *       {@code :common:test}'s {@code TownQuestLogSotTest}; the MC-aware
+ *       end-to-end pin lives in {@code :neoforge:test}'s
+ *       {@code TickSchedulerQuestTickPortTest}; this {@code @GameTest}
+ *       is the third leg — the live MC server bootstrap.</li>
+ * </ol>
  *
  * <p>This {@code @GameTestHolder} lives in the dedicated {@code gametest}
  * source set so it is only discovered by the {@code runGameTestServer}
@@ -102,6 +120,98 @@ public final class BurgGameTests {
             town.getZoningCount().containsKey(Town.Zone.CORE),
             "expected CORE to be observed in zoningCount after "
                 + "Town.addZoning(CORE, 5)"
+        );
+
+        helper.succeed();
+    }
+
+    /**
+     * Live-Minecraft pin for the ADR-0029 {@link Town#findQuestDef(String)}
+     * engine port. The {@code :neoforge:test} static target
+     * ({@code TickSchedulerQuestTickPortTest}) drives the same seam
+     * through {@code TickScheduler.tickQuests} on a bare JUnit classpath;
+     * this {@code @GameTest} proves the port survives the
+     * {@code runGameTestServer} bootstrap end-to-end.
+     *
+     * <p>The seam under test:
+     * <ol>
+     *   <li>{@code Town.addQuest(Quest)} populates both the SoT
+     *       {@code questLog} (a STATUS_ACTIVE ref for the defId) and the
+     *       derived {@code questDefIndex} (the rich {@link Quest} keyed
+     *       by defId). The engine primary key is defId — a carve that
+     *       re-introduced questId as the index key would re-introduce
+     *       the per-spawn identity the carve retired.</li>
+     *   <li>{@code Town.findQuestDef(defId)} is the O(1) read path the
+     *       four engine consumers — {@code QuestManager.isAlreadyActive},
+     *       {@code TickScheduler.tickQuests},
+     *       {@code C2SContributeQuestPacket.handle},
+     *       {@code TownHubDataBuilder} — read through. Empty when no
+     *       quest with the defId is active, present carrying the same
+     *       {@link Quest} instance {@code addQuest} stored.</li>
+     * </ol>
+     *
+     * <p>Both assertions are pinned:
+     * <ul>
+     *   <li>The known-defId branch returns the same {@link Quest}
+     *       instance {@code addQuest} inserted (identity, not equality —
+     *       the contract is "no defensive copy", see
+     *       {@code TickSchedulerQuestTickPortTest.tickQuestsIsIdempotentForActiveDefId}).</li>
+     *   <li>The unknown-defId branch returns {@link Optional#empty()}
+     *       so callers can chain {@code .orElse(null)} without a guard.
+     *       This is the negative half of the seam — a carve that
+     *       accidentally returned {@code null} would NPE the
+     *       contribute-packet handle before the C2S codec surfaced it.</li>
+     * </ul>
+     *
+     * <p>The static signature pin lives in
+     * {@code :common:test}'s {@code TownQuestLogSotTest.findQuestDefPortSignature}
+     * and the MC-aware end-to-end pin lives in
+     * {@code :neoforge:test}'s {@code TickSchedulerQuestTickPortTest}.
+     * This is the third leg — the live MC server bootstrap, which is
+     * the only place the {@code gametest} source-set wiring
+     * (PRs #64, #66, #67, #68, #69) is exercised end to end.
+     */
+    @GameTest(template = "empty5x5")
+    public void findQuestDefReturnsAddedQuestAndEmptyForUnknownDefOnLiveServer(GameTestHelper helper) {
+        Town town = new Town();
+
+        // ADR-0029 — addQuest requires both questId (the per-spawn
+        // identity the contribute packet's client render carries) AND
+        // defId (the engine primary key the findQuestDef port reads
+        // through). The defaults (null questId / null defId) make
+        // addQuest a silent no-op; we set both explicitly so the test
+        // is not a no-op on its own.
+        Quest quest = new Quest();
+        quest.questId = "q-smoke-001";
+        quest.defId = "burg:test:smoke";
+        quest.questType = "TASK";
+
+        town.addQuest(quest);
+
+        Optional<Quest> present = town.findQuestDef("burg:test:smoke");
+        Optional<Quest> absent = town.findQuestDef("burg:does:not:exist");
+
+        helper.assertTrue(
+            present.isPresent(),
+            "expected findQuestDef(\"burg:test:smoke\") to be present after "
+                + "Town.addQuest(quest); the defId-keyed questDefIndex must "
+                + "carry the quest we just added"
+        );
+        helper.assertTrue(
+            present.orElseThrow() == quest,
+            "expected findQuestDef to return the same Quest instance we "
+                + "added — the port must not defensive-copy the entry"
+        );
+        helper.assertTrue(
+            quest.defId.equals(present.orElseThrow().defId),
+            "expected the surfaced Quest to carry the same defId we added "
+                + "— the engine primary key survives the read port"
+        );
+        helper.assertFalse(
+            absent.isPresent(),
+            "expected findQuestDef(\"burg:does:not:exist\") to be empty — "
+                + "an unknown defId must yield Optional.empty() so callers "
+                + "can chain .orElse(null) without a guard"
         );
 
         helper.succeed();
