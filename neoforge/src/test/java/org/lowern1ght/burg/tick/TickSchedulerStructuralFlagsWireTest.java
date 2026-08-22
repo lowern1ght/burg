@@ -93,14 +93,16 @@ class TickSchedulerStructuralFlagsWireTest {
                 "second tickZoning is a no-op — zoningCount stays empty regardless of how many"
                     + " ticks pass"),
             () -> assertFalse(TickScheduler.tickRoadPlans(town, 0L),
-                "first tickRoadPlans call returns false — the synthetic one-cell segment at"
-                    + " BlockPos.ZERO has been removed; the helper is a no-op stub until the"
-                    + " production road planner (a future carve) takes over the seam"),
+                "first tickRoadPlans call returns false — the helper resolves the unset"
+                    + " source to RoadPlanSource.NONE; the production caller (the act-4"
+                    + " transition owner) has not wired its planning path in yet, so the"
+                    + " seam runs the empty-list default"),
             () -> assertEquals(0, town.getPlannedRoads().size(),
-                "after tickRoadPlans, getPlannedRoads is still empty — the no-op stub never"
-                    + " calls Town.addRoadSegment; the SoT stays on the empty-list floor"),
+                "after tickRoadPlans, getPlannedRoads is still empty — the RoadPlanSource.NONE"
+                    + " default emits an empty list; the SoT stays on the empty-list floor"),
             () -> assertFalse(TickScheduler.tickRoadPlans(town, 0L),
-                "second tickRoadPlans call also returns false — the helper is no-op on every call"),
+                "second tickRoadPlans call also returns false — the helper is no-op on the"
+                    + " unset-source path on every call"),
             () -> assertEquals(0, town.getPlannedRoads().size(),
                 "second tickRoadPlans is a no-op — plannedRoads stays empty regardless of how many"
                     + " ticks pass")
@@ -163,26 +165,27 @@ class TickSchedulerStructuralFlagsWireTest {
             "before the helper call, the gate is on the NONE floor");
 
         assertFalse(TickScheduler.tickRoadPlans(town, 0L),
-            "the tickRoadPlans helper is a no-op stub — it returns false instead of appending"
-                + " the synthetic one-cell segment at BlockPos.ZERO");
+            "the tickRoadPlans helper resolves the unset source to RoadPlanSource.NONE;"
+                + " the seam's no-op default returns an empty list; the helper returns"
+                + " false instead of appending a synthetic segment");
 
         StructuralFlags observed = town.structuralFlags();
         assertAll(
             () -> assertSame(StructuralFlags.NONE, observed,
-                "after tickRoadPlans, structuralFlags() is still NONE — the no-op stub never"
-                    + " writes the planned-roads SoT; the structural triple's road_laid leg"
-                    + " stays on the empty-list floor"),
+                "after tickRoadPlans, structuralFlags() is still NONE — the RoadPlanSource.NONE"
+                    + " default returned an empty list; the planned-roads SoT stays on the"
+                    + " empty-list floor; the structural triple's road_laid leg stays off"),
             () -> assertFalse(observed.isAnySet(),
                 "structuralFlags().isAnySet() stays false after tickRoadPlans — the gate's"
                     + " permissive form does not fire on a town the road planner has not"
                     + " committed"),
             () -> assertFalse(observed.roadLaid(),
-                "structuralFlags().roadLaid() is false — the no-op helper never writes"
-                    + " Town.addRoadSegment; the (future) road planner is the only sanctioned"
-                    + " writer for this leg"),
+                "structuralFlags().roadLaid() is false — the unset-source path's NONE default"
+                    + " never writes Town.addRoadSegment; the road planner (when installed) is"
+                    + " the only sanctioned writer for this leg"),
             () -> assertFalse(observed.industryZoned(),
                 "structuralFlags().industryZoned() is still false — tickRoadPlans does not"
-                    + " touch the zoning SoT either; the legs are independent")
+                    + " touch the zoning SoT either; the legs are independent writers")
         );
     }
 
@@ -199,18 +202,21 @@ class TickSchedulerStructuralFlagsWireTest {
             () -> assertFalse(observed.industryZoned(),
                 "industry_zoned is false — tickZoning is a no-op, the zoning SoT stays empty"),
             () -> assertFalse(observed.roadLaid(),
-                "road_laid is false — tickRoadPlans is a no-op, the planned-roads SoT stays"
-                    + " empty"),
+                "road_laid is false — tickRoadPlans resolves the unset source to"
+                    + " RoadPlanSource.NONE; the empty-list default keeps the planned-roads"
+                    + " SoT empty"),
             () -> assertFalse(observed.corePopulated(),
                 "core_populated is false — no buildings have been placed, the real-derivation"
                     + " leg is independent of the SoT-write legs"),
             () -> assertFalse(observed.isAnySet(),
                 "structuralFlags().isAnySet() is false — the gate's structural triple"
-                    + " collapses to NONE forever unless a real mutator runs"),
+                    + " collapses to NONE unless a real mutator runs (the unset-source path"
+                    + " counts as no-mutation; a future installRoadPlanSource call would"
+                    + " flip the road_laid leg through the same helper)"),
             () -> assertSame(StructuralFlags.NONE, observed,
-                "structuralFlags() returns the NONE sentinel — record-equality; both no-op"
-                    + " helpers together cannot flip the gate; only the production zoning"
-                    + " layer / road planner writes the SoT")
+                "structuralFlags() returns the NONE sentinel — record-equality; the unset-source"
+                    + " defaults together cannot flip the gate; only the production zoning"
+                    + " layer / road planner source writes the SoT")
         );
     }
 
@@ -221,21 +227,24 @@ class TickSchedulerStructuralFlagsWireTest {
 
         // Even after multiple calls at multiple game times, the planned-roads
         // list stays empty. The legacy synthetic write appended a one-cell
-        // STREET at BlockPos.ZERO on the first call; the no-op stub never
-        // produces a segment, so the SoT never sees a BlockPos.ZERO entry.
+        // STREET at BlockPos.ZERO on the first call; the RoadPlanSource.NONE
+        // default never produces a segment, so the SoT never sees a
+        // BlockPos.ZERO entry.
         for (int i = 0; i < 3; i++) {
             long gameTime = (long) (i + 1) * 100L;
             TickScheduler.tickRoadPlans(town, gameTime);
         }
 
         assertTrue(town.getPlannedRoads().isEmpty(),
-            "plannedRoads stays empty across 3 calls — the no-op stub does not append"
-                + " a synthetic segment; the SoT only grows when the (future) production"
-                + " road planner calls Town.addRoadSegment from RoadBuilder.planTasks");
+            "plannedRoads stays empty across 3 calls — the unset-source default"
+                + " (RoadPlanSource.NONE) does not append a synthetic segment; the SoT"
+                + " only grows when a source emits one or when the production caller"
+                + " routes its planning output through RoadBuilder.planTasks and"
+                + " installs the resulting RoadPlanSource");
 
         assertEquals(0, town.getZoningCount().size(),
-            "zoningCount stays empty across 3 calls — the no-op stub does not write"
-                + " Town.addZoning; the SoT only grows when the (future) production"
-                + " zoning layer commits a decision");
+            "zoningCount stays empty across 3 calls — tickZoning is a no-op, the"
+                + " helper never writes Town.addZoning; the SoT only grows when the"
+                + " (future) production zoning layer commits a decision");
     }
 }
