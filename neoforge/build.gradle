@@ -83,6 +83,7 @@ neoForge {
     // static-initialisation path (Town, RaidManager, BuiltInRegistries),
     // which is wired by the explicit `testImplementation files(...)` carve
     // below — the same shape `:common:test` uses for its MC-typed tests.
+    // See ADR-0026 for the full rationale and trade-offs of this carve-out.
     //
     // The full server-in-a-test-vm path lives in the `gametest` source set
     // declared further down in this file. It targets the
