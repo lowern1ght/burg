@@ -257,7 +257,21 @@ public class TickScheduler {
      * helper's shape; the no-op behaviour is pinned by
      * {@code :neoforge:test}'s {@code TickSchedulerStructuralFlagsPostTickNoneTest}.
      *
-     * <p>TODO(act5): real zoning layer writes {@code Town.addZoning(zone, cells)}
+     * <p><b>Real-planner status (carved by this PR, end-state doc).</b>
+     * No zoning planner class exists in the codebase yet (a glob over
+     * any path matching {@code *zoning&#47;*Planner*.java} returns no hits
+     * as of PR #71). The only production code that <i>decides</i> a zone
+     * today is {@link Town#zoneOf(net.minecraft.core.BlockPos)}, which is a
+     * position lookup, not a planning step — it does not produce cells to
+     * commit and therefore has no reason to call {@link Town#addZoning}.
+     * The {@code addZoning} seam therefore sits open by design: the helper's
+     * caller path (line 76 of {@link #tick}) feeds every town per tick,
+     * the production zoning layer (an act-4 / act-5 carve) will take it
+     * over, and this helper then either disappears or becomes the
+     * rate-limited dispatch wrapper the future seam describes.
+     *
+     * <p>TODO(act5): real zoning layer (see <code>docs/01-vision/VISION.md</code>
+     * §"the hub is a window") writes {@code Town.addZoning(zone, cells)}
      * from its planning path; this helper then either disappears or becomes
      * the rate-limited dispatch wrapper the future seam describes.
      */
@@ -291,10 +305,39 @@ public class TickScheduler {
      * helper's shape; the no-op behaviour is pinned by
      * {@code :neoforge:test}'s {@code TickSchedulerStructuralFlagsPostTickNoneTest}.
      *
-     * <p>TODO(act5): real road planner's commit path calls
-     * {@code Town.addRoadSegment(segment)} from {@code RoadBuilder.planTasks};
-     * this helper then either disappears or becomes the rate-limited
+     * <p><b>Real-planner status (carved by this PR, end-state doc).</b>
+     * The road planner <i>does</i> exist: <code>org.lowern1ght.burg.behavior.road.RoadBuilder</code>
+     * (with the public method
+     * {@code RoadBuilder.planTasks(ExpandIntent, Town, ServerLevel)}) computes
+     * real A* (Dijkstra) routes through {@link org.lowern1ght.burg.behavior.road.RoadPlanner}
+     * and returns them as {@link org.lowern1ght.burg.behavior.road.RoadSegment}
+     * instances. <b>The seam is not wired yet</b>: no production caller
+     * routes an {@link org.lowern1ght.burg.behavior.intent.ExpandIntent} into
+     * {@code planTasks} (only {@link org.lowern1ght.burg.gametest.PathLayerGameTest}
+     * does so today), and {@code planTasks} itself does not call
+     * {@link Town#addRoadSegment(org.lowern1ght.burg.behavior.road.RoadSegment)}
+     * — that single call at the end of the planner's commit path is the only
+     * plumbing left to flip the {@code road_laid} leg via the real planner.
+     * This carve leaves the helper as a no-op rather than wire that call
+     * directly: there is no production driver feeding {@code planTasks}
+     * today, so flipping the call would record synthetic {@link BlockPos#ZERO}
+     * segments on every tick (the same mistake the PR #56 stub made).
+     *
+     * <p>TODO(act5): the production caller that owns the act-4 transition
+     * (the strict reading of ruling 3 — supply steers what gets built —
+     * owns the ExpandIntent ramp, see <code>docs/01-vision/VISION.md</code>
+     * §"the hub is a window") fires an {@code ExpandIntent} per decided
+     * route; that intent flows into
+     * {@code RoadBuilder.planTasks(...).get(0)} and the resulting
+     * {@code RoadSegment} lands via {@link Town#addRoadSegment(RoadSegment)}.
+     * This helper then either disappears or becomes the rate-limited
      * dispatch wrapper the future seam describes.
+     *
+     * <p>Companion pin (no MinecraftServer required): {@code PlannerPopulationSeamTest}
+     * in {@code :common:test} bundles the seam view — Town mutators + the
+     * TickScheduler helpers + the {@code RoadBuilder} FQCN. That file is
+     * the seam's <em>landing pad</em>: a next carve flips its assertions
+     * when the production caller is in place.
      */
     static boolean tickRoadPlans(Town town, long gameTime) {
         // No-op: the synthetic write has been removed. The structural SoT
